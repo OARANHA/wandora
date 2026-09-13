@@ -1,0 +1,15 @@
+http:
+  routers:
+    wandora-portainer:
+      rule: "Host(`portainer.wandora.com.br`)"
+      entryPoints:
+        - websecure
+      service: wandora-portainer
+      tls:
+        certResolver: letsencrypt
+
+  services:
+    wandora-portainer:
+      loadBalancer:
+        servers:
+          - url: "http://wandora-portainer:9000"
