@@ -42,6 +42,15 @@ services:
       retries: 3
       start_period: 10s
 
+  edge-probe:
+    image: traefik/whoami:v1.12.0
+    container_name: wandora-edge-probe
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - wandora-edge
+
 networks:
   wandora-edge:
     external: true
