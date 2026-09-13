@@ -1,0 +1,12 @@
+services:
+  api-gw:
+    networks:
+      default:
+        aliases:
+          - envoy
+          - kong
+      wandora-edge: {}
+
+networks:
+  wandora-edge:
+    external: true
