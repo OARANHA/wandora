@@ -43,11 +43,17 @@ services:
       start_period: 10s
 
   edge-probe:
-    image: traefik/whoami:v1.12.0
+    image: nginxinc/nginx-unprivileged:1.29.1-alpine
     container_name: wandora-edge-probe
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx
+    volumes:
+      - ./status-site:/usr/share/nginx/html:ro
     networks:
       - wandora-edge
 
