@@ -125,31 +125,65 @@ Providers are interchangeable infrastructure. Initial candidates include Chutes 
 
 Routing should evolve based on quality, cost, latency and task sensitivity. Employee identity must not depend on one model vendor.
 
+## Edge, DNS and ingress
+
+Cloudflare is the canonical public edge for Wandora.
+
+Responsibilities:
+
+- authoritative DNS for `wandora.com.br` when the domain is activated;
+- public hostname/subdomain resolution;
+- proxying of public HTTP/HTTPS services where appropriate;
+- edge TLS and protection before traffic reaches the VPS;
+- Cloudflare Tunnel / Access as the preferred pattern for privileged administrative surfaces where practical;
+- keeping internal Docker service names and ports independent from public DNS names.
+
+Provisional public naming convention:
+
+- `wandora.com.br` — public website;
+- `app.wandora.com.br` — customer application;
+- `api.wandora.com.br` — Wandora Core API when a public API hostname is justified;
+- `hooks.wandora.com.br` — externally required webhooks when separation is useful;
+- administrative hostnames are not public product surfaces and must receive stronger access controls.
+
+Exact hostnames may change before public launch. Third-party product names such as Paperclip or Mastra must not become part of customer-facing DNS contracts.
+
 ## Deployment architecture — laboratory
 
 ```text
 Internet
    |
-Reverse Proxy / TLS
+Cloudflare DNS / Proxy / Edge
    |
-   +--> Wandora Front (when available)
-   +--> Wandora Core API (when available)
-   +--> externally required webhooks only
+   +--> public web/application traffic
+   +--> externally required webhooks
+   |
+   +--> Cloudflare Tunnel / Access (preferred for admin surfaces)
+             |
+             v
+          VPS Wandora
+             |
+       Reverse Proxy / ingress
+             |
+       Docker networks
+             |
+   +---------+---------------------------+
+   |         |          |                |
+Wandora   Paperclip   Mastra        integrations
+Front/Core             runtime        / messaging
+   |
+Business Graph / canonical data
 
-Private Docker networks
+Operator
    |
-   +--> Paperclip
-   +--> Mastra runtime/services
-   +--> databases/caches
-   +--> integration adapters
-   +--> observability
-
-Operator access
+Cloudflare-protected admin path
    |
-   +--> Portainer
+Portainer
 ```
 
 Portainer manages Docker/Compose deployments operationally, but stack definitions remain versioned in GitHub.
+
+Public application containers should not need direct public IP exposure beyond the chosen ingress design. Databases, caches, organization engine internals and agent runtime internals remain on private Docker networks unless an explicit requirement is documented.
 
 ## Non-goals for V0
 
