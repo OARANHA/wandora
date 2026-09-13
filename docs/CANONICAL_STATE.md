@@ -24,9 +24,9 @@ Wandora owns tenancy, customer-facing contracts, policy, billing boundaries, can
 - **Traefik** — VPS reverse proxy / ingress.
 - **Docker Compose + Portainer** — initial operations model. Git is source of truth; Portainer is an operator console.
 - **Paperclip** — validated laboratory organization/control-plane candidate, private and behind `Organization Adapter`.
-- **Mastra** — primary Agent Runtime candidate, currently under deterministic feasibility validation.
+- **Mastra** — accepted initial Agent Runtime implementation behind a Wandora `Agent Runtime Adapter`.
 - **Supabase self-hosted** — validated Wandora data/auth foundation: PostgreSQL, Auth, Studio, Storage, Realtime, Supavisor and supporting services.
-- **Evolution API** — laboratory WhatsApp provider behind Wandora `Messaging Gateway`; not a direct dependency of employees or customer-facing contracts.
+- **Evolution API** — next laboratory WhatsApp provider behind Wandora `Messaging Gateway`; never a direct employee/customer contract.
 - **Model providers** — replaceable behind a Wandora model-provider boundary.
 
 ## Current VPS state verified on 2026-09-13
@@ -56,19 +56,7 @@ Pinned upstream:
 - `self-hosted/v0.8.1`;
 - commit `8c7a4d9dbbaf8b552893822e89d7bf06f33f9220`.
 
-Validated outcomes:
-
-- PostgreSQL/Auth/PostgREST/Realtime/Storage/Studio/Envoy/Supavisor stack came healthy;
-- `supabase.wandora.com.br` exposes only the intended application API paths through Traefik;
-- `studio.wandora.com.br` is a separate privileged operator surface and requires gateway authentication;
-- PostgreSQL/Supavisor host ports are loopback-only;
-- Auth settings endpoint was verified over public TLS;
-- database persistence survived a PostgreSQL restart;
-- disposable persistence probe was removed; no Wandora business tables were created;
-- runtime secrets remain outside Git;
-- pinned preparation/overlay/runbook are versioned in the repository.
-
-See `docs/infra/supabase-foundation-v1.md` and `infra/stacks/supabase/README.md`.
+Validated outcomes include healthy data/auth services, separated public/admin hostnames, loopback-only PostgreSQL/Supavisor host bindings, valid public TLS, persistence across PostgreSQL restart, versioned non-secret overlay/runbook, and no premature Wandora business tables.
 
 Remaining operational hardening before production-grade customer data:
 
@@ -77,41 +65,57 @@ Remaining operational hardening before production-grade customer data:
 - scheduled off-host backups and a full restore drill;
 - Google/social login only when the application login flow exists.
 
-## Mastra status
+## Mastra status — AGENT RUNTIME SPIKE V1 COMPLETE
 
-A local feasibility spike has begun with Node 22 and current package APIs inspected. The runtime has not yet been declared validated.
+Validated versions:
 
-The next proof must be deterministic and minimal: Wandora-owned tool contract -> workflow -> agent/runtime adapter, initially without requiring paid model tokens where possible.
+- Node `22.23.2`;
+- `@mastra/core` `1.66.0`;
+- `mastra` `1.29.0`;
+- Zod `4.6.4`;
+- TypeScript `6.0.3`.
+
+Evidence:
+
+- deterministic typed tool executes through a committed Mastra workflow;
+- the same capability executes behind the Wandora-owned `AgentRuntime` interface;
+- Mastra run/workflow internals do not cross the Wandora adapter boundary;
+- invalid input is rejected;
+- strict typecheck passed;
+- three runtime tests passed;
+- official `mastra build` succeeded;
+- Docker verification passed with network disabled and Node base image pinned by digest.
+
+ADR 0005 accepts Mastra as the initial implementation behind the provider-neutral runtime adapter. It is not declared production-complete: persistent runtime storage, model-provider integration, production observability, long-running durability, concurrency/recovery and tenant-isolation behavior remain later hardening concerns.
 
 ## Immediate next executable slice
 
-**MASTRA AGENT RUNTIME SPIKE V1**
+**EVOLUTION API + WANDORA MESSAGING GATEWAY V1**
 
-Goal: prove that current Mastra APIs can implement a Wandora-owned runtime boundary without exposing Mastra concepts as customer-facing contracts.
+Goal: prove a provider-neutral Wandora messaging contract over a self-hosted Evolution API laboratory deployment without allowing digital employees or Wandora Front to depend on Evolution-specific APIs, IDs or payloads.
 
 Required outcome:
 
-1. pin the exact tested Mastra package versions;
-2. define a tiny Wandora-owned Agent Runtime interface/contract;
-3. implement one deterministic tool with typed input/output;
-4. execute that tool through a minimal workflow;
-5. prove the same capability can be invoked through the Wandora runtime adapter boundary;
-6. avoid paid model dependency for the first proof where possible;
-7. add tests that fail if provider/runtime-specific objects leak through the Wandora contract;
-8. containerize or otherwise make the spike reproducible;
-9. document failure modes and reversibility;
-10. only after the proof passes, decide whether Mastra becomes the accepted primary runtime implementation.
+1. review/pin the exact current Evolution API version and license/deployment constraints;
+2. deploy privately by default on the Wandora VPS with persistent state and no unnecessary public admin surface;
+3. define a minimal Wandora `MessagingGateway` contract for outbound message and normalized inbound event;
+4. implement an Evolution adapter behind that contract;
+5. isolate provider credentials and instance identifiers from customer-facing contracts;
+6. expose only the webhook/public path actually required for WhatsApp transport, preferably through `hooks.wandora.com.br` or another Wandora-owned contract;
+7. prove idempotent inbound-event normalization and safe retry behavior;
+8. prove outbound send mapping without coupling employee logic to Evolution payloads;
+9. document reconnect/failure/backup/reversibility behavior;
+10. only then advance to Wandora Core multi-tenant/auth contract freeze.
 
-Do not start customer UI or CRM surface area during this slice.
+Do not build CRM UI or customer-facing WhatsApp setup screens during this laboratory slice.
 
-## Execution order after Mastra Runtime Spike V1
+## Execution order after Messaging Gateway V1
 
-1. validate **Evolution / Wandora Messaging Gateway** laboratory path;
-2. define/freeze Wandora Core multi-tenant/auth contracts on Supabase/PostgreSQL;
-3. define the first digital-employee role and smallest end-to-end business workflow;
-4. build the first vertical product slice;
-5. add Wandora login/onboarding and then Google/social OAuth;
-6. expand integrations only when they serve a validated employee workflow.
+1. define/freeze Wandora Core multi-tenant/auth contracts on Supabase/PostgreSQL;
+2. define the first digital-employee role and smallest end-to-end business workflow;
+3. build the first vertical product slice;
+4. add Wandora login/onboarding and then Google/social OAuth;
+5. expand integrations only when they serve a validated employee workflow.
 
 ## Non-negotiable boundaries
 
