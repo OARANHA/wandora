@@ -104,19 +104,21 @@ Paperclip IDs, schemas and authorization semantics must not become customer-faci
 
 ### Agent Runtime
 
-Primary laboratory candidate: **Mastra**, behind a Wandora `Agent Runtime Adapter`.
+Initial accepted implementation: **Mastra**, behind a Wandora `Agent Runtime Adapter`.
+
+The deterministic V1 spike proved the boundary with a typed tool, committed workflow, adapter result mapping, invalid-input rejection, strict TypeScript verification and containerized execution. Mastra-specific run IDs, workflow result objects, step graphs and storage representations remain internal implementation details.
 
 Expected concerns:
 
 - agent execution;
 - tool invocation;
 - conversation/runtime memory;
-- durable workflows;
+- durable workflows where justified;
 - suspend/resume for human-in-the-loop;
 - multi-agent handoffs/orchestration;
 - model selection/provider abstraction.
 
-Mastra is an implementation technology inside the Wandora runtime, not a customer-visible product boundary.
+Mastra is an implementation technology inside the Wandora runtime, not a customer-visible product boundary. Persistent Mastra runtime storage is a separate operational choice and never becomes the only source of truth for transactional Wandora facts.
 
 ### Tool Gateway
 
@@ -169,7 +171,7 @@ Public/customer contracts may include:
 Privileged administrative surfaces include:
 
 - `studio.wandora.com.br` — Supabase Studio, strongly access-controlled (Cloudflare Access preferred);
-- Portainer/other operator consoles — protected administrative paths, not public product surfaces.
+- `portainer.wandora.com.br` — Portainer operator console, protected administrative surface.
 
 PostgreSQL, Redis, Docker socket, Paperclip internals, Mastra runtime internals and management APIs must not be directly public.
 
@@ -236,12 +238,14 @@ Persistent state requires backup and restore procedures. Secrets live outside Gi
 
 ## Near-term execution sequence
 
-1. Supabase Foundation V1 on the current VPS, migration-ready and private-by-default;
-2. deterministic Mastra agent/tool/workflow feasibility spike;
-3. Evolution-based messaging gateway laboratory validation;
-4. freeze Wandora Core contracts and multi-tenant/auth boundaries;
-5. first end-to-end product vertical slice;
-6. social login (for example Google) when the application auth flow is ready.
+1. validate Evolution API behind the Wandora Messaging Gateway;
+2. freeze Wandora Core contracts and multi-tenant/auth boundaries on the validated Supabase foundation;
+3. define the first digital-employee role and minimum business workflow;
+4. build the first end-to-end product vertical slice;
+5. add Wandora login/onboarding and then social login when application auth contracts are ready;
+6. expand integrations only when required by validated employee workflows.
+
+Supabase Foundation V1 and Mastra Agent Runtime Spike V1 are already complete and should not be repeated unless drift or a regression requires repair.
 
 ## Non-goals for the current phase
 
