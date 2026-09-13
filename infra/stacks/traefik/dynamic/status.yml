@@ -1,0 +1,15 @@
+http:
+  routers:
+    wandora-status:
+      rule: "Host(`status.wandora.com.br`)"
+      entryPoints:
+        - websecure
+      service: wandora-status
+      tls:
+        certResolver: letsencrypt
+
+  services:
+    wandora-status:
+      loadBalancer:
+        servers:
+          - url: "http://wandora-edge-probe:80"
