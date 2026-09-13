@@ -1,0 +1,14 @@
+[Unit]
+Description=Wandora Cloudflare-only HTTPS origin firewall
+Requires=docker.service
+After=network-online.target docker.service
+PartOf=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/wandora-cloudflare-origin-firewall
+ExecReload=/usr/local/sbin/wandora-cloudflare-origin-firewall
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
