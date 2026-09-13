@@ -1,0 +1,33 @@
+services:
+  traefik:
+    image: traefik:v3.7.13
+    container_name: wandora-traefik
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    command:
+      - --api.dashboard=true
+      - --api.insecure=false
+      - --providers.file.directory=/etc/traefik/dynamic
+      - --providers.file.watch=true
+      - --entrypoints.admin.address=:8080
+      - --ping=true
+      - --ping.entrypoint=admin
+      - --log.level=INFO
+      - --accesslog=true
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - ./dynamic:/etc/traefik/dynamic:ro
+    networks:
+      - wandora-edge
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+networks:
+  wandora-edge:
+    external: true
