@@ -2,8 +2,15 @@
 set -euo pipefail
 
 IPTABLES="${IPTABLES:-/usr/sbin/iptables}"
+IP="${IP:-/usr/sbin/ip}"
 OLD_CHAIN="WANDORA-CF-HTTPS"
 NEW_CHAIN="WANDORA-CF-HTTPS-NEXT"
+PUBLIC_IFACE="${PUBLIC_IFACE:-$($IP route show default | awk 'NR == 1 { print $5 }')}"
+
+if [[ -z "$PUBLIC_IFACE" ]]; then
+  echo "Unable to determine public interface" >&2
+  exit 1
+fi
 
 CLOUDFLARE_IPV4_RANGES=(
   "173.245.48.0/20"
@@ -36,7 +43,11 @@ if ! "$IPTABLES" -w 2 -nL DOCKER-USER >/dev/null 2>&1; then
   exit 1
 fi
 
-# Remove any stale NEXT jump/chain left by an interrupted previous run.
+# Remove stale NEXT jumps/chains left by an interrupted previous run. Support
+# both the corrected ingress-scoped form and the earlier broad form.
+while "$IPTABLES" -w 10 -C DOCKER-USER -i "$PUBLIC_IFACE" -p tcp --dport 443 -j "$NEW_CHAIN" >/dev/null 2>&1; do
+  "$IPTABLES" -w 10 -D DOCKER-USER -i "$PUBLIC_IFACE" -p tcp --dport 443 -j "$NEW_CHAIN"
+done
 while "$IPTABLES" -w 10 -C DOCKER-USER -p tcp --dport 443 -j "$NEW_CHAIN" >/dev/null 2>&1; do
   "$IPTABLES" -w 10 -D DOCKER-USER -p tcp --dport 443 -j "$NEW_CHAIN"
 done
@@ -45,17 +56,22 @@ if "$IPTABLES" -w 10 -nL "$NEW_CHAIN" >/dev/null 2>&1; then
   "$IPTABLES" -w 10 -X "$NEW_CHAIN"
 fi
 
-# Build the replacement chain completely before switching traffic to it.
+# Build the replacement chain completely before switching ingress traffic to it.
 "$IPTABLES" -w 10 -N "$NEW_CHAIN"
 for cidr in "${CLOUDFLARE_IPV4_RANGES[@]}"; do
   "$IPTABLES" -w 10 -A "$NEW_CHAIN" -s "$cidr" -p tcp --dport 443 -j ACCEPT
 done
 "$IPTABLES" -w 10 -A "$NEW_CHAIN" -p tcp --dport 443 -j DROP
 
-# Install the new policy first, then retire the old one. This avoids a fail-open
-# window when the rule is refreshed while HTTPS is public.
-"$IPTABLES" -w 10 -I DOCKER-USER 1 -p tcp --dport 443 -j "$NEW_CHAIN"
+# Only traffic entering through the public interface is subject to the origin
+# allowlist. Container egress to HTTPS must not be captured by this rule.
+"$IPTABLES" -w 10 -I DOCKER-USER 1 -i "$PUBLIC_IFACE" -p tcp --dport 443 -j "$NEW_CHAIN"
 
+# Retire both corrected and legacy broad jumps. Keeping the new scoped jump in
+# place first avoids a fail-open ingress window during refresh/migration.
+while "$IPTABLES" -w 10 -C DOCKER-USER -i "$PUBLIC_IFACE" -p tcp --dport 443 -j "$OLD_CHAIN" >/dev/null 2>&1; do
+  "$IPTABLES" -w 10 -D DOCKER-USER -i "$PUBLIC_IFACE" -p tcp --dport 443 -j "$OLD_CHAIN"
+done
 while "$IPTABLES" -w 10 -C DOCKER-USER -p tcp --dport 443 -j "$OLD_CHAIN" >/dev/null 2>&1; do
   "$IPTABLES" -w 10 -D DOCKER-USER -p tcp --dport 443 -j "$OLD_CHAIN"
 done
@@ -68,6 +84,6 @@ fi
 # Renaming updates the existing jump reference atomically from NEXT to canonical.
 "$IPTABLES" -w 10 -E "$NEW_CHAIN" "$OLD_CHAIN"
 
-# Verify the canonical jump and terminal deny are present.
-"$IPTABLES" -w 10 -C DOCKER-USER -p tcp --dport 443 -j "$OLD_CHAIN"
+# Verify the canonical ingress-scoped jump and terminal deny are present.
+"$IPTABLES" -w 10 -C DOCKER-USER -i "$PUBLIC_IFACE" -p tcp --dport 443 -j "$OLD_CHAIN"
 "$IPTABLES" -w 10 -C "$OLD_CHAIN" -p tcp --dport 443 -j DROP
