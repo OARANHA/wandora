@@ -1,0 +1,5 @@
+.env
+source/
+backups/
+*.dump
+*.sql.gz

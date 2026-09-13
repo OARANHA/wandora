@@ -1,0 +1,39 @@
+http:
+  routers:
+    wandora-supabase-api:
+      rule: "Host(`supabase.wandora.com.br`) && (PathPrefix(`/auth/v1`) || PathPrefix(`/rest/v1`) || PathPrefix(`/realtime/v1`) || PathPrefix(`/storage/v1`) || PathPrefix(`/functions/v1`) || PathPrefix(`/graphql/v1`) || PathPrefix(`/.well-known`))"
+      entryPoints:
+        - websecure
+      service: wandora-supabase-envoy
+      tls:
+        certResolver: letsencrypt
+
+    wandora-supabase-studio:
+      rule: "Host(`studio.wandora.com.br`)"
+      entryPoints:
+        - websecure
+      service: wandora-supabase-envoy
+      middlewares:
+        - wandora-studio-security
+        - wandora-studio-rate-limit
+      tls:
+        certResolver: letsencrypt
+
+  middlewares:
+    wandora-studio-security:
+      headers:
+        contentTypeNosniff: true
+        frameDeny: true
+        referrerPolicy: "no-referrer"
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+    wandora-studio-rate-limit:
+      rateLimit:
+        average: 30
+        burst: 60
+
+  services:
+    wandora-supabase-envoy:
+      loadBalancer:
+        servers:
+          - url: "http://supabase-envoy:8000"

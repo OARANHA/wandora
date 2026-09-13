@@ -7,6 +7,23 @@ services:
           - kong
       wandora-edge: {}
 
+  auth:
+    environment:
+      GOTRUE_JWT_KEYS: ${JWT_KEYS:-[]}
+  realtime:
+    environment:
+      API_JWT_JWKS: ${JWT_JWKS:-{"keys":[]}}
+  storage:
+    environment:
+      JWT_JWKS: ${JWT_JWKS:-{"keys":[]}}
+  functions:
+    environment:
+      SUPABASE_JWKS: ${JWT_JWKS:-{"keys":[]}}
+  supavisor:
+    ports: !override
+      - "127.0.0.1:${POSTGRES_PORT}:5432"
+      - "127.0.0.1:${POOLER_PROXY_PORT_TRANSACTION}:6543"
+
 networks:
   wandora-edge:
     external: true

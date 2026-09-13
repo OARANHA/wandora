@@ -46,7 +46,7 @@ The following are current decisions unless superseded by a newer accepted ADR:
 - Cloudflare is the public edge and Traefik is the VPS ingress/reverse proxy.
 - Paperclip is the validated laboratory candidate for organization/control-plane capabilities, behind an `Organization Adapter` and private by default.
 - Mastra is the primary TypeScript candidate for the Wandora Agent Runtime, behind an `Agent Runtime Adapter`; it is still being validated.
-- Supabase self-hosted is the selected laboratory data/auth platform for Wandora: PostgreSQL, Auth, Studio, Storage, Realtime and Supavisor as needed.
+- Supabase self-hosted is the selected and laboratory-validated data/auth platform for Wandora: PostgreSQL, Auth, Studio, Storage, Realtime and Supavisor as needed.
 - Supabase is infrastructure, not the Wandora backend. Domain logic remains in Wandora Core/API.
 - One Supabase deployment is used per product/bounded context, not one shared database for unrelated products and not one deployment per Wandora customer.
 - The initial Supabase deployment may run on the current Wandora VPS while load is low; migration to a dedicated data-plane VPS must remain straightforward.
@@ -102,13 +102,14 @@ Do not build speculative surface area. Prefer vertical slices that remove a crit
 Unless an active blocker or explicit user decision changes priority:
 
 1. keep canonical documentation synchronized with accepted decisions;
-2. establish the Supabase self-hosted data/auth foundation on the current VPS, private-by-default and migration-ready;
-3. finish the deterministic Mastra agent/tool/workflow feasibility spike;
-4. validate the Evolution-based messaging gateway laboratory path;
-5. freeze Wandora Core contracts and the first minimum distributable vertical slice;
-6. only then expand customer-facing product surface area.
+2. finish the deterministic Mastra agent/tool/workflow feasibility spike;
+3. validate the Evolution-based messaging gateway laboratory path;
+4. define/freeze Wandora Core contracts, multi-tenant/auth boundaries and the first minimum distributable vertical slice on the validated Supabase foundation;
+5. add customer-facing login/onboarding only after those boundaries are explicit;
+6. add Google/social login when callback contracts and the Wandora login flow are ready;
+7. expand product surface area only after the first vertical slice is end-to-end and auditable.
 
-See `docs/CANONICAL_STATE.md` for exact current status and the next executable step.
+Supabase Foundation V1 is already validated; do not repeat it unless verifying or repairing drift. See `docs/CANONICAL_STATE.md` for exact current status and the next executable step.
 
 ## 9. Definition of progress
 
