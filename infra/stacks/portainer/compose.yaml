@@ -1,0 +1,18 @@
+services:
+  portainer:
+    image: portainer/portainer-ce:2.45.0
+    container_name: wandora-portainer
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "127.0.0.1:9443:9443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /opt/wandora/data/portainer:/data
+    networks:
+      - wandora-edge
+
+networks:
+  wandora-edge:
+    external: true
