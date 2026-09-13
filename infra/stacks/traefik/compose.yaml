@@ -11,14 +11,28 @@ services:
       - --providers.file.directory=/etc/traefik/dynamic
       - --providers.file.watch=true
       - --entrypoints.admin.address=:8080
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
       - --ping=true
       - --ping.entrypoint=admin
       - --log.level=INFO
       - --accesslog=true
+      - --certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:?ACME_EMAIL is required}
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.letsencrypt.acme.dnschallenge=true
+      - --certificatesresolvers.letsencrypt.acme.dnschallenge.provider=cloudflare
+      - --certificatesresolvers.letsencrypt.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory
+    environment:
+      CF_DNS_API_TOKEN_FILE: /run/secrets/cloudflare_dns_api_token
     ports:
       - "127.0.0.1:8080:8080"
+      - "127.0.0.1:80:80"
+      - "127.0.0.1:443:443"
     volumes:
       - ./dynamic:/etc/traefik/dynamic:ro
+      - /opt/wandora/data/traefik/acme.json:/letsencrypt/acme.json
+    secrets:
+      - cloudflare_dns_api_token
     networks:
       - wandora-edge
     healthcheck:
@@ -31,3 +45,7 @@ services:
 networks:
   wandora-edge:
     external: true
+
+secrets:
+  cloudflare_dns_api_token:
+    file: /opt/wandora/data/traefik/secrets/cloudflare_dns_api_token
