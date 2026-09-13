@@ -1,0 +1,45 @@
+services:
+  paperclip:
+    build:
+      context: ./source
+      dockerfile: Dockerfile
+      args:
+        PAPERCLIP_BUILD_VERSION: v2026.831.1
+        PAPERCLIP_BUILD_COMMIT: 65ec059bde30d98c92165b24a30a540800dd1f6f
+    image: wandora/paperclip:v2026.831.1
+    container_name: wandora-paperclip
+    restart: unless-stopped
+    pids_limit: 2048
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "127.0.0.1:3100:3100"
+    environment:
+      HOST: "0.0.0.0"
+      PAPERCLIP_HOME: "/paperclip"
+      PAPERCLIP_DEPLOYMENT_MODE: "authenticated"
+      PAPERCLIP_DEPLOYMENT_EXPOSURE: "private"
+      PAPERCLIP_PUBLIC_URL: "http://localhost:3100"
+      PAPERCLIP_TELEMETRY_DISABLED: "1"
+      DO_NOT_TRACK: "1"
+      BETTER_AUTH_SECRET: "${BETTER_AUTH_SECRET:?required}"
+      PAPERCLIP_AGENT_JWT_SECRET: "${PAPERCLIP_AGENT_JWT_SECRET:?required}"
+      PAPERCLIP_TOOL_ACTION_SIGNING_SECRET: "${PAPERCLIP_TOOL_ACTION_SIGNING_SECRET:?required}"
+    volumes:
+      - paperclip-data:/paperclip
+    networks:
+      - wandora-core
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3100/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+volumes:
+  paperclip-data:
+    name: wandora-paperclip-data
+
+networks:
+  wandora-core:
+    external: true
