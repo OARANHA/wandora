@@ -36,7 +36,13 @@ Wandora is not a CRM-with-AI architecture. CRM, WhatsApp, scheduling, finance an
 
 Owns the customer experience only. It must not call Paperclip, Mastra, Evolution API, model providers or privileged Supabase administrative capabilities directly.
 
-The normal customer experience should use business language: company, team, role, responsibility, work, approval and outcome. Provider/runtime terminology belongs in operator surfaces, not ordinary customer workflows.
+ADR 0008 accepts the initial customer shell as React 19 + Vite with TanStack Router and TanStack Query. Tailwind CSS and Wandora-owned visual patterns provide the design layer. TanStack supplies application behavior and typed navigation/server-state primitives; it does not define the Wandora visual identity.
+
+The current V1 navigation uses business concepts only: `Início`, `Equipe`, `Trabalho`, `Conversas`, `Aprovações` and `Empresa`. The shell is packaged as a multi-stage Docker image: pinned Node 22 compiles the application and a pinned Nginx runtime serves static assets and SPA fallback.
+
+The normal customer experience should use business language: company, team, role, responsibility, work, approval, training and outcome. Provider/runtime terminology belongs in operator surfaces, not ordinary customer workflows.
+
+The product must aim for useful work on the same day a company subscribes. A multi-day manual setup dependency is not the default SaaS model; assisted implementation may exist as an optional service.
 
 ### Wandora Core/API
 
@@ -160,6 +166,8 @@ Privileged administrative surfaces include:
 - `portainer.wandora.com.br` — Portainer operator console;
 - `manager.wandora.com.br` — Evolution operator Manager, never a customer-facing surface.
 
+Additional operator tools may receive dedicated HTTPS hostnames such as logs/metrics/queues when that materially improves human operations. Those hostnames remain behind Cloudflare/Traefik and strong access control. Giving an operator tool a URL does not make the underlying machine service public.
+
 PostgreSQL, Redis, Docker socket, Paperclip internals, Mastra runtime internals and direct provider/database management ports must not be publicly exposed.
 
 ## Deployment architecture — current foundation
@@ -208,14 +216,15 @@ Production-oriented Compose/stack definitions live in GitHub. Portainer may oper
 
 ## Near-term execution sequence
 
-1. define the first digital-employee role and its minimum human-centered business workflow;
-2. build the first end-to-end product vertical slice using the validated Core, Supabase, Mastra and Messaging boundaries;
-3. promote only the required Core contract schema into reviewed migrations/service code;
-4. add Wandora login/onboarding around that real workflow;
-5. add social login when the application auth journey exists;
-6. expand integrations only when a validated employee workflow requires them.
+1. freeze the paying-customer first-day journey from company creation through supervised useful work;
+2. define the first digital-employee role and its minimum human-centered business workflow from that journey;
+3. build the first end-to-end product vertical slice using the validated Web, Core, Supabase, Mastra and Messaging boundaries;
+4. promote only the required Core contract schema into reviewed migrations/service code;
+5. wire real Wandora login/onboarding around the proven journey;
+6. add social login when the application auth journey exists;
+7. expand integrations only when a validated employee workflow requires them.
 
-Supabase Foundation V1, Mastra Agent Runtime V1, Evolution Messaging Gateway V1 and Core Multi-tenant/Auth Contract V1 are complete and should not be repeated unless drift or a regression requires repair.
+Supabase Foundation V1, Mastra Agent Runtime V1, Evolution Messaging Gateway V1, Core Multi-tenant/Auth Contract V1 and Human Interface/Product Shell V1 are complete and should not be repeated unless drift or a regression requires repair.
 
 ## Non-goals for the current phase
 
