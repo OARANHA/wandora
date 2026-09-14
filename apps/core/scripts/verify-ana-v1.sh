@@ -14,10 +14,16 @@ DB_NAME="wandora_test"
 DB_PASSWORD="wandora-test-only"
 CORE_PASSWORD="wandora-core-test-only"
 FIXTURE_PASSWORD="wandora-fixture-test-only"
+CORE_IMAGE="wandora/core:ci-$SUFFIX"
+CORE_SMOKE="wandora-core-smoke-$SUFFIX"
+TMP_SECRET="$(mktemp)"
 
 cleanup() {
+  docker rm -f "$CORE_SMOKE" >/dev/null 2>&1 || true
   docker rm -f "$DB" >/dev/null 2>&1 || true
+  docker image rm -f "$CORE_IMAGE" >/dev/null 2>&1 || true
   docker network rm "$NET" >/dev/null 2>&1 || true
+  rm -f "$TMP_SECRET"
 }
 trap cleanup EXIT
 
@@ -71,6 +77,28 @@ docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -c \
 docker run --rm --network "$NET" -v "$CORE:/app" -w /app \
   -e DATABASE_URL="postgresql://wandora_core_runtime:${CORE_PASSWORD}@${DB}:5432/${DB_NAME}" \
   -e FIXTURE_DATABASE_URL="postgresql://wandora_fixture_admin_test:${FIXTURE_PASSWORD}@${DB}:5432/${DB_NAME}" \
-  "$NODE_IMAGE" sh -lc 'node -v && npm ci --ignore-scripts >/dev/null && npm run typecheck && npm test'
+  "$NODE_IMAGE" sh -lc 'node -v && npm ci --ignore-scripts >/dev/null && npm run verify'
 
+# The production image must boot privately in standby without any real credential.
+docker build -t "$CORE_IMAGE" "$CORE" >/dev/null
+docker run -d --name "$CORE_SMOKE" --network none \
+  -e WANDORA_CORE_MODE=standby -e PORT=8788 "$CORE_IMAGE" >/dev/null
+for _ in $(seq 1 30); do
+  if docker exec "$CORE_SMOKE" node -e \
+    "fetch('http://127.0.0.1:8788/healthz').then(r=>process.exit(r.status===200?0:1)).catch(()=>process.exit(1))"; then
+    break
+  fi
+  sleep 1
+done
+docker exec "$CORE_SMOKE" node -e \
+  "fetch('http://127.0.0.1:8788/readyz').then(r=>process.exit(r.status===503?0:1)).catch(()=>process.exit(1))"
+test -z "$(docker port "$CORE_SMOKE")"
+
+# Both standby and later database-activation Compose shapes must remain valid.
+docker compose -f "$ROOT/infra/stacks/core/compose.yaml" config >/dev/null
+WANDORA_CORE_DB_PASSWORD_FILE="$TMP_SECRET" docker compose \
+  -f "$ROOT/infra/stacks/core/compose.yaml" \
+  -f "$ROOT/infra/stacks/core/compose.database.yaml" config >/dev/null
+
+echo "WANDORA_CORE_PRIVATE_RUNTIME_V1_OK"
 echo "ANA_VERTICAL_SLICE_V1_VERIFY_OK"
