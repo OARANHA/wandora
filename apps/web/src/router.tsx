@@ -1,4 +1,4 @@
-import { createRootRoute, createRoute, createRouter } from '@tanstack/react-router';
+import { Outlet, createRootRoute, createRoute, createRouter } from '@tanstack/react-router';
 import { AppShell } from './components/AppShell';
 import { ApprovalsPage } from './pages/ApprovalsPage';
 import { CompanyPage } from './pages/CompanyPage';
@@ -6,52 +6,68 @@ import { ConversationsPage } from './pages/ConversationsPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { TeamPage } from './pages/TeamPage';
 import { WorkPage } from './pages/WorkPage';
+import { StartPage } from './pages/StartPage';
 
-const rootRoute = createRootRoute({ component: AppShell });
+const rootRoute = createRootRoute({ component: Outlet });
+
+const appRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  id: 'app',
+  component: AppShell,
+});
 
 const indexRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: '/',
   component: DashboardPage,
 });
 
 const teamRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: '/team',
   component: TeamPage,
 });
 
 const workRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: '/work',
   component: WorkPage,
 });
 
 const conversationsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: '/conversations',
   component: ConversationsPage,
 });
 
 const approvalsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: '/approvals',
   component: ApprovalsPage,
 });
 
 const companyRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: '/company',
   component: CompanyPage,
 });
 
+const startRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/start',
+  component: StartPage,
+});
+
 const routeTree = rootRoute.addChildren([
-  indexRoute,
-  teamRoute,
-  workRoute,
-  conversationsRoute,
-  approvalsRoute,
-  companyRoute,
+  appRoute.addChildren([
+    indexRoute,
+    teamRoute,
+    workRoute,
+    conversationsRoute,
+    approvalsRoute,
+    companyRoute,
+  ]),
+  startRoute,
 ]);
 
 export const router = createRouter({ routeTree });
