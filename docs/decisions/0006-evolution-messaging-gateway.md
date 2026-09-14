@@ -32,7 +32,7 @@ The laboratory proved:
 - a successful repeated idempotency key returns the stored Wandora result rather than sending twice;
 - ambiguous transport and non-2xx failures become `uncertain` and automatic resend is refused;
 - a real outbound message invoked through the Wandora adapter returned `accepted: true` and was received on the destination handset;
-- strict TypeScript verification and 9 runtime tests pass;
+- strict TypeScript verification and 10 runtime tests pass, including regression coverage for the required allow-listed `Origin` header;
 - the verification suite passes in a digest-pinned Node container.
 
 ## Provider-specific operational constraints
