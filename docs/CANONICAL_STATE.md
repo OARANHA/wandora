@@ -141,26 +141,47 @@ Validation evidence:
 - customer-facing source scan is clean of provider/runtime vocabulary;
 - source secret scan is clean.
 
+## Ana inbound new-contact contract V1 — COMPLETE
+
+`docs/product/ANA_INBOUND_NEW_CONTACT_V1.md` and `spikes/ana-inbound-new-contact-v1` freeze the first employee business contract.
+
+Ana's initial responsibility is deliberately narrow: receive a normalized inbound WhatsApp contact, acknowledge and qualify it using confirmed company knowledge, and keep one understandable qualification work item moving. A new message does not automatically become a sales opportunity.
+
+The contract freezes these boundaries:
+
+- active Wandora messaging connection must belong to the organization;
+- active Ana assignment must exist before customer state is created;
+- contact and conversation are canonical Wandora objects;
+- later messages from the same customer reuse the same contact, conversation and active qualification work item;
+- duplicate normalized events do not plan or send twice;
+- discount, special price, delivery deadline, payment terms and contractual commitments require human approval before outbound send;
+- disabled connection and paused employee fail before work begins;
+- audit records use Wandora organization/system/digital-employee identities and normalized Wandora event correlation IDs rather than provider/runtime IDs.
+
+Validation evidence:
+
+- strict TypeScript passes;
+- 7/7 tests pass locally;
+- the same 7/7 tests pass in the digest-pinned Node 22 Docker build;
+- the container test runs with networking disabled;
+- the spike uses only in-memory state and fake planner/messaging implementations and does not authorize production autonomous traffic.
+
 ## Immediate next executable slice
 
-**ANA — ASSISTENTE COMERCIAL DIGITAL / INBOUND NEW-CONTACT CONTRACT V1**
+**WANDORA WEB PREVIEW — CUSTOMER EXPERIENCE DEPLOYMENT V1**
 
-Goal: freeze the smallest real business workflow that turns the first-day promise into useful supervised work over the already validated provider-neutral WhatsApp boundary.
+Goal: make the already validated customer experience directly accessible to the product owner at `app.wandora.com.br` before deeper backend promotion.
 
 Required outcome:
 
-1. define exactly what counts as a new inbound commercial contact;
-2. define Ana's initial responsibility and non-responsibilities in business language;
-3. define the minimum company knowledge she may use to answer safely;
-4. define the canonical conversation/contact/work-item state Wandora Core must own;
-5. define the first deterministic inbound flow from normalized Messaging Gateway event to a Wandora work item;
-6. define which replies Ana may send without approval and which actions must stop for the human;
-7. define the approval object/context needed for discounts, commitments, exceptional terms or ambiguous policy;
-8. define what the owner sees immediately in `Início`, `Equipe`, `Trabalho`, `Conversas` and `Aprovações`;
-9. define failure/idempotency/audit behavior before any real autonomous send is enabled;
-10. prove the contract with a falsifiable end-to-end test before promoting schema/runtime changes to production.
+1. deploy the current `apps/web` build as a versioned Docker container;
+2. route `app.wandora.com.br` through the existing Cloudflare/Traefik edge without exposing a direct host application port;
+3. keep the preview clearly separated from real production customer data and real autonomous employee actions;
+4. verify `/`, `/start`, `/team`, `/work`, `/conversations`, `/approvals`, `/company` and `/healthz` through the public hostname;
+5. visually review the public desktop/mobile experience as a paying business owner;
+6. capture any UX/product corrections before promoting the Ana contract into durable Core state.
 
-Do not broaden this slice into a generic CRM, generic agent builder, sales automation suite, autonomous closing agent or marketplace. One employee, one responsibility, one inbound workflow, supervised by default.
+The preview is intentionally allowed to use the current mock/product-contract data. Publishing the interface does not activate real Ana autonomous sending.
 
 ## Human-experience guardrails
 
@@ -175,14 +196,15 @@ Before implementing a capability, answer:
 
 The product should answer, in plain language: who works for my company, what each employee is responsible for, what they are doing, what needs my approval, what happened, what result was produced, and which business tools are connected.
 
-## Execution order after Ana workflow contract
+## Execution order after web preview
 
-1. build the first end-to-end Ana vertical slice using the validated Web, Core, Supabase, Mastra and Messaging boundaries;
-2. promote only the required Core schema into reviewed migrations/service code;
-3. wire real customer auth/onboarding around that proven slice;
-4. replace the `/start` simulated connection/activation with real provider-neutral Core operations;
-5. add Google/social OAuth when the Wandora login journey exists;
-6. expand employees/tools/integrations only when a validated business workflow requires them.
+1. review and correct the customer experience based on direct use of `app.wandora.com.br`;
+2. build **ANA VERTICAL SLICE V1** using the validated Web, Core, Supabase, Mastra and Messaging boundaries;
+3. promote only the required Core schema into reviewed migrations/service code;
+4. wire real customer auth/onboarding around that proven slice;
+5. replace the `/start` simulated connection/activation with real provider-neutral Core operations;
+6. add Google/social OAuth when the Wandora login journey exists;
+7. expand employees/tools/integrations only when a validated business workflow requires them.
 
 ## Non-negotiable boundaries
 
