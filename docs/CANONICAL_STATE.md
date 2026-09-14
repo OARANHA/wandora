@@ -112,6 +112,9 @@ Private durable state covers normalized inbound-event receipts and outbound-atte
 Safety semantics:
 
 - tenant relationships use organization-scoped constraints;
+- foreign or disabled messaging connections fail before customer-state creation;
+- a paused Ana fails before customer-state creation;
+- duplicate/in-progress inbound receipt handling is durable and collision-safe;
 - the browser has no direct grants to Ana's internal Core tables;
 - owner/admin may decide the current V1 commercial approval; another tenant cannot;
 - unknown/ambiguous outbound delivery becomes `delivery-uncertain` and work becomes `attention-required`;
@@ -125,7 +128,7 @@ Reproducible evidence on 2026-09-14:
 ANA_DURABLE_CORE_STATE_V1_OK
 Node v22.23.2
 TypeScript strict: green
-7/7 integration tests: green
+10/10 tests: green
 ANA_VERTICAL_SLICE_V1_VERIFY_OK
 ```
 
