@@ -25,9 +25,9 @@ Commercial commitments remain behind human approval. In V1, active `owner`/`admi
 
 A reproducible verifier creates a disposable Supabase PostgreSQL 17.6.1.136 instance, applies both migrations, validates SQL invariants, then runs `apps/core` under pinned Node 22.23.2.
 
-Verified behavior includes tenant isolation, one active qualification context, inbound/outbound deduplication, replay-safe duplicate events, durable approval/rejection, cross-tenant approval denial, ambiguous-delivery protection and safe retry after Agent Runtime failure.
+Verified behavior includes tenant isolation, one active qualification context, inbound/outbound deduplication, replay-safe duplicate events, durable approval/rejection, cross-tenant approval denial, disabled/foreign connection denial before customer-state creation, paused-employee denial before customer-state creation, in-progress receipt collision handling, ambiguous-delivery protection and safe retry after Agent Runtime failure.
 
-Current integration evidence: strict TypeScript plus 7/7 Node integration tests green.
+Current integration evidence: strict TypeScript plus 10/10 Node tests green (one parent suite + nine behavioral subtests).
 
 ## Consequences
 
