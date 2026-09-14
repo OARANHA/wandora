@@ -113,6 +113,18 @@ The default customer path must aim for useful work on the same day. A multi-day 
 
 For Ana or future employees, unknown/ambiguous external side effects must fail conservatively. In particular, an uncertain message delivery must not be retried automatically unless reconciliation proves it safe.
 
+### Second-pass decision review
+
+For every material product, architecture, infrastructure, security or deployment decision, do not execute immediately after the first conclusion. Use this sequence:
+
+1. analyze the problem and form a provisional decision;
+2. review that decision a second time against accepted architecture, security, reversibility, product experience, operational state and simpler alternatives;
+3. actively look for a missed side effect or a better option;
+4. if the second review contradicts the first, revise the decision and review again;
+5. execute only after the second pass confirms the decision is still in conformity.
+
+Routine mechanical steps inside an already-reviewed decision do not each require a separate design cycle, but any new material choice discovered during execution does.
+
 ## 8. Current execution order
 
 Unless an active blocker or explicit user decision changes priority:
