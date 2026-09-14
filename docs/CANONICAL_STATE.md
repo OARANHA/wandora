@@ -2,19 +2,15 @@
 
 Last synchronized: **2026-09-14**
 
-This file is the short operational handoff for a new chat/agent. It does not replace ADRs. If it conflicts with an accepted ADR, the ADR wins.
-
-## Continuity contract
-
-Read, in order: `AGENTS.md`, accepted ADRs, `docs/architecture.md`, then this file. Do not ask the user to reconstruct decisions already recorded there and do not silently reopen accepted boundaries.
+This is the short operational handoff. Authority order remains: `AGENTS.md` → accepted ADRs → `docs/architecture.md` → this file. Do not ask the user to reconstruct decisions already recorded there and do not silently reopen accepted boundaries.
 
 ## Product thesis
 
 Wandora is a company-operating layer built around human and digital employees, not a CRM-with-AI or generic agent-builder.
 
-The human customer should see familiar business concepts: company, team, responsibilities, connected tools, work, approvals and outcomes. Terms such as provider IDs, JWT claims, RLS, Mastra runs, Evolution instances, prompts or tokens are implementation details and stay out of the normal product experience.
+The customer should see familiar business concepts: company, team, responsibilities, connected tools, work, approvals and outcomes. Provider IDs, JWT claims, RLS, Mastra runs, Evolution instances, prompts, tokens and similar implementation details stay out of the normal experience.
 
-The normal SaaS path must aim for useful work on the same day a company subscribes. A multi-day manual implementation project may exist as an assisted premium service, but it must not be required for the default product experience.
+The normal SaaS path must aim for useful work on the same day a company subscribes. A multi-day assisted implementation may exist as a premium service, but it must not be required for the default path.
 
 Wandora owns tenancy, customer-facing contracts, business authorization, policy, billing boundaries, canonical business state and provider-neutral adapters.
 
@@ -26,33 +22,33 @@ Wandora owns tenancy, customer-facing contracts, business authorization, policy,
 - **Paperclip** — validated laboratory organization/control-plane candidate behind `Organization Adapter`.
 - **Mastra** — accepted initial Agent Runtime behind `Agent Runtime Adapter`.
 - **Supabase self-hosted** — validated PostgreSQL/Auth/data foundation.
-- **Evolution API 2.3.7** — accepted initial laboratory WhatsApp provider behind `Messaging Gateway`.
+- **Evolution API 2.3.7** — accepted initial WhatsApp provider behind `Messaging Gateway`.
 - **React + Vite + TanStack Router/Query** — accepted initial customer web shell; Wandora owns the visual/product language.
 - **Model providers** — replaceable behind a Wandora model-provider boundary.
 
-## VPS / infrastructure status
+## Operator/infrastructure posture
 
-Verified laboratory services include Traefik, Portainer, Paperclip, Supabase Foundation V1 and Evolution API 2.3.7 with dedicated PostgreSQL/Redis persistence.
+Verified laboratory services include Traefik, Portainer, Paperclip, Supabase Foundation V1 and Evolution with dedicated PostgreSQL/Redis persistence.
 
-`manager.wandora.com.br` is an operator-only Evolution Manager surface through Cloudflare/Traefik. Cloudflare Access remains recommended before production-grade use.
+Frequently used operator applications may have protected HTTPS hostnames when useful. Provider databases, Redis, Docker socket and internal runtimes remain private and do not receive direct public management ports merely for convenience.
 
-Frequently used operator applications may receive their own protected HTTPS hostname when useful. Provider databases, Redis, Docker socket and internal runtimes remain private and do not receive direct public management ports merely for convenience.
+Management consoles are operator-only and require stronger protection than customer surfaces. Cloudflare Access remains recommended for privileged admin hostnames before production-grade use.
 
 ## Supabase Foundation V1 — COMPLETE
 
 Pinned upstream: `self-hosted/v0.8.1`, commit `8c7a4d9dbbaf8b552893822e89d7bf06f33f9220`.
 
-Validated foundation includes healthy PostgreSQL/Auth/Studio-related services, stable application/admin hostnames, loopback-only database/pooler host bindings and persistence across restart.
+Validated foundation includes healthy PostgreSQL/Auth/Studio-related services, stable application/admin hostnames, loopback-only database/pooler host bindings and restart persistence.
 
-Operational hardening still open includes Cloudflare Access for admin surfaces, production SMTP, off-host backups/restore drill and social login only when the Wandora application flow needs it.
+Still open for production hardening: Cloudflare Access for admin surfaces, SMTP, off-host backups/restore drill and social login only when the Wandora application journey needs it.
 
 ## Mastra Agent Runtime V1 — COMPLETE
 
 ADR 0005 accepts Mastra as the initial runtime behind the Wandora-owned adapter.
 
-The deterministic spike proved typed tool/workflow execution, adapter isolation, invalid-input rejection, strict TypeScript verification, runtime tests, official Mastra build and digest-pinned Docker verification.
+The deterministic spike proved typed tool/workflow execution, adapter isolation, invalid-input rejection, strict TypeScript verification, official Mastra build and digest-pinned Docker verification.
 
-Persistent runtime storage, observability, concurrency/recovery, long-horizon employee memory and model-provider wiring remain later production concerns and do not reopen the runtime boundary.
+Persistent runtime storage, observability, concurrency/recovery, long-horizon employee memory and model-provider wiring remain later production concerns; they do not reopen the runtime boundary.
 
 ## Evolution Messaging Gateway V1 — COMPLETE
 
@@ -61,127 +57,146 @@ ADR 0006 accepts Evolution API 2.3.7 only as the initial WhatsApp provider behin
 Validated:
 
 - digest-pinned Evolution deployment with private provider data services;
-- API-key protection and QR-paired real WhatsApp instance in `state=open`;
-- per-instance private `MESSAGES_UPSERT` webhook path;
-- normalized inbound Wandora event without Evolution API key/JID/instance/provider IDs;
+- API-key protection and a real QR-paired WhatsApp instance in `state=open`;
+- private per-instance `MESSAGES_UPSERT` webhook;
+- normalized Wandora inbound events without provider credentials/JIDs/instance IDs in the public contract;
 - deterministic inbound deduplication semantics;
-- conservative outbound idempotency with `uncertain` state after ambiguous failures;
+- conservative outbound idempotency with `uncertain` handling;
 - real inbound WhatsApp proof;
 - real outbound WhatsApp proof with handset receipt confirmed;
-- 10/10 runtime tests after regression coverage for Evolution 2.3.7's required allow-listed `Origin`.
+- 10/10 runtime tests, including the Evolution 2.3.7 allow-listed `Origin` regression.
 
-Production hardening still open: durable inbound/outbound idempotency state, reconciliation for uncertain sends, observability/reconnect/backup procedures and Cloudflare Access for the Manager.
+Still open for production hardening: durable inbound/outbound idempotency, reconciliation of uncertain sends, observability/reconnect/backup procedures and Cloudflare Access for the Manager.
 
 ## Wandora Core multi-tenant/auth contract V1 — COMPLETE
 
-ADR 0007 accepts the first Wandora-owned tenant/auth boundary. The validation is a contract/schema proof on a disposable Supabase PostgreSQL container; it has **not** been applied ad hoc to the live Wandora database.
+ADR 0007 accepts the initial Wandora-owned tenant/auth boundary. This remains a reviewed contract/schema proof; it has not been applied ad hoc to the live customer database.
 
 Canonical identities frozen for V1:
 
-- `organization.id` — Wandora company/tenant ID;
-- `user.id` — Wandora human-user ID;
-- `user_identity` — maps external login subjects such as Supabase Auth `sub` to canonical users;
+- `organization.id` — company/tenant;
+- `user.id` — canonical human user;
+- `user_identity` — maps external identity subjects to Wandora users;
 - `membership` — organization-scoped human membership;
-- `messaging_connection.id` — provider-neutral connection ID owned by one organization;
-- provider bindings — private implementation details in an internal schema.
+- `messaging_connection.id` — provider-neutral messaging connection owned by one organization;
+- provider bindings — private implementation details.
 
-Initial human roles are `owner`, `admin`, `member`. Role is not a universal permission matrix; domain capabilities, sensitive operations and approval requirements remain explicit Wandora Core policy decisions.
+Initial human roles are `owner`, `admin`, `member`. Role is not a universal permission matrix; domain capabilities and sensitive actions remain explicit Wandora policy decisions.
 
-The verifier proves identity mapping, organization-scoped role resolution, suspended-membership denial, unknown-subject denial, private provider bindings, and that organization A cannot resolve organization B's messaging connection even when the foreign UUID is known.
+The verifier proves identity mapping, organization-scoped roles, suspended-member denial, unknown-subject denial, private provider bindings and that organization A cannot resolve organization B's messaging connection even when the foreign UUID is known.
 
-Future audit actions use canonical `organization_id`, `actor_type` and Wandora-owned `actor_id`; provider/runtime IDs must not become audit actor IDs.
+Audit-facing actions use canonical `organization_id`, `actor_type` and Wandora-owned `actor_id`; provider/runtime IDs must not become audit actor IDs.
 
 ## Human Interface / Product Shell V1 — COMPLETE
 
-ADR 0008 accepts the initial customer-facing shell.
-
-Implementation currently lives under `apps/web` and uses React 19, Vite 8, TanStack Router, TanStack Query, Tailwind CSS and Lucide. TanStack Start is intentionally deferred until SSR/server functions provide a concrete benefit.
+ADR 0008 accepts the initial customer-facing shell under `apps/web` using React 19, Vite 8, TanStack Router, TanStack Query, Tailwind CSS and Lucide. TanStack Start is intentionally deferred until SSR/server functions provide a concrete benefit.
 
 Customer navigation is frozen for this stage around:
 
-- **Início** — company activity, outcomes and what needs attention;
+- **Início** — activity, outcomes and what needs attention;
 - **Equipe** — humans/digital employees, responsibilities, current work and autonomy;
-- **Trabalho** — business work rather than implementation workflows;
+- **Trabalho** — business work rather than technical workflows;
 - **Conversas** — provider-neutral company conversations;
-- **Aprovações** — human decisions when employee autonomy is exceeded;
+- **Aprovações** — human decisions beyond employee autonomy;
 - **Empresa** — business data, people, knowledge, tools/connections and plan.
 
-The shell is containerized with pinned Node 22 for build and pinned Nginx for runtime. TypeScript/Vite build is green. All six routes and `/healthz` return successfully through the container with SPA fallback.
-
-Chromium browser smoke passed at 390 px and 1440 px across all six routes with no browser-console errors and no horizontal document overflow. Desktop/mobile visual review was completed after removing customer-visible provider/runtime vocabulary and refining mobile navigation.
-
-The V1 shell is still mock/product-contract UI; it is not wired to production Core data/auth yet.
+The shell is containerized with pinned Node 22 for build and pinned Nginx for runtime. TypeScript/Vite build, SPA routing, desktop/mobile Chromium smoke and customer-language review are green.
 
 ## First-Day Customer Journey V1 — COMPLETE
 
-`docs/product/FIRST_DAY_CUSTOMER_JOURNEY_V1.md` freezes the paying-customer path from first entry to the first supervised employee start.
+`docs/product/FIRST_DAY_CUSTOMER_JOURNEY_V1.md` freezes the path from first entry to the first supervised employee start.
 
-The standalone `/start` experience has six customer-language steps:
+Standalone `/start` flow:
 
 1. identify the company with only essential information;
-2. choose the first business outcome to remove from the owner's desk;
+2. choose the first business outcome;
 3. receive a digital-employee recommendation with explicit responsibility and approval boundary;
 4. connect only the first required work tool;
-5. teach only the minimum company facts needed to begin safely;
-6. review the initial responsibility/autonomy and start supervised work.
+5. teach only the minimum company facts required to begin safely;
+6. review initial autonomy and start supervised work.
 
-The route is intentionally outside the normal application shell. It transitions into `Início` after the customer chooses **Começar trabalho supervisionado**.
-
-Current UI is still a product-contract proof: WhatsApp connection and activation are simulated and do not produce live business side effects yet. Production wiring must preserve the customer contract while moving state and authorization into Wandora Core.
-
-Learning boundary is also frozen: history remains traceable; corrections may become proposed durable instructions; durable company guidance requires the appropriate approval path; transactional facts remain structured canonical state rather than conversational/model memory.
-
-Validation evidence:
-
-- pinned Node 22 Docker build runs strict TypeScript and Vite successfully;
-- `/healthz`, `/start` and all six shell routes return HTTP 200 with SPA fallback;
-- Chromium completes the entire six-step journey at 390 px and 1440 px;
-- no browser-console errors or horizontal document overflow were observed;
-- `/start` renders without leaking the normal application shell;
-- customer-facing source scan is clean of provider/runtime vocabulary;
-- source secret scan is clean.
+The normal product must not depend on a Wandora consultant to make progress. Learning is progressive: history remains traceable, corrections may become proposed durable guidance, durable company guidance requires the appropriate approval path, and transactional facts remain canonical structured state rather than conversational/model memory.
 
 ## Ana inbound new-contact contract V1 — COMPLETE
 
 `docs/product/ANA_INBOUND_NEW_CONTACT_V1.md` and `spikes/ana-inbound-new-contact-v1` freeze the first employee business contract.
 
-Ana's initial responsibility is deliberately narrow: receive a normalized inbound WhatsApp contact, acknowledge and qualify it using confirmed company knowledge, and keep one understandable qualification work item moving. A new message does not automatically become a sales opportunity.
+Ana's first responsibility is deliberately narrow: receive a normalized inbound WhatsApp contact, acknowledge/qualify it using confirmed company knowledge, and keep one understandable qualification work item moving. A new message does not automatically become a sales opportunity.
 
-The contract freezes these boundaries:
+Frozen boundaries:
 
 - active Wandora messaging connection must belong to the organization;
 - active Ana assignment must exist before customer state is created;
 - contact and conversation are canonical Wandora objects;
-- later messages from the same customer reuse the same contact, conversation and active qualification work item;
+- later messages from the same customer reuse the same contact, conversation and active qualification work;
 - duplicate normalized events do not plan or send twice;
 - discount, special price, delivery deadline, payment terms and contractual commitments require human approval before outbound send;
 - disabled connection and paused employee fail before work begins;
-- audit records use Wandora organization/system/digital-employee identities and normalized Wandora event correlation IDs rather than provider/runtime IDs.
+- audit records use Wandora-owned identities and normalized event correlation IDs rather than provider/runtime IDs.
 
-Validation evidence:
+Evidence: strict TypeScript plus 7/7 tests locally and in the pinned Node 22 Docker build with networking disabled. The spike uses in-memory state/fake planner/fake transport and does not authorize production autonomous traffic.
 
-- strict TypeScript passes;
-- 7/7 tests pass locally;
-- the same 7/7 tests pass in the digest-pinned Node 22 Docker build;
-- the container test runs with networking disabled;
-- the spike uses only in-memory state and fake planner/messaging implementations and does not authorize production autonomous traffic.
+## Wandora Web Preview V1 — COMPLETE / PUBLIC PRODUCT REVIEW
 
-## Immediate next executable slice
+`docs/product/WANDORA_WEB_PREVIEW_V1.md` records the first browser-accessible customer experience.
 
-**WANDORA WEB PREVIEW — CUSTOMER EXPERIENCE DEPLOYMENT V1**
+Public preview:
 
-Goal: make the already validated customer experience directly accessible to the product owner at `app.wandora.com.br` before deeper backend promotion.
+- `https://app.wandora.com.br`
+- `https://app.wandora.com.br/start`
 
-Required outcome:
+Deployment boundary:
 
-1. deploy the current `apps/web` build as a versioned Docker container;
-2. route `app.wandora.com.br` through the existing Cloudflare/Traefik edge without exposing a direct host application port;
-3. keep the preview clearly separated from real production customer data and real autonomous employee actions;
-4. verify `/`, `/start`, `/team`, `/work`, `/conversations`, `/approvals`, `/company` and `/healthz` through the public hostname;
-5. visually review the public desktop/mobile experience as a paying business owner;
-6. capture any UX/product corrections before promoting the Ana contract into durable Core state.
+- versioned `wandora-web` Docker image;
+- container attached to private `wandora-edge` only;
+- no direct application host port;
+- Traefik `websecure` route;
+- `app.wandora.com.br` proxied by Cloudflare;
+- preview responses carry security headers plus `X-Robots-Tag: noindex, nofollow, noarchive`.
 
-The preview is intentionally allowed to use the current mock/product-contract data. Publishing the interface does not activate real Ana autonomous sending.
+Public validation on 2026-09-14 proved HTTP 200 for `/`, `/start`, `/team`, `/work`, `/conversations`, `/approvals`, `/company` and `/healthz`.
+
+A Playwright Chromium smoke against the **public hostname** passed at 390×844 and 1440×1100 with no console errors, no horizontal overflow, correct standalone `/start` behavior and a complete six-step journey ending at `Início`. Public desktop/mobile screenshots were visually reviewed.
+
+This is still a product preview using mock/product-contract data. The WhatsApp connection/start buttons do not provision real customer resources or activate autonomous Ana work.
+
+## Immediate product gate
+
+**PRODUCT-OWNER CUSTOMER EXPERIENCE REVIEW**
+
+Before deeper backend promotion, the product owner should use `https://app.wandora.com.br/start` and then navigate the shell as if they had just paid for Wandora.
+
+Review specifically:
+
+- does the first five minutes make sense without explanation from Wandora staff?
+- is the language business-like rather than technical?
+- is it obvious what Ana is responsible for and when she needs approval?
+- does `Início` answer what is happening, what was achieved and what needs attention?
+- do `Equipe`, `Trabalho`, `Conversas`, `Aprovações` and `Empresa` feel like managing a company rather than configuring software?
+- what feels unnecessary, confusing or visually weak?
+
+UX/product corrections discovered here take precedence over backend assumptions.
+
+## Next executable technical slice after review
+
+**ANA VERTICAL SLICE V1 — DURABLE CORE STATE + SUPERVISED REAL-PATH WIRING**
+
+Goal: promote only the accepted Ana contract into durable Wandora Core state/services and connect the already validated Web, Supabase, Agent Runtime and Messaging Gateway boundaries.
+
+Expected scope:
+
+1. durable organization-scoped digital-employee assignment/status;
+2. durable contact and conversation state;
+3. inbound/outbound message records;
+4. one qualification work item per active customer qualification context;
+5. durable normalized-event/idempotency receipt;
+6. durable approval request and policy context;
+7. canonical audit trail;
+8. supervised Agent Runtime proposal path;
+9. provider-neutral Messaging Gateway wiring;
+10. Product Shell reads showing the same state the customer already understands.
+
+Do not enable unsupervised production customer traffic merely because the vertical path becomes technically executable.
 
 ## Human-experience guardrails
 
@@ -193,18 +208,6 @@ Before implementing a capability, answer:
 - how quickly does it create observable value?
 - does the customer depend on Wandora staff to continue?
 - does the experience feel like managing an employee or configuring infrastructure?
-
-The product should answer, in plain language: who works for my company, what each employee is responsible for, what they are doing, what needs my approval, what happened, what result was produced, and which business tools are connected.
-
-## Execution order after web preview
-
-1. review and correct the customer experience based on direct use of `app.wandora.com.br`;
-2. build **ANA VERTICAL SLICE V1** using the validated Web, Core, Supabase, Mastra and Messaging boundaries;
-3. promote only the required Core schema into reviewed migrations/service code;
-4. wire real customer auth/onboarding around that proven slice;
-5. replace the `/start` simulated connection/activation with real provider-neutral Core operations;
-6. add Google/social OAuth when the Wandora login journey exists;
-7. expand employees/tools/integrations only when a validated business workflow requires them.
 
 ## Non-negotiable boundaries
 
@@ -219,4 +222,4 @@ The product should answer, in plain language: who works for my company, what eac
 
 ## Startup instruction for another chat
 
-> Read `AGENTS.md`, all accepted ADRs, `docs/architecture.md`, and `docs/CANONICAL_STATE.md`. Continue from `Immediate next executable slice` unless real repository/runtime state proves it is complete. Preserve the human-first product thesis and provider-neutral boundaries.
+> Read `AGENTS.md`, accepted ADRs, `docs/architecture.md` and `docs/CANONICAL_STATE.md`. Respect the public customer-experience review gate. After product-owner review/corrections, continue with `ANA VERTICAL SLICE V1` unless real repository/runtime state proves it is already complete.
