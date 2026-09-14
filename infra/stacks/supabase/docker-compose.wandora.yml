@@ -7,6 +7,13 @@ services:
           - kong
       wandora-edge: {}
 
+  db:
+    networks:
+      default: {}
+      wandora-data:
+        aliases:
+          - wandora-postgres
+
   auth:
     environment:
       GOTRUE_JWT_KEYS: ${JWT_KEYS:-[]}
@@ -26,4 +33,6 @@ services:
 
 networks:
   wandora-edge:
+    external: true
+  wandora-data:
     external: true
