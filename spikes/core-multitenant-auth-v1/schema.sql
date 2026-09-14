@@ -119,9 +119,11 @@ AS $$
   SELECT EXISTS (
     SELECT 1
     FROM memberships m
+    JOIN organizations o ON o.id = m.organization_id
     WHERE m.organization_id = target_organization_id
       AND m.user_id = wandora.current_user_id()
       AND m.status = 'active'
+      AND o.status = 'active'
       AND m.role = ANY(allowed_roles)
   );
 $$;
