@@ -12,6 +12,8 @@ A normal customer should see company, team, responsibilities, work, conversation
 
 The default SaaS path aims for useful work on the same day. Multi-day assisted implementation may exist as a premium service, but it is not the default dependency.
 
+Every material product/customer-journey decision must be checked from two perspectives before execution: a paying business customer asking whether the value is understandable and worth paying for, and the Wandora owner/operator asking whether the capability is secure, supportable, scalable, observable and commercially coherent.
+
 ## Human experience — CURRENT
 
 Public product preview:
@@ -40,7 +42,7 @@ The preview is still using mock/product-contract data. It must not be mistaken f
 - Supabase self-hosted — PostgreSQL/Auth/data foundation, not Wandora business backend.
 - Mastra — accepted initial Agent Runtime behind Wandora's adapter.
 - Evolution API 2.3.7 — accepted initial WhatsApp provider behind Messaging Gateway.
-- React 19 + Vite + TanStack Router/Query — accepted customer web shell.
+- React 19 + Vite with TanStack Router/Query — accepted customer web shell.
 - Model providers — replaceable behind a Wandora-owned boundary; Mistral is a candidate for the first low-cost real-model proof and Chutes/OpenAI remain options.
 
 ## Completed foundations
@@ -123,17 +125,19 @@ Safety semantics:
 - runtime failure can mark the inbound receipt failed and allow a safe retry;
 - provider/runtime identifiers do not become customer/audit identity.
 
-Reproducible development evidence on 2026-09-14:
+Current reproducible development evidence on 2026-09-14:
 
 ```text
+ANA_LIVE_POSTVERIFY_V1_OK
+CORE_RUNTIME_ROLE_V1_LIVE_OK
 ANA_DURABLE_CORE_STATE_V1_OK
 Node v22.23.2
 TypeScript strict: green
-10/10 tests: green
+12/12 tests: green
 ANA_VERTICAL_SLICE_V1_VERIFY_OK
 ```
 
-### Live application evidence — 2026-09-14
+### Live Ana foundation application evidence — 2026-09-14
 
 Before live application, a fresh logical backup was created with restrictive file permissions. A logical snapshot of the live database was also restored into disposable `supabase/postgres:17.6.1.136`, where the exact reviewed migration blobs passed before any production write.
 
@@ -168,13 +172,81 @@ studio.wandora.com.br unauthenticated: HTTP 401
 SUPABASE_PUBLIC_POST_MIGRATION_SMOKE_OK
 ```
 
-The database schema is live, but the production Wandora Core service credential, Gateway-to-Core wiring, real Agent Runtime call and customer traffic are still pending.
+## Core runtime database boundary V1 — LIVE, CREDENTIAL DISABLED
+
+ADR 0010 defines the dedicated PostgreSQL identity for deployed Wandora Core code.
+
+Versioned assets:
+
+- `infra/stacks/supabase/migrations/20260914_003_core_runtime_role_v1.sql`
+- `infra/stacks/supabase/verifiers/VERIFY_20260914_CORE_RUNTIME_ROLE_V1_LIVE.sql`
+- `docs/infra/core-runtime-role-v1.md`
+
+The boundary provides:
+
+- dedicated `wandora_core_runtime` role;
+- no `BYPASSRLS`, database/role administration or provider-binding access;
+- transaction-local `wandora.organization_id` scope for Core repository transactions;
+- organization-scoped RLS policies for the runtime;
+- narrow table/column write privileges;
+- no direct read/write access to canonical audit rows;
+- tenant-checked append-only audit function `wandora.append_core_audit(...)`;
+- browser member policies explicitly restricted to `authenticated`;
+- removal of generic `PUBLIC` `net` schema usage while preserving explicit Supabase service grants.
+
+### Live application evidence — 2026-09-14
+
+PR #20 was merged to `main` at:
+
+```text
+3d16d807ece7765dac356abcd0879006d7a0f13e
+```
+
+Core CI passed on the PR head and on the resulting `main` push.
+
+A fresh pre-003 logical backup was created with mode `0600`, checksum-validated and restore-tested. The snapshot was restored into disposable `supabase/postgres:17.6.1.136`; the exact migration was applied there before production and passed:
+
+```text
+RESTORE_CORE_ROLE_003_LIVE_SNAPSHOT_OK
+MIGRATION_003_ON_LIVE_CLONE_OK
+CORE_RUNTIME_ROLE_V1_LIVE_OK
+ANA_LIVE_POSTVERIFY_V1_OK
+ANA_DURABLE_CORE_STATE_V1_OK
+CORE_ROLE_003_LIVE_CLONE_FULL_VERIFY_OK
+```
+
+The exact reviewed migration was then applied live and returned:
+
+```text
+MIGRATION_003_LIVE_OK
+CORE_RUNTIME_ROLE_V1_LIVE_OK
+ANA_LIVE_POSTVERIFY_V1_OK
+CORE_ROLE_003_LIVE_POSTVERIFY_OK
+CORE_ROLE_003_POST_HEALTH_OK
+```
+
+Current live role state:
+
+```text
+wandora_core_runtime
+LOGIN: true
+CONNECTION LIMIT: 0
+BYPASSRLS: false
+password: absent
+```
+
+The role therefore exists but **cannot yet be used by a production service**. This is intentional. No Core database password should be generated until the Core service and operator-controlled secret-injection path are deployed together.
+
+No customer data was created. PostgreSQL remained non-public, all Supabase services remained healthy, `supabase.wandora.com.br` root remained the intentional HTTP 404 and unauthenticated Studio remained HTTP 401.
 
 ## CI / decision discipline status
 
-GitHub Actions `Core CI` is active for every pull request and push to `main`. It runs the disposable PostgreSQL migration/verifier path, the production-safe read-only verifier, strict TypeScript and the Ana Core integration tests.
+GitHub Actions `Core CI` is active for every pull request and push to `main`. It runs the disposable PostgreSQL migration/verifier path, production-safe read-only verifiers, strict TypeScript and the Ana Core integration tests.
 
-`AGENTS.md` now requires a second-pass review before material product, architecture, infrastructure, security or deployment decisions are executed.
+`AGENTS.md` requires both:
+
+- **dual business perspective** — paying business customer + Wandora owner/operator;
+- **decision → second review → execution** before material product, architecture, infrastructure, security or deployment changes.
 
 Branch protection requiring the CI check remains an administrative pending item because the currently available GitHub integration cannot mutate branch-protection settings. CI itself is active and green.
 
@@ -190,25 +262,28 @@ Structured business facts remain PostgreSQL truth. Knowledge/RAG and employee ex
 
 ## Immediate next executable slice
 
-**ANA SUPERVISED REAL-PATH WIRING V1**
+**WANDORA CORE PRIVATE RUNTIME V1**
 
-Goal: connect the now-live durable database foundation to the already validated provider-neutral runtime and messaging boundaries without enabling unsupervised customer traffic.
+Goal: make Wandora Core exist as a deployable private service with a controlled secret path before any real database credential or customer traffic is introduced.
 
 Expected order:
 
-1. provision a private, least-privilege production Wandora Core database role/credential path without exposing PostgreSQL;
-2. wire normalized Messaging Gateway inbound events to Wandora Core;
-3. wire the existing Mastra Agent Runtime Adapter using a deterministic/fake model path first where possible;
-4. expose tenant-authorized Core reads/actions to Wandora Web;
-5. prove a supervised real path end-to-end;
-6. only then, if the first real model-backed Ana proposal is required, revoke the compromised Mistral token and configure a fresh token securely;
-7. do not enable unsupervised production traffic until policy/operations explicitly approve it;
-8. add real customer authentication/onboarding around the proven path;
-9. add social login and broader integrations only when a validated customer workflow requires them.
+1. package the current `apps/core` runtime as a versioned Docker service suitable for the existing Compose/Portainer operating model;
+2. define the private network/service boundary and health/readiness behavior without exposing PostgreSQL or internal runtime surfaces publicly;
+3. define an operator-controlled secret-injection path for the Core database credential, with no secret committed to Git/chat;
+4. prove the service boots with a deterministic/fake dependency path before enabling any real model provider;
+5. only then generate a fresh Core database credential outside Git/chat, change `wandora_core_runtime` from connection limit `0` to the smallest justified non-zero limit and inject that secret into the deployed Core service;
+6. prove the deployed service connects as `wandora_core_runtime`, cannot use administrative/service credentials and retains transaction-local tenant RLS behavior;
+7. wire normalized Messaging Gateway inbound events to Core in supervised mode;
+8. wire the accepted Mastra Agent Runtime Adapter using a deterministic/fake model path first;
+9. expose tenant-authorized Core reads/actions to Wandora Web;
+10. prove the complete supervised real path end-to-end before any autonomous customer traffic;
+11. only when the first real model-backed Ana proposal is materially required, revoke the compromised Mistral token and configure a fresh model-provider credential securely;
+12. add real customer authentication/onboarding around the proven path, then broader integrations only when validated by a customer workflow.
 
 ## Human-experience guardrails
 
-Before implementing a capability, answer:
+Before implementing a capability, answer from both customer and owner/operator viewpoints:
 
 - how does a paying customer reach it?
 - what does the customer call it in ordinary business language?
@@ -216,6 +291,8 @@ Before implementing a capability, answer:
 - how quickly does it create observable value?
 - does the customer depend on Wandora staff to continue?
 - does the experience feel like managing an employee or configuring infrastructure?
+- would a normal business owner reasonably pay for the result?
+- can Wandora operate, support, secure and scale it without disproportionate manual effort?
 
 ## Non-negotiable boundaries
 
@@ -227,7 +304,8 @@ Before implementing a capability, answer:
 - Management consoles are operator-only and require stronger protection.
 - Git is infrastructure/source-of-truth, but never a secret store.
 - Any credential that enters Git history is considered compromised and must be rotated before use.
+- The live `wandora_core_runtime` role must remain passwordless with connection limit zero until the reviewed Core service/secret path is ready to consume the credential immediately.
 
 ## Startup instruction for another chat
 
-> Read `AGENTS.md`, accepted ADRs, `docs/architecture.md` and `docs/CANONICAL_STATE.md`. Ana durable Core V1 database foundation is applied live and read-only post-verified. Continue with production Core DB role/credential provisioning and supervised real-path wiring. Do not use the previously Git-exposed Mistral token; only request a fresh replacement when the first real model call is actually required.
+> Read `AGENTS.md`, accepted ADRs, `docs/architecture.md` and `docs/CANONICAL_STATE.md`. Ana durable Core V1 database foundation and the least-privilege Core runtime database boundary are both applied live and read-only post-verified. `wandora_core_runtime` exists but intentionally has no password and connection limit zero. Do not reapply migration `003` and do not create the credential early. Continue with **Wandora Core Private Runtime V1**: package/deploy Core privately, define the operator-controlled secret path, then provision the database credential only as part of that deployment. Keep the paying-business-customer + Wandora-owner dual perspective and the decision → second review → execution discipline. Do not use the previously Git-exposed Mistral token; only request a fresh replacement when the first real model call is actually required.
