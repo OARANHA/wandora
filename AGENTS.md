@@ -59,7 +59,7 @@ The following are current decisions unless superseded by a newer accepted ADR:
 - Initial human organization roles are `owner`, `admin` and `member`; role is not a universal permission matrix and sensitive/domain actions remain explicit Core policy decisions.
 - React + Vite with TanStack Router/Query is the accepted initial Wandora Web shell. TanStack supplies application behavior, not Wandora's visual identity; customer-facing design remains Wandora-owned.
 - `Empresa` is the customer-facing organization administration center; personal user preferences/security/session belong to the user menu rather than a competing generic Settings section.
-- ADR 0009 accepts `apps/core` and the Ana durable Core vertical slice as reviewed code/migrations. Live database application remains a separate operational step.
+- ADR 0009 accepts `apps/core` and the Ana durable Core vertical slice. Its reviewed Core multitenant/auth and Ana V1 migrations were applied to the live Wandora Supabase database on 2026-09-14 and passed the production-safe read-only post-verifier. Core service credentials and real-path wiring remain separate controlled steps.
 - Official WhatsApp providers remain a production option behind the same gateway.
 - Model vendors are replaceable infrastructure behind a provider boundary. Do not request or hard-code a provider credential until a real provider call is materially required.
 - Structured business facts belong in canonical PostgreSQL storage, not only in agent memory/RAG.
@@ -89,7 +89,7 @@ Mastra, Paperclip, Supabase and Evolution are technologies used by Wandora. None
 - Do not expose Docker socket, PostgreSQL, Redis, internal runtimes, Paperclip internals or management APIs publicly.
 - Administrative surfaces require stronger controls than customer-facing APIs.
 - Frequently used operator applications may receive their own HTTPS hostname when useful, but they must remain operator-only and strongly access-controlled; a convenient URL is not permission to expose the underlying machine service directly.
-- Never commit secrets, tokens, private keys, OAuth client secrets, SMTP credentials or real customer credentials.
+- Never commit secrets, tokens, private keys, OAuth client secrets, SMTP credentials or real customer credentials. A credential that ever enters Git history must be treated as compromised and rotated before use; repository privacy does not make Git a secret store.
 - Design persistent data so it can be backed up, restore-tested and moved to another VPS.
 - New public hostnames must be intentional contracts, not third-party product names.
 - Versioned Wandora DB migrations live under `infra/stacks/supabase/migrations/`; verifiers live under `infra/stacks/supabase/verifiers/`. Never apply SQL directly from `spikes/` to the live database.
@@ -129,18 +129,17 @@ Routine mechanical steps inside an already-reviewed decision do not each require
 
 Unless an active blocker or explicit user decision changes priority:
 
-1. keep canonical documentation synchronized with accepted decisions;
-2. finish review/merge of **Ana durable Core vertical slice V1**;
-3. prepare a controlled live-Supabase migration preflight with backup/reversibility and post-verifier; do not treat code merge as deployment;
-4. wire normalized Messaging Gateway inbound traffic to Wandora Core in supervised mode;
-5. wire the accepted Mastra Agent Runtime Adapter to Core, keeping model-provider selection replaceable;
-6. expose tenant-authorized Core read/action APIs to Wandora Web so the existing human experience uses canonical state;
-7. prove the complete real path in supervised mode before any autonomous customer traffic;
-8. request/configure a Mistral or other model-provider token only when the first real model call is actually required;
-9. add real customer authentication/onboarding wiring around that proven journey;
-10. add Google/social login and broader integrations only when a validated customer workflow requires them.
+1. keep canonical documentation synchronized with accepted decisions and live operational state;
+2. provision a private, least-privilege production Wandora Core database role/credential path without exposing PostgreSQL or committing credentials;
+3. wire normalized Messaging Gateway inbound traffic to Wandora Core in supervised mode;
+4. wire the accepted Mastra Agent Runtime Adapter to Core, using a deterministic/fake model path first where possible and keeping model-provider selection replaceable;
+5. expose tenant-authorized Core read/action APIs to Wandora Web so the existing human experience uses canonical state;
+6. prove the complete real path in supervised mode before any autonomous customer traffic;
+7. when the first real model call is materially required, revoke the previously Git-exposed Mistral token, generate a fresh token and configure it only through an approved operator-controlled secret path;
+8. add real customer authentication/onboarding wiring around that proven journey;
+9. add Google/social login and broader integrations only when a validated customer workflow requires them.
 
-Supabase Foundation V1, Mastra Agent Runtime V1, Evolution Messaging Gateway V1, Wandora Core Multi-tenant/Auth Contract V1, Human Interface/Product Shell V1, First-Day Customer Journey V1, Ana inbound new-contact contract V1 and Ana durable Core vertical slice V1 (reviewed code, not live deployment) are complete or accepted. Do not repeat them unless verifying/repairing drift. See `docs/CANONICAL_STATE.md` for exact operational status.
+Supabase Foundation V1, Mastra Agent Runtime V1, Evolution Messaging Gateway V1, Wandora Core Multi-tenant/Auth Contract V1, Human Interface/Product Shell V1, First-Day Customer Journey V1, Ana inbound new-contact contract V1 and Ana durable Core vertical slice V1 including its live database foundation are complete or accepted. Do not repeat them unless verifying/repairing drift. See `docs/CANONICAL_STATE.md` for exact operational status.
 
 ## 9. Definition of progress
 
