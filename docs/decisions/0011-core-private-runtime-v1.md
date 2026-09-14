@@ -1,7 +1,7 @@
 # ADR 0011 — Wandora Core Private Runtime V1
 
 Date: 2026-09-14
-Status: **Accepted; standby deployed live. Database credential activation remains blocked by security gate #22.**
+Status: **Accepted; standby deployed live. Security gate #22 is cleared; database credential activation remains a separate reviewed step.**
 
 ## Context
 
@@ -111,21 +111,40 @@ wandora-data members: none
 
 Existing Supabase services remained healthy. No Supabase network/container mutation, model-provider credential, customer traffic or Core database credential was introduced by the standby deployment.
 
-A separate security issue, #22, records the requirement to rotate the live shared Supabase JWT/database credentials in a coordinated, backup-aware operation after a private diagnostic expanded them. No value was committed to Git. That rotation is now a mandatory gate before attaching the live database to `wandora-data`, activating `wandora_core_runtime`, or accepting customer traffic.
+## Security gate #22 completion — 2026-09-14
+
+The later credential-exposure gate was cleared in a separate backup-aware operation before any Core database activation.
+
+The affected shared Supabase HS256/JWT compatibility material and shared PostgreSQL password were rotated without recording replacement values in Git/chat. The existing EC/ES256 signing identity and unrelated modern/independent secrets were preserved.
+
+Accepted live evidence includes:
+
+```text
+pre-rotation legacy service_role REST proof: 401 after cutover
+current legacy service_role REST proof: 200
+modern sb_secret REST proof: 200
+old_postgres_password_network=revoked
+new_postgres_password_network=accepted
+all_postgres_password_consumers_updated=yes
+all Supabase services: healthy
+ANA_LIVE_POSTVERIFY_V1_OK
+CORE_RUNTIME_ROLE_V1_LIVE_OK
+GATE22_LIVE_VERIFIERS_OK
+```
+
+The Core remained in standby throughout; `wandora_core_runtime` still has no password and connection limit zero. Operational details and recovery checkpoints are recorded in `docs/infra/supabase-credential-rotation-gate22.md`.
 
 ## Consequences
 
 Core now exists as a real private service while remaining intentionally unable to do business work. Operators can distinguish “alive” from “authorized for business work,” preventing pressure to create credentials early merely to satisfy container health.
 
-The next real-path step can focus on credential hygiene and least-privilege connectivity rather than simultaneously inventing a process/runtime deployment.
+Security gate #22 no longer blocks least-privilege connectivity work. The next real-path step can focus exclusively on attaching the reviewed private data network, provisioning the dedicated Core credential and proving the deployed authorization boundary.
 
-No customer-facing feature is added by this slice; its value is removing the runtime/deployment ambiguity before Gateway → Core supervised wiring.
+No customer-facing feature is added by this slice; its value is removing runtime/deployment ambiguity before Gateway → Core supervised wiring.
 
 ## Next step
 
-Clear security gate #22 first: perform a coordinated Supabase credential rotation with backup, recovery plan, service-health proof and old-credential invalidation.
-
-Only after that gate is green:
+The next operation is separate from the completed gate #22 rotation:
 
 1. attach the Supabase database to `wandora-data` through reviewed source-of-truth configuration;
 2. generate the Core database password outside Git/chat;
@@ -133,4 +152,5 @@ Only after that gate is green:
 4. activate the smallest justified non-zero connection limit;
 5. start Core with the database overlay;
 6. prove `/readyz = 200` as `wandora_core_runtime` while PostgreSQL remains non-public;
-7. only then accept normalized inbound work in a later supervised slice.
+7. prove pooled transaction reuse does not retain tenant scope between requests;
+8. only then accept normalized inbound work in a later supervised slice.
