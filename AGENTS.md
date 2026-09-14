@@ -59,7 +59,8 @@ The following are current decisions unless superseded by a newer accepted ADR:
 - Initial human organization roles are `owner`, `admin` and `member`; role is not a universal permission matrix and sensitive/domain actions remain explicit Core policy decisions.
 - React + Vite with TanStack Router/Query is the accepted initial Wandora Web shell. TanStack supplies application behavior, not Wandora's visual identity; customer-facing design remains Wandora-owned.
 - `Empresa` is the customer-facing organization administration center; personal user preferences/security/session belong to the user menu rather than a competing generic Settings section.
-- ADR 0009 accepts `apps/core` and the Ana durable Core vertical slice. Its reviewed Core multitenant/auth and Ana V1 migrations were applied to the live Wandora Supabase database on 2026-09-14 and passed the production-safe read-only post-verifier. Core service credentials and real-path wiring remain separate controlled steps.
+- ADR 0009 accepts `apps/core` and the Ana durable Core vertical slice. Its reviewed Core multitenant/auth and Ana V1 migrations were applied to the live Wandora Supabase database on 2026-09-14 and passed the production-safe read-only post-verifier.
+- ADR 0010 accepts the least-privilege `wandora_core_runtime` database boundary. Migration `003` was rehearsed against a restored live snapshot and applied to production on 2026-09-14. The live role remains deliberately unusable for real connections (`CONNECTION LIMIT 0`, no password) until the Core service and operator-controlled secret path are deployed together.
 - Official WhatsApp providers remain a production option behind the same gateway.
 - Model vendors are replaceable infrastructure behind a provider boundary. Do not request or hard-code a provider credential until a real provider call is materially required.
 - Structured business facts belong in canonical PostgreSQL storage, not only in agent memory/RAG.
@@ -94,6 +95,7 @@ Mastra, Paperclip, Supabase and Evolution are technologies used by Wandora. None
 - New public hostnames must be intentional contracts, not third-party product names.
 - Versioned Wandora DB migrations live under `infra/stacks/supabase/migrations/`; verifiers live under `infra/stacks/supabase/verifiers/`. Never apply SQL directly from `spikes/` to the live database.
 - A migration being reviewed/merged does not mean it is already applied live. Live schema changes require explicit operational preflight, reversibility/backup awareness and post-verification.
+- A live database role existing does not justify activating its credential early. Runtime credentials are provisioned only together with the reviewed service deployment and secret-injection path that will consume them.
 
 ## 7. Product and development discipline
 
@@ -113,12 +115,21 @@ The default customer path must aim for useful work on the same day. A multi-day 
 
 For Ana or future employees, unknown/ambiguous external side effects must fail conservatively. In particular, an uncertain message delivery must not be retried automatically unless reconciliation proves it safe.
 
+### Dual business perspective
+
+For every material product or customer-journey decision, review the choice from both perspectives before execution:
+
+1. **paying business customer** — would a normal company owner understand the value, trust the flow, reach the result without learning infrastructure, and reasonably pay for it?
+2. **Wandora owner/operator** — is the capability secure, supportable, observable, scalable, commercially coherent and inexpensive enough to operate?
+
+A choice that is technically elegant but weak from either perspective must be revised before implementation.
+
 ### Second-pass decision review
 
 For every material product, architecture, infrastructure, security or deployment decision, do not execute immediately after the first conclusion. Use this sequence:
 
 1. analyze the problem and form a provisional decision;
-2. review that decision a second time against accepted architecture, security, reversibility, product experience, operational state and simpler alternatives;
+2. review that decision a second time against accepted architecture, security, reversibility, product experience, operational state, the dual business perspective and simpler alternatives;
 3. actively look for a missed side effect or a better option;
 4. if the second review contradicts the first, revise the decision and review again;
 5. execute only after the second pass confirms the decision is still in conformity.
@@ -130,16 +141,17 @@ Routine mechanical steps inside an already-reviewed decision do not each require
 Unless an active blocker or explicit user decision changes priority:
 
 1. keep canonical documentation synchronized with accepted decisions and live operational state;
-2. provision a private, least-privilege production Wandora Core database role/credential path without exposing PostgreSQL or committing credentials;
-3. wire normalized Messaging Gateway inbound traffic to Wandora Core in supervised mode;
-4. wire the accepted Mastra Agent Runtime Adapter to Core, using a deterministic/fake model path first where possible and keeping model-provider selection replaceable;
-5. expose tenant-authorized Core read/action APIs to Wandora Web so the existing human experience uses canonical state;
-6. prove the complete real path in supervised mode before any autonomous customer traffic;
-7. when the first real model call is materially required, revoke the previously Git-exposed Mistral token, generate a fresh token and configure it only through an approved operator-controlled secret path;
-8. add real customer authentication/onboarding wiring around that proven journey;
-9. add Google/social login and broader integrations only when a validated customer workflow requires them.
+2. package and deploy the Wandora Core runtime on the private Wandora network and define its operator-controlled secret-injection path without creating a credential in Git/chat;
+3. only as part of that reviewed runtime deployment, generate the Core database password outside Git/chat, activate the smallest justified non-zero connection limit for `wandora_core_runtime`, and prove the deployed service connects only through that least-privilege identity;
+4. wire normalized Messaging Gateway inbound traffic to Wandora Core in supervised mode;
+5. wire the accepted Mastra Agent Runtime Adapter to Core, using a deterministic/fake model path first where possible and keeping model-provider selection replaceable;
+6. expose tenant-authorized Core read/action APIs to Wandora Web so the existing human experience uses canonical state;
+7. prove the complete real path in supervised mode before any autonomous customer traffic;
+8. when the first real model call is materially required, revoke the previously Git-exposed Mistral token, generate a fresh token and configure it only through an approved operator-controlled secret path;
+9. add real customer authentication/onboarding wiring around that proven journey;
+10. add Google/social login and broader integrations only when a validated customer workflow requires them.
 
-Supabase Foundation V1, Mastra Agent Runtime V1, Evolution Messaging Gateway V1, Wandora Core Multi-tenant/Auth Contract V1, Human Interface/Product Shell V1, First-Day Customer Journey V1, Ana inbound new-contact contract V1 and Ana durable Core vertical slice V1 including its live database foundation are complete or accepted. Do not repeat them unless verifying/repairing drift. See `docs/CANONICAL_STATE.md` for exact operational status.
+Supabase Foundation V1, Mastra Agent Runtime V1, Evolution Messaging Gateway V1, Wandora Core Multi-tenant/Auth Contract V1, Human Interface/Product Shell V1, First-Day Customer Journey V1, Ana inbound new-contact contract V1, Ana durable Core vertical slice V1 including its live database foundation, and the live credential-disabled Core runtime database boundary V1 are complete or accepted. Do not repeat them unless verifying/repairing drift. See `docs/CANONICAL_STATE.md` for exact operational status.
 
 ## 9. Definition of progress
 
