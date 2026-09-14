@@ -49,7 +49,7 @@ The deterministic inbound `eventId` is derived from the Wandora connection, even
 
 The adapter fingerprints message content per idempotency key. Successful calls return the stored result on duplicate invocation. Transport exceptions and non-2xx provider responses become `uncertain`, and automatic resend is refused to avoid duplicate WhatsApp delivery after ambiguous failures.
 
-Evolution 2.3.7 rejects server-to-server requests that omit an allow-listed `Origin`, so the laboratory fetch transport sends the Wandora application origin on provider HTTP calls.
+Evolution 2.3.7 rejects server-to-server requests that omit an allow-listed `Origin`, so the laboratory fetch transport sends the Wandora application origin on provider HTTP calls. A dedicated regression test locks this requirement into the spike.
 
 ## Verification
 
@@ -64,7 +64,7 @@ Validated on 2026-09-13 with:
 - Zod `4.6.4`
 - TypeScript `6.0.3`
 - `tsx` `4.23.13`
-- 9/9 tests passing
+- 10/10 tests passing
 - strict TypeScript typecheck passing
 - digest-pinned Docker verification passing
 
