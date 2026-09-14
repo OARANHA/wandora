@@ -282,18 +282,67 @@ wandora-data members: none
 
 The source-of-truth database activation overlay and future `wandora-postgres` private alias exist in Git, but have **not** been applied to the live Supabase container. Existing Supabase services remained healthy after the standby deployment.
 
-### Security gate #22 — BLOCKING DATABASE ACTIVATION / CUSTOMER TRAFFIC
+### Security gate #22 — COMPLETE; LIVE CREDENTIALS ROTATED
 
 A private operator diagnostic expanded shared live Supabase JWT/database credential values into diagnostic output. No value was committed to Git, and the temporary expanded file on the VPS was removed, but chat/diagnostic output is not an approved secret store.
 
-Issue #22 therefore requires coordinated rotation of the affected shared Supabase credentials before:
+The affected credential families were rotated on 2026-09-14 before any Core database activation or customer traffic.
 
-- attaching the live database to `wandora-data`;
-- creating or activating the real `wandora_core_runtime` password;
-- accepting supervised or autonomous customer traffic;
-- production customer onboarding.
+Phase 1 replaced the compromised HS256 compatibility family while preserving the existing EC/ES256 signing identity and unrelated modern/independent secrets:
 
-Rotation must be backup-aware and coordinated across all dependent Supabase services; a blind single-variable change is prohibited.
+- `JWT_SECRET` rotated;
+- derived legacy `ANON_KEY` and `SERVICE_ROLE_KEY` rotated;
+- symmetric HS256 compatibility material in `JWT_KEYS` / `JWT_JWKS` rotated;
+- PostgreSQL `app.settings.jwt_secret` updated;
+- current EC/ES256 signing identity preserved.
+
+Accepted JWT proof:
+
+```text
+modern sb_secret REST proof: 200
+current legacy service_role REST proof: 200
+pre-rotation legacy service_role REST proof: 401
+GATE22_JWT_ROTATION_LIVE_OK
+```
+
+Phase 2 rotated the shared PostgreSQL password used by the self-hosted Supabase service roles. All twelve target roles were confirmed before execution. Their password changes were wrapped in one PostgreSQL transaction; exactly one `POSTGRES_PASSWORD` entry was then replaced atomically in the operator `.env`, followed by a full Compose recreate with `--wait`.
+
+The accepted revocation proof used a sibling container on `supabase_default`, because loopback in `pg_hba.conf` is `trust` and cannot prove password invalidation:
+
+```text
+old_postgres_password_network=revoked
+new_postgres_password_network=accepted
+all_postgres_password_consumers_updated=yes
+```
+
+Recovery/evidence checkpoints are protected with mode `0600` under:
+
+- `/home/wandora-admin/wandora-backups/supabase-preflight/gate22-20260914T212927Z`
+- `/home/wandora-admin/wandora-backups/supabase-preflight/gate22-post-jwt-pre-db-20260914T215001Z`
+
+The second checkpoint is post-JWT/pre-database so a database-password rollback does not undo the successful JWT cutover. Historical credentials in those snapshots are compromised rollback material only and must not return to steady-state use.
+
+Final post-rotation evidence:
+
+```text
+all 11 Supabase services: healthy
+PostgreSQL direct published ports: 0
+Supavisor: localhost-only 5432/6543
+supabase.wandora.com.br root: 404 (intentional)
+studio.wandora.com.br unauthenticated: 401
+Core /healthz: 200
+Core /readyz: 503 reason=standby
+wandora_core_runtime: CONNECTION LIMIT 0, BYPASSRLS false, password absent
+Auth users/sessions: 0
+Wandora organizations/contacts/messages/approvals: 0
+ANA_LIVE_POSTVERIFY_V1_OK
+CORE_RUNTIME_ROLE_V1_LIVE_OK
+GATE22_LIVE_VERIFIERS_OK
+```
+
+The temporary duplicate file containing the newly generated PostgreSQL password was removed after verification. Operational details are recorded in `docs/infra/supabase-credential-rotation-gate22.md`.
+
+Gate #22 is therefore cleared. This removes a prerequisite only; it does **not** activate Core database access or authorize customer traffic.
 
 ## CI / decision discipline status
 
@@ -318,25 +367,24 @@ Structured business facts remain PostgreSQL truth. Knowledge/RAG and employee ex
 
 ## Immediate next executable slice
 
-**SUPABASE COORDINATED CREDENTIAL ROTATION / SECURITY GATE #22**
+**CORE LEAST-PRIVILEGE DATABASE ACTIVATION V1**
 
-Goal: remove the known credential-exposure risk without destabilizing the self-hosted Supabase stack, then unlock least-privilege Core database activation.
+Goal: connect the already-live private Core runtime to canonical PostgreSQL through the dedicated `wandora_core_runtime` identity without weakening network isolation, RLS or the completed credential-rotation boundary.
 
 Expected order:
 
-1. map every consumer of the affected JWT/database credentials without printing values;
-2. confirm the exact rotation procedure for the pinned self-hosted Supabase version;
-3. create and validate a fresh backup plus rollback/recovery plan;
-4. generate replacement credentials outside Git/chat;
-5. rotate database/JWT material in the dependency-safe order and update only the operator-controlled live secret store;
-6. restart/recreate only required Supabase services in a controlled sequence;
-7. prove Auth, REST, Realtime, Storage, Studio, pooler/database and public smoke remain healthy;
-8. rerun Wandora production-safe verifiers and prove old credentials no longer authenticate;
-9. only then apply the reviewed `wandora-data` attachment for the database;
-10. generate the Core DB credential outside Git/chat, activate the smallest justified non-zero connection limit and prove deployed Core `/readyz = 200` only as `wandora_core_runtime`;
-11. prove pooled transaction reuse remains tenant-unscoped between requests;
-12. proceed to Gateway → Core supervised wiring, then deterministic Mastra, Web reads/actions and full supervised E2E;
-13. request a fresh Mistral token only when the first real model-backed proposal is materially required.
+1. re-read ADR 0010, ADR 0011, the Core stack runbook and gate #22 runbook;
+2. preflight the live `wandora-data` network, Supabase DB container and standby Core state;
+3. apply the already-merged source-of-truth Supabase `wandora-data` attachment and private `wandora-postgres` alias without publishing PostgreSQL;
+4. generate a fresh Core database credential outside Git/chat and store it only in the approved operator-controlled secret file with restrictive permissions;
+5. change only `wandora_core_runtime` from connection limit zero to the smallest justified non-zero limit and assign that credential;
+6. start Core with the database activation overlay;
+7. prove `/readyz = 200` only as `wandora_core_runtime`, with no administrative/service credential available to Core;
+8. prove pooled connection reuse returns tenant-unscoped between transactions and cross-tenant access remains blocked;
+9. rerun production-safe database verifiers and confirm Supabase/public/Core health;
+10. only then wire normalized Messaging Gateway inbound events to Core in supervised mode;
+11. continue with deterministic Mastra, tenant-authorized Web reads/actions and full supervised E2E;
+12. request a fresh Mistral token only when the first real model-backed proposal is materially required.
 
 ## Human-experience guardrails
 
@@ -361,8 +409,9 @@ Before implementing a capability, answer from both customer and owner/operator v
 - Management consoles are operator-only and require stronger protection.
 - Git is infrastructure/source-of-truth, but never a secret store.
 - Any credential that enters Git history is considered compromised and must be rotated before use.
-- The live `wandora_core_runtime` role must remain passwordless with connection limit zero until security gate #22 is cleared and the reviewed Core database overlay is ready to consume the credential immediately.
+- Historical credentials retained in protected gate #22 rollback snapshots are emergency recovery material only and must not be restored as steady-state credentials.
+- The live `wandora_core_runtime` role must remain passwordless with connection limit zero until the reviewed `wandora-data` attachment, secret-file path and database overlay are ready to consume its credential immediately.
 
 ## Startup instruction for another chat
 
-> Read `AGENTS.md`, accepted ADRs, `docs/architecture.md` and `docs/CANONICAL_STATE.md`. Ana durable Core V1 database foundation and the least-privilege Core runtime database boundary are live. Wandora Core Private Runtime V1 is also live in **standby** on the private `wandora-core` network: health is green, readiness intentionally returns 503, there is no public port, and `wandora_core_runtime` still has no password with connection limit zero. Do not reapply migration `003`, do not redeploy the runtime slice, and do not create the Core credential yet. The next blocking slice is **security gate #22: coordinated Supabase credential rotation**. Only after that gate is green may the database be attached to `wandora-data` and the Core credential activated. Keep the paying-business-customer + Wandora-owner dual perspective and the decision → second review → execution discipline. Do not use the previously Git-exposed Mistral token; only request a fresh replacement when the first real model call is actually required.
+> Read `AGENTS.md`, accepted ADRs, `docs/architecture.md` and `docs/CANONICAL_STATE.md`. Ana durable Core V1 database foundation and the least-privilege Core runtime database boundary are live. Wandora Core Private Runtime V1 is live in **standby** on the private `wandora-core` network: health is green, readiness intentionally returns 503, there is no public port, and `wandora_core_runtime` still has no password with connection limit zero. Security gate #22 is **complete**: the affected shared Supabase JWT/database credentials were rotated with backup/recovery proof, old-credential invalidation, healthy service recreation and green production-safe verifiers. Do not repeat that rotation unless repairing drift. The next slice is **Core Least-Privilege Database Activation V1**: apply the reviewed `wandora-data` attachment, provision only the dedicated Core credential through the secret-file path, activate the smallest justified connection limit and prove `/readyz = 200` plus pooled tenant isolation before any customer traffic. Keep the paying-business-customer + Wandora-owner dual perspective and the decision → second review → execution discipline. Do not use the previously Git-exposed Mistral token; only request a fresh replacement when the first real model call is actually required.
