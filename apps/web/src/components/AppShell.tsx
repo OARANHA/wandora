@@ -79,8 +79,8 @@ function Topbar() {
             <span className="absolute right-2 top-2 size-2 rounded-full bg-indigo-500 ring-2 ring-white" />
           </button>
           <button className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-2.5 pr-3 text-left shadow-sm">
-            <span className="grid size-7 place-items-center rounded-lg bg-slate-900 text-xs font-semibold text-white">AA</span>
-            <span className="hidden text-sm font-medium text-slate-700 sm:block">Alessandro</span>
+            <span className="grid size-7 place-items-center rounded-lg bg-slate-900 text-xs font-semibold text-white">GE</span>
+            <span className="hidden text-sm font-medium text-slate-700 sm:block">Gestor</span>
             <ChevronDown className="size-4 text-slate-400" />
           </button>
         </div>
@@ -97,10 +97,10 @@ function MobileNav() {
           key={to}
           to={to}
           activeOptions={{ exact: to === '/' }}
-          className="flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10px] font-medium text-slate-400 [&.active]:bg-slate-100 [&.active]:text-slate-900"
+          className="flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-0.5 py-2 text-[9px] font-medium text-slate-400 [&.active]:bg-slate-100 [&.active]:text-slate-900"
         >
           <Icon className="size-[18px]" strokeWidth={1.9} />
-          <span className="truncate">{label}</span>
+          <span className="w-full truncate text-center">{label}</span>
         </Link>
       ))}
     </nav>
