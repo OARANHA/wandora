@@ -12,9 +12,9 @@ export function CompanyPage() {
   return (
     <div className="space-y-6">
       <div>
-        <p className="m-0 text-sm font-semibold text-indigo-600">Configuração humana</p>
+        <p className="m-0 text-sm font-semibold text-indigo-600">Sua empresa</p>
         <h2 className="m-0 mt-2 text-3xl font-semibold tracking-[-0.03em] text-slate-950">Empresa</h2>
-        <p className="m-0 mt-3 max-w-2xl text-[15px] leading-6 text-slate-500">O lugar para ensinar à Wandora como sua empresa funciona. Sem APIs, webhooks ou nomes de provedores.</p>
+        <p className="m-0 mt-3 max-w-2xl text-[15px] leading-6 text-slate-500">O lugar para ensinar à Wandora como sua empresa funciona, usando a mesma linguagem do seu negócio.</p>
       </div>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {sections.map(({ title, description, icon: Icon }) => (
