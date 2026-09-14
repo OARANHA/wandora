@@ -39,10 +39,16 @@ docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -c \
 
 docker cp "$MIGRATIONS/20260914_001_core_multitenant_auth_v1.sql" "$DB:/tmp/001.sql" >/dev/null
 docker cp "$MIGRATIONS/20260914_002_ana_vertical_slice_v1.sql" "$DB:/tmp/002.sql" >/dev/null
+docker cp "$VERIFIERS/VERIFY_20260914_ANA_VERTICAL_SLICE_V1_LIVE.sql" "$DB:/tmp/live-verify.sql" >/dev/null
 docker cp "$VERIFIERS/VERIFY_20260914_ANA_VERTICAL_SLICE_V1.sql" "$DB:/tmp/verify.sql" >/dev/null
 
 docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -f /tmp/001.sql >/dev/null
 docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -f /tmp/002.sql >/dev/null
+
+# This verifier is production-safe by construction: its transaction is explicitly READ ONLY.
+docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -f /tmp/live-verify.sql
+
+# The behavioral verifier intentionally inserts synthetic data and must never run on the live database.
 docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -f /tmp/verify.sql
 
 docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -c \
