@@ -112,7 +112,7 @@ Validated contract behavior:
 - raw Evolution instance names, API keys, JIDs, webhook envelopes and provider message IDs do not cross the Wandora contract boundary;
 - deterministic inbound event ID + receipt store prove duplicate suppression semantics;
 - outbound attempt state prevents automatic retry after ambiguous/non-2xx delivery and returns the stored result after a successful duplicate invocation;
-- strict TypeScript typecheck and 9/9 runtime tests pass;
+- strict TypeScript typecheck and 10/10 runtime tests pass, including regression coverage for Evolution's required allow-listed `Origin`;
 - digest-pinned Docker verification passes;
 - a real inbound WhatsApp text traversed WhatsApp -> Evolution -> private webhook -> normalized Wandora event;
 - a real outbound text traversed the Wandora adapter -> Evolution -> WhatsApp and was received by the destination handset.
