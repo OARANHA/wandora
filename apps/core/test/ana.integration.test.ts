@@ -52,6 +52,7 @@ const safeProposal = (): EmployeeProposal => ({
   commitment: 'none',
   rationale: 'Qualificação inicial sem compromisso comercial.',
 });
+
 const approvalProposal = (): EmployeeProposal => ({
   kind: 'send-text',
   text: 'Posso oferecer 10% de desconto para fechar hoje.',
@@ -94,7 +95,12 @@ async function resetFixture(): Promise<void> {
 }
 
 function service(runtime: FakeRuntime, messaging: FakeMessaging): AnaInboundService {
-  return new AnaInboundService({ repository, runtime, messaging, now: () => NOW });
+  return new AnaInboundService({
+    repository,
+    runtime,
+    messaging,
+    now: () => NOW,
+  });
 }
 
 async function scalar(sql: string, params: unknown[] = []): Promise<string> {
@@ -115,6 +121,7 @@ test('ANA VERTICAL SLICE V1 durable service', async (t) => {
     assert.deepEqual(second, first);
     assert.equal(runtime.calls, 1);
     assert.equal(messaging.calls.length, 1);
+
     assert.deepEqual(await repository.getCounts(ORG_A), {
       contacts: 1, conversations: 1, workItems: 1, approvals: 0, messages: 2,
     });
@@ -221,6 +228,63 @@ test('ANA VERTICAL SLICE V1 durable service', async (t) => {
       'uncertain');
   });
 
+  await t.test('foreign or disabled connection fails before customer state is created', async () => {
+    await resetFixture();
+    const runtime = new FakeRuntime(() => safeProposal());
+    const messaging = new FakeMessaging();
+    const ana = service(runtime, messaging);
+
+    await assert.rejects(
+      ana.handle(ORG_A, event('evt-cross-connection', CONN_B)),
+      (error: unknown) => error instanceof CoreStateError && error.code === 'tenant_mismatch',
+    );
+    await pool.query(`UPDATE wandora.messaging_connections SET status = 'disabled' WHERE id = $1`, [CONN_A]);
+    await assert.rejects(
+      ana.handle(ORG_A, event('evt-disabled-connection')),
+      (error: unknown) => error instanceof CoreStateError && error.code === 'connection_unavailable',
+    );
+    assert.deepEqual(await repository.getCounts(ORG_A), {
+      contacts: 0, conversations: 0, workItems: 0, approvals: 0, messages: 0,
+    });
+    assert.equal(runtime.calls, 0);
+    assert.equal(messaging.calls.length, 0);
+  });
+
+  await t.test('paused employee fails before customer state is created', async () => {
+    await resetFixture();
+    await pool.query(`UPDATE wandora.digital_employees SET status = 'paused' WHERE id = $1`, [EMP_A]);
+    const runtime = new FakeRuntime(() => safeProposal());
+    const messaging = new FakeMessaging();
+    const ana = service(runtime, messaging);
+
+    await assert.rejects(
+      ana.handle(ORG_A, event('evt-paused-employee')),
+      (error: unknown) => error instanceof CoreStateError && error.code === 'employee_unavailable',
+    );
+    assert.deepEqual(await repository.getCounts(ORG_A), {
+      contacts: 0, conversations: 0, workItems: 0, approvals: 0, messages: 0,
+    });
+    assert.equal(runtime.calls, 0);
+    assert.equal(messaging.calls.length, 0);
+  });
+
+  await t.test('processing receipt returns event-in-progress instead of racing a duplicate insert', async () => {
+    await resetFixture();
+    await pool.query(`INSERT INTO wandora_private.inbound_event_receipts
+      (organization_id, event_id, messaging_connection_id, status, received_at)
+      VALUES ($1, $2, $3, 'processing', $4)`, [ORG_A, 'evt-processing', CONN_A, NOW]);
+    const runtime = new FakeRuntime(() => safeProposal());
+    const messaging = new FakeMessaging();
+    const ana = service(runtime, messaging);
+
+    await assert.rejects(
+      ana.handle(ORG_A, event('evt-processing')),
+      (error: unknown) => error instanceof CoreStateError && error.code === 'event_in_progress',
+    );
+    assert.equal(runtime.calls, 0);
+    assert.equal(messaging.calls.length, 0);
+  });
+
   await t.test('runtime failure marks receipt failed and same event can be safely retried', async () => {
     await resetFixture();
     const runtime = new FakeRuntime((_input, call) => {
@@ -230,7 +294,8 @@ test('ANA VERTICAL SLICE V1 durable service', async (t) => {
     const messaging = new FakeMessaging();
     const ana = service(runtime, messaging);
 
-    await assert.rejects(ana.handle(ORG_A, event('evt-runtime-retry')), /synthetic model failure/);
+    await assert.rejects(ana.handle(ORG_A, event('evt-runtime-retry')),
+      /synthetic model failure/);
     assert.equal(await scalar(
       `SELECT status::text AS value FROM wandora_private.inbound_event_receipts
         WHERE organization_id = $1 AND event_id = $2`, [ORG_A, 'evt-runtime-retry']), 'failed');
