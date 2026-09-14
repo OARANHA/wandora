@@ -57,6 +57,7 @@ The following are current decisions unless superseded by a newer accepted ADR:
 - Evolution API 2.3.7 is the accepted initial laboratory WhatsApp provider behind a Wandora-owned `Messaging Gateway`; the provider-neutral boundary has been validated with real inbound and outbound WhatsApp traffic, and digital employees must never call Evolution directly.
 - Wandora Core owns canonical organization, user, membership and provider-neutral messaging-connection identity. Supabase Auth subjects and provider/runtime IDs are not Wandora business IDs.
 - Initial human organization roles are `owner`, `admin` and `member`; role is not a universal permission matrix and sensitive/domain actions remain explicit Core policy decisions.
+- React + Vite with TanStack Router/Query is the accepted initial Wandora Web shell. TanStack supplies application behavior, not Wandora's visual identity; customer-facing design remains Wandora-owned.
 - Official WhatsApp providers remain a production option behind the same gateway.
 - Model vendors are replaceable infrastructure behind a provider boundary.
 - Structured business facts belong in canonical PostgreSQL storage, not only in agent memory/RAG.
@@ -85,6 +86,7 @@ Mastra, Paperclip, Supabase and Evolution are technologies used by Wandora. None
 - Prefer pinned image/release versions over unreviewed `latest` tags.
 - Do not expose Docker socket, PostgreSQL, Redis, internal runtimes, Paperclip internals or management APIs publicly.
 - Administrative surfaces require stronger controls than customer-facing APIs.
+- Frequently used operator applications may receive their own HTTPS hostname when useful, but they must remain operator-only and strongly access-controlled; a convenient URL is not permission to expose the underlying machine service directly.
 - Never commit secrets, tokens, private keys, OAuth client secrets, SMTP credentials or real customer credentials.
 - Design persistent data so it can be backed up, restore-tested and moved to another VPS.
 - New public hostnames must be intentional contracts, not third-party product names.
@@ -103,19 +105,22 @@ Do not build speculative surface area. Prefer vertical slices that remove a crit
 
 For customer-facing work, design the human journey before the technical screen. The interface should answer who is responsible, what is happening, what needs approval and what result was produced. Do not expose technical runtime/provider concepts merely because they are easy to surface.
 
+The default customer path must aim for useful work on the same day. A multi-day manual implementation dependency may exist as an assisted premium service, but it must not be required for the normal SaaS experience.
+
 ## 8. Current execution order
 
 Unless an active blocker or explicit user decision changes priority:
 
 1. keep canonical documentation synchronized with accepted decisions;
-2. define the first digital-employee role and its smallest human-centered end-to-end business workflow;
-3. build the first end-to-end vertical slice using the validated Core, Supabase, Mastra and Messaging boundaries;
-4. promote only the required Core contract schema into reviewed migrations/service code;
-5. add customer-facing login/onboarding around a real workflow, not empty infrastructure;
-6. add Google/social login when callback contracts and the Wandora login flow are ready;
-7. expand product surface area only when a validated employee workflow requires it.
+2. freeze the paying-customer first-day journey: create/join company, state the business outcome, hire a digital employee, connect only required tools, provide essential company context and start supervised work;
+3. define the first digital-employee role and its smallest human-centered end-to-end business workflow from that journey;
+4. build the first end-to-end vertical slice using the validated Core, Supabase, Mastra, Messaging and Wandora Web boundaries;
+5. promote only the required Core contract schema into reviewed migrations/service code;
+6. add real customer authentication/onboarding wiring around that proven journey;
+7. add Google/social login when callback contracts and the Wandora login flow are ready;
+8. expand product surface area only when a validated employee workflow requires it.
 
-Supabase Foundation V1, Mastra Agent Runtime Spike V1, Evolution Messaging Gateway V1 and Wandora Core Multi-tenant/Auth Contract V1 are complete. Do not repeat them unless verifying or repairing drift. Production hardening remains incremental and does not by itself reopen accepted provider-neutral boundaries. See `docs/CANONICAL_STATE.md` for exact status and the next executable slice.
+Supabase Foundation V1, Mastra Agent Runtime Spike V1, Evolution Messaging Gateway V1, Wandora Core Multi-tenant/Auth Contract V1 and Human Interface/Product Shell V1 are complete. Do not repeat them unless verifying or repairing drift. Production hardening remains incremental and does not by itself reopen accepted provider-neutral boundaries. See `docs/CANONICAL_STATE.md` for exact status and the next executable slice.
 
 ## 9. Definition of progress
 
