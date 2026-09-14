@@ -22,6 +22,8 @@ Do not import assumptions, code, naming, architecture or business rules from unr
 
 The product thesis is business-first: Wandora is not a CRM with AI and not a generic agent builder. CRM, messaging, scheduling, finance and other systems are tools used by digital employees inside a Wandora-governed company.
 
+A normal customer should understand the product through business language — company, team, responsibilities, work, approvals and outcomes — without needing to know Supabase, Evolution, Mastra, RLS, provider IDs, prompts or tokens.
+
 ## 3. Ownership boundary
 
 Wandora owns all customer-facing contracts and canonical product semantics, including:
@@ -53,6 +55,8 @@ The following are current decisions unless superseded by a newer accepted ADR:
 - `studio.wandora.com.br` is an administrative surface and must be strongly protected (Cloudflare Access preferred). PostgreSQL must never be publicly exposed.
 - `supabase.wandora.com.br` is the stable application-facing Supabase endpoint. Future VPS migration should preserve this contract through DNS/ingress changes.
 - Evolution API 2.3.7 is the accepted initial laboratory WhatsApp provider behind a Wandora-owned `Messaging Gateway`; the provider-neutral boundary has been validated with real inbound and outbound WhatsApp traffic, and digital employees must never call Evolution directly.
+- Wandora Core owns canonical organization, user, membership and provider-neutral messaging-connection identity. Supabase Auth subjects and provider/runtime IDs are not Wandora business IDs.
+- Initial human organization roles are `owner`, `admin` and `member`; role is not a universal permission matrix and sensitive/domain actions remain explicit Core policy decisions.
 - Official WhatsApp providers remain a production option behind the same gateway.
 - Model vendors are replaceable infrastructure behind a provider boundary.
 - Structured business facts belong in canonical PostgreSQL storage, not only in agent memory/RAG.
@@ -97,19 +101,22 @@ Before promoting a third-party dependency into architecture:
 
 Do not build speculative surface area. Prefer vertical slices that remove a critical uncertainty and leave a reproducible artifact.
 
+For customer-facing work, design the human journey before the technical screen. The interface should answer who is responsible, what is happening, what needs approval and what result was produced. Do not expose technical runtime/provider concepts merely because they are easy to surface.
+
 ## 8. Current execution order
 
 Unless an active blocker or explicit user decision changes priority:
 
 1. keep canonical documentation synchronized with accepted decisions;
-2. define/freeze Wandora Core contracts, multi-tenant/auth boundaries and the first minimum distributable vertical slice on the validated Supabase foundation;
-3. define the first digital-employee role and its smallest end-to-end business workflow;
-4. add customer-facing login/onboarding only after those boundaries are explicit;
-5. add Google/social login when callback contracts and the Wandora login flow are ready;
-6. expand product surface area only after the first vertical slice is end-to-end and auditable.
+2. define the first digital-employee role and its smallest human-centered end-to-end business workflow;
+3. build the first end-to-end vertical slice using the validated Core, Supabase, Mastra and Messaging boundaries;
+4. promote only the required Core contract schema into reviewed migrations/service code;
+5. add customer-facing login/onboarding around a real workflow, not empty infrastructure;
+6. add Google/social login when callback contracts and the Wandora login flow are ready;
+7. expand product surface area only when a validated employee workflow requires it.
 
-Supabase Foundation V1, Mastra Agent Runtime Spike V1 and Evolution Messaging Gateway V1 laboratory validation are complete; do not repeat them unless verifying or repairing drift. Messaging durability/persistent idempotency remains production hardening, not a reason to reopen the provider-neutral boundary. See `docs/CANONICAL_STATE.md` for exact current status and the next executable step.
+Supabase Foundation V1, Mastra Agent Runtime Spike V1, Evolution Messaging Gateway V1 and Wandora Core Multi-tenant/Auth Contract V1 are complete. Do not repeat them unless verifying or repairing drift. Production hardening remains incremental and does not by itself reopen accepted provider-neutral boundaries. See `docs/CANONICAL_STATE.md` for exact status and the next executable slice.
 
 ## 9. Definition of progress
 
-Progress is not the number of services, screens or integrations installed. Progress means a critical product or architectural uncertainty was removed, the result is reproducible, and the decision is recorded without weakening Wandora-owned boundaries.
+Progress is not the number of services, screens or integrations installed. Progress means a critical product or architectural uncertainty was removed, the result is reproducible, the human experience became clearer, and the decision is recorded without weakening Wandora-owned boundaries.
