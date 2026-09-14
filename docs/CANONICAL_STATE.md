@@ -112,26 +112,55 @@ Chromium browser smoke passed at 390 px and 1440 px across all six routes with n
 
 The V1 shell is still mock/product-contract UI; it is not wired to production Core data/auth yet.
 
+## First-Day Customer Journey V1 — COMPLETE
+
+`docs/product/FIRST_DAY_CUSTOMER_JOURNEY_V1.md` freezes the paying-customer path from first entry to the first supervised employee start.
+
+The standalone `/start` experience has six customer-language steps:
+
+1. identify the company with only essential information;
+2. choose the first business outcome to remove from the owner's desk;
+3. receive a digital-employee recommendation with explicit responsibility and approval boundary;
+4. connect only the first required work tool;
+5. teach only the minimum company facts needed to begin safely;
+6. review the initial responsibility/autonomy and start supervised work.
+
+The route is intentionally outside the normal application shell. It transitions into `Início` after the customer chooses **Começar trabalho supervisionado**.
+
+Current UI is still a product-contract proof: WhatsApp connection and activation are simulated and do not produce live business side effects yet. Production wiring must preserve the customer contract while moving state and authorization into Wandora Core.
+
+Learning boundary is also frozen: history remains traceable; corrections may become proposed durable instructions; durable company guidance requires the appropriate approval path; transactional facts remain structured canonical state rather than conversational/model memory.
+
+Validation evidence:
+
+- pinned Node 22 Docker build runs strict TypeScript and Vite successfully;
+- `/healthz`, `/start` and all six shell routes return HTTP 200 with SPA fallback;
+- Chromium completes the entire six-step journey at 390 px and 1440 px;
+- no browser-console errors or horizontal document overflow were observed;
+- `/start` renders without leaking the normal application shell;
+- customer-facing source scan is clean of provider/runtime vocabulary;
+- source secret scan is clean.
+
 ## Immediate next executable slice
 
-**FIRST-DAY CUSTOMER JOURNEY CONTRACT V1**
+**ANA — ASSISTENTE COMERCIAL DIGITAL / INBOUND NEW-CONTACT CONTRACT V1**
 
-Goal: freeze what a paying business owner experiences from first entry until the first digital employee performs useful supervised work, before implementing the production employee workflow.
+Goal: freeze the smallest real business workflow that turns the first-day promise into useful supervised work over the already validated provider-neutral WhatsApp boundary.
 
 Required outcome:
 
-1. define the entry point after signup/checkout without requiring a Wandora consultant;
-2. create/join the company using plain business language;
-3. ask what business outcome the customer wants, not which agent/model/workflow they want;
-4. let the customer hire the first digital employee for that responsibility;
-5. connect only the minimum tool required by that first job;
-6. collect only essential company facts/knowledge required to start safely;
-7. start the employee in supervised mode the same day;
-8. show what the employee can do alone and what requires human approval;
-9. show observable work/result in the Product Shell immediately;
-10. define the transition from first-day onboarding into normal `Início`, `Equipe`, `Trabalho`, `Conversas` and `Aprovações` navigation.
+1. define exactly what counts as a new inbound commercial contact;
+2. define Ana's initial responsibility and non-responsibilities in business language;
+3. define the minimum company knowledge she may use to answer safely;
+4. define the canonical conversation/contact/work-item state Wandora Core must own;
+5. define the first deterministic inbound flow from normalized Messaging Gateway event to a Wandora work item;
+6. define which replies Ana may send without approval and which actions must stop for the human;
+7. define the approval object/context needed for discounts, commitments, exceptional terms or ambiguous policy;
+8. define what the owner sees immediately in `Início`, `Equipe`, `Trabalho`, `Conversas` and `Aprovações`;
+9. define failure/idempotency/audit behavior before any real autonomous send is enabled;
+10. prove the contract with a falsifiable end-to-end test before promoting schema/runtime changes to production.
 
-Do not turn this slice into a generic setup wizard, prompt editor, workflow canvas, model selector or consulting questionnaire.
+Do not broaden this slice into a generic CRM, generic agent builder, sales automation suite, autonomous closing agent or marketplace. One employee, one responsibility, one inbound workflow, supervised by default.
 
 ## Human-experience guardrails
 
@@ -146,14 +175,14 @@ Before implementing a capability, answer:
 
 The product should answer, in plain language: who works for my company, what each employee is responsible for, what they are doing, what needs my approval, what happened, what result was produced, and which business tools are connected.
 
-## Execution order after first-day journey freeze
+## Execution order after Ana workflow contract
 
-1. define the first digital-employee role and minimum business workflow from the frozen journey;
-2. build the first end-to-end vertical slice using the validated Web, Core, Supabase, Mastra and Messaging boundaries;
-3. promote only the required Core schema into reviewed migrations/service code;
-4. wire real customer auth/onboarding around that proven slice;
+1. build the first end-to-end Ana vertical slice using the validated Web, Core, Supabase, Mastra and Messaging boundaries;
+2. promote only the required Core schema into reviewed migrations/service code;
+3. wire real customer auth/onboarding around that proven slice;
+4. replace the `/start` simulated connection/activation with real provider-neutral Core operations;
 5. add Google/social OAuth when the Wandora login journey exists;
-6. expand tools/integrations only when a validated employee workflow requires them.
+6. expand employees/tools/integrations only when a validated business workflow requires them.
 
 ## Non-negotiable boundaries
 
