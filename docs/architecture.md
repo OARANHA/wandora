@@ -2,9 +2,9 @@
 
 ## Purpose
 
-This document describes the current Wandora architecture for the laboratory / early-beta foundation. Wandora boundaries remain provider-neutral even where a concrete laboratory provider has been selected.
+This document describes the current Wandora architecture for the laboratory / early-beta foundation. Wandora boundaries remain provider-neutral even where a concrete implementation has been selected.
 
-For decision authority, read `AGENTS.md` and accepted ADRs first. For exact operational status and next work, read `docs/CANONICAL_STATE.md`.
+Authority order is `AGENTS.md` → accepted ADRs → this document → `docs/CANONICAL_STATE.md` → component README/runbook.
 
 ## Product model
 
@@ -14,227 +14,174 @@ The customer should perceive a company operating with human and digital employee
 Customer
   |
   v
-Wandora Front
+Wandora Web
   |
   v
 Wandora Core/API
   |
-  +--> Business Graph / canonical data
-  +--> Organization Adapter
-  +--> Agent Runtime Adapter
-  +--> Tool Gateway
-  +--> Messaging Gateway
-  +--> Model Provider Gateway
+  +--> canonical business state / Supabase PostgreSQL
+  +--> Organization Adapter -> Paperclip candidate
+  +--> Agent Runtime Adapter -> Mastra
+  +--> Tool Gateway -> authenticated integrations
+  +--> Messaging Gateway -> Evolution / Meta / other providers
+  +--> Model Provider Gateway -> Mistral / Chutes / OpenAI / others
   +--> Approval / Policy boundary
 ```
 
-Wandora is not a CRM-with-AI architecture. CRM, WhatsApp, scheduling, finance and other applications are tools and business surfaces used by employees inside a Wandora-governed organization.
+Wandora is not a CRM-with-AI and not a generic agent builder. Messaging, CRM, scheduling, finance and other systems are tools/business surfaces used by employees inside a Wandora-governed organization.
 
-## Canonical responsibilities
+## Wandora Web
 
-### Wandora Front
+The customer application is React 19 + Vite with TanStack Router and TanStack Query. Tailwind CSS and Wandora-owned visual patterns provide the design layer; TanStack supplies application behavior rather than visual identity.
 
-Owns the customer experience only. It must not call Paperclip, Mastra, Evolution API, model providers or privileged Supabase administrative capabilities directly.
+Current customer navigation is `Início`, `Equipe`, `Trabalho`, `Conversas`, `Aprovações` and `Empresa`.
 
-ADR 0008 accepts the initial customer shell as React 19 + Vite with TanStack Router and TanStack Query. Tailwind CSS and Wandora-owned visual patterns provide the design layer. TanStack supplies application behavior and typed navigation/server-state primitives; it does not define the Wandora visual identity.
+`Empresa` is the organization-administration center: company data, people, knowledge, tools/connections and plan/billing. Personal preferences, notifications, security and session actions belong to the current-user menu rather than a competing generic Settings area.
 
-The current V1 navigation uses business concepts only: `Início`, `Equipe`, `Trabalho`, `Conversas`, `Aprovações` and `Empresa`. The shell is packaged as a multi-stage Docker image: pinned Node 22 compiles the application and a pinned Nginx runtime serves static assets and SPA fallback.
+The browser never calls Paperclip, Mastra, Evolution, model providers or privileged database/admin capabilities directly. The default customer path aims for useful supervised work on the same day; multi-day assisted setup may be an optional service, not a product dependency.
 
-The normal customer experience should use business language: company, team, role, responsibility, work, approval, training and outcome. Provider/runtime terminology belongs in operator surfaces, not ordinary customer workflows.
+## Wandora Core/API
 
-The product must aim for useful work on the same day a company subscribes. A multi-day manual setup dependency is not the default SaaS model; assisted implementation may exist as an optional service.
-
-### Wandora Core/API
-
-Owns product semantics:
+Wandora Core owns product semantics and business authorization:
 
 - organization/tenant identity;
-- customer users, memberships and roles;
-- employee subscriptions/availability/configuration;
-- autonomy policy and human approvals;
+- canonical human users, memberships and roles;
+- digital-employee identity, assignment, status and autonomy;
+- contacts, conversations, messages and work;
+- human approvals and policy decisions;
+- canonical audit events;
 - plans, usage and billing boundaries;
-- canonical business identifiers;
-- provider adapters;
-- audit-facing product events;
-- business authorization above identity/session handling.
+- provider-neutral adapter contracts.
 
-### Core identity and tenancy contract V1
+`apps/core` is the first promoted durable Core package. ADR 0009 accepts Ana's first durable vertical slice as reviewed code/migrations; deployment to the live database remains a separate operational step.
 
-ADR 0007 freezes the initial Wandora-owned tenant/auth boundary.
+### Identity and tenancy
 
-Canonical identities are independent from infrastructure providers:
+ADR 0007 freezes the initial identity boundary:
 
-- `organization.id` is the Wandora company/tenant identity;
-- `user.id` is the canonical human-user identity;
-- external auth subjects map through `user_identity` rather than becoming Wandora user IDs;
-- `membership` binds a user to one organization with role/status;
+- `organization.id` is the company/tenant identity;
+- `user.id` is the canonical human identity;
+- `user_identity` maps external auth subjects to Wandora users;
+- `membership` binds a user to an organization;
+- initial roles are `owner`, `admin`, `member`;
 - `messaging_connection.id` is provider-neutral and belongs to exactly one organization;
-- provider connection identifiers and credential references remain private adapter data.
+- provider bindings live in a private schema.
 
-Initial human roles are intentionally small: `owner`, `admin`, `member`. Role membership does not automatically authorize every domain action. Wandora Core policy remains authoritative for sending messages, invoking tools, billing actions, sensitive changes and required human approvals.
+Supabase Auth handles identity/session issuance. Its JWT `sub` is not a Wandora business ID. Core policy remains authoritative for sensitive/domain actions; role alone is not a universal capability matrix.
 
-Authenticated database reads use PostgreSQL RLS as defense in depth. The validated contract proves that knowing another tenant's connection UUID is insufficient to resolve or access that connection, and suspended memberships lose tenant visibility.
+## Canonical business state
 
-Supabase Auth remains the current login/session provider. Its JWT subject maps to a canonical Wandora user and must not be used as a public business or audit identity.
+Supabase self-hosted provides the selected PostgreSQL/Auth/data foundation. Supabase is infrastructure, not the Wandora backend.
 
-### Business Graph / data platform
+Reviewed migrations now define durable state for the first Ana workflow:
 
-The selected laboratory foundation is a dedicated **Supabase self-hosted** deployment for Wandora.
+- digital employees;
+- contacts;
+- conversations;
+- inbound/outbound messages;
+- qualification work items;
+- approvals;
+- canonical audit records;
+- private normalized-event receipts;
+- private outbound-attempt/idempotency state.
 
-Responsibilities used as needed:
+Tenant relationships are protected with organization-scoped keys/foreign keys. The browser has no direct grants to Ana's internal Core state; access will be mediated by Core APIs.
 
-- PostgreSQL for canonical structured business data;
-- Supabase Auth for identity/session handling;
-- Studio for controlled operator SQL/database administration;
-- Storage for managed object storage;
-- Realtime where it creates product value;
-- Supavisor for connection pooling where needed.
+Structured business truth — prices, payments, schedules, permissions, approvals and similar facts — belongs in canonical PostgreSQL state, never solely in agent memory/RAG.
 
-Supabase does not replace Wandora Core. Authentication answers who the user is and provides session primitives; Wandora Core answers what that user may do in a Wandora organization.
+## Ana durable vertical slice V1
 
-One Wandora Supabase deployment serves the multi-tenant Wandora product. It is not one Supabase deployment per customer, and unrelated products should have independent data/auth deployments.
+Ana's first responsibility is deliberately narrow: receive a normalized inbound WhatsApp contact and keep one understandable qualification context moving.
 
-Candidate canonical entities include organization/company, membership/role, customer/contact, lead/opportunity, product/service, quote, appointment/service order, payment, conversation, human employee, digital employee, task/work item, decision/approval, subscription/usage event and agent/tool audit event.
+```text
+normalized inbound event
+        |
+        v
+Wandora Core
+  -> validate tenant/connection/employee
+  -> persist contact + conversation + inbound message
+  -> reuse/create one qualification work item
+        |
+        v
+Agent Runtime proposal
+        |
+        v
+Wandora Policy
+   | safe                  | commitment
+   v                       v
+idempotent outbound     durable approval
+   |                       |
+   v                       v
+Messaging Gateway      owner/admin decision
+```
 
-Agent memory is not the source of truth for prices, payments, schedules, permissions, approvals or other transactional facts.
+Discount, special price, delivery deadline, payment terms and contractual commitments require human approval. Cross-tenant actors cannot decide another organization's approval.
 
-### Organization Engine
+Outbound delivery is conservative: an attempt moves through `planned` → `sending` → `succeeded` or `uncertain`. If delivery may have occurred but cannot be proven, Core records `delivery-uncertain`, marks work `attention-required`, and does not automatically resend the same idempotency key.
 
-Laboratory candidate: **Paperclip**, behind a Wandora `Organization Adapter`.
+## Agent Runtime
 
-Expected concerns include digital-employee identity/role, organizational structure, goals/work items, budgets/cost controls, skills/training/evaluation and work coordination where useful.
+Mastra is the accepted initial implementation behind a Wandora-owned `Agent Runtime Adapter` (ADR 0005). Mastra run IDs, workflow objects and storage representations never become public product contracts.
 
-Paperclip IDs, schemas and authorization semantics must not become customer-facing contracts. Paperclip does not own Wandora tenancy, billing, canonical business data, customer authentication, messaging contracts or Wandora policy semantics.
+The current durable Core tests use deterministic/fake runtime implementations. A real model token is intentionally not required until the first supervised real model call. Mistral is a candidate for early low-cost testing; Chutes, OpenAI and other providers remain replaceable behind the model-provider boundary.
 
-### Agent Runtime
+Long-horizon employee memory remains separate from canonical truth. Mastra Memory is the initial candidate; Letta or another memory engine may later sit behind a Wandora-owned memory boundary if evidence justifies it.
 
-Initial accepted implementation: **Mastra**, behind a Wandora `Agent Runtime Adapter`.
+## Messaging Gateway
 
-The deterministic V1 spike proved the boundary with a typed tool, committed workflow, adapter result mapping, invalid-input rejection, strict TypeScript verification and containerized execution. Mastra-specific run IDs, workflow result objects, step graphs and storage representations remain internal implementation details.
+Evolution API 2.3.7 is the accepted initial WhatsApp provider behind Wandora's `Messaging Gateway` (ADR 0006). Real inbound and outbound handset traffic has already been proven while keeping instance names, JIDs, API keys and provider message IDs behind the adapter.
 
-Expected concerns include agent execution, tool invocation, conversation/runtime memory, durable workflows where justified, suspend/resume for human-in-the-loop, multi-agent handoffs/orchestration and model selection/provider abstraction.
+The earlier gateway spike established normalized inbound events and conservative outbound idempotency. ADR 0009 now promotes durable event receipts/outbound-attempt semantics into reviewed Core/PostgreSQL code. Real Gateway-to-Core wiring is still pending and must remain provider-neutral.
 
-Mastra is an implementation technology inside the Wandora runtime, not a customer-visible product boundary. Persistent Mastra runtime storage never becomes the only source of truth for transactional Wandora facts.
+No digital employee calls Evolution directly.
 
-### Tool Gateway
+## Approval and audit identity
 
-Wandora-owned boundary for authenticated/direct integrations.
-
-Expected concerns include OAuth lifecycle, authenticated tool execution, per-company/per-user authorization, action-level approval requirements and provider-neutral internal tool contracts.
-
-Arcade or other providers may be evaluated, but no tool vendor is a frozen public dependency.
-
-### Messaging Gateway
-
-Wandora-owned boundary.
-
-Initial accepted laboratory WhatsApp provider: **Evolution API 2.3.7**, behind the Wandora Messaging Gateway.
-
-The V1 proof validated real inbound and outbound WhatsApp traffic while keeping Evolution instance names, JIDs, API keys, raw webhook envelopes and provider message IDs behind the adapter boundary.
-
-The minimum Wandora contract covers outbound text and normalized inbound text. Inbound events receive deterministic Wandora event IDs and a receipt-store boundary for deduplication. Outbound attempts use Wandora idempotency keys and enter an `uncertain` state after ambiguous transport/non-success provider results so automatic retry cannot accidentally duplicate a send.
-
-Current receipt and outbound-attempt stores in the spike are in-memory laboratory implementations only. Durable persistence and tenant-scoped provider resolution belong to the production Core/data path.
-
-Production-compatible alternatives remain possible: Meta WhatsApp Business Platform, BSPs and future email/SMS/Instagram/Telegram adapters.
-
-No digital employee calls Evolution directly. Employees call a Wandora messaging contract.
-
-### Model providers
-
-Model vendors are interchangeable infrastructure. Initial candidates include OpenAI and Chutes. Routing may evolve based on quality, cost, latency and task sensitivity. Digital-employee identity must not depend on one model vendor.
-
-## Audit identity
-
-Audit-facing product events must use Wandora-owned actor semantics:
+Audit-facing product events use Wandora-owned semantics:
 
 - canonical `organization_id`;
 - `actor_type` such as human, digital employee or system;
-- canonical Wandora `actor_id`.
+- canonical Wandora `actor_id`;
+- normalized correlation IDs.
 
-Supabase Auth subjects, Evolution instance names, Mastra run IDs and other provider/runtime identifiers are implementation metadata rather than audit actor identities.
+Supabase Auth subjects, Evolution IDs and Mastra run IDs are implementation metadata, not audit actor identity.
 
-## Edge, DNS and ingress
+## Operator and infrastructure boundary
 
-Cloudflare is the canonical public edge and Traefik is the VPS ingress/reverse proxy.
+Cloudflare is the public edge and Traefik is the VPS ingress/reverse proxy. Docker Engine/Compose remains the initial deployment substrate; Portainer is an operator console, while Git is source of truth.
 
-Public/customer contracts may include `wandora.com.br`, `app.wandora.com.br`, `api.wandora.com.br`, `hooks.wandora.com.br` and `supabase.wandora.com.br` where justified.
+Customer/public contracts may include `wandora.com.br`, `app.wandora.com.br`, `api.wandora.com.br`, `hooks.wandora.com.br` and `supabase.wandora.com.br` when justified.
 
-Privileged administrative surfaces include:
+Operator surfaces include `studio.wandora.com.br`, `portainer.wandora.com.br` and `manager.wandora.com.br`; these require stronger access controls. Additional operator tools may receive protected HTTPS hostnames when useful.
 
-- `studio.wandora.com.br` — Supabase Studio, strongly access-controlled;
-- `portainer.wandora.com.br` — Portainer operator console;
-- `manager.wandora.com.br` — Evolution operator Manager, never a customer-facing surface.
+PostgreSQL, Redis, Docker socket, Paperclip internals, Mastra internals and provider management ports remain private.
 
-Additional operator tools may receive dedicated HTTPS hostnames such as logs/metrics/queues when that materially improves human operations. Those hostnames remain behind Cloudflare/Traefik and strong access control. Giving an operator tool a URL does not make the underlying machine service public.
+## Migration and source-of-truth discipline
 
-PostgreSQL, Redis, Docker socket, Paperclip internals, Mastra runtime internals and direct provider/database management ports must not be publicly exposed.
+Versioned Wandora database migrations live under `infra/stacks/supabase/migrations/`; falsifiable verifiers live under `infra/stacks/supabase/verifiers/`. Spike SQL is never applied directly to the live database.
 
-## Deployment architecture — current foundation
+The Core multitenant/auth and Ana durable migrations have been validated together on disposable `supabase/postgres:17.6.1.136` and are versioned in Git, but are **not yet applied to the live Wandora Supabase database**.
 
-```text
-Internet
-   |
-Cloudflare DNS / Proxy / Access
-   |
-Traefik
-   |
-   +--> wandora.com.br / app / api / hooks
-   |       -> Wandora-owned services
-   +--> supabase.wandora.com.br
-   |       -> Supabase API gateway/services
-   +--> studio.wandora.com.br
-   |       -> privileged Supabase Studio
-   +--> portainer.wandora.com.br
-   |       -> operator console
-   +--> manager.wandora.com.br
-           -> operator-only Evolution Manager
-
-VPS Wandora
-   |
-Docker networks
-   |
-   +--> wandora-edge
-   |      -> ingress-facing services
-   +--> wandora-core
-   |      -> Wandora services
-   |      -> Paperclip (private)
-   |      -> Agent Runtime / Mastra (private)
-   |      -> Messaging Gateway (private boundary)
-   |      -> Evolution provider adapter path
-   +--> wandora-data / provider-private data networks
-          -> Supabase/PostgreSQL and data services
-          -> Evolution PostgreSQL/Redis
-          -> non-public
-```
-
-The first Supabase deployment may share the current VPS during laboratory/early beta. Stable DNS contracts must keep a later data-plane VPS migration straightforward.
-
-## Stack/source-of-truth model
-
-Production-oriented Compose/stack definitions live in GitHub. Portainer may operate and observe them but must not become the only copy of infrastructure state. Persistent state requires backup and restore procedures. Secrets live outside Git.
+Live schema application requires a separate preflight/reversibility/post-verification step. Persistent data must remain backup/restore-testable and movable to another VPS.
 
 ## Near-term execution sequence
 
-1. freeze the paying-customer first-day journey from company creation through supervised useful work;
-2. define the first digital-employee role and its minimum human-centered business workflow from that journey;
-3. build the first end-to-end product vertical slice using the validated Web, Core, Supabase, Mastra and Messaging boundaries;
-4. promote only the required Core contract schema into reviewed migrations/service code;
-5. wire real Wandora login/onboarding around the proven journey;
-6. add social login when the application auth journey exists;
-7. expand integrations only when a validated employee workflow requires them.
-
-Supabase Foundation V1, Mastra Agent Runtime V1, Evolution Messaging Gateway V1, Core Multi-tenant/Auth Contract V1 and Human Interface/Product Shell V1 are complete and should not be repeated unless drift or a regression requires repair.
+1. keep canonical documentation synchronized;
+2. finish review/merge of Ana's durable Core code and migrations;
+3. prepare live-database preflight and controlled migration application;
+4. wire the validated Messaging Gateway and Mastra Agent Runtime Adapter to Core in supervised mode;
+5. expose tenant-authorized Core reads/actions to Wandora Web so customer screens use canonical state;
+6. perform a supervised real-path proof before any autonomous customer traffic;
+7. wire real customer authentication/onboarding around the proven path;
+8. request/configure a real model provider token only when the first real model call is required;
+9. add social login and broader integrations only when a validated customer workflow requires them.
 
 ## Non-goals for the current phase
 
 - Kubernetes;
 - microservices for every domain;
+- generic prompt/workflow builder as the customer product;
 - bespoke vector database without demonstrated need;
-- custom OAuth platform if a safe market solution suffices;
-- custom agent framework;
-- customer exposure to third-party admin UIs;
-- generic prompt editor or workflow canvas as the primary customer experience;
-- one Supabase instance shared across unrelated products;
-- one Supabase deployment per Wandora customer;
-- marketplace before the core digital-employee workflow is validated.
+- one Supabase deployment per customer;
+- customer access to provider admin UIs;
+- marketplace before the first employee workflow is proven.

@@ -58,22 +58,24 @@ The following are current decisions unless superseded by a newer accepted ADR:
 - Wandora Core owns canonical organization, user, membership and provider-neutral messaging-connection identity. Supabase Auth subjects and provider/runtime IDs are not Wandora business IDs.
 - Initial human organization roles are `owner`, `admin` and `member`; role is not a universal permission matrix and sensitive/domain actions remain explicit Core policy decisions.
 - React + Vite with TanStack Router/Query is the accepted initial Wandora Web shell. TanStack supplies application behavior, not Wandora's visual identity; customer-facing design remains Wandora-owned.
+- `Empresa` is the customer-facing organization administration center; personal user preferences/security/session belong to the user menu rather than a competing generic Settings section.
+- ADR 0009 accepts `apps/core` and the Ana durable Core vertical slice as reviewed code/migrations. Live database application remains a separate operational step.
 - Official WhatsApp providers remain a production option behind the same gateway.
-- Model vendors are replaceable infrastructure behind a provider boundary.
+- Model vendors are replaceable infrastructure behind a provider boundary. Do not request or hard-code a provider credential until a real provider call is materially required.
 - Structured business facts belong in canonical PostgreSQL storage, not only in agent memory/RAG.
 - Human approval remains mandatory for sensitive or irreversible actions until explicit product policy says otherwise.
 
 ## 5. Preferred component shape
 
 ```text
-Wandora Front
+Wandora Web
   -> Wandora Core/API
       -> Business Graph / Supabase PostgreSQL
       -> Organization Adapter -> Paperclip
       -> Agent Runtime Adapter -> Mastra
       -> Tool Gateway -> authenticated/direct integrations
       -> Messaging Gateway -> Evolution / Meta / other providers
-      -> Model Provider -> OpenAI / Chutes / other providers
+      -> Model Provider -> Mistral / Chutes / OpenAI / other providers
       -> Approval / Policy boundary
 ```
 
@@ -90,6 +92,8 @@ Mastra, Paperclip, Supabase and Evolution are technologies used by Wandora. None
 - Never commit secrets, tokens, private keys, OAuth client secrets, SMTP credentials or real customer credentials.
 - Design persistent data so it can be backed up, restore-tested and moved to another VPS.
 - New public hostnames must be intentional contracts, not third-party product names.
+- Versioned Wandora DB migrations live under `infra/stacks/supabase/migrations/`; verifiers live under `infra/stacks/supabase/verifiers/`. Never apply SQL directly from `spikes/` to the live database.
+- A migration being reviewed/merged does not mean it is already applied live. Live schema changes require explicit operational preflight, reversibility/backup awareness and post-verification.
 
 ## 7. Product and development discipline
 
@@ -107,20 +111,24 @@ For customer-facing work, design the human journey before the technical screen. 
 
 The default customer path must aim for useful work on the same day. A multi-day manual implementation dependency may exist as an assisted premium service, but it must not be required for the normal SaaS experience.
 
+For Ana or future employees, unknown/ambiguous external side effects must fail conservatively. In particular, an uncertain message delivery must not be retried automatically unless reconciliation proves it safe.
+
 ## 8. Current execution order
 
 Unless an active blocker or explicit user decision changes priority:
 
 1. keep canonical documentation synchronized with accepted decisions;
-2. freeze the paying-customer first-day journey: create/join company, state the business outcome, hire a digital employee, connect only required tools, provide essential company context and start supervised work;
-3. define the first digital-employee role and its smallest human-centered end-to-end business workflow from that journey;
-4. build the first end-to-end vertical slice using the validated Core, Supabase, Mastra, Messaging and Wandora Web boundaries;
-5. promote only the required Core contract schema into reviewed migrations/service code;
-6. add real customer authentication/onboarding wiring around that proven journey;
-7. add Google/social login when callback contracts and the Wandora login flow are ready;
-8. expand product surface area only when a validated employee workflow requires it.
+2. finish review/merge of **Ana durable Core vertical slice V1**;
+3. prepare a controlled live-Supabase migration preflight with backup/reversibility and post-verifier; do not treat code merge as deployment;
+4. wire normalized Messaging Gateway inbound traffic to Wandora Core in supervised mode;
+5. wire the accepted Mastra Agent Runtime Adapter to Core, keeping model-provider selection replaceable;
+6. expose tenant-authorized Core read/action APIs to Wandora Web so the existing human experience uses canonical state;
+7. prove the complete real path in supervised mode before any autonomous customer traffic;
+8. request/configure a Mistral or other model-provider token only when the first real model call is actually required;
+9. add real customer authentication/onboarding wiring around that proven journey;
+10. add Google/social login and broader integrations only when a validated customer workflow requires them.
 
-Supabase Foundation V1, Mastra Agent Runtime Spike V1, Evolution Messaging Gateway V1, Wandora Core Multi-tenant/Auth Contract V1 and Human Interface/Product Shell V1 are complete. Do not repeat them unless verifying or repairing drift. Production hardening remains incremental and does not by itself reopen accepted provider-neutral boundaries. See `docs/CANONICAL_STATE.md` for exact status and the next executable slice.
+Supabase Foundation V1, Mastra Agent Runtime V1, Evolution Messaging Gateway V1, Wandora Core Multi-tenant/Auth Contract V1, Human Interface/Product Shell V1, First-Day Customer Journey V1, Ana inbound new-contact contract V1 and Ana durable Core vertical slice V1 (reviewed code, not live deployment) are complete or accepted. Do not repeat them unless verifying/repairing drift. See `docs/CANONICAL_STATE.md` for exact operational status.
 
 ## 9. Definition of progress
 

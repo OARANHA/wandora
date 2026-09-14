@@ -25,6 +25,8 @@ Production packaging uses a multi-stage Docker build: pinned Node 22 for compila
 
 Normal customer navigation is centered on `Início`, `Equipe`, `Trabalho`, `Conversas`, `Aprovações` and `Empresa`.
 
+`Empresa` is the organization-administration center rather than a generic technical `Configurações` section. It owns the customer-facing areas `Dados da empresa`, `Pessoas`, `Conhecimento`, `Ferramentas e conexões` and `Plano e cobrança`. Personal settings belong to the signed-in human's profile menu — for example `Meu perfil`, `Preferências`, `Notificações`, `Segurança` and `Sair`. A separate sidebar item named `Configurações` should not be added unless a future product need cannot be expressed cleanly through those two boundaries.
+
 The product should expose responsibilities, work, approvals, training, company knowledge and outcomes. Runtime/provider vocabulary stays in operator/developer surfaces.
 
 The default onboarding target is same-day useful work in supervised mode. Assisted implementation may exist as a paid service, but a multi-day manual setup dependency is not the default product model.
@@ -43,6 +45,7 @@ Chromium browser verification was run at 390 px and 1440 px viewports across all
 - web deploys are versioned, reversible and independent from the host Node installation;
 - a future switch to SSR or another rendering model remains possible behind the same `app.wandora.com.br` contract;
 - the visual quality depends on the Wandora design system, not on TanStack itself;
+- organization administration and personal preferences remain intentionally separate customer concepts;
 - future feature slices must pass the human-experience gate before broad implementation.
 
 ## Next step
