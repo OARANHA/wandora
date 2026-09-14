@@ -33,10 +33,14 @@ export type ApprovalDecisionContext = {
 export class PostgresAnaRepository {
   constructor(private readonly pool: Pool) {}
 
-  private async tx<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
+  private async tx<T>(organizationId: OrganizationId, fn: (client: PoolClient) => Promise<T>): Promise<T> {
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
+      await client.query(
+        `SELECT set_config('wandora.organization_id', $1, true)`,
+        [organizationId],
+      );
       const result = await fn(client);
       await client.query('COMMIT');
       return result;
@@ -52,7 +56,7 @@ export class PostgresAnaRepository {
     organizationId: OrganizationId,
     event: InboundTextEvent,
   ): Promise<InboundContext> {
-    return this.tx(async (client) => {
+    return this.tx(organizationId, async (client) => {
       const connection = await client.query<{
         id: string;
         organization_id: string;
@@ -60,8 +64,7 @@ export class PostgresAnaRepository {
       }>(
         `SELECT id, organization_id, status
            FROM wandora.messaging_connections
-          WHERE id = $1
-          FOR SHARE`,
+          WHERE id = $1`,
         [event.connectionId],
       );
 
@@ -126,8 +129,7 @@ export class PostgresAnaRepository {
             AND role = 'commercial-assistant'
             AND status = 'active'
           ORDER BY created_at ASC
-          LIMIT 1
-          FOR SHARE`,
+          LIMIT 1`,
         [organizationId],
       );
       const employeeRow = employeeResult.rows[0];
@@ -177,10 +179,10 @@ export class PostgresAnaRepository {
       const workItemId = work.rows[0]!.id;
 
       await client.query(
-        `INSERT INTO wandora.audit_records
-           (organization_id, actor_type, actor_id, action, subject_type, subject_id, correlation_id, occurred_at)
-         VALUES ($1, 'system', 'wandora-core', 'inbound-accepted', 'conversation', $2, $3, $4)
-         ON CONFLICT DO NOTHING`,
+        `SELECT wandora.append_core_audit(
+           $1, 'system'::wandora.audit_actor_type, 'wandora-core',
+           'inbound-accepted'::wandora.audit_action, 'conversation', $2, $3, $4
+         )`,
         [organizationId, conversationId, event.eventId, event.occurredAt],
       );
 
@@ -210,7 +212,7 @@ export class PostgresAnaRepository {
     proposal: EmployeeProposal;
     occurredAt: string;
   }): Promise<InboundProcessingResult> {
-    return this.tx(async (client) => {
+    return this.tx(args.organizationId, async (client) => {
       const approval = await client.query<{ id: string }>(
         `INSERT INTO wandora.approvals
            (organization_id, employee_id, work_item_id, source_event_id, commitment, proposed_text, rationale)
@@ -229,10 +231,10 @@ export class PostgresAnaRepository {
         [args.organizationId, args.workItemId],
       );
       await client.query(
-        `INSERT INTO wandora.audit_records
-           (organization_id, actor_type, actor_id, action, subject_type, subject_id, correlation_id, occurred_at)
-         VALUES ($1, 'digital-employee', $2, 'approval-requested', 'approval', $3, $4, $5)
-         ON CONFLICT DO NOTHING`,
+        `SELECT wandora.append_core_audit(
+           $1, 'digital-employee'::wandora.audit_actor_type, $2,
+           'approval-requested'::wandora.audit_action, 'approval', $3, $4, $5
+         )`,
         [args.organizationId, args.employeeId, approvalId, args.eventId, args.occurredAt],
       );
 
@@ -264,7 +266,7 @@ export class PostgresAnaRepository {
     idempotencyKey: string;
     body: string;
   }): Promise<OutboundPreparation> {
-    return this.tx(async (client) => {
+    return this.tx(args.organizationId, async (client) => {
       await client.query(
         `INSERT INTO wandora_private.outbound_attempts
            (organization_id, employee_id, work_item_id, conversation_id,
@@ -341,7 +343,7 @@ export class PostgresAnaRepository {
     gatewayRequestId: string;
     occurredAt: string;
   }): Promise<InboundProcessingResult> {
-    return this.tx(async (client) => {
+    return this.tx(args.organizationId, async (client) => {
       const updated = await client.query(
         `UPDATE wandora_private.outbound_attempts
             SET status = 'succeeded', gateway_request_id = $3
@@ -368,12 +370,10 @@ export class PostgresAnaRepository {
         [args.organizationId, args.workItemId],
       );
       await client.query(
-        `INSERT INTO wandora.audit_records
-           (organization_id, actor_type, actor_id, action, subject_type, subject_id,
-            correlation_id, occurred_at)
-         VALUES ($1, 'digital-employee', $2, 'outbound-sent', 'conversation', $3, $4, $5)
-         ON CONFLICT (organization_id, action, subject_type, subject_id, correlation_id)
-         DO NOTHING`,
+        `SELECT wandora.append_core_audit(
+           $1, 'digital-employee'::wandora.audit_actor_type, $2,
+           'outbound-sent'::wandora.audit_action, 'conversation', $3, $4, $5
+         )`,
         [args.organizationId, args.employeeId, args.conversationId, args.eventId, args.occurredAt],
       );
 
@@ -405,7 +405,7 @@ export class PostgresAnaRepository {
     idempotencyKey: string;
     occurredAt: string;
   }): Promise<InboundProcessingResult> {
-    return this.tx(async (client) => {
+    return this.tx(args.organizationId, async (client) => {
       const attempt = await client.query(
         `UPDATE wandora_private.outbound_attempts
             SET status = 'uncertain'
@@ -425,12 +425,10 @@ export class PostgresAnaRepository {
         [args.organizationId, args.workItemId],
       );
       await client.query(
-        `INSERT INTO wandora.audit_records
-           (organization_id, actor_type, actor_id, action, subject_type, subject_id,
-            correlation_id, occurred_at)
-         VALUES ($1, 'system', 'wandora-core', 'outbound-uncertain', 'conversation', $2, $3, $4)
-         ON CONFLICT (organization_id, action, subject_type, subject_id, correlation_id)
-         DO NOTHING`,
+        `SELECT wandora.append_core_audit(
+           $1, 'system'::wandora.audit_actor_type, 'wandora-core',
+           'outbound-uncertain'::wandora.audit_action, 'conversation', $2, $3, $4
+         )`,
         [args.organizationId, args.conversationId, args.eventId, args.occurredAt],
       );
 
@@ -458,15 +456,14 @@ export class PostgresAnaRepository {
     decision: 'approve' | 'reject';
     decidedAt: string;
   }): Promise<ApprovalDecisionContext> {
-    return this.tx(async (client) => {
+    return this.tx(args.organizationId, async (client) => {
       const authority = await client.query<{ role: 'owner' | 'admin' | 'member' }>(
         `SELECT m.role
            FROM wandora.memberships m
            JOIN wandora.organizations o ON o.id = m.organization_id
           WHERE m.organization_id = $1 AND m.user_id = $2
             AND m.status = 'active' AND o.status = 'active'
-            AND m.role IN ('owner', 'admin')
-          FOR SHARE`,
+            AND m.role IN ('owner', 'admin')`,
         [args.organizationId, args.actorUserId],
       );
       if (!authority.rows[0]) {
@@ -516,12 +513,10 @@ export class PostgresAnaRepository {
           [args.organizationId, row.work_item_id],
         );
         await client.query(
-          `INSERT INTO wandora.audit_records
-             (organization_id, actor_type, actor_id, action, subject_type, subject_id,
-              correlation_id, occurred_at)
-           VALUES ($1, 'human', $2, 'approval-decided', 'approval', $3, $4, $5)
-           ON CONFLICT (organization_id, action, subject_type, subject_id, correlation_id)
-           DO NOTHING`,
+          `SELECT wandora.append_core_audit(
+             $1, 'human'::wandora.audit_actor_type, $2,
+             'approval-decided'::wandora.audit_action, 'approval', $3, $4, $5
+           )`,
           [args.organizationId, args.actorUserId, row.id, row.source_event_id, args.decidedAt],
         );
       }
@@ -561,12 +556,14 @@ export class PostgresAnaRepository {
     organizationId: OrganizationId;
     eventId: string;
   }): Promise<void> {
-    await this.pool.query(
-      `UPDATE wandora_private.inbound_event_receipts
-          SET status = 'failed', result = NULL, completed_at = NULL
-        WHERE organization_id = $1 AND event_id = $2 AND status = 'processing'`,
-      [args.organizationId, args.eventId],
-    );
+    await this.tx(args.organizationId, async (client) => {
+      await client.query(
+        `UPDATE wandora_private.inbound_event_receipts
+            SET status = 'failed', result = NULL, completed_at = NULL
+          WHERE organization_id = $1 AND event_id = $2 AND status = 'processing'`,
+        [args.organizationId, args.eventId],
+      );
+    });
   }
 
   async getCounts(organizationId: OrganizationId): Promise<{
@@ -576,28 +573,30 @@ export class PostgresAnaRepository {
     approvals: number;
     messages: number;
   }> {
-    const result = await this.pool.query<{
-      contacts: string;
-      conversations: string;
-      work_items: string;
-      approvals: string;
-      messages: string;
-    }>(
-      `SELECT
-         (SELECT count(*) FROM wandora.contacts WHERE organization_id = $1)::text AS contacts,
-         (SELECT count(*) FROM wandora.conversations WHERE organization_id = $1)::text AS conversations,
-         (SELECT count(*) FROM wandora.work_items WHERE organization_id = $1)::text AS work_items,
-         (SELECT count(*) FROM wandora.approvals WHERE organization_id = $1)::text AS approvals,
-         (SELECT count(*) FROM wandora.messages WHERE organization_id = $1)::text AS messages`,
-      [organizationId],
-    );
-    const row = result.rows[0]!;
-    return {
-      contacts: Number(row.contacts),
-      conversations: Number(row.conversations),
-      workItems: Number(row.work_items),
-      approvals: Number(row.approvals),
-      messages: Number(row.messages),
-    };
+    return this.tx(organizationId, async (client) => {
+      const result = await client.query<{
+        contacts: string;
+        conversations: string;
+        work_items: string;
+        approvals: string;
+        messages: string;
+      }>(
+        `SELECT
+           (SELECT count(*) FROM wandora.contacts WHERE organization_id = $1)::text AS contacts,
+           (SELECT count(*) FROM wandora.conversations WHERE organization_id = $1)::text AS conversations,
+           (SELECT count(*) FROM wandora.work_items WHERE organization_id = $1)::text AS work_items,
+           (SELECT count(*) FROM wandora.approvals WHERE organization_id = $1)::text AS approvals,
+           (SELECT count(*) FROM wandora.messages WHERE organization_id = $1)::text AS messages`,
+        [organizationId],
+      );
+      const row = result.rows[0]!;
+      return {
+        contacts: Number(row.contacts),
+        conversations: Number(row.conversations),
+        workItems: Number(row.work_items),
+        approvals: Number(row.approvals),
+        messages: Number(row.messages),
+      };
+    });
   }
 }
