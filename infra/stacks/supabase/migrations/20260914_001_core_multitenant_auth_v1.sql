@@ -1,3 +1,5 @@
+BEGIN;
+
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 CREATE SCHEMA IF NOT EXISTS wandora;
@@ -186,3 +188,5 @@ COMMENT ON TABLE wandora.organizations IS 'Canonical Wandora company/tenant iden
 COMMENT ON TABLE wandora.user_identities IS 'Maps external identity subjects such as Supabase Auth sub values to canonical Wandora users.';
 COMMENT ON TABLE wandora.messaging_connections IS 'Provider-neutral messaging connection owned by exactly one Wandora organization.';
 COMMENT ON TABLE wandora_private.messaging_provider_bindings IS 'Internal provider binding; never a customer-facing contract.';
+
+COMMIT;
