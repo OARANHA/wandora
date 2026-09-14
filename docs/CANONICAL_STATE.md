@@ -61,11 +61,11 @@ ADR 0006 accepts Evolution 2.3.7 only behind Wandora's Messaging Gateway. Real i
 
 Production hardening still includes durable provider reconciliation, reconnect/backup observability and Cloudflare Access for Manager.
 
-### Core multi-tenant/auth contract V1 — COMPLETE
+### Core multi-tenant/auth contract V1 — COMPLETE + LIVE DATABASE FOUNDATION
 
 ADR 0007 freezes canonical `organization`, `user`, external identity mapping, `membership` and provider-neutral `messaging_connection` semantics. Initial human roles are `owner`, `admin`, `member`; role is not a universal capability matrix.
 
-Tenant isolation and provider-binding privacy were proven on disposable Supabase PostgreSQL. The accepted schema has now been promoted into a reviewed migration file, but has **not yet been applied to the live database**.
+Tenant isolation and provider-binding privacy were first proven on disposable Supabase PostgreSQL. The reviewed migration is now applied to the live Wandora Supabase PostgreSQL as part of the Ana V1 database foundation.
 
 ### Human Interface / Product Shell V1 — COMPLETE
 
@@ -83,7 +83,7 @@ Ana's first responsibility is narrow: receive a normalized inbound WhatsApp cont
 
 A new message does not automatically become a sales opportunity. Duplicate events cannot create duplicate work/sends. Discount, special price, delivery deadline, payment terms and contractual commitments require human approval.
 
-## Ana durable Core vertical slice V1 — COMPLETE AS REVIEWED CODE / NOT LIVE
+## Ana durable Core vertical slice V1 — LIVE DATABASE FOUNDATION COMPLETE
 
 ADR 0009 promotes the accepted contract into durable Wandora Core code and versioned PostgreSQL migrations.
 
@@ -96,8 +96,9 @@ Versioned database assets:
 - `infra/stacks/supabase/migrations/20260914_001_core_multitenant_auth_v1.sql`
 - `infra/stacks/supabase/migrations/20260914_002_ana_vertical_slice_v1.sql`
 - `infra/stacks/supabase/verifiers/VERIFY_20260914_ANA_VERTICAL_SLICE_V1.sql`
+- `infra/stacks/supabase/verifiers/VERIFY_20260914_ANA_VERTICAL_SLICE_V1_LIVE.sql`
 
-Durable canonical state now covers:
+Durable canonical state covers:
 
 - digital employees;
 - contacts;
@@ -122,7 +123,7 @@ Safety semantics:
 - runtime failure can mark the inbound receipt failed and allow a safe retry;
 - provider/runtime identifiers do not become customer/audit identity.
 
-Reproducible evidence on 2026-09-14:
+Reproducible development evidence on 2026-09-14:
 
 ```text
 ANA_DURABLE_CORE_STATE_V1_OK
@@ -132,13 +133,58 @@ TypeScript strict: green
 ANA_VERTICAL_SLICE_V1_VERIFY_OK
 ```
 
-The verifier uses disposable `supabase/postgres:17.6.1.136` and pinned Node 22.23.2. The live Wandora Supabase database was not modified by this validation.
+### Live application evidence — 2026-09-14
+
+Before live application, a fresh logical backup was created with restrictive file permissions. A logical snapshot of the live database was also restored into disposable `supabase/postgres:17.6.1.136`, where the exact reviewed migration blobs passed before any production write.
+
+The exact live application completed with:
+
+```text
+MIGRATION_001_LIVE_OK
+MIGRATION_002_LIVE_OK
+ANA_LIVE_POSTVERIFY_V1_OK
+SUPABASE_POST_MIGRATION_HEALTH_OK
+ANA_LIVE_MIGRATION_V1_OK
+```
+
+Post-migration state:
+
+```text
+wandora tables: 12
+wandora_private tables: 3
+organizations: 0
+contacts: 0
+messages: 0
+approvals: 0
+```
+
+No synthetic verifier data was inserted into production. The live verifier runs inside `SET TRANSACTION READ ONLY`.
+
+Public post-migration smoke also remained correct:
+
+```text
+supabase.wandora.com.br root: HTTP 404 (intentional)
+studio.wandora.com.br unauthenticated: HTTP 401
+SUPABASE_PUBLIC_POST_MIGRATION_SMOKE_OK
+```
+
+The database schema is live, but the production Wandora Core service credential, Gateway-to-Core wiring, real Agent Runtime call and customer traffic are still pending.
+
+## CI / decision discipline status
+
+GitHub Actions `Core CI` is active for every pull request and push to `main`. It runs the disposable PostgreSQL migration/verifier path, the production-safe read-only verifier, strict TypeScript and the Ana Core integration tests.
+
+`AGENTS.md` now requires a second-pass review before material product, architecture, infrastructure, security or deployment decisions are executed.
+
+Branch protection requiring the CI check remains an administrative pending item because the currently available GitHub integration cannot mutate branch-protection settings. CI itself is active and green.
 
 ## Model provider / memory status
 
-No Mistral token is required yet. Current Core tests use deterministic/fake Agent Runtime implementations so business contracts can be proven without provider cost/credentials.
+No usable Mistral token is configured or required yet. Current Core tests use deterministic/fake Agent Runtime implementations so business contracts can be proven without provider cost/credentials.
 
-Ask the product owner for a Mistral token only when the first real supervised model call is materially required. Chutes subscription/token remains deferred until a concrete model/cost/privacy need justifies it.
+A previously supplied Mistral token was accidentally committed to Git. It was removed from the current repository tree and the path is now ignored, but Git history may retain it. That token is therefore compromised and must never be reused. When the first real supervised model call becomes materially necessary, revoke the old token, generate a fresh replacement and configure it only through an approved operator-controlled secret path — not Git and not chat.
+
+Chutes subscription/token remains deferred until a concrete model/cost/privacy need justifies it.
 
 Structured business facts remain PostgreSQL truth. Knowledge/RAG and employee experiential memory are separate concerns. Mastra Memory is the initial memory candidate; Letta may later be evaluated behind a Wandora-owned memory boundary if long-horizon evidence justifies it.
 
@@ -146,20 +192,19 @@ Structured business facts remain PostgreSQL truth. Knowledge/RAG and employee ex
 
 **ANA SUPERVISED REAL-PATH WIRING V1**
 
-Goal: connect the now-durable Core to the already validated provider-neutral runtime and messaging boundaries without enabling unsupervised customer traffic.
+Goal: connect the now-live durable database foundation to the already validated provider-neutral runtime and messaging boundaries without enabling unsupervised customer traffic.
 
 Expected order:
 
-1. review/merge the durable Core branch and keep docs synchronized;
-2. prepare live Supabase migration preflight, backup/reversibility plan and post-verifier;
-3. apply the reviewed migrations to live Supabase only as a controlled deployment step;
-4. provision a private Core database role/credential path without exposing PostgreSQL;
-5. wire normalized Messaging Gateway inbound events to Wandora Core;
-6. wire the existing Mastra Agent Runtime Adapter using a deterministic/fake model path first where possible;
-7. expose tenant-authorized Core reads/actions to Wandora Web;
-8. prove a supervised real path end-to-end;
-9. only then request the Mistral token for the first real model-backed Ana proposal if needed;
-10. do not enable unsupervised production traffic until policy/operations explicitly approve it.
+1. provision a private, least-privilege production Wandora Core database role/credential path without exposing PostgreSQL;
+2. wire normalized Messaging Gateway inbound events to Wandora Core;
+3. wire the existing Mastra Agent Runtime Adapter using a deterministic/fake model path first where possible;
+4. expose tenant-authorized Core reads/actions to Wandora Web;
+5. prove a supervised real path end-to-end;
+6. only then, if the first real model-backed Ana proposal is required, revoke the compromised Mistral token and configure a fresh token securely;
+7. do not enable unsupervised production traffic until policy/operations explicitly approve it;
+8. add real customer authentication/onboarding around the proven path;
+9. add social login and broader integrations only when a validated customer workflow requires them.
 
 ## Human-experience guardrails
 
@@ -180,9 +225,9 @@ Before implementing a capability, answer:
 - Provider identifiers never become public Wandora identities without an explicit boundary decision.
 - Sensitive employee actions require human approval until explicit product policy changes that boundary.
 - Management consoles are operator-only and require stronger protection.
-- Git is infrastructure/source-of-truth.
-- Never commit secrets.
+- Git is infrastructure/source-of-truth, but never a secret store.
+- Any credential that enters Git history is considered compromised and must be rotated before use.
 
 ## Startup instruction for another chat
 
-> Read `AGENTS.md`, accepted ADRs, `docs/architecture.md` and `docs/CANONICAL_STATE.md`. Ana durable Core V1 is reviewed-code complete but not applied live. Continue with the supervised real-path wiring sequence; do not ask for a Mistral token until the first real model call is actually required.
+> Read `AGENTS.md`, accepted ADRs, `docs/architecture.md` and `docs/CANONICAL_STATE.md`. Ana durable Core V1 database foundation is applied live and read-only post-verified. Continue with production Core DB role/credential provisioning and supervised real-path wiring. Do not use the previously Git-exposed Mistral token; only request a fresh replacement when the first real model call is actually required.
