@@ -1,7 +1,7 @@
 # ADR 0011 — Wandora Core Private Runtime V1
 
 Date: 2026-09-14
-Status: **Accepted when merged; live credential activation remains separately gated**
+Status: **Accepted; standby deployed live. Database credential activation remains blocked by security gate #22.**
 
 ## Context
 
@@ -34,7 +34,7 @@ In database mode Core accepts only `WANDORA_CORE_DB_USER=wandora_core_runtime`. 
 1. `current_user = wandora_core_runtime`;
 2. the pooled connection begins with no leaked transaction-local `wandora.organization_id` scope.
 
-The real password and non-zero connection limit are not part of this PR. They are created only after the image/private network/secret path are live and after any outstanding credential-rotation security gate is cleared.
+The real password and non-zero connection limit are not part of this ADR's live standby deployment. They are created only after the image/private network/secret path are live and after all outstanding credential-rotation security gates are cleared.
 
 ## Security posture
 
@@ -52,7 +52,7 @@ The runtime image:
 
 ## Verification
 
-Before publication the canonical verifier must prove:
+Before publication the canonical verifier proved:
 
 ```text
 ANA_LIVE_POSTVERIFY_V1_OK
@@ -67,14 +67,70 @@ no published Core host port
 WANDORA_CORE_PRIVATE_RUNTIME_V1_OK
 ```
 
-Both base and database-activation Compose shapes must parse successfully without requiring a real credential.
+Both base and database-activation Compose shapes parse successfully without requiring a real credential.
+
+## Live standby evidence — 2026-09-14
+
+PR #23 was merged to `main` at:
+
+```text
+d4e95706284d7df6959a536f200b44c0a409df90
+```
+
+Core CI #16 passed on the PR head and Core CI #17 passed on the resulting `main` push.
+
+The exact merged Dockerfile, runtime entrypoint and standby Compose blobs were matched against the VPS staging copy before deployment. `wandora/core:private-runtime-v1` was built and the source-of-truth stack was installed under `/opt/wandora/stacks/core`.
+
+The live standby proof returned:
+
+```text
+status=running
+health=healthy
+user=node
+readonly=true
+capdrop=["ALL"]
+security=["no-new-privileges:true"]
+networks=wandora-core
+published_ports=none
+mode=standby
+health_status=200
+ready_status=503
+ready_reason=standby
+WANDORA_CORE_STANDBY_LIVE_OK
+```
+
+The database gate remained closed after deployment:
+
+```text
+wandora_core_runtime
+CONNECTION LIMIT: 0
+BYPASSRLS: false
+password: absent
+wandora-data members: none
+```
+
+Existing Supabase services remained healthy. No Supabase network/container mutation, model-provider credential, customer traffic or Core database credential was introduced by the standby deployment.
+
+A separate security issue, #22, records the requirement to rotate the live shared Supabase JWT/database credentials in a coordinated, backup-aware operation after a private diagnostic expanded them. No value was committed to Git. That rotation is now a mandatory gate before attaching the live database to `wandora-data`, activating `wandora_core_runtime`, or accepting customer traffic.
 
 ## Consequences
 
-The next real-path step can focus on credential activation and connectivity rather than simultaneously inventing a process/runtime deployment. Operators can distinguish “alive” from “authorized for business work,” preventing pressure to create credentials early merely to satisfy container health.
+Core now exists as a real private service while remaining intentionally unable to do business work. Operators can distinguish “alive” from “authorized for business work,” preventing pressure to create credentials early merely to satisfy container health.
 
-No customer-facing feature is added by this slice; its value is removing the last infrastructure ambiguity before Gateway → Core supervised wiring.
+The next real-path step can focus on credential hygiene and least-privilege connectivity rather than simultaneously inventing a process/runtime deployment.
+
+No customer-facing feature is added by this slice; its value is removing the runtime/deployment ambiguity before Gateway → Core supervised wiring.
 
 ## Next step
 
-After merge and CI, deploy the image in `standby` mode only. Then clear any mandatory secret-rotation gate, attach the Supabase database to `wandora-data` through reviewed source-of-truth configuration, generate the Core database password outside Git/chat, activate the smallest justified connection limit, and prove `/readyz = 200` as `wandora_core_runtime` before accepting normalized inbound work.
+Clear security gate #22 first: perform a coordinated Supabase credential rotation with backup, recovery plan, service-health proof and old-credential invalidation.
+
+Only after that gate is green:
+
+1. attach the Supabase database to `wandora-data` through reviewed source-of-truth configuration;
+2. generate the Core database password outside Git/chat;
+3. store it only in the approved operator-controlled secret file;
+4. activate the smallest justified non-zero connection limit;
+5. start Core with the database overlay;
+6. prove `/readyz = 200` as `wandora_core_runtime` while PostgreSQL remains non-public;
+7. only then accept normalized inbound work in a later supervised slice.
