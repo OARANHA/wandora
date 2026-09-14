@@ -1,8 +1,8 @@
 # Ana V1 — controlled live Supabase migration
 
-Status: **preflight proven; live application pending a final second-pass review**
+Status: **applied and verified live on 2026-09-14**
 
-This runbook applies the first Wandora Core migrations to the live self-hosted Supabase PostgreSQL without confusing code merge with deployment.
+This runbook records the controlled application of the first Wandora Core migrations to the live self-hosted Supabase PostgreSQL and remains the recovery/reference record for that deployment.
 
 ## Scope
 
@@ -47,45 +47,90 @@ ANA_LIVE_POSTVERIFY_V1_OK
 LIVE_READONLY_POSTVERIFY_TEST_OK
 ```
 
-## Mandatory pre-application gate
+## Exact deployment artifacts
 
-Immediately before touching live PostgreSQL, perform the second-pass decision review from `AGENTS.md` and confirm all of the following still hold:
+The live deployment used exact Git blobs checked immediately before application:
 
-- current `main` is the intended deployment source;
-- GitHub Core CI is green for that `main`;
-- live Supabase/PostgreSQL services are healthy;
-- `wandora` and `wandora_private` are still absent, unless a documented prior deployment explains otherwise;
-- a fresh pre-application logical dump and checksum exist;
-- migration files used by the operator match the exact GitHub `main` blobs;
-- no real customer traffic depends on the new Wandora schemas yet.
+- migration 001: `926463f438272b8adb36ca00f023623d0e01b1c8`;
+- migration 002: `34778e61b03edd187db8d75d0822f959053e9c81`;
+- live read-only verifier: `77eb9b29b2537dabae8ac5e9d740218d448b5ddb`.
 
-If any precondition changed, stop and re-run the clone preflight before applying.
+The immediately pre-application backup was:
 
-## Application sequence
+```text
+/home/wandora-admin/wandora-backups/supabase-preflight/postgres-pre-ana-live-20260914T110324Z.dump
+```
 
-Use `psql` with `ON_ERROR_STOP=1` as `supabase_admin` against the live `postgres` database. Do not paste or edit migration SQL ad hoc.
+It was created with mode `0600`; its checksum was recorded beside the dump. Preserve it until the supervised real path is validated and a later retention decision is made.
 
-Apply migration 001 first, then migration 002. Each migration is internally transactional. If a statement fails inside one file, that file rolls back.
+## Live application result
 
-Important: the two files are separate transactions. If migration 001 commits and migration 002 later fails, migration 001 remains applied. This is a known controlled partial state; do not attempt an automatic destructive rollback.
+Immediately before applying, the second-pass decision review reconfirmed:
 
-After both files complete, run only the read-only live post-verifier. Expected result:
+- intended `main` source;
+- green GitHub Core CI;
+- healthy live Supabase/PostgreSQL services;
+- absence of pre-existing `wandora` / `wandora_private` schemas;
+- fresh backup and checksum;
+- exact local/Git blob match;
+- no real customer traffic depending on the new schemas.
+
+Migration 001 and migration 002 were then applied in order with `ON_ERROR_STOP=1` as `supabase_admin`. Each file is internally transactional.
+
+Result:
+
+```text
+MIGRATION_001_LIVE_OK
+MIGRATION_002_LIVE_OK
+ANA_LIVE_POSTVERIFY_V1_OK
+SUPABASE_POST_MIGRATION_HEALTH_OK
+ANA_LIVE_MIGRATION_V1_OK
+```
+
+Post-application state:
+
+```text
+wandora_tables=12
+private_tables=3
+organizations=0
+contacts=0
+messages=0
+approvals=0
+```
+
+No synthetic behavioral-verifier data was introduced into production.
+
+External smoke after migration remained correct:
+
+```text
+supabase.wandora.com.br root = HTTP 404 (intentional)
+studio.wandora.com.br unauthenticated = HTTP 401
+SUPABASE_PUBLIC_POST_MIGRATION_SMOKE_OK
+```
+
+## Re-verification procedure
+
+For future drift checks, use only the production-safe verifier against live PostgreSQL:
+
+- `VERIFY_20260914_ANA_VERTICAL_SLICE_V1_LIVE.sql`
+
+It runs inside `SET TRANSACTION READ ONLY`. Expected result:
 
 ```text
 ANA_LIVE_POSTVERIFY_V1_OK
 ```
 
-Then confirm the existing Supabase services remain healthy before proceeding to Core credential provisioning or any real-path wiring.
+The behavioral verifier remains disposable-environment-only.
 
-## Stop conditions
+## Stop conditions for future changes
 
-Stop immediately if:
+Stop immediately if a future migration or wiring step reveals:
 
-- the live schema differs from the preflight assumptions;
-- either migration reports an error;
-- the live read-only verifier fails;
-- Supabase services lose health;
-- an unexpected grant, policy or object collision appears.
+- live schema drift from the recorded state;
+- migration errors;
+- failure of the read-only verifier;
+- Supabase health degradation;
+- unexpected grants, policies or object collisions.
 
 Do not continue merely because a later step might fix an earlier failure.
 
@@ -93,23 +138,25 @@ Do not continue merely because a later step might fix an earlier failure.
 
 No automatic `DROP SCHEMA`, database replacement or restore is authorized by this runbook.
 
-If migration 001 or 002 fails inside its own transaction, rely on PostgreSQL rollback for that file and inspect the resulting state. If both migrations commit but a later operational issue appears, stop before customer traffic and decide recovery from evidence.
+The original two migration files committed successfully and are now part of the live database state. If a later operational problem appears, stop customer-path promotion and decide recovery from evidence.
 
-Dropping Wandora schemas or restoring the database are destructive operations and require a separate explicit recovery decision. Preserve the pre-migration dump until the supervised real path has been validated and a later retention decision is made.
+Dropping Wandora schemas or restoring the database are destructive operations and require a separate explicit recovery decision.
 
 ## Secret handling
 
 Model-provider and integration credentials are operational secrets. Never store them in Git repository files, even when the repository is private. Provision them only through an operator-controlled secret path or an appropriate CI secret when a real integration requires them, and rotate any credential that ever enters Git history.
 
-## What this migration does not do
+A previously supplied Mistral token entered Git history before this rule was enforced. It is compromised, was removed from the current tree and must not be reused. When Mistral is actually needed, revoke it and create a fresh token outside Git/chat.
 
-It does not:
+## What this migration did not do
+
+It did not:
 
 - provision the production Wandora Core database credential/role;
 - wire the Messaging Gateway to Core;
 - wire a real Mastra/model-provider call;
-- request a Mistral token;
+- configure a usable Mistral token;
 - expose Ana directly to autonomous customer traffic;
 - replace the future off-host backup/restore program.
 
-Those remain separate reviewed steps after the database foundation is proven live.
+Those remain separate reviewed steps after the live database foundation.
