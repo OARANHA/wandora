@@ -133,7 +133,9 @@ CORE_RUNTIME_ROLE_V1_LIVE_OK
 ANA_DURABLE_CORE_STATE_V1_OK
 Node v22.23.2
 TypeScript strict: green
-12/12 tests: green
+17/17 tests: green
+production build: green
+WANDORA_CORE_PRIVATE_RUNTIME_V1_OK
 ANA_VERTICAL_SLICE_V1_VERIFY_OK
 ```
 
@@ -235,13 +237,67 @@ BYPASSRLS: false
 password: absent
 ```
 
-The role therefore exists but **cannot yet be used by a production service**. This is intentional. No Core database password should be generated until the Core service and operator-controlled secret-injection path are deployed together.
+The role therefore exists but **cannot yet be used by a production service**. This remains intentional even though the Core process is now live in standby.
 
 No customer data was created. PostgreSQL remained non-public, all Supabase services remained healthy, `supabase.wandora.com.br` root remained the intentional HTTP 404 and unauthenticated Studio remained HTTP 401.
 
+## Wandora Core Private Runtime V1 — LIVE STANDBY
+
+ADR 0011 packages the first deployable Wandora Core process without creating a production database credential or exposing a public endpoint.
+
+PR #23 was merged to `main` at:
+
+```text
+d4e95706284d7df6959a536f200b44c0a409df90
+```
+
+Core CI #16 passed on the PR head and Core CI #17 passed on the resulting `main` push. The exact merged Dockerfile, runtime entrypoint and standby Compose blobs were matched against the VPS staging copy before deployment.
+
+Current live runtime state:
+
+```text
+container: wandora-core
+image: wandora/core:private-runtime-v1
+status: running / healthy
+user: node
+root filesystem: read-only
+capabilities: ALL dropped
+no-new-privileges: true
+network: wandora-core only
+published host ports: none
+mode: standby
+GET /healthz: 200
+GET /readyz: 503 (reason=standby)
+WANDORA_CORE_STANDBY_LIVE_OK
+```
+
+The database boundary remains deliberately inactive:
+
+```text
+wandora_core_runtime connection limit: 0
+wandora_core_runtime password: absent
+wandora_core_runtime BYPASSRLS: false
+wandora-data members: none
+```
+
+The source-of-truth database activation overlay and future `wandora-postgres` private alias exist in Git, but have **not** been applied to the live Supabase container. Existing Supabase services remained healthy after the standby deployment.
+
+### Security gate #22 — BLOCKING DATABASE ACTIVATION / CUSTOMER TRAFFIC
+
+A private operator diagnostic expanded shared live Supabase JWT/database credential values into diagnostic output. No value was committed to Git, and the temporary expanded file on the VPS was removed, but chat/diagnostic output is not an approved secret store.
+
+Issue #22 therefore requires coordinated rotation of the affected shared Supabase credentials before:
+
+- attaching the live database to `wandora-data`;
+- creating or activating the real `wandora_core_runtime` password;
+- accepting supervised or autonomous customer traffic;
+- production customer onboarding.
+
+Rotation must be backup-aware and coordinated across all dependent Supabase services; a blind single-variable change is prohibited.
+
 ## CI / decision discipline status
 
-GitHub Actions `Core CI` is active for every pull request and push to `main`. It runs the disposable PostgreSQL migration/verifier path, production-safe read-only verifiers, strict TypeScript and the Ana Core integration tests.
+GitHub Actions `Core CI` is active for every pull request and push to `main`. It runs the disposable PostgreSQL migration/verifier path, production-safe read-only verifiers, strict TypeScript, the production Core build, 17 integration/runtime tests, standby image smoke and Compose validation.
 
 `AGENTS.md` requires both:
 
@@ -262,24 +318,25 @@ Structured business facts remain PostgreSQL truth. Knowledge/RAG and employee ex
 
 ## Immediate next executable slice
 
-**WANDORA CORE PRIVATE RUNTIME V1**
+**SUPABASE COORDINATED CREDENTIAL ROTATION / SECURITY GATE #22**
 
-Goal: make Wandora Core exist as a deployable private service with a controlled secret path before any real database credential or customer traffic is introduced.
+Goal: remove the known credential-exposure risk without destabilizing the self-hosted Supabase stack, then unlock least-privilege Core database activation.
 
 Expected order:
 
-1. package the current `apps/core` runtime as a versioned Docker service suitable for the existing Compose/Portainer operating model;
-2. define the private network/service boundary and health/readiness behavior without exposing PostgreSQL or internal runtime surfaces publicly;
-3. define an operator-controlled secret-injection path for the Core database credential, with no secret committed to Git/chat;
-4. prove the service boots with a deterministic/fake dependency path before enabling any real model provider;
-5. only then generate a fresh Core database credential outside Git/chat, change `wandora_core_runtime` from connection limit `0` to the smallest justified non-zero limit and inject that secret into the deployed Core service;
-6. prove the deployed service connects as `wandora_core_runtime`, cannot use administrative/service credentials and retains transaction-local tenant RLS behavior;
-7. wire normalized Messaging Gateway inbound events to Core in supervised mode;
-8. wire the accepted Mastra Agent Runtime Adapter using a deterministic/fake model path first;
-9. expose tenant-authorized Core reads/actions to Wandora Web;
-10. prove the complete supervised real path end-to-end before any autonomous customer traffic;
-11. only when the first real model-backed Ana proposal is materially required, revoke the compromised Mistral token and configure a fresh model-provider credential securely;
-12. add real customer authentication/onboarding around the proven path, then broader integrations only when validated by a customer workflow.
+1. map every consumer of the affected JWT/database credentials without printing values;
+2. confirm the exact rotation procedure for the pinned self-hosted Supabase version;
+3. create and validate a fresh backup plus rollback/recovery plan;
+4. generate replacement credentials outside Git/chat;
+5. rotate database/JWT material in the dependency-safe order and update only the operator-controlled live secret store;
+6. restart/recreate only required Supabase services in a controlled sequence;
+7. prove Auth, REST, Realtime, Storage, Studio, pooler/database and public smoke remain healthy;
+8. rerun Wandora production-safe verifiers and prove old credentials no longer authenticate;
+9. only then apply the reviewed `wandora-data` attachment for the database;
+10. generate the Core DB credential outside Git/chat, activate the smallest justified non-zero connection limit and prove deployed Core `/readyz = 200` only as `wandora_core_runtime`;
+11. prove pooled transaction reuse remains tenant-unscoped between requests;
+12. proceed to Gateway → Core supervised wiring, then deterministic Mastra, Web reads/actions and full supervised E2E;
+13. request a fresh Mistral token only when the first real model-backed proposal is materially required.
 
 ## Human-experience guardrails
 
@@ -304,8 +361,8 @@ Before implementing a capability, answer from both customer and owner/operator v
 - Management consoles are operator-only and require stronger protection.
 - Git is infrastructure/source-of-truth, but never a secret store.
 - Any credential that enters Git history is considered compromised and must be rotated before use.
-- The live `wandora_core_runtime` role must remain passwordless with connection limit zero until the reviewed Core service/secret path is ready to consume the credential immediately.
+- The live `wandora_core_runtime` role must remain passwordless with connection limit zero until security gate #22 is cleared and the reviewed Core database overlay is ready to consume the credential immediately.
 
 ## Startup instruction for another chat
 
-> Read `AGENTS.md`, accepted ADRs, `docs/architecture.md` and `docs/CANONICAL_STATE.md`. Ana durable Core V1 database foundation and the least-privilege Core runtime database boundary are both applied live and read-only post-verified. `wandora_core_runtime` exists but intentionally has no password and connection limit zero. Do not reapply migration `003` and do not create the credential early. Continue with **Wandora Core Private Runtime V1**: package/deploy Core privately, define the operator-controlled secret path, then provision the database credential only as part of that deployment. Keep the paying-business-customer + Wandora-owner dual perspective and the decision → second review → execution discipline. Do not use the previously Git-exposed Mistral token; only request a fresh replacement when the first real model call is actually required.
+> Read `AGENTS.md`, accepted ADRs, `docs/architecture.md` and `docs/CANONICAL_STATE.md`. Ana durable Core V1 database foundation and the least-privilege Core runtime database boundary are live. Wandora Core Private Runtime V1 is also live in **standby** on the private `wandora-core` network: health is green, readiness intentionally returns 503, there is no public port, and `wandora_core_runtime` still has no password with connection limit zero. Do not reapply migration `003`, do not redeploy the runtime slice, and do not create the Core credential yet. The next blocking slice is **security gate #22: coordinated Supabase credential rotation**. Only after that gate is green may the database be attached to `wandora-data` and the Core credential activated. Keep the paying-business-customer + Wandora-owner dual perspective and the decision → second review → execution discipline. Do not use the previously Git-exposed Mistral token; only request a fresh replacement when the first real model call is actually required.
