@@ -21,7 +21,7 @@ PostgreSQL and Supavisor must not be publicly exposed. The live laboratory deplo
 
 The deployment is based on the official `docker/` self-hosted tree from the pinned commit plus Wandora-owned overlays:
 
-- `docker-compose.wandora.yml` attaches only the API gateway to `wandora-edge`.
+- `docker-compose.wandora.yml` attaches only the API gateway to `wandora-edge`;
 - non-secret Wandora defaults set canonical URLs and conservative auth behavior;
 - real secrets are generated on the target host and never committed;
 - Traefik exposes only the approved API paths on `supabase.wandora.com.br` and the Studio hostname separately.
@@ -33,7 +33,15 @@ The deployment is based on the official `docker/` self-hosted tree from the pinn
 - Email autoconfirm disabled.
 - Phone signup disabled.
 - Google/social OAuth intentionally deferred until the application login flow and callbacks are ready.
-- Supabase Auth owns identity/session issuance; Wandora Core will own business authorization and tenant membership.
+- Supabase Auth owns identity/session issuance; Wandora Core owns business authorization and tenant membership.
+
+## Wandora migrations
+
+Reviewed Wandora domain migrations live under `infra/stacks/supabase/migrations/`. Their falsifiable database checks live under `infra/stacks/supabase/verifiers/`.
+
+The files `20260914_001_core_multitenant_auth_v1.sql` and `20260914_002_ana_vertical_slice_v1.sql` are now versioned product migrations. They were verified together on disposable `supabase/postgres:17.6.1.136`, but **have not yet been applied to the live Wandora Supabase database**.
+
+Do not apply SQL directly from `spikes/`. A spike becomes deployable only after promotion into reviewed migrations/service code and a reproducible verifier. Live application remains a separate operational step with preflight, rollback/restore planning and post-verification.
 
 ## Persistence and backup
 
@@ -48,6 +56,6 @@ Minimum backup set:
 
 Never commit database dumps or runtime secrets to this repository.
 
-## Migration principle
+## Infrastructure migration principle
 
 The initial deployment may share the current Wandora VPS while load is low. A later move to a dedicated data-plane VPS must preserve the public contracts `supabase.wandora.com.br` and `studio.wandora.com.br`; applications should not depend on a server IP or Docker-internal hostname.
