@@ -13,6 +13,7 @@ DB="wandora-ana-v1-db-$SUFFIX"
 DB_NAME="wandora_test"
 DB_PASSWORD="wandora-test-only"
 CORE_PASSWORD="wandora-core-test-only"
+FIXTURE_PASSWORD="wandora-fixture-test-only"
 
 cleanup() {
   docker rm -f "$DB" >/dev/null 2>&1 || true
@@ -22,44 +23,54 @@ trap cleanup EXIT
 
 docker network create "$NET" >/dev/null
 docker run -d --name "$DB" --network "$NET" \
-  -e POSTGRES_PASSWORD="$DB_PASSWORD" \
-  -e POSTGRES_DB="$DB_NAME" \
+  -e POSTGRES_PASSWORD="$DB_PASSWORD" -e POSTGRES_DB="$DB_NAME" \
   "$PG_IMAGE" >/dev/null
 
 for _ in $(seq 1 60); do
-  if docker exec "$DB" pg_isready -U postgres -d "$DB_NAME" >/dev/null 2>&1; then
-    break
-  fi
+  if docker exec "$DB" pg_isready -U postgres -d "$DB_NAME" >/dev/null 2>&1; then break; fi
   sleep 1
 done
 sleep 8
 
+# Model the Supabase roles and pg_net schema branch used by production.
 docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -c \
-  "DO \$\$ BEGIN CREATE ROLE authenticated NOLOGIN; EXCEPTION WHEN duplicate_object THEN NULL; END \$\$;" >/dev/null
+  "DO \$\$ BEGIN
+     CREATE ROLE authenticated NOLOGIN;
+     CREATE ROLE anon NOLOGIN;
+     CREATE ROLE service_role NOLOGIN;
+     CREATE ROLE supabase_functions_admin NOLOGIN;
+   EXCEPTION WHEN duplicate_object THEN NULL; END \$\$;
+   CREATE SCHEMA IF NOT EXISTS net;
+   GRANT USAGE ON SCHEMA net TO PUBLIC;" >/dev/null
 
-docker cp "$MIGRATIONS/20260914_001_core_multitenant_auth_v1.sql" "$DB:/tmp/001.sql" >/dev/null
-docker cp "$MIGRATIONS/20260914_002_ana_vertical_slice_v1.sql" "$DB:/tmp/002.sql" >/dev/null
-docker cp "$VERIFIERS/VERIFY_20260914_ANA_VERTICAL_SLICE_V1_LIVE.sql" "$DB:/tmp/live-verify.sql" >/dev/null
-docker cp "$VERIFIERS/VERIFY_20260914_ANA_VERTICAL_SLICE_V1.sql" "$DB:/tmp/verify.sql" >/dev/null
+for migration in \
+  20260914_001_core_multitenant_auth_v1.sql \
+  20260914_002_ana_vertical_slice_v1.sql \
+  20260914_003_core_runtime_role_v1.sql; do
+  docker cp "$MIGRATIONS/$migration" "$DB:/tmp/$migration" >/dev/null
+  docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -f "/tmp/$migration" >/dev/null
+done
 
-docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -f /tmp/001.sql >/dev/null
-docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -f /tmp/002.sql >/dev/null
+for verifier in \
+  VERIFY_20260914_ANA_VERTICAL_SLICE_V1_LIVE.sql \
+  VERIFY_20260914_CORE_RUNTIME_ROLE_V1_LIVE.sql \
+  VERIFY_20260914_ANA_VERTICAL_SLICE_V1.sql; do
+  docker cp "$VERIFIERS/$verifier" "$DB:/tmp/$verifier" >/dev/null
+  docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -f "/tmp/$verifier"
+done
 
-# This verifier is production-safe by construction: its transaction is explicitly READ ONLY.
-docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -f /tmp/live-verify.sql
-
-# The behavioral verifier intentionally inserts synthetic data and must never run on the live database.
-docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -f /tmp/verify.sql
-
+# Only the disposable harness enables the canonical runtime login. No production
+# credential is created by the migration itself. Fixture administration remains separate.
 docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -c \
-  "CREATE ROLE wandora_core_test LOGIN BYPASSRLS PASSWORD '${CORE_PASSWORD}';
-   GRANT USAGE ON SCHEMA wandora, wandora_private TO wandora_core_test;
-   GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA wandora, wandora_private TO wandora_core_test;
-   GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA wandora TO wandora_core_test;" >/dev/null
+  "ALTER ROLE wandora_core_runtime CONNECTION LIMIT 10 PASSWORD '${CORE_PASSWORD}';
+   CREATE ROLE wandora_fixture_admin_test LOGIN BYPASSRLS PASSWORD '${FIXTURE_PASSWORD}';
+   GRANT USAGE ON SCHEMA wandora, wandora_private TO wandora_fixture_admin_test;
+   GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA wandora, wandora_private TO wandora_fixture_admin_test;
+   GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA wandora TO wandora_fixture_admin_test;" >/dev/null
 
-docker run --rm --network "$NET" \
-  -v "$CORE:/app" -w /app \
-  -e DATABASE_URL="postgresql://wandora_core_test:${CORE_PASSWORD}@${DB}:5432/${DB_NAME}" \
+docker run --rm --network "$NET" -v "$CORE:/app" -w /app \
+  -e DATABASE_URL="postgresql://wandora_core_runtime:${CORE_PASSWORD}@${DB}:5432/${DB_NAME}" \
+  -e FIXTURE_DATABASE_URL="postgresql://wandora_fixture_admin_test:${FIXTURE_PASSWORD}@${DB}:5432/${DB_NAME}" \
   "$NODE_IMAGE" sh -lc 'node -v && npm ci --ignore-scripts >/dev/null && npm run typecheck && npm test'
 
 echo "ANA_VERTICAL_SLICE_V1_VERIFY_OK"

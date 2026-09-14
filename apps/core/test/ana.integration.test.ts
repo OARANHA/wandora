@@ -21,9 +21,12 @@ const EMP_A = '30000000-0000-0000-0000-0000000000a1';
 const EMP_B = '30000000-0000-0000-0000-0000000000b1';
 const NOW = '2026-09-14T08:00:00.000Z';
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-const repository = new PostgresAnaRepository(pool);
-after(async () => pool.end());
+const runtimePool = new Pool({ connectionString: process.env.DATABASE_URL });
+const fixturePool = new Pool({ connectionString: process.env.FIXTURE_DATABASE_URL });
+const repository = new PostgresAnaRepository(runtimePool);
+after(async () => {
+  await Promise.all([runtimePool.end(), fixturePool.end()]);
+});
 
 class FakeRuntime implements AgentRuntime {
   calls = 0;
@@ -69,7 +72,7 @@ const event = (eventId: string, connectionId = CONN_A, text = 'Olá, gostaria de
 });
 
 async function resetFixture(): Promise<void> {
-  await pool.query(`TRUNCATE
+  await fixturePool.query(`TRUNCATE
     wandora_private.outbound_attempts,
     wandora_private.inbound_event_receipts,
     wandora.audit_records, wandora.approvals, wandora.messages,
@@ -78,17 +81,17 @@ async function resetFixture(): Promise<void> {
     wandora.memberships, wandora.user_identities, wandora.users,
     wandora.organizations RESTART IDENTITY CASCADE`);
 
-  await pool.query(`INSERT INTO wandora.organizations (id, slug, display_name) VALUES
+  await fixturePool.query(`INSERT INTO wandora.organizations (id, slug, display_name) VALUES
     ($1, 'org-a', 'Org A'), ($2, 'org-b', 'Org B')`, [ORG_A, ORG_B]);
-  await pool.query(`INSERT INTO wandora.users (id, display_name) VALUES
+  await fixturePool.query(`INSERT INTO wandora.users (id, display_name) VALUES
     ($1, 'Owner A'), ($2, 'Owner B')`, [OWNER_A, OWNER_B]);
-  await pool.query(`INSERT INTO wandora.memberships (organization_id, user_id, role) VALUES
+  await fixturePool.query(`INSERT INTO wandora.memberships (organization_id, user_id, role) VALUES
     ($1, $2, 'owner'), ($3, $4, 'owner')`, [ORG_A, OWNER_A, ORG_B, OWNER_B]);
-  await pool.query(`INSERT INTO wandora.messaging_connections
+  await fixturePool.query(`INSERT INTO wandora.messaging_connections
     (id, organization_id, channel, label) VALUES
     ($1, $2, 'whatsapp', 'WhatsApp A'), ($3, $4, 'whatsapp', 'WhatsApp B')`,
     [CONN_A, ORG_A, CONN_B, ORG_B]);
-  await pool.query(`INSERT INTO wandora.digital_employees
+  await fixturePool.query(`INSERT INTO wandora.digital_employees
     (id, organization_id, display_name, role) VALUES
     ($1, $2, 'Ana', 'commercial-assistant'),
     ($3, $4, 'Ana B', 'commercial-assistant')`, [EMP_A, ORG_A, EMP_B, ORG_B]);
@@ -104,11 +107,61 @@ function service(runtime: FakeRuntime, messaging: FakeMessaging): AnaInboundServ
 }
 
 async function scalar(sql: string, params: unknown[] = []): Promise<string> {
-  const result = await pool.query<{ value: string }>(sql, params);
+  const result = await fixturePool.query<{ value: string }>(sql, params);
   return result.rows[0]!.value;
 }
 
 test('ANA VERTICAL SLICE V1 durable service', async (t) => {
+  await t.test('runtime RLS is transaction-local and hides other tenants', async () => {
+    await resetFixture();
+    const client = await runtimePool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query(`SELECT set_config('wandora.organization_id', $1, true)`, [ORG_A]);
+      const visible = await client.query<{ count: number }>(
+        `SELECT count(*)::int AS count FROM wandora.messaging_connections`,
+      );
+      assert.equal(visible.rows[0]!.count, 1);
+      const hidden = await client.query<{ count: number }>(
+        `SELECT count(*)::int AS count FROM wandora.messaging_connections WHERE id = $1`, [CONN_B],
+      );
+      assert.equal(hidden.rows[0]!.count, 0);
+      await client.query('COMMIT');
+      const noScope = await client.query<{ count: number }>(
+        `SELECT count(*)::int AS count FROM wandora.messaging_connections`,
+      );
+      assert.equal(noScope.rows[0]!.count, 0);
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
+  });
+
+  await t.test('runtime audit writer rejects cross-tenant append', async () => {
+    await resetFixture();
+    const client = await runtimePool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query(`SELECT set_config('wandora.organization_id', $1, true)`, [ORG_A]);
+      await assert.rejects(
+        client.query(
+          `SELECT wandora.append_core_audit(
+             $1, 'system', 'wandora-core', 'inbound-accepted',
+             'conversation', 'synthetic-subject', 'synthetic-correlation', now())`,
+          [ORG_B],
+        ),
+        /wandora_core_tenant_mismatch/,
+      );
+    } finally {
+      await client.query('ROLLBACK').catch(() => undefined);
+      client.release();
+    }
+    assert.equal(await scalar(
+      `SELECT count(*)::text AS value FROM wandora.audit_records WHERE organization_id = $1`, [ORG_B]), '0');
+  });
+
   await t.test('safe inbound reply persists once and duplicate event is replay-safe', async () => {
     await resetFixture();
     const runtime = new FakeRuntime(() => safeProposal());
@@ -236,9 +289,9 @@ test('ANA VERTICAL SLICE V1 durable service', async (t) => {
 
     await assert.rejects(
       ana.handle(ORG_A, event('evt-cross-connection', CONN_B)),
-      (error: unknown) => error instanceof CoreStateError && error.code === 'tenant_mismatch',
+      (error: unknown) => error instanceof CoreStateError && error.code === 'connection_unavailable',
     );
-    await pool.query(`UPDATE wandora.messaging_connections SET status = 'disabled' WHERE id = $1`, [CONN_A]);
+    await fixturePool.query(`UPDATE wandora.messaging_connections SET status = 'disabled' WHERE id = $1`, [CONN_A]);
     await assert.rejects(
       ana.handle(ORG_A, event('evt-disabled-connection')),
       (error: unknown) => error instanceof CoreStateError && error.code === 'connection_unavailable',
@@ -252,7 +305,7 @@ test('ANA VERTICAL SLICE V1 durable service', async (t) => {
 
   await t.test('paused employee fails before customer state is created', async () => {
     await resetFixture();
-    await pool.query(`UPDATE wandora.digital_employees SET status = 'paused' WHERE id = $1`, [EMP_A]);
+    await fixturePool.query(`UPDATE wandora.digital_employees SET status = 'paused' WHERE id = $1`, [EMP_A]);
     const runtime = new FakeRuntime(() => safeProposal());
     const messaging = new FakeMessaging();
     const ana = service(runtime, messaging);
@@ -270,7 +323,7 @@ test('ANA VERTICAL SLICE V1 durable service', async (t) => {
 
   await t.test('processing receipt returns event-in-progress instead of racing a duplicate insert', async () => {
     await resetFixture();
-    await pool.query(`INSERT INTO wandora_private.inbound_event_receipts
+    await fixturePool.query(`INSERT INTO wandora_private.inbound_event_receipts
       (organization_id, event_id, messaging_connection_id, status, received_at)
       VALUES ($1, $2, $3, 'processing', $4)`, [ORG_A, 'evt-processing', CONN_A, NOW]);
     const runtime = new FakeRuntime(() => safeProposal());
