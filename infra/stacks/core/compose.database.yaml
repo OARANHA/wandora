@@ -1,0 +1,22 @@
+services:
+  core:
+    environment:
+      WANDORA_CORE_MODE: database
+      WANDORA_CORE_DB_HOST: wandora-postgres
+      WANDORA_CORE_DB_PORT: "5432"
+      WANDORA_CORE_DB_NAME: postgres
+      WANDORA_CORE_DB_USER: wandora_core_runtime
+      WANDORA_CORE_DB_PASSWORD_FILE: /run/secrets/wandora_core_db_password
+    networks:
+      wandora-core: {}
+      wandora-data: {}
+    secrets:
+      - wandora_core_db_password
+
+secrets:
+  wandora_core_db_password:
+    file: ${WANDORA_CORE_DB_PASSWORD_FILE:?set WANDORA_CORE_DB_PASSWORD_FILE outside Git}
+
+networks:
+  wandora-data:
+    external: true

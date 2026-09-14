@@ -1,0 +1,31 @@
+services:
+  core:
+    image: ${WANDORA_CORE_IMAGE:-wandora/core:private-runtime-v1}
+    container_name: wandora-core
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    environment:
+      PORT: "8788"
+      WANDORA_CORE_MODE: ${WANDORA_CORE_MODE:-standby}
+    expose:
+      - "8788"
+    networks:
+      - wandora-core
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8788/healthz').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    stop_grace_period: 15s
+
+networks:
+  wandora-core:
+    external: true

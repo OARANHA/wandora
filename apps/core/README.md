@@ -37,6 +37,17 @@ The production migration leaves this login disabled for real use (`CONNECTION LI
 
 Canonical audit writes go through `wandora.append_core_audit(...)`; the runtime does not receive direct read/update/delete access to the audit table.
 
+## Private runtime process
+
+`src/runtime/main.ts` is the first deployable Core process. It exposes only private operational endpoints in V1:
+
+- `GET /healthz` — process health;
+- `GET /readyz` — business readiness.
+
+The process starts in explicit `standby` mode without a database secret. In that state health is green while readiness stays closed. Database mode accepts only the canonical `wandora_core_runtime` user and reads its password from a mounted secret file rather than an environment variable. Readiness becomes green only when PostgreSQL confirms the expected role and an unscoped pooled connection.
+
+The private runtime has no public hostname or published host port. See `infra/stacks/core/`.
+
 ## Verification
 
 From repository root:
@@ -47,4 +58,4 @@ From repository root:
 
 The verifier uses disposable `supabase/postgres:17.6.1.136` plus pinned Node 22.23.2, applies the reviewed migrations, runs SQL invariants/read-only production verifiers, strict TypeScript and integration tests, then destroys the disposable environment.
 
-The test harness deliberately separates fixture administration from the actual runtime identity. Application behavior is executed as `wandora_core_runtime`, currently with 12/12 tests green.
+The test harness deliberately separates fixture administration from the actual runtime identity. Application behavior is executed as `wandora_core_runtime`, currently with 17/17 tests green, plus a production image/standby smoke proof.
