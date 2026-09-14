@@ -73,42 +73,48 @@ export class PostgresAnaRepository {
         throw new CoreStateError('tenant_mismatch', 'Messaging connection belongs to another organization.');
       }
 
-      const receipt = await client.query<{ status: string; result: unknown }>(
-        `SELECT status, result
-           FROM wandora_private.inbound_event_receipts
-          WHERE organization_id = $1 AND event_id = $2
-          FOR UPDATE`,
-        [organizationId, event.eventId],
+      const insertedReceipt = await client.query<{ status: string; result: unknown }>(
+        `INSERT INTO wandora_private.inbound_event_receipts
+           (organization_id, event_id, messaging_connection_id, status, received_at)
+         VALUES ($1, $2, $3, 'processing', $4)
+         ON CONFLICT (organization_id, event_id) DO NOTHING
+         RETURNING status, result`,
+        [organizationId, event.eventId, event.connectionId, event.occurredAt],
       );
-      const receiptRow = receipt.rows[0];
-      if (receiptRow?.status === 'completed' && receiptRow.result) {
-        return {
-          duplicateResult: asResult(receiptRow.result),
-          connectionId: event.connectionId,
-          employee: {
-            id: '', organizationId, name: '', role: 'commercial-assistant', autonomyMode: 'supervised',
-          },
-          contactId: '', conversationId: '', workItemId: '',
-        };
-      }
-      if (receiptRow?.status === 'processing') {
-        throw new CoreStateError('event_in_progress', 'Inbound event is already being processed.');
-      }
 
-      if (receiptRow?.status === 'failed') {
-        await client.query(
-          `UPDATE wandora_private.inbound_event_receipts
-              SET status = 'processing', result = NULL, completed_at = NULL, received_at = $3
-            WHERE organization_id = $1 AND event_id = $2`,
-          [organizationId, event.eventId, event.occurredAt],
+      if (insertedReceipt.rowCount === 0) {
+        const receipt = await client.query<{ status: string; result: unknown }>(
+          `SELECT status, result
+             FROM wandora_private.inbound_event_receipts
+            WHERE organization_id = $1 AND event_id = $2
+            FOR UPDATE`,
+          [organizationId, event.eventId],
         );
-      } else {
-        await client.query(
-          `INSERT INTO wandora_private.inbound_event_receipts
-             (organization_id, event_id, messaging_connection_id, status, received_at)
-           VALUES ($1, $2, $3, 'processing', $4)`,
-          [organizationId, event.eventId, event.connectionId, event.occurredAt],
-        );
+        const receiptRow = receipt.rows[0];
+        if (!receiptRow) {
+          throw new CoreStateError('event_receipt_missing', 'Inbound event receipt could not be loaded.');
+        }
+        if (receiptRow.status === 'completed' && receiptRow.result) {
+          return {
+            duplicateResult: asResult(receiptRow.result),
+            connectionId: event.connectionId,
+            employee: {
+              id: '', organizationId, name: '', role: 'commercial-assistant', autonomyMode: 'supervised',
+            },
+            contactId: '', conversationId: '', workItemId: '',
+          };
+        }
+        if (receiptRow.status === 'processing') {
+          throw new CoreStateError('event_in_progress', 'Inbound event is already being processed.');
+        }
+        if (receiptRow.status === 'failed') {
+          await client.query(
+            `UPDATE wandora_private.inbound_event_receipts
+                SET status = 'processing', result = NULL, completed_at = NULL, received_at = $3
+              WHERE organization_id = $1 AND event_id = $2`,
+            [organizationId, event.eventId, event.occurredAt],
+          );
+        }
       }
 
       const employeeResult = await client.query<{
@@ -158,7 +164,6 @@ export class PostgresAnaRepository {
          DO NOTHING`,
         [organizationId, conversationId, event.text, event.eventId, event.occurredAt],
       );
-
       const work = await client.query<{ id: string }>(
         `INSERT INTO wandora.work_items
            (organization_id, employee_id, conversation_id, kind, status)
