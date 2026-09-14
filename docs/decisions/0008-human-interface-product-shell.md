@@ -31,7 +31,11 @@ The default onboarding target is same-day useful work in supervised mode. Assist
 
 ## Evidence
 
-The first shell compiles with strict TypeScript on Node 22, builds with Vite 8, and packages into a digest-pinned Docker image. Smoke verification proves the health endpoint, root route and client-side nested route fallback all return successfully.
+The first shell compiles with strict TypeScript on Node 22, builds with Vite 8, and packages into a digest-pinned Docker image with a pinned Nginx runtime.
+
+Container smoke verification proves `/healthz` and all current customer routes (`/`, `/team`, `/work`, `/conversations`, `/approvals`, `/company`) return successfully with SPA fallback intact.
+
+Chromium browser verification was run at 390 px and 1440 px viewports across all six routes. The shell produced no browser-console errors and no horizontal document overflow. Desktop and mobile screenshots were reviewed after the customer-copy and mobile-navigation refinements.
 
 ## Consequences
 
@@ -43,4 +47,4 @@ The first shell compiles with strict TypeScript on Node 22, builds with Vite 8, 
 
 ## Next step
 
-Validate the shell visually/responsively, freeze its navigation and onboarding journey, then define the first digital employee from the perspective of what makes this shell useful to a paying business owner on day one.
+Freeze the paying-customer first-day journey — create/join company, state the business outcome, hire the first digital employee, connect only required tools, provide essential company context, start supervised work — before implementing the employee's production workflow.
