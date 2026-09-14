@@ -52,7 +52,7 @@ The following are current decisions unless superseded by a newer accepted ADR:
 - The initial Supabase deployment may run on the current Wandora VPS while load is low; migration to a dedicated data-plane VPS must remain straightforward.
 - `studio.wandora.com.br` is an administrative surface and must be strongly protected (Cloudflare Access preferred). PostgreSQL must never be publicly exposed.
 - `supabase.wandora.com.br` is the stable application-facing Supabase endpoint. Future VPS migration should preserve this contract through DNS/ingress changes.
-- Evolution API is the laboratory WhatsApp provider behind a Wandora-owned `Messaging Gateway`; digital employees must never call Evolution directly.
+- Evolution API 2.3.7 is the accepted initial laboratory WhatsApp provider behind a Wandora-owned `Messaging Gateway`; the provider-neutral boundary has been validated with real inbound and outbound WhatsApp traffic, and digital employees must never call Evolution directly.
 - Official WhatsApp providers remain a production option behind the same gateway.
 - Model vendors are replaceable infrastructure behind a provider boundary.
 - Structured business facts belong in canonical PostgreSQL storage, not only in agent memory/RAG.
@@ -102,14 +102,13 @@ Do not build speculative surface area. Prefer vertical slices that remove a crit
 Unless an active blocker or explicit user decision changes priority:
 
 1. keep canonical documentation synchronized with accepted decisions;
-2. validate the Evolution-based messaging gateway laboratory path;
-3. define/freeze Wandora Core contracts, multi-tenant/auth boundaries and the first minimum distributable vertical slice on the validated Supabase foundation;
-4. define the first digital-employee role and its smallest end-to-end business workflow;
-5. add customer-facing login/onboarding only after those boundaries are explicit;
-6. add Google/social login when callback contracts and the Wandora login flow are ready;
-7. expand product surface area only after the first vertical slice is end-to-end and auditable.
+2. define/freeze Wandora Core contracts, multi-tenant/auth boundaries and the first minimum distributable vertical slice on the validated Supabase foundation;
+3. define the first digital-employee role and its smallest end-to-end business workflow;
+4. add customer-facing login/onboarding only after those boundaries are explicit;
+5. add Google/social login when callback contracts and the Wandora login flow are ready;
+6. expand product surface area only after the first vertical slice is end-to-end and auditable.
 
-Supabase Foundation V1 and Mastra Agent Runtime Spike V1 are already validated; do not repeat them unless verifying or repairing drift. See `docs/CANONICAL_STATE.md` for exact current status and the next executable step.
+Supabase Foundation V1, Mastra Agent Runtime Spike V1 and Evolution Messaging Gateway V1 laboratory validation are complete; do not repeat them unless verifying or repairing drift. Messaging durability/persistent idempotency remains production hardening, not a reason to reopen the provider-neutral boundary. See `docs/CANONICAL_STATE.md` for exact current status and the next executable step.
 
 ## 9. Definition of progress
 
