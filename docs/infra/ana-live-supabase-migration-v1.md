@@ -97,6 +97,10 @@ If migration 001 or 002 fails inside its own transaction, rely on PostgreSQL rol
 
 Dropping Wandora schemas or restoring the database are destructive operations and require a separate explicit recovery decision. Preserve the pre-migration dump until the supervised real path has been validated and a later retention decision is made.
 
+## Secret handling
+
+Model-provider and integration credentials are operational secrets. Never store them in Git repository files, even when the repository is private. Provision them only through an operator-controlled secret path or an appropriate CI secret when a real integration requires them, and rotate any credential that ever enters Git history.
+
 ## What this migration does not do
 
 It does not:
