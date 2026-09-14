@@ -26,7 +26,7 @@ Wandora owns tenancy, customer-facing contracts, policy, billing boundaries, can
 - **Paperclip** — validated laboratory organization/control-plane candidate, private and behind `Organization Adapter`.
 - **Mastra** — accepted initial Agent Runtime implementation behind a Wandora `Agent Runtime Adapter`.
 - **Supabase self-hosted** — validated Wandora data/auth foundation: PostgreSQL, Auth, Studio, Storage, Realtime, Supavisor and supporting services.
-- **Evolution API** — next laboratory WhatsApp provider behind Wandora `Messaging Gateway`; never a direct employee/customer contract.
+- **Evolution API 2.3.7** — accepted initial laboratory WhatsApp provider behind Wandora `Messaging Gateway`; real inbound and outbound paths validated.
 - **Model providers** — replaceable behind a Wandora model-provider boundary.
 
 ## Current VPS state verified on 2026-09-13
@@ -39,9 +39,12 @@ Current deployed services include:
 - Portainer 2.45.0 — reachable at `https://portainer.wandora.com.br` through Traefik; no direct host 9443 publication;
 - Paperclip — healthy, pinned laboratory build, private on the Wandora core network;
 - Supabase Foundation V1 — deployed and healthy;
+- Evolution API 2.3.7 — healthy with dedicated PostgreSQL/Redis persistence, API-key authentication and no provider database/cache host publication;
+- `manager.wandora.com.br` — operator-only Evolution Manager routed through Cloudflare/Traefik; Cloudflare Access remains recommended hardening;
+- a private Messaging Gateway lab receiver on `wandora-core`, used only for validated webhook proof;
 - edge/status probe — sanitized; old `whoami` information disclosure removed.
 
-Canonical network intent is edge/core/data separation. PostgreSQL, Supavisor, Docker socket and internal runtimes are not public services.
+Canonical network intent is edge/core/data separation. PostgreSQL, Supavisor, Redis, Docker socket and internal runtimes are not public services.
 
 ## Paperclip status
 
@@ -88,34 +91,76 @@ Evidence:
 
 ADR 0005 accepts Mastra as the initial implementation behind the provider-neutral runtime adapter. It is not declared production-complete: persistent runtime storage, model-provider integration, production observability, long-running durability, concurrency/recovery and tenant-isolation behavior remain later hardening concerns.
 
+## Evolution Messaging Gateway status — V1 LABORATORY VALIDATION COMPLETE
+
+ADR 0006 accepts Evolution API 2.3.7 as the initial laboratory WhatsApp provider behind the provider-neutral Wandora `Messaging Gateway`.
+
+Validated infrastructure:
+
+- Evolution image pinned by digest;
+- dedicated passworded PostgreSQL and private Redis persistence;
+- provider API protected by API key;
+- Evolution host publication remains loopback-only for diagnostics;
+- `manager.wandora.com.br` is a separate operator surface through Cloudflare/Traefik;
+- WhatsApp instance paired by QR and confirmed in `state=open`;
+- global webhook disabled by default; the lab used a per-instance private webhook for `MESSAGES_UPSERT` only.
+
+Validated contract behavior:
+
+- minimal Wandora outbound text contract uses `connectionId`, recipient, text and Wandora idempotency key;
+- minimal normalized inbound text event exposes only Wandora `eventId`, `connectionId`, sender, text and timestamp;
+- raw Evolution instance names, API keys, JIDs, webhook envelopes and provider message IDs do not cross the Wandora contract boundary;
+- deterministic inbound event ID + receipt store prove duplicate suppression semantics;
+- outbound attempt state prevents automatic retry after ambiguous/non-2xx delivery and returns the stored result after a successful duplicate invocation;
+- strict TypeScript typecheck and 10/10 runtime tests pass, including regression coverage for Evolution's required allow-listed `Origin`;
+- digest-pinned Docker verification passes;
+- a real inbound WhatsApp text traversed WhatsApp -> Evolution -> private webhook -> normalized Wandora event;
+- a real outbound text traversed the Wandora adapter -> Evolution -> WhatsApp and was received by the destination handset.
+
+Provider-specific operational findings:
+
+- Evolution 2.3.7 may reject internal HTTP calls without an allow-listed `Origin`; the adapter owns this workaround and public Wandora contracts do not;
+- QR pairing is the validated operational path; phone-number pairing codes are not relied on for this version.
+
+Production hardening still open:
+
+- persistent inbound receipt/idempotency storage;
+- persistent outbound attempt state and reconciliation for `uncertain` sends;
+- tenant-scoped connection resolution/authorization in Wandora Core;
+- observability/alerting and reconnect operations;
+- provider backup/restore procedure;
+- Cloudflare Access for `manager.wandora.com.br`;
+- richer/media message contracts only if required by the first validated workflow.
+
+Do not reopen the provider-neutral messaging boundary merely because these production-hardening items remain.
+
 ## Immediate next executable slice
 
-**EVOLUTION API + WANDORA MESSAGING GATEWAY V1**
+**WANDORA CORE — MULTI-TENANT / AUTH CONTRACT FREEZE V1**
 
-Goal: prove a provider-neutral Wandora messaging contract over a self-hosted Evolution API laboratory deployment without allowing digital employees or Wandora Front to depend on Evolution-specific APIs, IDs or payloads.
+Goal: define the minimum Wandora-owned company/user/membership/authorization contracts on the validated Supabase foundation before building customer UI or the first business workflow.
 
 Required outcome:
 
-1. review/pin the exact current Evolution API version and license/deployment constraints;
-2. deploy privately by default on the Wandora VPS with persistent state and no unnecessary public admin surface;
-3. define a minimal Wandora `MessagingGateway` contract for outbound message and normalized inbound event;
-4. implement an Evolution adapter behind that contract;
-5. isolate provider credentials and instance identifiers from customer-facing contracts;
-6. expose only the webhook/public path actually required for WhatsApp transport, preferably through `hooks.wandora.com.br` or another Wandora-owned contract;
-7. prove idempotent inbound-event normalization and safe retry behavior;
-8. prove outbound send mapping without coupling employee logic to Evolution payloads;
-9. document reconnect/failure/backup/reversibility behavior;
-10. only then advance to Wandora Core multi-tenant/auth contract freeze.
+1. define canonical organization/company identity independent from Paperclip and Supabase provider IDs;
+2. define customer user + organization membership model and initial role semantics;
+3. define how Supabase Auth identity maps into Wandora Core membership/authorization;
+4. define provider-neutral connection ownership so messaging connections belong to a Wandora organization, not directly to an Evolution instance;
+5. define the authorization boundary for reading/sending messages and invoking employee tools;
+6. define minimal audit actor/organization identifiers for later digital-employee actions;
+7. define tenant isolation expectations at Core + PostgreSQL/RLS boundaries without moving business authorization into the frontend;
+8. add a falsifiable contract/schema test proving one organization cannot resolve/use another organization's messaging connection;
+9. avoid CRM/business feature expansion until these contracts are frozen;
+10. record the accepted boundary before choosing the first digital-employee role/workflow.
 
-Do not build CRM UI or customer-facing WhatsApp setup screens during this laboratory slice.
+Do not build broad customer-facing onboarding, CRM screens or speculative feature modules in this slice.
 
-## Execution order after Messaging Gateway V1
+## Execution order after Core contract freeze
 
-1. define/freeze Wandora Core multi-tenant/auth contracts on Supabase/PostgreSQL;
-2. define the first digital-employee role and smallest end-to-end business workflow;
-3. build the first vertical product slice;
-4. add Wandora login/onboarding and then Google/social OAuth;
-5. expand integrations only when they serve a validated employee workflow.
+1. define the first digital-employee role and smallest end-to-end business workflow;
+2. build the first vertical product slice using the validated Supabase, Mastra and Messaging Gateway boundaries;
+3. add Wandora login/onboarding and then Google/social OAuth;
+4. expand integrations only when they serve a validated employee workflow.
 
 ## Non-negotiable boundaries
 

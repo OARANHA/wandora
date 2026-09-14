@@ -138,9 +138,15 @@ Arcade or other providers may be evaluated, but no tool vendor is a frozen publi
 
 Wandora-owned boundary.
 
-Initial laboratory provider:
+Initial accepted laboratory WhatsApp provider:
 
-- Evolution API for rapid WhatsApp validation.
+- **Evolution API 2.3.7**, behind the Wandora Messaging Gateway.
+
+The V1 laboratory proof validated both real inbound and real outbound WhatsApp traffic while keeping Evolution instance names, JIDs, API keys, raw webhook envelopes and provider message IDs behind the adapter boundary.
+
+The minimum Wandora contract currently covers outbound text and normalized inbound text. Inbound events receive deterministic Wandora event IDs and a receipt-store boundary for deduplication. Outbound attempts use Wandora idempotency keys and explicitly enter an `uncertain` state after ambiguous transport/non-success provider results so automatic retry cannot accidentally duplicate a WhatsApp send.
+
+Current receipt and outbound-attempt stores in the spike are in-memory laboratory implementations only. Durable persistence and tenant-scoped connection authorization belong to the production Wandora Core/data path.
 
 Production-compatible alternatives remain possible:
 
@@ -171,11 +177,12 @@ Public/customer contracts may include:
 Privileged administrative surfaces include:
 
 - `studio.wandora.com.br` — Supabase Studio, strongly access-controlled (Cloudflare Access preferred);
-- `portainer.wandora.com.br` — Portainer operator console, protected administrative surface.
+- `portainer.wandora.com.br` — Portainer operator console, protected administrative surface;
+- `manager.wandora.com.br` — Evolution operator Manager, never a customer-facing Wandora surface; Cloudflare Access is preferred before production-grade use.
 
-PostgreSQL, Redis, Docker socket, Paperclip internals, Mastra runtime internals and management APIs must not be directly public.
+PostgreSQL, Redis, Docker socket, Paperclip internals, Mastra runtime internals and direct provider/database management ports must not be publicly exposed.
 
-Third-party product names should not become customer-facing DNS contracts merely because a provider is currently used.
+Third-party product names should not become customer-facing DNS contracts merely because a provider is currently used. `manager.wandora.com.br` is an intentional operator hostname rather than a customer contract.
 
 ## Deployment architecture — current foundation
 
@@ -193,8 +200,14 @@ Traefik
    |       -> Supabase API gateway/services
    |
    +--> studio.wandora.com.br
-           -> privileged access protection
-           -> Supabase Studio
+   |       -> privileged access protection
+   |       -> Supabase Studio
+   |
+   +--> portainer.wandora.com.br
+   |       -> operator console
+   |
+   +--> manager.wandora.com.br
+           -> operator-only Evolution Manager
 
 VPS Wandora
    |
@@ -207,10 +220,12 @@ Docker networks
    |      -> Wandora services
    |      -> Paperclip (private)
    |      -> agent runtime / Mastra (private)
-   |      -> Evolution / messaging integration path
+   |      -> Messaging Gateway (private provider boundary)
+   |      -> Evolution provider adapter path
    |
-   +--> wandora-data
+   +--> wandora-data / provider-private data networks
           -> Supabase/PostgreSQL and data services
+          -> Evolution PostgreSQL/Redis
           -> non-public
 ```
 
@@ -238,14 +253,13 @@ Persistent state requires backup and restore procedures. Secrets live outside Gi
 
 ## Near-term execution sequence
 
-1. validate Evolution API behind the Wandora Messaging Gateway;
-2. freeze Wandora Core contracts and multi-tenant/auth boundaries on the validated Supabase foundation;
-3. define the first digital-employee role and minimum business workflow;
-4. build the first end-to-end product vertical slice;
-5. add Wandora login/onboarding and then social login when application auth contracts are ready;
-6. expand integrations only when required by validated employee workflows.
+1. freeze Wandora Core contracts and multi-tenant/auth boundaries on the validated Supabase foundation;
+2. define the first digital-employee role and minimum business workflow;
+3. build the first end-to-end product vertical slice using the validated runtime and messaging boundaries;
+4. add Wandora login/onboarding and then social login when application auth contracts are ready;
+5. expand integrations only when required by validated employee workflows.
 
-Supabase Foundation V1 and Mastra Agent Runtime Spike V1 are already complete and should not be repeated unless drift or a regression requires repair.
+Supabase Foundation V1, Mastra Agent Runtime Spike V1 and Evolution Messaging Gateway V1 laboratory validation are complete and should not be repeated unless drift or a regression requires repair.
 
 ## Non-goals for the current phase
 
