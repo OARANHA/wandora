@@ -53,7 +53,7 @@ Wandora Core owns product semantics and business authorization:
 - plans, usage and billing boundaries;
 - provider-neutral adapter contracts.
 
-`apps/core` is the first promoted durable Core package. ADR 0009 accepts Ana's first durable vertical slice as reviewed code/migrations; deployment to the live database remains a separate operational step.
+`apps/core` is the first promoted durable Core package. ADR 0009 accepts Ana's first durable vertical slice. The corresponding Core multitenant/auth and Ana V1 PostgreSQL migrations are now applied to the live Wandora Supabase database and have passed the production-safe read-only post-verifier. Provisioning the production Core service credential and wiring live traffic remain separate operational steps.
 
 ### Identity and tenancy
 
@@ -73,7 +73,7 @@ Supabase Auth handles identity/session issuance. Its JWT `sub` is not a Wandora 
 
 Supabase self-hosted provides the selected PostgreSQL/Auth/data foundation. Supabase is infrastructure, not the Wandora backend.
 
-Reviewed migrations now define durable state for the first Ana workflow:
+The live database now contains durable state for the first Ana workflow:
 
 - digital employees;
 - contacts;
@@ -119,11 +119,15 @@ Discount, special price, delivery deadline, payment terms and contractual commit
 
 Outbound delivery is conservative: an attempt moves through `planned` → `sending` → `succeeded` or `uncertain`. If delivery may have occurred but cannot be proven, Core records `delivery-uncertain`, marks work `attention-required`, and does not automatically resend the same idempotency key.
 
+The live database foundation was applied on 2026-09-14 using the exact reviewed migration blobs after a fresh logical backup and a successful migration rehearsal on a restored copy of the live database. The production verifier ran inside `SET TRANSACTION READ ONLY` and returned `ANA_LIVE_POSTVERIFY_V1_OK`. Existing Supabase services remained healthy and no synthetic customer rows were introduced.
+
 ## Agent Runtime
 
 Mastra is the accepted initial implementation behind a Wandora-owned `Agent Runtime Adapter` (ADR 0005). Mastra run IDs, workflow objects and storage representations never become public product contracts.
 
 The current durable Core tests use deterministic/fake runtime implementations. A real model token is intentionally not required until the first supervised real model call. Mistral is a candidate for early low-cost testing; Chutes, OpenAI and other providers remain replaceable behind the model-provider boundary.
+
+A prior Mistral token was accidentally committed to Git and must be treated as compromised. It must never be reused. When a real model call becomes necessary, that credential must be revoked and replaced with a fresh token stored only through an approved operator-controlled secret path.
 
 Long-horizon employee memory remains separate from canonical truth. Mastra Memory is the initial candidate; Letta or another memory engine may later sit behind a Wandora-owned memory boundary if evidence justifies it.
 
@@ -131,7 +135,7 @@ Long-horizon employee memory remains separate from canonical truth. Mastra Memor
 
 Evolution API 2.3.7 is the accepted initial WhatsApp provider behind Wandora's `Messaging Gateway` (ADR 0006). Real inbound and outbound handset traffic has already been proven while keeping instance names, JIDs, API keys and provider message IDs behind the adapter.
 
-The earlier gateway spike established normalized inbound events and conservative outbound idempotency. ADR 0009 now promotes durable event receipts/outbound-attempt semantics into reviewed Core/PostgreSQL code. Real Gateway-to-Core wiring is still pending and must remain provider-neutral.
+The earlier gateway spike established normalized inbound events and conservative outbound idempotency. ADR 0009 now promotes durable event receipts/outbound-attempt semantics into live Core/PostgreSQL state. Real Gateway-to-Core wiring is still pending and must remain provider-neutral.
 
 No digital employee calls Evolution directly.
 
@@ -160,20 +164,20 @@ PostgreSQL, Redis, Docker socket, Paperclip internals, Mastra internals and prov
 
 Versioned Wandora database migrations live under `infra/stacks/supabase/migrations/`; falsifiable verifiers live under `infra/stacks/supabase/verifiers/`. Spike SQL is never applied directly to the live database.
 
-The Core multitenant/auth and Ana durable migrations have been validated together on disposable `supabase/postgres:17.6.1.136` and are versioned in Git, but are **not yet applied to the live Wandora Supabase database**.
+The Core multitenant/auth and Ana durable migrations were validated together on disposable `supabase/postgres:17.6.1.136`, rehearsed against a restored logical snapshot of the live database, then applied to the live Wandora Supabase database on 2026-09-14. The live-safe verifier is read-only by construction and passed after application.
 
-Live schema application requires a separate preflight/reversibility/post-verification step. Persistent data must remain backup/restore-testable and movable to another VPS.
+The mutation-heavy behavioral verifier remains disposable-only and must never run on the live database. Persistent data must remain backup/restore-testable and movable to another VPS.
 
 ## Near-term execution sequence
 
 1. keep canonical documentation synchronized;
-2. finish review/merge of Ana's durable Core code and migrations;
-3. prepare live-database preflight and controlled migration application;
-4. wire the validated Messaging Gateway and Mastra Agent Runtime Adapter to Core in supervised mode;
+2. provision a private least-privilege production database role/credential path for Wandora Core;
+3. wire the validated Messaging Gateway inbound boundary to Core in supervised mode;
+4. wire the accepted Mastra Agent Runtime Adapter using a deterministic/fake model path first where possible;
 5. expose tenant-authorized Core reads/actions to Wandora Web so customer screens use canonical state;
 6. perform a supervised real-path proof before any autonomous customer traffic;
-7. wire real customer authentication/onboarding around the proven path;
-8. request/configure a real model provider token only when the first real model call is required;
+7. only when the first real model call is required, revoke the previously Git-exposed Mistral token and configure a fresh replacement outside Git/chat;
+8. wire real customer authentication/onboarding around the proven path;
 9. add social login and broader integrations only when a validated customer workflow requires them.
 
 ## Non-goals for the current phase
