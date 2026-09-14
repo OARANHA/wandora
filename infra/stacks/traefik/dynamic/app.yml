@@ -1,0 +1,28 @@
+http:
+  routers:
+    wandora-app:
+      rule: "Host(`app.wandora.com.br`)"
+      entryPoints:
+        - websecure
+      service: wandora-app
+      middlewares:
+        - wandora-app-security
+      tls:
+        certResolver: letsencrypt
+
+  middlewares:
+    wandora-app-security:
+      headers:
+        contentTypeNosniff: true
+        frameDeny: true
+        referrerPolicy: "strict-origin-when-cross-origin"
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        customResponseHeaders:
+          X-Robots-Tag: "noindex, nofollow, noarchive"
+
+  services:
+    wandora-app:
+      loadBalancer:
+        servers:
+          - url: "http://wandora-web:8080"
