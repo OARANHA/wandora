@@ -32,7 +32,7 @@ The response must not expose messaging connection IDs, source event IDs, Evoluti
 
 `Conversas` removes its static preview array and reads the reviewed route with the browser Bearer session through same-origin Wandora Web Nginx.
 
-V1 deliberately does not invent unread state because no canonical read/unread model exists yet. The right-hand pane remains an honest non-message placeholder until a separately reviewed conversation-detail/history contract exists.
+V1 deliberately does not invent unread state because no canonical read/unread model exists yet. Selecting an item may show only the summary fields already returned by this list contract; it must not imply that a complete message history has been loaded. A separately reviewed conversation-detail/history contract owns that later capability.
 
 Only the exact conversations-list route is added to the Nginx allow-list. Generic `/api/` and all `/internal/` paths remain closed.
 
