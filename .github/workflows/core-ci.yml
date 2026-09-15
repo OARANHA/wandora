@@ -29,3 +29,17 @@ jobs:
       - name: Run reproducible Ana Core verifier
         shell: bash
         run: bash apps/core/scripts/verify-ana-v1.sh
+
+      - name: Validate deterministic Agent Runtime overlay
+        shell: bash
+        env:
+          WANDORA_CORE_DB_PASSWORD_FILE: /tmp/ci-core-db-secret
+          WANDORA_CORE_SECRET_GID: "1000"
+          WANDORA_GATEWAY_CORE_INGRESS_SECRET_FILE: /tmp/ci-gateway-core-secret
+        run: |
+          docker compose \
+            -f infra/stacks/core/compose.yaml \
+            -f infra/stacks/core/compose.database.yaml \
+            -f infra/stacks/core/compose.gateway-ingress.yaml \
+            -f infra/stacks/core/compose.agent-runtime-deterministic.yaml \
+            config >/dev/null

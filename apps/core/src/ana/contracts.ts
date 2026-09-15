@@ -59,6 +59,7 @@ export type InboundProcessingResult =
       contactId: string;
       conversationId: string;
       workItemId: string;
+      proposal?: EmployeeProposal;
     }
   | {
       status: 'replied';

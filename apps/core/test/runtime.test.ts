@@ -27,9 +27,13 @@ test('WANDORA CORE PRIVATE RUNTIME V1', async (t) => {
   await t.test('standby mode requires no database credential', async () => {
     const config = await loadRuntimeConfig({ WANDORA_CORE_MODE: 'standby', PORT: '8788' });
     assert.deepEqual(config, { mode: 'standby', port: 8788 });
+    await assert.rejects(
+      loadRuntimeConfig({ WANDORA_CORE_MODE: 'standby', WANDORA_AGENT_RUNTIME_MODE: 'mastra-deterministic' }),
+      /cannot be enabled while Wandora Core is in standby/,
+    );
   });
 
-  await t.test('database mode accepts only the canonical runtime role and reads password from file', async () => {
+  await t.test('database mode accepts only the canonical runtime role and keeps Agent Runtime disabled by default', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'wandora-core-runtime-'));
     const secret = join(dir, 'db-password');
     try {
@@ -44,6 +48,7 @@ test('WANDORA CORE PRIVATE RUNTIME V1', async (t) => {
       assert.equal(config.database?.password, 'synthetic-test-password');
       assert.equal(config.database?.host, 'wandora-postgres');
       assert.equal(config.gatewayIngress, undefined);
+      assert.equal(config.agentRuntime, undefined);
 
       await assert.rejects(
         loadRuntimeConfig({
@@ -53,6 +58,38 @@ test('WANDORA CORE PRIVATE RUNTIME V1', async (t) => {
         }),
         /must be wandora_core_runtime/,
       );
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  await t.test('deterministic Mastra mode requires the supervised Gateway boundary and no model secret', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'wandora-core-mastra-'));
+    const dbSecret = join(dir, 'db-password');
+    const gatewaySecret = join(dir, 'gateway-secret');
+    try {
+      await writeFile(dbSecret, 'synthetic-test-password\n', { mode: 0o600 });
+      await writeFile(gatewaySecret, 'gateway-test-secret-0123456789abcdef0123456789abcdef\n', { mode: 0o600 });
+
+      await assert.rejects(
+        loadRuntimeConfig({
+          WANDORA_CORE_MODE: 'database',
+          WANDORA_CORE_DB_PASSWORD_FILE: dbSecret,
+          WANDORA_AGENT_RUNTIME_MODE: 'mastra-deterministic',
+        }),
+        /requires supervised Gateway ingress/,
+      );
+
+      const config = await loadRuntimeConfig({
+        WANDORA_CORE_MODE: 'database',
+        WANDORA_CORE_DB_PASSWORD_FILE: dbSecret,
+        WANDORA_GATEWAY_INGRESS_ENABLED: 'true',
+        WANDORA_GATEWAY_INGRESS_SECRET_FILE: gatewaySecret,
+        WANDORA_AGENT_RUNTIME_MODE: 'mastra-deterministic',
+      });
+      assert.deepEqual(config.agentRuntime, { mode: 'mastra-deterministic' });
+      assert.equal(config.gatewayIngress?.secret.length, 52);
+      assert.equal(Object.keys(config).includes('model'), false);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

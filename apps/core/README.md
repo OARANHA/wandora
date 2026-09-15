@@ -6,7 +6,7 @@ The first promoted workflow is **Ana — Assistente Comercial Digital / inbound 
 
 ## Current V1 responsibility
 
-For one normalized inbound WhatsApp event, the Core can execute the full durable Ana workflow:
+For one normalized inbound WhatsApp event, the Core domain package can execute the full durable Ana workflow:
 
 1. validates organization and messaging-connection ownership;
 2. persists one canonical contact, conversation and qualification work item;
@@ -17,7 +17,7 @@ For one normalized inbound WhatsApp event, the Core can execute the full durable
 7. otherwise prepares one idempotent outbound attempt through `MessagingGateway`;
 8. records canonical Wandora audit state.
 
-The production-shaped Gateway ingress is deliberately narrower than the full workflow until real Agent Runtime and outbound implementations are separately promoted.
+That full outbound-capable service is **not** the production Gateway entry point. The live Gateway ingress uses the narrower supervised service so the current `supervised` autonomy mode cannot be bypassed merely because an outbound implementation exists in the domain package.
 
 ## Safety boundaries
 
@@ -27,14 +27,14 @@ The production-shaped Gateway ingress is deliberately narrower than the full wor
 - `owner`/`admin` may decide this V1 approval; another tenant cannot.
 - The browser does not receive direct table grants for Ana's Core state.
 - Transactional facts live in PostgreSQL, not only in model memory.
-- This package does not enable autonomous production traffic by itself.
+- The live supervised ingress does not enable autonomous outbound traffic.
 
 ## Gateway → Core supervised ingress
 
-ADR 0012 defines the first production-shaped inbound boundary:
+ADR 0012 defines the production-shaped inbound boundary:
 
 - private route `POST /internal/v1/gateway/inbound`;
-- disabled by default;
+- disabled unless explicitly configured;
 - available only in database mode when `WANDORA_GATEWAY_INGRESS_ENABLED=true`;
 - Gateway secret loaded only from `WANDORA_GATEWAY_INGRESS_SECRET_FILE`;
 - HMAC-SHA256 signature over `<unix-seconds>.<raw-body>`;
@@ -43,11 +43,36 @@ ADR 0012 defines the first production-shaped inbound boundary:
 
 The private Docker network is not treated as caller authentication. A valid HMAC proves the caller holds the dedicated Gateway secret; transaction-local tenant scope plus RLS independently prove that the supplied canonical connection belongs to the supplied organization.
 
-A new supervised inbound event persists the canonical contact/conversation/message/work/audit state, moves the work item to `attention-required`, completes the durable receipt with `supervision-required`, and stops. It does **not** invoke an Agent Runtime and does **not** call outbound messaging.
+A new supervised inbound event persists canonical contact/conversation/message/work/audit state, moves the work item to `attention-required` and completes the durable receipt with `supervision-required`.
+
+The controlled production cutover and real handset proof completed on 2026-09-15 with zero approvals and zero outbound attempts. See `docs/infra/messaging-gateway-supervised-live-v1.md`.
 
 A completed duplicate returns the stored durable result. Invalid/stale authentication fails before durable state. When the ingress feature is not configured, the private route returns 404.
 
-Merging the code does not activate production ingress. Live enablement requires a separate operator-controlled secret and reviewed Compose/Gateway deployment.
+## Deterministic Mastra supervised proposal
+
+ADR 0014 introduces the first Core → Agent Runtime Adapter → Mastra integration without a model-provider credential.
+
+Activation is explicit:
+
+```text
+WANDORA_AGENT_RUNTIME_MODE=mastra-deterministic
+```
+
+The default is `disabled`. The deterministic mode is valid only in database mode with the authenticated supervised Gateway ingress enabled.
+
+When enabled, `AnaSupervisedIngressService` asks the Wandora-owned `AgentRuntime` for a deterministic proposal and persists that proposal only inside the private inbound receipt result. The canonical work item still ends at `attention-required` and the receipt still ends at `supervision-required`.
+
+This mode deliberately creates:
+
+- no approval row;
+- no outbound-attempt row;
+- no outbound message;
+- no model-provider call.
+
+Only normalized customer text crosses into the Mastra workflow. Organization IDs, phone/customer address, connection IDs and provider IDs are not Mastra workflow input. Mastra-specific workflow/run metadata does not cross the Wandora adapter boundary.
+
+The Compose activation overlay is `infra/stacks/core/compose.agent-runtime-deterministic.yaml`. Merging the code does not apply that overlay to production.
 
 ## Database runtime boundary
 
@@ -95,4 +120,4 @@ From repository root:
 
 The verifier uses disposable `supabase/postgres:17.6.1.136` plus pinned Node 22.23.2, applies the reviewed migrations, runs SQL invariants/read-only production verifiers, strict TypeScript and integration tests, then destroys the disposable environment.
 
-The test harness deliberately separates fixture administration from the actual runtime identity. Application behavior is executed as `wandora_core_runtime`. Current evidence is **22/22 tests green**, including the authenticated supervised Gateway-ingress suite. It also boots the production image in both standby and database modes, proving that the non-root process can read a group-owned `0640` database secret and reach database readiness without publishing a host port.
+The test harness deliberately separates fixture administration from the actual runtime identity. Application behavior is executed as `wandora_core_runtime`. The Core CI also validates the deterministic Agent Runtime Compose overlay together with database + supervised ingress overlays.

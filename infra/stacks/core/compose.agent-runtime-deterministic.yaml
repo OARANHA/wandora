@@ -1,0 +1,5 @@
+services:
+  core:
+    environment:
+      WANDORA_AGENT_RUNTIME_MODE: mastra-deterministic
+      MASTRA_TELEMETRY_DISABLED: "true"

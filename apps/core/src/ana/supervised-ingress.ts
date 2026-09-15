@@ -1,13 +1,17 @@
 import type { Pool, PoolClient } from 'pg';
-import type { InboundProcessingResult, InboundTextEvent, OrganizationId } from './contracts.js';
+import type {
+  AgentRuntime,
+  EmployeeProposal,
+  InboundProcessingResult,
+  InboundTextEvent,
+  OrganizationId,
+} from './contracts.js';
 import { CoreStateError, PostgresAnaRepository } from './postgres-repository.js';
 
-export type SupervisedInboundResult = {
-  status: 'supervision-required';
-  contactId: string;
-  conversationId: string;
-  workItemId: string;
-};
+export type SupervisedInboundResult = Extract<
+  InboundProcessingResult,
+  { status: 'supervision-required' }
+>;
 
 export type SupervisedInboundOutcome = {
   duplicate: boolean;
@@ -17,6 +21,7 @@ export type SupervisedInboundOutcome = {
 export type AnaSupervisedIngressDeps = {
   repository: PostgresAnaRepository;
   pool: Pool;
+  runtime?: AgentRuntime;
   now?: () => string;
 };
 
@@ -49,6 +54,35 @@ export class AnaSupervisedIngressService {
     }
   }
 
+  private async propose(
+    organizationId: OrganizationId,
+    event: InboundTextEvent,
+    employee: Parameters<AgentRuntime['proposeCommercialReply']>[0]['employee'],
+  ): Promise<EmployeeProposal | undefined> {
+    if (!this.deps.runtime) return undefined;
+
+    try {
+      const proposal = await this.deps.runtime.proposeCommercialReply({
+        organizationId,
+        employee,
+        customerText: event.text,
+        customerAddress: event.sender,
+      });
+      if (proposal.kind !== 'send-text' || proposal.text.trim().length === 0) {
+        throw new CoreStateError(
+          'invalid_supervised_proposal',
+          'Agent Runtime returned an invalid supervised text proposal.',
+        );
+      }
+      return proposal;
+    } catch (error) {
+      await this.deps.repository
+        .markInboundFailed({ organizationId, eventId: event.eventId })
+        .catch(() => undefined);
+      throw error;
+    }
+  }
+
   async handle(
     organizationId: OrganizationId,
     event: InboundTextEvent,
@@ -58,11 +92,13 @@ export class AnaSupervisedIngressService {
       return { duplicate: true, result: context.duplicateResult };
     }
 
+    const proposal = await this.propose(organizationId, event, context.employee);
     const result: SupervisedInboundResult = {
       status: 'supervision-required',
       contactId: context.contactId,
       conversationId: context.conversationId,
       workItemId: context.workItemId,
+      ...(proposal ? { proposal } : {}),
     };
 
     try {
