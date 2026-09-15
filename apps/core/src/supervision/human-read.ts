@@ -10,6 +10,13 @@ export class HumanAccessError extends Error {
   }
 }
 
+export class HumanNotFoundError extends Error {
+  constructor(message = 'Requested resource was not found.') {
+    super(message);
+    this.name = 'HumanNotFoundError';
+  }
+}
+
 export type HumanSessionContext = {
   user: {
     id: string;
@@ -75,6 +82,28 @@ export type ConversationListItem = {
   } | null;
 };
 
+export type ConversationDetail = {
+  conversation: {
+    id: string;
+    status: 'open' | 'closed';
+    lastActivityAt: string;
+  };
+  contact: {
+    id: string;
+    label: string;
+  };
+  employee: {
+    id: string;
+    name: string;
+  } | null;
+  messages: Array<{
+    direction: 'inbound' | 'outbound';
+    text: string;
+    occurredAt: string;
+  }>;
+  hasEarlierMessages: boolean;
+};
+
 type HumanSessionRow = {
   user_id: string;
   user_display_name: string;
@@ -114,6 +143,22 @@ type ConversationRow = {
   message_direction: 'inbound' | 'outbound' | null;
   message_text: string | null;
   message_occurred_at: Date | null;
+};
+
+type ConversationDetailRow = {
+  conversation_id: string;
+  conversation_status: 'open' | 'closed';
+  last_activity_at: Date;
+  contact_id: string;
+  contact_label: string;
+  employee_id: string | null;
+  employee_name: string | null;
+};
+
+type ConversationMessageRow = {
+  message_direction: 'inbound' | 'outbound';
+  message_text: string;
+  message_occurred_at: Date;
 };
 
 export class HumanSupervisionReadService {
@@ -173,7 +218,7 @@ export class HumanSupervisionReadService {
   ): Promise<T> {
     const client = await this.pool.connect();
     try {
-      await client.query('BEGIN');
+      await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
       await client.query(`SELECT set_config('wandora.organization_id', $1, true)`, [organizationId]);
       const result = await fn(client);
       await client.query('COMMIT');
@@ -342,7 +387,7 @@ export class HumanSupervisionReadService {
                FROM wandora.messages m
               WHERE m.organization_id = cv.organization_id
                 AND m.conversation_id = cv.id
-              ORDER BY m.occurred_at DESC, m.created_at DESC
+              ORDER BY m.occurred_at DESC, m.created_at DESC, m.id DESC
               LIMIT 1
            ) lm ON true
           WHERE cv.organization_id = $1
@@ -369,6 +414,95 @@ export class HumanSupervisionReadService {
             }
           : null,
       }));
+    });
+  }
+
+  async getConversationDetail(
+    authorization: string | undefined,
+    organizationId: string,
+    conversationId: string,
+  ): Promise<ConversationDetail> {
+    const userId = await this.authenticateUser(authorization);
+
+    return this.scoped(organizationId, async (client) => {
+      await this.requireActiveMembership(client, organizationId, userId);
+
+      const detailResult = await client.query<ConversationDetailRow>(
+        `SELECT cv.id::text AS conversation_id,
+                cv.status::text AS conversation_status,
+                GREATEST(cv.updated_at, COALESCE(lm.occurred_at, cv.updated_at)) AS last_activity_at,
+                ct.id::text AS contact_id,
+                COALESCE(NULLIF(BTRIM(ct.display_name), ''), ct.channel_address) AS contact_label,
+                aw.employee_id,
+                aw.employee_name
+           FROM wandora.conversations cv
+           JOIN wandora.contacts ct
+             ON ct.organization_id = cv.organization_id AND ct.id = cv.contact_id
+           LEFT JOIN LATERAL (
+             SELECT de.id::text AS employee_id, de.display_name AS employee_name
+               FROM wandora.work_items wi
+               JOIN wandora.digital_employees de
+                 ON de.organization_id = wi.organization_id AND de.id = wi.employee_id
+              WHERE wi.organization_id = cv.organization_id
+                AND wi.conversation_id = cv.id
+                AND wi.status <> 'completed'
+              ORDER BY wi.updated_at DESC, wi.created_at DESC
+              LIMIT 1
+           ) aw ON true
+           LEFT JOIN LATERAL (
+             SELECT m.occurred_at
+               FROM wandora.messages m
+              WHERE m.organization_id = cv.organization_id
+                AND m.conversation_id = cv.id
+              ORDER BY m.occurred_at DESC, m.created_at DESC, m.id DESC
+              LIMIT 1
+           ) lm ON true
+          WHERE cv.organization_id = $1
+            AND cv.id = $2
+          LIMIT 1`,
+        [organizationId, conversationId],
+      );
+
+      const detail = detailResult.rows[0];
+      if (!detail) {
+        throw new HumanNotFoundError();
+      }
+
+      const messageResult = await client.query<ConversationMessageRow>(
+        `SELECT m.direction::text AS message_direction,
+                m.body AS message_text,
+                m.occurred_at AS message_occurred_at
+           FROM wandora.messages m
+          WHERE m.organization_id = $1
+            AND m.conversation_id = $2
+          ORDER BY m.occurred_at DESC, m.created_at DESC, m.id DESC
+          LIMIT 101`,
+        [organizationId, conversationId],
+      );
+
+      const hasEarlierMessages = messageResult.rows.length > 100;
+      const messages = messageResult.rows
+        .slice(0, 100)
+        .reverse()
+        .map((row) => ({
+          direction: row.message_direction,
+          text: row.message_text,
+          occurredAt: row.message_occurred_at.toISOString(),
+        }));
+
+      return {
+        conversation: {
+          id: detail.conversation_id,
+          status: detail.conversation_status,
+          lastActivityAt: detail.last_activity_at.toISOString(),
+        },
+        contact: { id: detail.contact_id, label: detail.contact_label },
+        employee: detail.employee_id && detail.employee_name
+          ? { id: detail.employee_id, name: detail.employee_name }
+          : null,
+        messages,
+        hasEarlierMessages,
+      };
     });
   }
 }

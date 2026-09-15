@@ -2,7 +2,11 @@ import assert from 'node:assert/strict';
 import test, { after } from 'node:test';
 import { Pool } from 'pg';
 import { HumanAuthError, type HumanTokenVerifier } from '../src/human-auth/es256-jwks.js';
-import { HumanAccessError, HumanSupervisionReadService } from '../src/supervision/human-read.js';
+import {
+  HumanAccessError,
+  HumanNotFoundError,
+  HumanSupervisionReadService,
+} from '../src/supervision/human-read.js';
 
 const ORG_A = '00000000-0000-0000-0000-0000000000a1';
 const ORG_B = '00000000-0000-0000-0000-0000000000b1';
@@ -197,5 +201,120 @@ test('conversation read denies unknown identity and invalid bearer token', async
     service.listConversations('Bearer invalid', ORG_A),
     (error: unknown) => error instanceof HumanAuthError && error.code === 'invalid-token',
   );
+  await assertScopeReset();
+});
+
+test('conversation detail returns only canonical selected-tenant history with no side effect', async () => {
+  await resetFixture();
+  const service = new HumanSupervisionReadService(runtimePool, verifier());
+  const before = await sideEffectCounts();
+  const detail = await service.getConversationDetail('Bearer valid', ORG_A, CONV_A);
+  const afterCounts = await sideEffectCounts();
+
+  assert.equal(detail.conversation.id, CONV_A);
+  assert.equal(detail.conversation.status, 'open');
+  assert.equal(detail.contact.id, CONTACT_A);
+  assert.equal(detail.contact.label, 'Cliente A');
+  assert.equal(detail.employee?.name, 'Ana A');
+  assert.equal(detail.messages.length, 1);
+  assert.deepEqual(detail.messages[0], {
+    direction: 'inbound',
+    text: 'Mensagem canônica A',
+    occurredAt: NOW,
+  });
+  assert.equal(detail.hasEarlierMessages, false);
+  assert.equal(JSON.stringify(detail).includes('evt_a_private'), false);
+  assert.equal(JSON.stringify(detail).includes(CONN_A), false);
+  assert.equal(JSON.stringify(detail).includes('Segredo da empresa B'), false);
+  assert.deepEqual(afterCounts, before);
+  assert.deepEqual(afterCounts, [0, 0, 0]);
+  await assertScopeReset();
+});
+
+test('conversation detail hides foreign conversation existence inside an authorized organization', async () => {
+  await resetFixture();
+  const service = new HumanSupervisionReadService(runtimePool, verifier());
+
+  await assert.rejects(
+    service.getConversationDetail('Bearer valid', ORG_A, CONV_B),
+    (error: unknown) => error instanceof HumanNotFoundError,
+  );
+  await assertScopeReset();
+
+  await assert.rejects(
+    service.getConversationDetail('Bearer valid', ORG_B, CONV_B),
+    (error: unknown) => error instanceof HumanAccessError && error.code === 'forbidden',
+  );
+  await assertScopeReset();
+});
+
+test('conversation detail denies inactive tenant and invalid identity states', async () => {
+  await resetFixture();
+  const service = new HumanSupervisionReadService(runtimePool, verifier());
+
+  await fixturePool.query(
+    `UPDATE wandora.memberships SET status = 'suspended' WHERE organization_id = $1 AND user_id = $2`,
+    [ORG_A, USER],
+  );
+  await assert.rejects(
+    service.getConversationDetail('Bearer valid', ORG_A, CONV_A),
+    (error: unknown) => error instanceof HumanAccessError && error.code === 'forbidden',
+  );
+  await assertScopeReset();
+
+  await fixturePool.query(
+    `UPDATE wandora.memberships SET status = 'active' WHERE organization_id = $1 AND user_id = $2`,
+    [ORG_A, USER],
+  );
+  await fixturePool.query(
+    `UPDATE wandora.organizations SET status = 'suspended' WHERE id = $1`,
+    [ORG_A],
+  );
+  await assert.rejects(
+    service.getConversationDetail('Bearer valid', ORG_A, CONV_A),
+    (error: unknown) => error instanceof HumanAccessError && error.code === 'forbidden',
+  );
+  await assertScopeReset();
+
+  await fixturePool.query(`UPDATE wandora.organizations SET status = 'active' WHERE id = $1`, [ORG_A]);
+  const unknownService = new HumanSupervisionReadService(runtimePool, verifier('unknown-supabase-subject'));
+  await assert.rejects(
+    unknownService.getConversationDetail('Bearer valid', ORG_A, CONV_A),
+    (error: unknown) => error instanceof HumanAccessError && error.code === 'identity-unlinked',
+  );
+  await assertScopeReset();
+
+  await assert.rejects(
+    service.getConversationDetail('Bearer invalid', ORG_A, CONV_A),
+    (error: unknown) => error instanceof HumanAuthError && error.code === 'invalid-token',
+  );
+  await assertScopeReset();
+});
+
+test('conversation detail returns latest 100 messages oldest to newest and signals earlier history', async () => {
+  await resetFixture();
+  await fixturePool.query(`DELETE FROM wandora.messages WHERE organization_id = $1`, [ORG_A]);
+  await fixturePool.query(
+    `INSERT INTO wandora.messages
+       (organization_id, conversation_id, direction, body, source_event_id, occurred_at)
+     SELECT $1,
+            $2,
+            'inbound'::wandora.message_direction,
+            'Mensagem ' || LPAD(gs::text, 3, '0'),
+            'evt_history_' || gs::text,
+            TIMESTAMPTZ '2026-09-15 18:00:00+00' + (gs * INTERVAL '1 second')
+       FROM generate_series(1, 101) AS gs`,
+    [ORG_A, CONV_A],
+  );
+
+  const service = new HumanSupervisionReadService(runtimePool, verifier());
+  const detail = await service.getConversationDetail('Bearer valid', ORG_A, CONV_A);
+
+  assert.equal(detail.hasEarlierMessages, true);
+  assert.equal(detail.messages.length, 100);
+  assert.equal(detail.messages[0]?.text, 'Mensagem 002');
+  assert.equal(detail.messages[99]?.text, 'Mensagem 101');
+  assert.ok(new Date(detail.messages[0]!.occurredAt) < new Date(detail.messages[99]!.occurredAt));
+  assert.equal(JSON.stringify(detail).includes('evt_history_'), false);
   await assertScopeReset();
 });
