@@ -1,9 +1,10 @@
 import { Outlet, createRootRoute, createRoute, createRouter } from '@tanstack/react-router';
-import { AppShell } from './components/AppShell';
+import { SessionGate } from './components/SessionGate';
 import { ApprovalsPage } from './pages/ApprovalsPage';
 import { CompanyPage } from './pages/CompanyPage';
 import { ConversationsPage } from './pages/ConversationsPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { LoginPage } from './pages/LoginPage';
 import { TeamPage } from './pages/TeamPage';
 import { WorkPage } from './pages/WorkPage';
 import { StartPage } from './pages/StartPage';
@@ -13,7 +14,7 @@ const rootRoute = createRootRoute({ component: Outlet });
 const appRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: 'app',
-  component: AppShell,
+  component: SessionGate,
 });
 
 const indexRoute = createRoute({
@@ -52,6 +53,12 @@ const companyRoute = createRoute({
   component: CompanyPage,
 });
 
+const loginRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/login',
+  component: LoginPage,
+});
+
 const startRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/start',
@@ -67,6 +74,7 @@ const routeTree = rootRoute.addChildren([
     approvalsRoute,
     companyRoute,
   ]),
+  loginRoute,
   startRoute,
 ]);
 
