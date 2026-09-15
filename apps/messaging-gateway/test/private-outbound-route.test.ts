@@ -38,13 +38,14 @@ async function close(server: Server): Promise<void> {
 }
 
 function serverFixture(sendText?: (input: OutboundTextCommand) => Promise<OutboundTextOutcome>) {
+  const outbound = sendText ? { secret: outboundSecret, sendText } : undefined;
   return createMessagingGatewayServer({
     evolutionInstance: 'wandora-lab-01',
     evolutionWebhookJwtKey: evolutionSecret,
     organizationId,
     connectionId,
     forwardToCore: async () => ({ kind: 'accepted', status: 202 }),
-    outbound: sendText ? { secret: outboundSecret, sendText } : undefined,
+    ...(outbound ? { outbound } : {}),
     now: () => nowMs,
   });
 }
