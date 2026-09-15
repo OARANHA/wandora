@@ -70,11 +70,15 @@ done
 # Only the disposable harness enables the canonical runtime login. No production
 # credential is created by the migration itself. Fixture administration remains separate.
 docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -c \
-  "ALTER ROLE wandora_core_runtime CONNECTION LIMIT 10 PASSWORD '${CORE_PASSWORD}';
+  "ALTER ROLE wandora_core_runtime CONNECTION LIMIT 4 PASSWORD '${CORE_PASSWORD}';
    CREATE ROLE wandora_fixture_admin_test LOGIN BYPASSRLS PASSWORD '${FIXTURE_PASSWORD}';
    GRANT USAGE ON SCHEMA wandora, wandora_private TO wandora_fixture_admin_test;
    GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA wandora, wandora_private TO wandora_fixture_admin_test;
    GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA wandora TO wandora_fixture_admin_test;" >/dev/null
+
+ACTIVATED_VERIFIER="VERIFY_20260914_CORE_RUNTIME_ACTIVATED_V1_LIVE.sql"
+docker cp "$VERIFIERS/$ACTIVATED_VERIFIER" "$DB:/tmp/$ACTIVATED_VERIFIER" >/dev/null
+docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -f "/tmp/$ACTIVATED_VERIFIER"
 
 docker run --rm --network "$NET" -v "$CORE:/app" -w /app \
   -e DATABASE_URL="postgresql://wandora_core_runtime:${CORE_PASSWORD}@${DB}:5432/${DB_NAME}" \
