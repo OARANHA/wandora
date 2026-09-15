@@ -27,7 +27,7 @@ const server = createMessagingGatewayServer({
   organizationId: config.organizationId,
   connectionId: config.connectionId,
   forwardToCore,
-  outbound,
+  ...(outbound ? { outbound } : {}),
 });
 
 server.listen(config.port, '0.0.0.0', () => {
