@@ -17,7 +17,9 @@ const input = (customerText = 'Olá, gostaria de saber mais.'): PlannerInput => 
 });
 
 test('MASTRA DETERMINISTIC AGENT RUNTIME V1', async (t) => {
-  await t.test('returns only the Wandora proposal contract without a model call', async () => {
+  await t.test('returns only the Wandora proposal contract without model/framework egress', async () => {
+    assert.equal(process.env.MASTRA_TELEMETRY_DISABLED, 'true');
+
     const originalFetch = globalThis.fetch;
     globalThis.fetch = async () => {
       throw new Error('network access is forbidden in deterministic runtime test');
