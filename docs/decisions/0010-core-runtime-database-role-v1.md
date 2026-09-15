@@ -1,7 +1,7 @@
 # ADR 0010 — Wandora Core runtime database role V1
 
 Date: 2026-09-14
-Status: **Accepted; migration applied and verified live. Runtime credential remains disabled/unprovisioned.**
+Status: **Accepted; migration applied live and the dedicated runtime credential is now activated through the reviewed private Core deployment path.**
 
 ## Context
 
@@ -15,7 +15,9 @@ The runtime needs only the database capabilities required by the current Ana wor
 
 Create a dedicated `wandora_core_runtime` PostgreSQL role with least privilege and no `BYPASSRLS`.
 
-The migration creates the role disabled by default for real connections: it has `LOGIN`, no password and `CONNECTION LIMIT 0`. Activating a production credential is a later operator-controlled step outside Git and must happen only together with a reviewed Core runtime deployment/secret path.
+Migration `003` creates the role disabled by default for real connections: it has `LOGIN`, no password and `CONNECTION LIMIT 0`. This migration-disabled state remains an intentional invariant and is still proven by `VERIFY_20260914_CORE_RUNTIME_ROLE_V1_LIVE.sql`.
+
+Production activation is a separate operator-controlled step outside Git. It is valid only when the reviewed private network, Core runtime and secret-file path are ready to consume the credential immediately.
 
 Every Core database transaction sets `wandora.organization_id` with transaction-local scope before accessing tenant-owned state. RLS policies for the Core compare row `organization_id` with that transaction-local value. A pooled connection therefore returns to an unscoped state after `COMMIT` or `ROLLBACK`.
 
@@ -29,35 +31,31 @@ Existing browser/member RLS policies are explicitly targeted to `authenticated`;
 
 ## Verification
 
-The disposable verifier uses pinned Supabase PostgreSQL 17.6.1.136 and Node 22.23.2. It applies migrations, runs production-safe read-only verifiers, then enables the runtime login only inside the disposable harness with a synthetic password.
+The disposable verifier uses pinned Supabase PostgreSQL 17.6.1.136 and Node 22.23.2. It applies migrations, first proves the credential-disabled migration state, then enables the runtime login only inside the disposable harness with a synthetic password and `CONNECTION LIMIT 4`.
 
 Fixture setup/cleanup uses a separate disposable test-admin identity; application tests use the actual `wandora_core_runtime` role. This proves the service without granting production permissions merely to satisfy test setup.
 
-Evidence at acceptance:
+The activated state has its own read-only verifier:
 
-```text
-CORE_RUNTIME_ROLE_V1_LIVE_OK
-TypeScript strict: green
-12/12 Node tests: green
-ANA_VERTICAL_SLICE_V1_VERIFY_OK
-```
+- `VERIFY_20260914_CORE_RUNTIME_ROLE_V1_LIVE.sql` — migration-disabled state;
+- `VERIFY_20260914_CORE_RUNTIME_ACTIVATED_V1_LIVE.sql` — deliberately activated production state.
 
 The tests include transaction-local tenant scoping, cross-tenant row invisibility and rejection of a cross-tenant audit append.
 
-## Live application — 2026-09-14
+## Live migration application — 2026-09-14
 
 PR #20 was squash-merged to `main` at `3d16d807ece7765dac356abcd0879006d7a0f13e`. Core CI passed both on the PR head and on the resulting `main` push.
 
 Before production mutation:
 
-- the exact migration blob `96eea569b0217597227f477a43e88b660fdfd1b4` and verifier blob `51e2f0245117ba314f1eaf83507f3493877e2c50` were confirmed against `main`;
+- the exact migration blob and verifier blob were confirmed against `main`;
 - a fresh custom-format logical backup of the live database was created with mode `0600` and checksum validation;
-- that snapshot was restored into disposable `supabase/postgres:17.6.1.136` while preserving ownership and ACL semantics;
+- that snapshot was restored into disposable PostgreSQL while preserving ownership and ACL semantics;
 - migration `003` passed on the restored live clone;
-- `CORE_RUNTIME_ROLE_V1_LIVE_OK`, `ANA_LIVE_POSTVERIFY_V1_OK` and the disposable `ANA_DURABLE_CORE_STATE_V1_OK` behavioral verifier all passed on the clone;
+- `CORE_RUNTIME_ROLE_V1_LIVE_OK`, `ANA_LIVE_POSTVERIFY_V1_OK` and the disposable behavioral verifier all passed on the clone;
 - live Supabase services were healthy and Wandora customer tables contained zero rows.
 
-The exact migration was then applied live as `supabase_admin` with `ON_ERROR_STOP=1`. Post-verification returned:
+The exact migration was then applied live and returned:
 
 ```text
 MIGRATION_003_LIVE_OK
@@ -67,14 +65,59 @@ CORE_ROLE_003_LIVE_POSTVERIFY_OK
 CORE_ROLE_003_POST_HEALTH_OK
 ```
 
-Post-application the role is present with `LOGIN`, `CONNECTION LIMIT 0`, `NOBYPASSRLS` and no password. No customer rows were added, PostgreSQL remained private, all Supabase services remained healthy, `supabase.wandora.com.br` still returned the intentional root `404`, and unauthenticated `studio.wandora.com.br` still returned `401`.
+At that point the live role correctly remained `CONNECTION LIMIT 0` with no password.
+
+## Live credential activation — 2026-09-14
+
+Security gate #22 was completed before activation. The live Supabase DB was attached to the internal `wandora-data` network with private alias `wandora-postgres`; PostgreSQL remained non-public.
+
+A dedicated Core password was generated outside Git/chat and stored only in the operator-controlled secret-file path. The role was then activated with:
+
+```text
+LOGIN: true
+CONNECTION LIMIT: 4
+SUPERUSER: false
+CREATEDB: false
+CREATEROLE: false
+INHERIT: false
+REPLICATION: false
+BYPASSRLS: false
+password: present
+```
+
+`CONNECTION LIMIT 4` matches the Core pool maximum and is the smallest justified production limit for the current runtime.
+
+The Core reached `/readyz = 200` only after PostgreSQL confirmed `current_user = wandora_core_runtime` and an unscoped pooled connection.
+
+A live same-connection reuse proof returned:
+
+```text
+current_user=wandora_core_runtime
+scope_before=""
+scope_during="11111111-1111-1111-1111-111111111111"
+scope_after_reuse=""
+CORE_RUNTIME_POOLED_SCOPE_RESET_OK
+```
+
+PR #27 added the activated-state verifier while intentionally preserving the original migration-disabled verifier. Final live proof returned:
+
+```text
+ANA_LIVE_POSTVERIFY_V1_OK
+CORE_RUNTIME_ACTIVATED_V1_LIVE_OK
+CORE_DATABASE_ACTIVATION_CANONICAL_VERIFIERS_OK
+CORE_DATABASE_ACTIVATION_OPERATIONAL_POSTVERIFY_OK
+```
+
+Operational details are recorded in `docs/infra/core-runtime-database-activation-v1.md`.
 
 ## Consequences
 
-Core now has a live database defense-in-depth boundary instead of relying only on application filters. A leaked future Core credential will be materially less powerful than a Supabase administrative/service credential.
+Core now has a live database defense-in-depth boundary and an active production credential that is materially less powerful than Supabase administrative/service credentials.
 
-The existence of the role is **not** authorization to generate a password early. Production credential generation, secret storage, network attachment and enabling a non-zero connection limit remain one reviewed runtime-deployment step. PostgreSQL stays non-public. No model-provider credential was introduced by this decision or deployment.
+Credential activation did not publish PostgreSQL, expose a Core hostname or authorize customer traffic. The password remains outside Git/chat and is consumed only through the reviewed secret-file path.
+
+The role's activated state is now deliberate. If the runtime must be disabled, rollback is Core standby plus `PASSWORD NULL` and `CONNECTION LIMIT 0`; do not weaken RLS or substitute a broader database role.
 
 ## Next step
 
-Package/deploy the Wandora Core runtime behind a private/operator-controlled service boundary and define its secret-injection path. Only then generate the Core database credential outside Git/chat, activate a minimal connection limit, prove the runtime can connect only through the accepted least-privilege role, and proceed with supervised Messaging Gateway → Core wiring.
+With the least-privilege database path live and verified, proceed to **Messaging Gateway → Wandora Core supervised wiring**. Keep the provider boundary normalized, use deterministic/fake Agent Runtime behavior where possible, and do not introduce a real model-provider credential until the first model-backed proposal is materially required.
