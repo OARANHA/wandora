@@ -22,6 +22,7 @@ type FetchLike = typeof fetch;
 
 type CachedJwks = {
   expiresAt: number;
+  refreshedAt: number;
   keys: Map<string, KeyObject>;
 };
 
@@ -32,6 +33,7 @@ export type Es256JwksVerifierOptions = {
   fetchImpl?: FetchLike;
   now?: () => number;
   cacheTtlMs?: number;
+  minRefreshIntervalMs?: number;
   requestTimeoutMs?: number;
   clockSkewSeconds?: number;
 };
@@ -62,6 +64,7 @@ export class Es256JwksHumanTokenVerifier implements HumanTokenVerifier {
   private readonly fetchImpl: FetchLike;
   private readonly now: () => number;
   private readonly cacheTtlMs: number;
+  private readonly minRefreshIntervalMs: number;
   private readonly requestTimeoutMs: number;
   private readonly clockSkewSeconds: number;
   private cached?: CachedJwks;
@@ -77,13 +80,17 @@ export class Es256JwksHumanTokenVerifier implements HumanTokenVerifier {
     this.fetchImpl = options.fetchImpl ?? fetch;
     this.now = options.now ?? Date.now;
     this.cacheTtlMs = options.cacheTtlMs ?? 300_000;
+    this.minRefreshIntervalMs = options.minRefreshIntervalMs ?? 30_000;
     this.requestTimeoutMs = options.requestTimeoutMs ?? 3_000;
     this.clockSkewSeconds = options.clockSkewSeconds ?? 30;
   }
 
   private async loadJwks(force = false): Promise<Map<string, KeyObject>> {
     const now = this.now();
-    if (!force && this.cached && this.cached.expiresAt > now) return this.cached.keys;
+    if (this.cached) {
+      if (!force && this.cached.expiresAt > now) return this.cached.keys;
+      if (force && now - this.cached.refreshedAt < this.minRefreshIntervalMs) return this.cached.keys;
+    }
 
     let response: Response;
     try {
@@ -131,7 +138,11 @@ export class Es256JwksHumanTokenVerifier implements HumanTokenVerifier {
       throw new HumanAuthError('jwks-unavailable', 'Human Auth JWKS has no supported ES256 keys.');
     }
 
-    this.cached = { keys, expiresAt: now + this.cacheTtlMs };
+    this.cached = {
+      keys,
+      refreshedAt: now,
+      expiresAt: now + this.cacheTtlMs,
+    };
     return keys;
   }
 
@@ -152,6 +163,9 @@ export class Es256JwksHumanTokenVerifier implements HumanTokenVerifier {
     }
     if ('typ' in header && header.typ !== 'JWT') {
       throw new HumanAuthError('invalid-token', 'JWT type is invalid.');
+    }
+    if ('crit' in header) {
+      throw new HumanAuthError('invalid-token', 'JWT critical extensions are not supported.');
     }
 
     const subject = payload.sub;
