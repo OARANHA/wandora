@@ -52,38 +52,53 @@ async function resetFixture(): Promise<void> {
     [ORG_A, ORG_B],
   );
   await fixturePool.query(
-    `INSERT INTO wandora.users (id, display_name) VALUES ($1, 'Gestor A');
-     INSERT INTO wandora.user_identities (user_id, provider, provider_subject)
-       VALUES ($1, 'supabase', $2);
-     INSERT INTO wandora.memberships (organization_id, user_id, role, status)
-       VALUES ($3, $1, 'owner', 'active')`,
-    [USER, SUBJECT, ORG_A],
+    `INSERT INTO wandora.users (id, display_name) VALUES ($1, 'Gestor A')`,
+    [USER],
+  );
+  await fixturePool.query(
+    `INSERT INTO wandora.user_identities (user_id, provider, provider_subject)
+     VALUES ($1, 'supabase', $2)`,
+    [USER, SUBJECT],
+  );
+  await fixturePool.query(
+    `INSERT INTO wandora.memberships (organization_id, user_id, role, status)
+     VALUES ($1, $2, 'owner', 'active')`,
+    [ORG_A, USER],
   );
   await fixturePool.query(
     `INSERT INTO wandora.messaging_connections (id, organization_id, channel, label)
-     VALUES ($1, $3, 'whatsapp', 'WhatsApp A'), ($2, $4, 'whatsapp', 'WhatsApp B');
-     INSERT INTO wandora.digital_employees (id, organization_id, display_name, role, autonomy_mode)
-     VALUES ($5, $3, 'Ana A', 'commercial-assistant', 'supervised'),
-            ($6, $4, 'Ana B', 'commercial-assistant', 'supervised')`,
-    [CONN_A, CONN_B, ORG_A, ORG_B, EMP_A, EMP_B],
+     VALUES ($1, $3, 'whatsapp', 'WhatsApp A'), ($2, $4, 'whatsapp', 'WhatsApp B')`,
+    [CONN_A, CONN_B, ORG_A, ORG_B],
+  );
+  await fixturePool.query(
+    `INSERT INTO wandora.digital_employees (id, organization_id, display_name, role, autonomy_mode)
+     VALUES ($1, $3, 'Ana A', 'commercial-assistant', 'supervised'),
+            ($2, $4, 'Ana B', 'commercial-assistant', 'supervised')`,
+    [EMP_A, EMP_B, ORG_A, ORG_B],
   );
   await fixturePool.query(
     `INSERT INTO wandora.contacts (id, organization_id, channel, channel_address, display_name)
      VALUES ($1, $3, 'whatsapp', '+5551999990001', 'Cliente A'),
-            ($2, $4, 'whatsapp', '+5551999990002', 'Cliente B');
-     INSERT INTO wandora.conversations (id, organization_id, messaging_connection_id, contact_id)
-     VALUES ($5, $3, $7, $1), ($6, $4, $8, $2)`,
-    [CONTACT_A, CONTACT_B, ORG_A, ORG_B, CONV_A, CONV_B, CONN_A, CONN_B],
+            ($2, $4, 'whatsapp', '+5551999990002', 'Cliente B')`,
+    [CONTACT_A, CONTACT_B, ORG_A, ORG_B],
+  );
+  await fixturePool.query(
+    `INSERT INTO wandora.conversations (id, organization_id, messaging_connection_id, contact_id)
+     VALUES ($1, $3, $5, $7), ($2, $4, $6, $8)`,
+    [CONV_A, CONV_B, ORG_A, ORG_B, CONN_A, CONN_B, CONTACT_A, CONTACT_B],
   );
   await fixturePool.query(
     `INSERT INTO wandora.messages
        (organization_id, conversation_id, direction, body, source_event_id, occurred_at)
      VALUES ($1, $3, 'inbound', 'Preciso de ajuda com a empresa A', 'evt_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', $5),
-            ($2, $4, 'inbound', 'Segredo da empresa B', 'evt_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', $5);
-     INSERT INTO wandora.work_items (id, organization_id, employee_id, conversation_id, kind, status)
-     VALUES ($6, $1, $8, $3, 'qualify-new-contact', 'attention-required'),
-            ($7, $2, $9, $4, 'qualify-new-contact', 'attention-required')`,
-    [ORG_A, ORG_B, CONV_A, CONV_B, NOW, WORK_A, WORK_B, EMP_A, EMP_B],
+            ($2, $4, 'inbound', 'Segredo da empresa B', 'evt_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', $5)`,
+    [ORG_A, ORG_B, CONV_A, CONV_B, NOW],
+  );
+  await fixturePool.query(
+    `INSERT INTO wandora.work_items (id, organization_id, employee_id, conversation_id, kind, status)
+     VALUES ($1, $3, $5, $7, 'qualify-new-contact', 'attention-required'),
+            ($2, $4, $6, $8, 'qualify-new-contact', 'attention-required')`,
+    [WORK_A, WORK_B, ORG_A, ORG_B, EMP_A, EMP_B, CONV_A, CONV_B],
   );
   await fixturePool.query(
     `INSERT INTO wandora.work_proposals
@@ -141,9 +156,12 @@ test('cross-tenant, suspended membership and suspended organization all fail clo
   await assertScopeReset();
 
   await fixturePool.query(
-    `UPDATE wandora.memberships SET status = 'active' WHERE organization_id = $1 AND user_id = $2;
-     UPDATE wandora.organizations SET status = 'suspended' WHERE id = $1`,
+    `UPDATE wandora.memberships SET status = 'active' WHERE organization_id = $1 AND user_id = $2`,
     [ORG_A, USER],
+  );
+  await fixturePool.query(
+    `UPDATE wandora.organizations SET status = 'suspended' WHERE id = $1`,
+    [ORG_A],
   );
   await assert.rejects(
     service.listAttentionRequired('Bearer valid', ORG_A),
