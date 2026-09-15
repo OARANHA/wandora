@@ -7,6 +7,7 @@ services:
       - no-new-privileges:true
     networks:
       - wandora-edge
+      - wandora-core
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
       interval: 30s
@@ -16,4 +17,6 @@ services:
 
 networks:
   wandora-edge:
+    external: true
+  wandora-core:
     external: true
