@@ -88,7 +88,7 @@ export function createRuntimeServer(deps: RuntimeServerDeps): Server {
       return;
     }
 
-    if (url.pathname.startsWith('/api/v1/organizations/')) {
+    if (url.pathname === '/api/v1/me' || url.pathname.startsWith('/api/v1/organizations/')) {
       if (!deps.handleHumanSupervision) {
         writeJson(response, 404, { error: 'not-found' });
         return;
