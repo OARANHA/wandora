@@ -53,7 +53,7 @@ Wandora Core owns product semantics and business authorization:
 - plans, usage and billing boundaries;
 - provider-neutral adapter contracts.
 
-`apps/core` is the first promoted durable Core package. ADR 0009 accepts Ana's first durable vertical slice. The corresponding Core multitenant/auth and Ana V1 PostgreSQL migrations are applied to the live Wandora Supabase database. ADR 0010 establishes the live least-privilege `wandora_core_runtime` PostgreSQL boundary. ADR 0011 establishes the private deployable Core runtime, now live in `standby` on the `wandora-core` network with no host-published port, no database credential and readiness intentionally closed. Live Gateway/Runtime traffic remains a separate supervised step.
+`apps/core` is the first promoted durable Core package. ADR 0009 accepts Ana's first durable vertical slice. ADR 0010 establishes the least-privilege `wandora_core_runtime` PostgreSQL boundary. ADR 0011 establishes the private deployable Core runtime. That runtime is now live in **database mode**, privately connected to canonical PostgreSQL through `wandora-data`, with `/readyz = 200` and no published host port. Live customer/Gateway traffic remains a separate supervised step.
 
 ### Identity and tenancy
 
@@ -82,23 +82,38 @@ ADR 0010 defines the PostgreSQL identity used by deployed Core code:
 - generic `PUBLIC` access to the `net` schema is removed while explicit Supabase service grants are preserved;
 - browser/member policies target `authenticated`, while Core policies target only `wandora_core_runtime`.
 
-Migration `20260914_003_core_runtime_role_v1.sql` was rehearsed against a freshly restored live snapshot and applied to production on 2026-09-14. The live verifier returned `CORE_RUNTIME_ROLE_V1_LIVE_OK`. The role still has no password and connection limit zero; credential activation is not part of the schema migration.
+Migration `20260914_003_core_runtime_role_v1.sql` still creates the role credential-disabled (`CONNECTION LIMIT 0`, no password). The original live verifier deliberately proves that migration-state invariant.
+
+The later reviewed operator activation uses a dedicated secret-file credential and exactly `CONNECTION LIMIT 4`, matching the current Core pool maximum. The separate `VERIFY_20260914_CORE_RUNTIME_ACTIVATED_V1_LIVE.sql` proves the active state without relaxing the original verifier.
+
+A live same-connection pool proof confirmed transaction-local tenant scope resets after commit/reuse:
+
+```text
+current_user=wandora_core_runtime
+scope_before=""
+scope_during="11111111-1111-1111-1111-111111111111"
+scope_after_reuse=""
+```
 
 ### Core private runtime boundary
 
-ADR 0011 packages the Core as a private Node 22 service. The base deployment attaches only to `wandora-core`, runs as non-root with a read-only root filesystem, drops Linux capabilities, enables `no-new-privileges`, publishes no host port and requires no production secret in `standby`.
+ADR 0011 packages the Core as a private Node 22 service. The runtime runs as non-root with a read-only root filesystem, drops Linux capabilities, enables `no-new-privileges` and publishes no host port.
 
-`/healthz` measures process health while `/readyz` measures permission to perform business work. The live standby currently returns health 200 and readiness 503 (`reason=standby`). This separation is intentional: a healthy process is not automatically authorized for customer traffic.
+`/healthz` measures process health while `/readyz` measures permission to perform business work. Standby remains a supported fail-closed mode (`health 200`, `ready 503`). The current live mode is `database`, with both health and readiness returning 200.
 
-Database activation is a separate overlay. It will attach Core to the internal `wandora-data` network and mount the `wandora_core_runtime` password from an operator-controlled file secret. The source-of-truth Supabase override defines the future private `wandora-postgres` alias, but that live network mutation has not been applied yet.
+Core attaches to `wandora-core` for the future application-side Messaging Gateway path and to internal `wandora-data` for PostgreSQL. Supabase DB retains its normal internal network and additionally exposes only private alias `wandora-postgres` on `wandora-data`.
 
-Security gate #22 is cleared. The affected shared Supabase HS256/JWT compatibility material and shared PostgreSQL password were rotated on 2026-09-14 with backup/recovery checkpoints, old-credential invalidation, full service-health verification and rerun of the production-safe Wandora verifiers. The existing EC/ES256 signing identity and unrelated modern/independent secrets were preserved. Clearing the gate removes a prerequisite only; Core still has no database password and remains in standby.
+The dedicated Core password is mounted from an operator-controlled file, not an environment variable. The secret remains non-world-readable (`0640`) and the non-root Core process receives only the explicit operator-group GID required to read that file.
+
+The first live database-overlay attempt failed closed because the non-root process could not read a host-owned `0600` bind-mounted secret. Core was immediately returned to standby and the role credential disabled. PR #26 converted this finding into a versioned/tested `group_add` contract and CI database-mode smoke before the successful second activation.
+
+Security gate #22 was completed before activation. The affected shared Supabase credentials were rotated with backup/recovery proof and old-credential invalidation; none of those shared credentials is used as the Core credential.
 
 ## Canonical business state
 
 Supabase self-hosted provides the selected PostgreSQL/Auth/data foundation. Supabase is infrastructure, not the Wandora backend.
 
-The live database now contains durable state for the first Ana workflow:
+The live database contains durable state for the first Ana workflow:
 
 - digital employees;
 - contacts;
@@ -144,7 +159,7 @@ Discount, special price, delivery deadline, payment terms and contractual commit
 
 Outbound delivery is conservative: an attempt moves through `planned` → `sending` → `succeeded` or `uncertain`. If delivery may have occurred but cannot be proven, Core records `delivery-uncertain`, marks work `attention-required`, and does not automatically resend the same idempotency key.
 
-The live database foundation was applied on 2026-09-14 using exact reviewed migration blobs after fresh logical backups and successful migration rehearsals on restored copies of the live database. The Ana foundation verifier returned `ANA_LIVE_POSTVERIFY_V1_OK`; the later Core runtime-role verifier returned `CORE_RUNTIME_ROLE_V1_LIVE_OK`. Existing Supabase services remained healthy and no synthetic customer rows were introduced.
+The live database foundation was applied on 2026-09-14 using exact reviewed migration blobs after fresh logical backups and successful migration rehearsals on restored copies of the live database. No synthetic customer rows were introduced.
 
 ## Agent Runtime
 
@@ -160,7 +175,7 @@ Long-horizon employee memory remains separate from canonical truth. Mastra Memor
 
 Evolution API 2.3.7 is the accepted initial WhatsApp provider behind Wandora's `Messaging Gateway` (ADR 0006). Real inbound and outbound handset traffic has already been proven while keeping instance names, JIDs, API keys and provider message IDs behind the adapter.
 
-The earlier gateway spike established normalized inbound events and conservative outbound idempotency. ADR 0009 now promotes durable event receipts/outbound-attempt semantics into live Core/PostgreSQL state. Real Gateway-to-Core wiring is still pending and must remain provider-neutral.
+The earlier gateway spike established normalized inbound events and conservative outbound idempotency. ADR 0009 promotes durable event receipts/outbound-attempt semantics into live Core/PostgreSQL state. The next slice is the real **Gateway → Core supervised** connection; it must remain provider-neutral.
 
 No digital employee calls Evolution directly.
 
@@ -183,33 +198,34 @@ Customer/public contracts may include `wandora.com.br`, `app.wandora.com.br`, `a
 
 Operator surfaces include `studio.wandora.com.br`, `portainer.wandora.com.br` and `manager.wandora.com.br`; these require stronger access controls. Additional operator tools may receive protected HTTPS hostnames when useful.
 
-PostgreSQL, Redis, Docker socket, Paperclip internals, Mastra internals and provider management ports remain private.
+PostgreSQL, Redis, Docker socket, Paperclip internals, Mastra internals, Core runtime ports and provider management ports remain private.
 
-The gate #22 rotation preserved this boundary: PostgreSQL retained zero directly published ports; Supavisor remained localhost-only; public Supabase root remained the intentional 404 and unauthenticated Studio remained 401.
+After Core DB activation, PostgreSQL still has zero directly published ports; Supavisor remains localhost-only; Core publishes no host port; public Supabase root remains the intentional 404 and unauthenticated Studio remains 401.
 
 ## Migration and source-of-truth discipline
 
 Versioned Wandora database migrations live under `infra/stacks/supabase/migrations/`; falsifiable verifiers live under `infra/stacks/supabase/verifiers/`. Spike SQL is never applied directly to the live database.
 
-The Core multitenant/auth and Ana durable migrations were validated together on disposable `supabase/postgres:17.6.1.136`, rehearsed against a restored logical snapshot of the live database, then applied to the live Wandora Supabase database on 2026-09-14. Migration `003` for the least-privilege Core runtime role followed the same pattern: exact Git blob, fresh validated backup, restored-live-snapshot rehearsal, read-only live verifier and post-deployment health/smoke. The role remains credential-disabled after schema application.
+The Core multitenant/auth and Ana durable migrations were validated on disposable PostgreSQL, rehearsed against restored logical snapshots and then applied live. Migration `003` followed the same pattern and intentionally left its role credential-disabled after schema application.
 
-Security gate #22 used the same recovery discipline: fresh logical backups, protected `.env` snapshots, a second post-JWT/pre-database checkpoint, controlled service recreation and explicit revocation proofs. Operational details live in `docs/infra/supabase-credential-rotation-gate22.md`.
+Security gate #22 used fresh logical backups, protected `.env` snapshots, controlled service recreation and explicit credential-revocation proofs. Core database activation then used a separate source-of-truth network/secret path and separate activated-state verifier. Operational details live in:
+
+- `docs/infra/supabase-credential-rotation-gate22.md`;
+- `docs/infra/core-runtime-role-v1.md`;
+- `docs/infra/core-runtime-database-activation-v1.md`.
 
 The mutation-heavy behavioral verifier remains disposable-only and must never run on the live database. Persistent data must remain backup/restore-testable and movable to another VPS.
 
 ## Near-term execution sequence
 
 1. keep canonical documentation synchronized;
-2. apply the reviewed `wandora-data` attachment for the live Supabase database without exposing PostgreSQL publicly;
-3. generate the Core database password outside Git/chat, place it only in the operator-controlled secret file, activate the smallest justified non-zero connection limit and start the database overlay;
-4. prove deployed Core `/readyz = 200` only as `wandora_core_runtime` and prove transaction-local tenant scoping survives pooled connection reuse;
-5. wire the validated Messaging Gateway inbound boundary to Core in supervised mode;
-6. wire the accepted Mastra Agent Runtime Adapter using a deterministic/fake model path first where possible;
-7. expose tenant-authorized Core reads/actions to Wandora Web so customer screens use canonical state;
-8. perform a supervised real-path proof before any autonomous customer traffic;
-9. only when the first real model call is required, revoke the previously Git-exposed Mistral token and configure a fresh replacement outside Git/chat;
-10. wire real customer authentication/onboarding around the proven path;
-11. add social login and broader integrations only when a validated customer workflow requires them.
+2. wire the validated Messaging Gateway inbound boundary to Core in supervised mode, preserving normalized provider-neutral events and durable receipt/idempotency behavior;
+3. wire the accepted Mastra Agent Runtime Adapter using a deterministic/fake model path first where possible;
+4. expose tenant-authorized Core reads/actions to Wandora Web so customer screens use canonical state;
+5. perform a supervised real-path proof before any autonomous customer traffic;
+6. only when the first real model call is required, revoke the previously Git-exposed Mistral token and configure a fresh replacement outside Git/chat;
+7. wire real customer authentication/onboarding around the proven path;
+8. add social login and broader integrations only when a validated customer workflow requires them.
 
 ## Non-goals for the current phase
 
