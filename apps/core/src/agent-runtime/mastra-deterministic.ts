@@ -1,10 +1,8 @@
-import { Mastra } from '@mastra/core/mastra';
-import { createTool } from '@mastra/core/tools';
-import { createStep, createWorkflow } from '@mastra/core/workflows';
 import { z } from 'zod';
 import type { AgentRuntime, EmployeeProposal, PlannerInput } from '../ana/contracts.js';
 
 // Wandora does not allow framework telemetry from the customer-processing runtime.
+// This must execute before any Mastra module is loaded.
 process.env.MASTRA_TELEMETRY_DISABLED = 'true';
 
 const deterministicInputSchema = z.object({
@@ -18,32 +16,43 @@ const deterministicProposalSchema = z.object({
   rationale: z.string().trim().min(1).max(4000),
 });
 
-const deterministicProposalTool = createTool({
-  id: 'ana-deterministic-supervised-proposal',
-  description: 'Create a deterministic supervised qualification proposal without external model calls.',
-  inputSchema: deterministicInputSchema,
-  outputSchema: deterministicProposalSchema,
-  execute: async () => ({
-    kind: 'send-text' as const,
-    text: 'Olá! Obrigado pelo contato. Para eu entender melhor e te orientar, você pode me contar o que precisa?',
-    commitment: 'none' as const,
-    rationale: 'Proposta determinística de qualificação inicial, sem compromisso comercial.',
-  }),
-});
+async function createMastraRuntime() {
+  const [{ Mastra }, { createTool }, { createStep, createWorkflow }] = await Promise.all([
+    import('@mastra/core/mastra'),
+    import('@mastra/core/tools'),
+    import('@mastra/core/workflows'),
+  ]);
 
-const deterministicProposalWorkflow = createWorkflow({
-  id: 'ana-deterministic-supervised-proposal-v1',
-  inputSchema: deterministicInputSchema,
-  outputSchema: deterministicProposalSchema,
-})
-  .then(createStep(deterministicProposalTool))
-  .commit();
+  const deterministicProposalTool = createTool({
+    id: 'ana-deterministic-supervised-proposal',
+    description: 'Create a deterministic supervised qualification proposal without external model calls.',
+    inputSchema: deterministicInputSchema,
+    outputSchema: deterministicProposalSchema,
+    execute: async () => ({
+      kind: 'send-text' as const,
+      text: 'Olá! Obrigado pelo contato. Para eu entender melhor e te orientar, você pode me contar o que precisa?',
+      commitment: 'none' as const,
+      rationale: 'Proposta determinística de qualificação inicial, sem compromisso comercial.',
+    }),
+  });
 
-const mastra = new Mastra({
-  workflows: {
-    anaDeterministicSupervisedProposal: deterministicProposalWorkflow,
-  },
-});
+  const deterministicProposalWorkflow = createWorkflow({
+    id: 'ana-deterministic-supervised-proposal-v1',
+    inputSchema: deterministicInputSchema,
+    outputSchema: deterministicProposalSchema,
+  })
+    .then(createStep(deterministicProposalTool))
+    .commit();
+
+  return new Mastra({
+    workflows: {
+      anaDeterministicSupervisedProposal: deterministicProposalWorkflow,
+    },
+  });
+}
+
+let mastraPromise: ReturnType<typeof createMastraRuntime> | undefined;
+const getMastra = () => (mastraPromise ??= createMastraRuntime());
 
 export class MastraDeterministicAgentRuntime implements AgentRuntime {
   async proposeCommercialReply(input: PlannerInput): Promise<EmployeeProposal> {
@@ -51,6 +60,7 @@ export class MastraDeterministicAgentRuntime implements AgentRuntime {
       throw new Error('Deterministic Ana runtime requires a supervised commercial-assistant employee.');
     }
 
+    const mastra = await getMastra();
     const workflow = mastra.getWorkflow('anaDeterministicSupervisedProposal');
     const run = await workflow.createRun();
     const result = await run.start({
