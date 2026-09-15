@@ -21,153 +21,165 @@ Customer Wandora Web             Wandora Platform Admin
                     +--> Agent Runtime Adapter -> Mastra
                     +--> Tool Gateway -> authenticated integrations
                     +--> Messaging Gateway -> Evolution / Meta / other providers
-                    +--> Model Provider Gateway -> Mistral / Chutes / OpenAI / others
+                    +--> Model Provider Gateway -> Mistral / Chutes / others
                     +--> Approval / Policy boundary
 ```
 
-Wandora is not a CRM-with-AI and not a generic agent builder. Messaging, CRM, scheduling, finance and other systems are tools/business surfaces used by employees inside a Wandora-governed organization.
-
-Every material product or architecture choice is checked from two perspectives before execution: paying business customer and Wandora owner/operator. Operational discipline is **decision → second review → execution**.
+Wandora is not a CRM-with-AI and not a generic agent builder. Every material product/architecture decision follows **decision → second review → execution** and must work both for the paying business customer and for the Wandora owner/operator.
 
 ## Wandora Web
 
-The customer application is React 19 + Vite with TanStack Router and TanStack Query. Tailwind CSS and Wandora-owned visual patterns provide the design layer; TanStack supplies application behavior rather than visual identity.
-
-Current customer navigation is `Início`, `Equipe`, `Trabalho`, `Conversas`, `Aprovações` and `Empresa`.
-
-`Empresa` is the organization-administration center: company data, people, knowledge, tools/connections and plan/billing. Personal preferences, notifications, security and session actions belong to the current-user menu.
+The customer application is React 19 + Vite with TanStack Router/Query. Current navigation is `Início`, `Equipe`, `Trabalho`, `Conversas`, `Aprovações` and `Empresa`.
 
 The browser never calls Paperclip, Mastra, Evolution, model providers or privileged database/admin capabilities directly.
 
-The current public shell is still preview/product-contract data. The next integration boundary is to expose tenant-authorized Core supervision/review state so a human can see and act on a digital employee proposal without exposing private implementation storage.
+The current public shell still uses preview/mock data. The next integration boundary is a tenant-authorized Core supervision read model. The first real-data target is `Trabalho`, then `Conversas`.
+
+### Web → Core network direction
+
+Core remains private. Do not create a generic public Core hostname merely to support the Web.
+
+The reviewed direction for the first human API is:
+
+```text
+Browser
+  -> https://app.wandora.com.br/api/v1/...
+  -> Wandora Web Nginx
+  -> private wandora-core network
+  -> Wandora Core
+```
+
+The Web container may join both `wandora-edge` and `wandora-core` so its Nginx can proxy only explicitly reviewed human API routes. A generic proxy must not expose internal Core routes such as `/internal/v1/gateway/inbound`.
+
+Same-origin routing avoids unnecessary browser CORS policy while preserving the Core service as private infrastructure.
 
 ## Wandora Platform Admin
 
-ADR 0015 defines a first-party **Wandora Platform Admin** as the owner/operator control plane for normal SaaS administration.
+ADR 0015 defines Wandora Platform Admin as the first-party owner/operator control plane. Customer administration and platform administration are separate trust planes.
 
-It is separate from tenant-scoped customer administration. A customer organization `owner` or `admin` does not become a Wandora platform administrator.
-
-Platform Admin is intended to progressively centralize Wandora-owned views/actions for:
-
-- organizations/tenants and lifecycle;
-- human users, memberships and access state;
-- digital employees, responsibilities, autonomy and status;
-- prompt/instruction versions once those have a canonical Wandora contract;
-- workflows and tools/capabilities;
-- model/provider selection, usage and cost visibility;
-- messaging connections and provider-neutral health;
-- work, conversations, supervision and approvals;
-- traces/execution diagnostics through Wandora-owned observability contracts;
-- plans, limits, billing-support state and usage;
-- audit/security events;
-- service health and incidents;
-- controlled enable/disable/suspend/recovery actions.
-
-This target is implemented incrementally. It is not permission to surface raw provider schemas or to build a generic infrastructure dashboard ahead of proven product needs.
-
-Mastra Studio, Paperclip UI, Evolution Manager, Supabase Studio and Portainer remain protected engineering/diagnostic/emergency surfaces. They may be extremely useful to Wandora operators, but they are not the required daily workflow and are never a customer dependency.
-
-The operator should normally think in Wandora vocabulary — company, employee, responsibility, autonomy, work, conversation, approval, connection, model, cost, health and incident — rather than provider instance IDs, Mastra runtime objects, database internals or container names.
+Mastra Studio, Paperclip UI, Evolution Manager, Supabase Studio and Portainer remain protected engineering/diagnostic/emergency surfaces. They do not become the daily product operating model and are never required by customers.
 
 ## Wandora Core/API
 
-Wandora Core owns product semantics and business authorization:
+Core owns product semantics and business authorization:
 
-- organization/tenant identity;
-- canonical human users, memberships and roles;
-- digital-employee identity, assignment, status and autonomy;
+- organizations/tenants;
+- canonical human users, external identity mapping, memberships and roles;
+- digital employees and autonomy;
 - contacts, conversations, messages and work;
-- human approvals and policy decisions;
-- canonical audit events;
-- plans, usage and billing boundaries;
+- canonical supervised proposals;
+- approvals and policy decisions;
+- audit-facing events;
 - provider-neutral adapter contracts.
 
-`apps/core` is the promoted durable Core package. ADR 0009 defines Ana's durable vertical slice, ADR 0010 the least-privilege database identity, ADR 0011 the private deployable runtime, ADR 0012 the authenticated supervised Gateway ingress and ADR 0014 the Mastra deterministic supervised proposal path. ADR 0015 defines the first-party operator control-plane direction around those boundaries.
+Accepted boundaries include ADR 0007 identity/tenancy, ADR 0009 durable Ana state, ADR 0010 least-privilege DB identity, ADR 0011 private runtime, ADR 0012 authenticated Gateway ingress, ADR 0014 Mastra deterministic runtime, ADR 0015 Platform Admin direction and ADR 0016 canonical supervised proposals.
 
-### Identity and tenancy
+## Identity and human-session direction
 
-ADR 0007 freezes the initial identity boundary:
+Supabase Auth issues human sessions. Its JWT `sub` is external identity data, not a Wandora business user ID.
 
-- `organization.id` is the company/tenant identity;
-- `user.id` is the canonical human identity;
-- `user_identity` maps external auth subjects to Wandora users;
-- `membership` binds a user to an organization;
-- initial roles are `owner`, `admin`, `member`;
-- `messaging_connection.id` is provider-neutral and belongs to exactly one organization;
-- provider bindings live in a private schema.
+Live Auth currently publishes an EC/ES256 key through its JWKS endpoint with:
 
-Supabase Auth handles identity/session issuance. Its JWT `sub` is not a Wandora business ID. Core policy remains authoritative for sensitive/domain actions; role alone is not a universal capability matrix.
+```text
+issuer: https://supabase.wandora.com.br/auth/v1
+audience: authenticated
+```
 
-### Core database runtime boundary
+Therefore human Core APIs should validate Bearer access tokens using public JWKS + issuer/audience checks. Do **not** give Core `service_role` or the shared JWT signing secret solely to validate sessions.
 
-ADR 0010 defines the PostgreSQL identity used by deployed Core code:
+After cryptographic validation:
 
-- `wandora_core_runtime` has no `BYPASSRLS`, role/database administration or provider-binding access;
-- each Core transaction sets `wandora.organization_id` transaction-locally before tenant-owned queries;
-- RLS independently enforces organization isolation and pooled connections return unscoped after commit/rollback;
-- foundation configuration tables are read-only to Core;
-- mutable workflow tables expose only the table/column privileges required by current services;
-- canonical audit writes use tenant-checked `wandora.append_core_audit(...)`;
-- browser/member policies target `authenticated`, while Core policies target only `wandora_core_runtime`.
+1. JWT `sub` resolves to canonical Wandora `user.id` through a narrow Core identity boundary;
+2. a browser-supplied organization ID is treated only as a selector;
+3. Core opens that organization scope under `wandora_core_runtime`;
+4. active organization + active membership for the resolved user are required;
+5. only then may the tenant read proceed.
 
-Migration `20260914_003_core_runtime_role_v1.sql` creates the role credential-disabled. The reviewed live operator activation supplies a dedicated secret-file credential and exactly `CONNECTION LIMIT 4`, matching the Core pool maximum.
+Invalid tokens, unknown identities, cross-tenant access, suspended membership and suspended organizations must fail closed.
 
-A same-physical-connection live proof confirmed tenant scope resets after commit/reuse.
+## Core database runtime boundary
 
-### Core private runtime boundary
+`wandora_core_runtime` remains the deployed Core PostgreSQL identity:
 
-ADR 0011 packages Core as a private Node 22 service. The runtime:
+- no `BYPASSRLS`;
+- no role/database administration;
+- no provider-binding access;
+- connection limit 4;
+- secrets only through operator-controlled mounted files;
+- each organization-scoped transaction sets `wandora.organization_id` transaction-locally;
+- RLS independently enforces tenant isolation;
+- pooled connections must return unscoped after commit/rollback.
 
-- runs as non-root `node`;
-- uses a read-only root filesystem;
-- drops all Linux capabilities;
-- enables `no-new-privileges`;
-- publishes no host port;
-- attaches to `wandora-core` and `wandora-data`;
-- reads secrets only from operator-controlled mounted files.
+Do not replace this role with a broader Supabase role to simplify human API implementation.
 
-`/healthz` measures process health while `/readyz` measures permission to perform business work.
+## Core private runtime
 
 Current live Core:
 
 ```text
 container: wandora-core
-image: wandora/core:mastra-deterministic-bd40a438
+image: wandora/core:canonical-proposal-79b5b082
 mode: database
 agent runtime: mastra-deterministic
 MASTRA_TELEMETRY_DISABLED: true
+user: node
+root filesystem: read-only
+capabilities: ALL dropped
+no-new-privileges: true
+networks: wandora-core + wandora-data
+published host ports: none
 healthz: 200
 readyz: 200
-published host ports: none
 ```
-
-Security gate #22 was completed before database activation. Shared Supabase/PostgreSQL credentials affected by the earlier exposure were rotated and old values are not used by Core.
 
 ## Canonical business state
 
 Supabase self-hosted provides PostgreSQL/Auth/data infrastructure. It is not the Wandora business backend.
 
-The live database contains durable state for the first Ana workflow:
+Live canonical state includes:
 
+- organizations, users, external identities and memberships;
+- provider-neutral messaging connections;
 - digital employees;
 - contacts;
 - conversations;
 - inbound/outbound messages;
 - qualification work items;
-- approvals;
-- canonical audit records;
-- private normalized-event receipts;
-- private outbound-attempt/idempotency state.
+- `work_proposals` for safe supervised employee proposals;
+- approvals for stronger commitments;
+- canonical audit records.
 
-Tenant relationships are protected with organization-scoped constraints and RLS. Browser clients have no direct grants to Ana's internal Core state.
+Private state includes provider bindings, normalized inbound receipts and outbound-attempt/idempotency state.
 
-Structured business truth — prices, payments, schedules, permissions, approvals and similar facts — belongs in canonical PostgreSQL state, never solely in agent memory/RAG.
+Browser clients do not read Core-owned workflow/proposal/private tables directly.
 
-An explicitly labeled internal Wandora laboratory tenant exists for controlled live proofs. It is test infrastructure, not customer data.
+## Canonical supervised proposal boundary
+
+ADR 0016 is live through migration `20260915_004_supervised_proposal_v1.sql` and Core image `wandora/core:canonical-proposal-79b5b082`.
+
+```text
+Inbound customer message
+      |
+      v
+work item -> Mastra deterministic proposal
+      |
+      v
+wandora.work_proposals
+      |
+      +--> commitment must be none
+      +--> exactly one per normalized inbound event
+      +--> Core SELECT + INSERT only
+      +--> authenticated direct DB access denied
+      |
+      v
+work = attention-required
+```
+
+Proposal insertion, `attention-required` transition and receipt completion are one DB transaction. Stronger commitments such as discount, special price, delivery deadline, payment terms or contractual promises remain on `wandora.approvals`.
+
+The private receipt continues to contain replay evidence, but it is no longer the product proposal model.
 
 ## Ana supervised inbound path
-
-Ana's current live responsibility remains narrow: receive a normalized inbound WhatsApp contact and keep one understandable qualification work item moving under human supervision.
 
 ```text
 Evolution webhook
@@ -175,66 +187,28 @@ Evolution webhook
       v
 Messaging Gateway
   -> verify provider JWT
-  -> reject wrong instance
-  -> ignore unsupported event types
-  -> normalize provider payload
+  -> normalize supported inbound text
       |
       v
-Wandora Core private ingress
+private Core ingress
   -> verify Gateway HMAC
-  -> validate tenant + messaging connection
-  -> persist contact/conversation/inbound message
-  -> create/reuse qualification work
+  -> validate tenant / connection / employee
+  -> persist contact / conversation / inbound message / work
       |
       v
 Mastra Agent Runtime Adapter
-  -> deterministic proposal
+  -> deterministic safe proposal
       |
       v
-private durable receipt result
-  -> supervision-required
+canonical work_proposals
   -> work attention-required
+  -> receipt completed / supervision-required
   -> no outbound side effect
 ```
 
-The production Gateway entry point is the supervised service, not the outbound-capable full `AnaInboundService`.
-
-Commercial commitments such as discount, special price, delivery deadline, payment terms and contractual commitments remain on the stronger human-approval boundary.
-
-## Agent Runtime
-
-Mastra is the accepted initial implementation behind the Wandora-owned `AgentRuntime` adapter (ADR 0005 and ADR 0014). Mastra workflow/run IDs and storage representations never become public product contracts.
-
-### Deterministic live mode
-
-The live mode is:
-
-`WANDORA_AGENT_RUNTIME_MODE=mastra-deterministic`
-
-It is valid only when Core runs in database mode and authenticated supervised Gateway ingress is enabled.
-
-The adapter forces `MASTRA_TELEMETRY_DISABLED=true` before dynamically importing Mastra modules. The production Compose overlay also sets the same value at process start.
-
-The workflow receives only normalized customer text. It does not receive organization ID, connection ID, customer phone, provider ID or database ID.
-
-The workflow returns only a Wandora-owned proposal:
-
-```text
-kind = send-text
-commitment = none
-text = deterministic supervised qualification text
-rationale = Wandora-owned explanation
-```
-
-The proposal is currently stored only inside the private durable inbound receipt result. That storage is internal evidence for the narrow proof and is **not** the final customer-facing proposal model.
-
-No model-provider credential is required by deterministic mode.
-
-A previously Git-exposed Mistral token is compromised and must never be reused. A fresh token is requested only when the first genuinely model-backed supervised proposal is materially required.
+Current live full-chain proof shows one canonical proposal after replay, zero approvals, zero outbound attempts, zero outbound messages, and no provider-private sentinel leakage.
 
 ## Messaging Gateway
-
-Evolution API 2.3.7 is the accepted initial WhatsApp provider behind Wandora's Messaging Gateway (ADRs 0006 and 0013).
 
 Current live Gateway:
 
@@ -250,100 +224,54 @@ published host ports: none
 healthz: 200
 ```
 
-Evolution → Gateway authentication uses per-instance JWT HS256. Gateway → Core authentication uses a distinct HMAC-SHA256 secret. The two credentials are independent.
+Evolution → Gateway uses per-instance JWT HS256. Gateway → Core uses a distinct Wandora HMAC-SHA256 secret.
 
-The normalized internal event contains only:
+Raw provider instance/API-key/server-url/provider message identifiers do not become public Core contracts.
 
-- deterministic Wandora event ID;
-- canonical messaging connection ID;
-- normalized sender address;
-- text;
-- occurred-at timestamp.
+## Human Supervision Read V1 — next
 
-Raw provider instance name, API key, server URL and raw provider message ID do not enter the Core contract.
+The first human read contract should expose only the business context required by `Trabalho`:
 
-Unsupported outbound echoes, group/status senders and non-text events are ignored for the current text-only V1 boundary.
+- work ID/kind/status/update time;
+- employee ID/display name;
+- contact/conversation business identity;
+- latest inbound customer text/time;
+- canonical proposal ID/kind/text/rationale/time.
 
-Real handset inbound behavior was proven before Mastra activation. A later controlled synthetic live proof also exercised the complete JWT → Gateway → HMAC → Core → Mastra → PostgreSQL chain.
+Do not expose receipt IDs/results, provider IDs, Mastra run/workflow IDs, provider payloads or database implementation details.
 
-## Supervised proposal side-effect boundary
+The first slice is read-only. Send, edit-send and dismiss are separate reviewed actions and must not be smuggled into a read endpoint.
 
-The live deterministic path must leave:
+## Model provider status
 
-```text
-work: attention-required
-receipt: completed / supervision-required
-proposal: present
-approvals: 0 for the event
-outbound attempts: 0 for the event
-outbound messages: 0 for the event
-```
+Deterministic Mastra mode requires no model credential. The previously Git-exposed Mistral token is compromised and must never be reused. Request a fresh token only when the first real model call is materially required. Chutes remains deferred.
 
-A completed duplicate returns the durable stored proposal. Replay equality is structural because PostgreSQL `jsonb` does not preserve object key order.
+## Operator/infrastructure boundary
 
-The current live path proves orchestration, tenancy, authentication and side-effect safety. It does not prove autonomous outbound messaging or language quality.
+Cloudflare is public edge and Traefik is VPS ingress. Git is infrastructure source of truth. PostgreSQL, Docker socket, Core internal ports, Paperclip/Mastra internals and provider management APIs remain private.
 
-## Approval and audit identity
-
-Audit-facing product events use Wandora-owned semantics:
-
-- canonical `organization_id`;
-- `actor_type` such as human, digital employee or system;
-- canonical Wandora `actor_id`;
-- normalized correlation IDs.
-
-Supabase Auth subjects, Evolution IDs and Mastra run IDs are implementation metadata, not audit actor identity.
-
-## Operator and infrastructure boundary
-
-Cloudflare is the public edge and Traefik is the VPS ingress/reverse proxy. Docker Engine/Compose remains the initial deployment substrate; Git remains infrastructure source of truth.
-
-Customer/public contracts may include `wandora.com.br`, `app.wandora.com.br`, `api.wandora.com.br`, `hooks.wandora.com.br` and `supabase.wandora.com.br` when justified.
-
-Protected native operator surfaces may include Mastra Studio, Paperclip UI, Supabase Studio, Evolution Manager and Portainer. These require stronger access controls and exist for engineering, diagnostics and emergency recovery. Their presence does not make them the Wandora operating model.
-
-PostgreSQL, Redis, Docker socket, Paperclip internals, Mastra internals, Core runtime ports and provider management ports remain private.
-
-PostgreSQL has zero directly published ports; Supavisor remains localhost-only; Core and Messaging Gateway publish no host ports.
-
-## Migration and source-of-truth discipline
-
-Versioned Wandora database migrations live under `infra/stacks/supabase/migrations/`; falsifiable verifiers live under `infra/stacks/supabase/verifiers/`. Spike SQL is never applied directly to the live database.
-
-Mutation-heavy behavioral verifiers remain disposable-only and must never run against live customer data.
-
-Secrets are never stored in Git. Any credential that enters Git history is considered compromised and must be rotated before use.
-
-Operational details include:
-
-- `docs/infra/supabase-credential-rotation-gate22.md`;
-- `docs/infra/core-runtime-role-v1.md`;
-- `docs/infra/core-runtime-database-activation-v1.md`;
-- `docs/infra/core-mastra-deterministic-live-activation-v1.md`.
+Versioned DB migrations live under `infra/stacks/supabase/migrations/`; live-safe verifiers live under `infra/stacks/supabase/verifiers/`. Mutation-heavy behavioral verifiers run only in disposable environments.
 
 ## Near-term execution sequence
 
 1. keep canonical documentation synchronized;
-2. define **Supervised Proposal Review V1** as a Wandora-owned customer-facing contract;
-3. expose tenant-authorized Core reads for attention-required work, conversation context and proposal data without exposing private receipt tables;
-4. design explicit human actions such as approve/send, edit then send, or dismiss before wiring outbound behavior;
-5. preserve the stronger approval path for commercial commitments;
-6. prove cross-tenant and inactive/disabled actor denial;
-7. connect the Web review experience to canonical Core APIs;
-8. add Platform Admin capabilities incrementally around stable Wandora-owned contracts, without delaying the first customer-visible employee loop;
-9. only after the human-review contract is proven, decide whether a first real model-backed supervised proposal is materially useful;
-10. request a fresh model credential only at that point;
-11. do not enable automatic outbound sends merely because deterministic Mastra is live.
+2. implement human Supabase JWT verification in Core using public ES256/JWKS;
+3. resolve canonical human identity without widening Core DB grants;
+4. expose a tenant-authorized read-only `attention-required` work/proposal projection;
+5. prove invalid token, unknown identity, cross-tenant, suspended-member and suspended-org denial;
+6. expose only the explicit human API path through the Web Nginx onto private `wandora-core`;
+7. replace `Trabalho` mocks with the proven read contract;
+8. connect `Conversas` next;
+9. separately define send/edit-send/dismiss and prove human-supervised outbound;
+10. add Platform Admin vertical slices around stable Wandora contracts;
+11. add a real model provider only when materially useful.
 
 ## Non-goals for the current phase
 
-- autonomous outbound customer messaging;
-- building the entire Platform Admin before the first employee workflow is customer-visible;
-- rebuilding every native provider console inside Wandora;
-- Kubernetes;
-- microservices for every domain;
-- generic prompt/workflow builder as the customer product;
-- bespoke vector database without demonstrated need;
-- one Supabase deployment per customer;
-- customer access to provider admin UIs;
-- marketplace before the first employee workflow is proven.
+- autonomous outbound messaging;
+- public generic Core hostname;
+- direct browser access to workflow/private DB state;
+- building the whole Platform Admin before the customer loop is visible;
+- generic customer prompt/workflow builder;
+- customer access to provider consoles;
+- requesting a model token before it is needed.
