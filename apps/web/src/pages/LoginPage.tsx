@@ -6,7 +6,7 @@ import { useAuth } from '../AuthProvider';
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const { status, signIn } = useAuth();
+  const { status, error: authError, signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -34,6 +34,8 @@ export function LoginPage() {
       setSubmitting(false);
     }
   }
+
+  const visibleError = formError ?? ((status === 'unlinked' || status === 'error') ? authError : null);
 
   return (
     <div className="min-h-screen bg-[#f5f7fb] px-5 py-8 sm:py-14">
@@ -67,14 +69,7 @@ export function LoginPage() {
                 <span className="mb-2 block text-sm font-semibold text-slate-700">E-mail</span>
                 <span className="flex h-12 items-center gap-3 rounded-xl border border-slate-200 bg-white px-3.5 focus-within:border-slate-400 focus-within:ring-4 focus-within:ring-slate-100">
                   <Mail className="size-[18px] text-slate-400" />
-                  <input
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    type="email"
-                    autoComplete="email"
-                    className="min-w-0 flex-1 border-0 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-300"
-                    placeholder="voce@empresa.com.br"
-                  />
+                  <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" autoComplete="email" className="min-w-0 flex-1 border-0 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-300" placeholder="voce@empresa.com.br" />
                 </span>
               </label>
 
@@ -82,26 +77,13 @@ export function LoginPage() {
                 <span className="mb-2 block text-sm font-semibold text-slate-700">Senha</span>
                 <span className="flex h-12 items-center gap-3 rounded-xl border border-slate-200 bg-white px-3.5 focus-within:border-slate-400 focus-within:ring-4 focus-within:ring-slate-100">
                   <LockKeyhole className="size-[18px] text-slate-400" />
-                  <input
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    type="password"
-                    autoComplete="current-password"
-                    className="min-w-0 flex-1 border-0 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-300"
-                    placeholder="Sua senha"
-                  />
+                  <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete="current-password" className="min-w-0 flex-1 border-0 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-300" placeholder="Sua senha" />
                 </span>
               </label>
 
-              {formError ? (
-                <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm leading-5 text-rose-700">{formError}</div>
-              ) : null}
+              {visibleError ? <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm leading-5 text-rose-700">{visibleError}</div> : null}
 
-              <button
-                type="submit"
-                disabled={submitting || status === 'loading'}
-                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-              >
+              <button type="submit" disabled={submitting || status === 'loading'} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60">
                 {submitting || status === 'loading' ? <LoaderCircle className="size-[18px] animate-spin" /> : <ArrowRight className="size-[18px]" />}
                 Entrar
               </button>
