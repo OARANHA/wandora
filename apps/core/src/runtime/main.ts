@@ -1,4 +1,5 @@
 import { Pool } from 'pg';
+import { MastraDeterministicAgentRuntime } from '../agent-runtime/mastra-deterministic.js';
 import { PostgresAnaRepository } from '../ana/postgres-repository.js';
 import { AnaSupervisedIngressService } from '../ana/supervised-ingress.js';
 import { loadRuntimeConfig } from './config.js';
@@ -19,6 +20,10 @@ const pool = config.mode === 'database' && config.database
       idleTimeoutMillis: 30_000,
       application_name: 'wandora-core',
     })
+  : undefined;
+
+const agentRuntime = config.agentRuntime?.mode === 'mastra-deterministic'
+  ? new MastraDeterministicAgentRuntime()
   : undefined;
 
 const checkReady = async (): Promise<RuntimeReadiness> => {
@@ -49,6 +54,7 @@ const handleGatewayInbound = pool && config.gatewayIngress
         const service = new AnaSupervisedIngressService({
           repository: new PostgresAnaRepository(pool),
           pool,
+          ...(agentRuntime ? { runtime: agentRuntime } : {}),
         });
         return (organizationId, event) => service.handle(organizationId, event);
       })(),
@@ -66,6 +72,7 @@ server.listen(config.port, '0.0.0.0', () => {
     mode: config.mode,
     port: config.port,
     gatewayIngress: Boolean(handleGatewayInbound),
+    agentRuntime: config.agentRuntime?.mode ?? 'disabled',
   }));
 });
 
