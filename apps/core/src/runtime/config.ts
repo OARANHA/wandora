@@ -90,6 +90,6 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
       user: 'wandora_core_runtime',
       password,
     },
-    gatewayIngress,
+    ...(gatewayIngress ? { gatewayIngress } : {}),
   };
 }
