@@ -8,6 +8,13 @@ import {
 } from './contracts.js';
 import { verifyEvolutionWebhookJwt } from './evolution-jwt.js';
 import { normalizeEvolutionInbound } from './normalize-evolution-inbound.js';
+import {
+  OutboundValidationError,
+  parseOutboundTextCommand,
+  verifyCoreOutboundSignature,
+  type OutboundTextCommand,
+  type OutboundTextOutcome,
+} from './outbound.js';
 
 export type MessagingGatewayServerDeps = {
   evolutionInstance: string;
@@ -15,6 +22,10 @@ export type MessagingGatewayServerDeps = {
   organizationId: string;
   connectionId: string;
   forwardToCore: (envelope: CoreInboundEnvelope) => Promise<CoreForwardOutcome>;
+  outbound?: {
+    secret: string;
+    sendText: (command: OutboundTextCommand) => Promise<OutboundTextOutcome>;
+  };
   now?: () => number;
 };
 
@@ -46,6 +57,10 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
     : undefined;
 }
 
+function firstHeader(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
 function mapCoreOutcome(response: ServerResponse, outcome: CoreForwardOutcome): void {
   if (outcome.kind === 'accepted') {
     writeJson(response, 200, { accepted: true });
@@ -56,6 +71,22 @@ function mapCoreOutcome(response: ServerResponse, outcome: CoreForwardOutcome): 
     return;
   }
   writeJson(response, 422, { accepted: false, retry: false, reason: 'canonical-rejection' });
+}
+
+function mapOutboundOutcome(response: ServerResponse, outcome: OutboundTextOutcome): void {
+  if (outcome.kind === 'accepted') {
+    writeJson(response, 200, outcome.result);
+    return;
+  }
+  if (outcome.kind === 'connection-mismatch') {
+    writeJson(response, 422, { accepted: false, retry: false, reason: 'connection-mismatch' });
+    return;
+  }
+  if (outcome.kind === 'idempotency-conflict') {
+    writeJson(response, 409, { accepted: false, retry: false, reason: 'idempotency-conflict' });
+    return;
+  }
+  writeJson(response, 502, { accepted: false, retry: false, reason: 'delivery-uncertain' });
 }
 
 export function createMessagingGatewayServer(deps: MessagingGatewayServerDeps): Server {
@@ -69,6 +100,69 @@ export function createMessagingGatewayServer(deps: MessagingGatewayServerDeps): 
       return;
     }
 
+    if (url.pathname === '/internal/v1/core/outbound/text') {
+      if (!deps.outbound) {
+        writeJson(response, 404, { error: 'not-found' });
+        return;
+      }
+      if (request.method !== 'POST') {
+        writeJson(response, 405, { error: 'method-not-allowed' });
+        return;
+      }
+
+      let rawBody: string;
+      try {
+        rawBody = await readBody(request, 65_536);
+      } catch (error) {
+        if (error instanceof PayloadTooLargeError) {
+          writeJson(response, 413, { error: 'payload-too-large' });
+        } else {
+          writeJson(response, 500, { error: 'internal-error' });
+        }
+        return;
+      }
+
+      const timestamp = firstHeader(request.headers['x-wandora-timestamp']);
+      const signature = firstHeader(request.headers['x-wandora-signature']);
+      if (!verifyCoreOutboundSignature({
+        secret: deps.outbound.secret,
+        timestamp,
+        signature,
+        rawBody,
+        nowMs: now(),
+      })) {
+        writeJson(response, 401, { error: 'unauthorized-core-outbound' });
+        return;
+      }
+
+      let payload: unknown;
+      try {
+        payload = JSON.parse(rawBody);
+      } catch {
+        writeJson(response, 400, { error: 'invalid-json' });
+        return;
+      }
+
+      let command: OutboundTextCommand;
+      try {
+        command = parseOutboundTextCommand(payload);
+      } catch (error) {
+        if (error instanceof OutboundValidationError) {
+          writeJson(response, 400, { error: 'invalid-outbound-command' });
+        } else {
+          writeJson(response, 500, { error: 'internal-error' });
+        }
+        return;
+      }
+
+      try {
+        mapOutboundOutcome(response, await deps.outbound.sendText(command));
+      } catch {
+        writeJson(response, 502, { accepted: false, retry: false, reason: 'delivery-uncertain' });
+      }
+      return;
+    }
+
     if (url.pathname !== '/providers/evolution/webhook') {
       writeJson(response, 404, { error: 'not-found' });
       return;
@@ -78,9 +172,7 @@ export function createMessagingGatewayServer(deps: MessagingGatewayServerDeps): 
       return;
     }
 
-    const authorization = Array.isArray(request.headers.authorization)
-      ? request.headers.authorization[0]
-      : request.headers.authorization;
+    const authorization = firstHeader(request.headers.authorization);
     if (!verifyEvolutionWebhookJwt(authorization, deps.evolutionWebhookJwtKey, now())) {
       writeJson(response, 401, { error: 'unauthorized-provider-webhook' });
       return;
