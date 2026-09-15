@@ -218,7 +218,7 @@ export class HumanSupervisionReadService {
   ): Promise<T> {
     const client = await this.pool.connect();
     try {
-      await client.query('BEGIN');
+      await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
       await client.query(`SELECT set_config('wandora.organization_id', $1, true)`, [organizationId]);
       const result = await fn(client);
       await client.query('COMMIT');
