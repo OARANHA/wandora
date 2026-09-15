@@ -1,7 +1,7 @@
 # ADR 0013 — Private Evolution Messaging Gateway Runtime V1
 
 Date: 2026-09-14
-Status: **Accepted for implementation; live webhook cutover remains a separate reviewed operation.**
+Status: **Accepted and live for the controlled supervised inbound path as of 2026-09-15.**
 
 ## Context
 
@@ -9,11 +9,11 @@ ADR 0006 accepted Evolution API 2.3.7 only behind a Wandora-owned Messaging Gate
 
 ADR 0012 then established the first production-shaped Gateway → Core ingress: provider-neutral normalized input, dedicated HMAC caller authentication, Core/RLS tenant authorization, durable receipt/idempotency and a supervised `attention-required` stop with no model or outbound send.
 
-The remaining gap is the provider-side runtime boundary. The laboratory Gateway must become a versioned private service before any live Evolution webhook can be pointed at Core.
+The remaining gap was the provider-side runtime boundary. The laboratory Gateway had to become a versioned private service before any live Evolution webhook could be pointed at Core.
 
 A read-only inspection of the **installed Evolution API 2.3.7 code** confirmed that per-instance webhook configuration supports a `headers` object. The special `jwt_key` entry causes Evolution to generate an HS256 JWT with short-lived `iat` / `exp`, `app = evolution` and `action = webhook`, send it as `Authorization: Bearer <token>`, and remove the signing key from the outgoing header set.
 
-Therefore Wandora does not need to trust private-network membership alone and does not need to invent an unsupported provider signing mechanism.
+Therefore Wandora does not trust private-network membership alone and does not need to invent an unsupported provider signing mechanism.
 
 ## Decision
 
@@ -28,7 +28,7 @@ It has no public hostname and no host-published port. Evolution, Gateway and Cor
 
 ### Evolution → Gateway authentication
 
-For the selected Evolution instance, live webhook configuration will use a dedicated `jwt_key` generated outside Git/chat.
+For the selected Evolution instance, live webhook configuration uses a dedicated `jwt_key` generated outside Git/chat.
 
 The Gateway accepts only Bearer JWTs that:
 
@@ -107,7 +107,7 @@ The Gateway does not own tenant authorization or business state. Core remains au
 
 ## Verification
 
-The dedicated `Messaging Gateway CI` must prove on the final PR head:
+The dedicated `Messaging Gateway CI` proves:
 
 - strict TypeScript and production build;
 - valid installed-Evolution-compatible JWT accepted;
@@ -122,7 +122,7 @@ The dedicated `Messaging Gateway CI` must prove on the final PR head:
 - no host port is published;
 - Gateway and Core Compose overlays render successfully with file-backed secrets.
 
-The existing Core CI must remain green on the same PR so this promotion cannot silently regress the already-live Core boundary.
+The existing Core CI remained green on the same PR so this promotion could not silently regress the already-live Core boundary.
 
 ## Consequences
 
@@ -131,30 +131,69 @@ Positive:
 - both internal hops are authenticated rather than trusting Docker-network membership;
 - provider-specific payloads remain isolated in one service;
 - Evolution can be replaced later without changing the Core contract;
-- the first real handset proof can stop safely at durable supervised work with no model/outbound side effect;
+- the first real handset proof stops safely at durable supervised work with no model/outbound side effect;
 - Gateway compromise does not grant database credentials or Evolution management credentials.
 
 Trade-offs:
 
 - live operation requires two independent secret files and coordinated rotation procedures;
 - the first mapping is intentionally one Evolution instance → one canonical organization/connection;
-- live cutover requires controlled canonical lab state in Core before a handset event can be accepted;
-- observability beyond container logs remains follow-up work after the supervised path is proven.
+- observability beyond container health/logs remains follow-up work;
+- multi-instance dynamic routing and customer self-service onboarding remain later work.
 
-## Live enablement boundary
+## Live enablement result — 2026-09-15
 
-Merging this ADR/runtime does **not** cut over production.
+The live enablement boundary was executed with **decision → second review → execution** and completed successfully.
 
-Live enablement requires a separate decision → second review → execution operation that:
+Before any webhook cutover:
 
-1. builds/deploys the exact merged Gateway image on private `wandora-core` without changing the Evolution webhook yet;
-2. generates two fresh independent credentials outside Git/chat: Evolution webhook JWT key and Gateway → Core HMAC secret;
-3. stores them as non-world-readable operator-controlled files;
-4. mounts the HMAC secret into both Gateway and Core and enables the Core ingress overlay;
-5. creates or verifies a controlled canonical organization, messaging connection and Ana employee for the proof without fabricating customer production data;
-6. proves a synthetic provider-authenticated request reaches Core and stops at `supervision-required` with zero outbound attempts;
-7. only then configures the selected Evolution instance webhook to the private Gateway route with its `jwt_key` and only the required inbound event;
-8. performs one supervised real handset inbound proof and confirms durable canonical state/idempotent replay;
-9. keeps outbound transport, Mastra and real model credentials disabled until later accepted slices.
+1. the exact merged Core/Gateway runtime was built and deployed privately;
+2. two fresh independent credentials were generated outside Git/chat and mounted from non-world-readable files;
+3. the controlled internal proof organization, connection and supervised Ana employee were applied only after a fresh logical PostgreSQL backup, checksum validation and restore test;
+4. Core ingress proved fail-closed without HMAC;
+5. Gateway proved fail-closed without a valid Evolution JWT;
+6. a synthetic provider-authenticated event reached Core and stopped at `supervision-required` with zero approvals and zero outbound attempts.
 
-No Mistral, Chutes or other model token is required for this decision.
+A pre-cutover snapshot of the old Evolution webhook configuration was saved as operator-controlled `0600` rollback material with SHA-256 checksum.
+
+During diagnostics, Evolution management calls without an `Origin` header returned HTTP 500. Inspection of the installed Evolution 2.3.7 source showed its restricted CORS middleware rejects missing origins and its global error handler surfaces that as HTTP 500. Using an already allowed Origin returned the expected management API responses. No direct Evolution database mutation or repair was needed.
+
+The official Evolution API then changed the selected instance webhook to the promoted private Gateway. Post-change readback confirmed:
+
+- webhook enabled;
+- private Gateway destination;
+- only `MESSAGES_UPSERT` enabled;
+- `webhookByEvents = false`;
+- `webhookBase64 = false`;
+- dedicated `jwt_key` configured.
+
+Evolution, Gateway and Core remained healthy, and the instance remained `open`.
+
+### Real handset proof
+
+A real WhatsApp message with the text `Teste real Wandora 001` entered through the selected Evolution instance after cutover.
+
+Canonical Wandora state proved the complete path:
+
+- exactly one new inbound message containing the expected text;
+- one new qualification work item with `kind = qualify-new-contact`;
+- work item status `attention-required`;
+- one new inbound-event receipt;
+- receipt `status = completed`;
+- receipt result `status = supervision-required`;
+- `approvals = 0`;
+- `outbound_attempts = 0`.
+
+The live event appeared once in messages and once in inbound receipts. Durable replay protection remains enforced by the receipt primary key `(organization_id, event_id)` and the unique inbound-message index `(organization_id, source_event_id)`.
+
+The provider/runtime-specific raw identity did not become the canonical Wandora message identity.
+
+Operational evidence is recorded in `docs/infra/messaging-gateway-supervised-live-v1.md`.
+
+## Next step
+
+**Messaging Gateway → Wandora Core Supervised V1 is complete for the controlled internal production proof path.**
+
+Proceed to **Core → Agent Runtime Adapter → Mastra deterministic proposal V1**.
+
+That next slice must not yet enable autonomous outbound messaging or require a model-provider credential. Mastra output is first promoted as a deterministic internal proposal/evidence path while the existing real inbound path continues to stop at supervised attention.
