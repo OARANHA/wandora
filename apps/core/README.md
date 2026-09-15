@@ -2,7 +2,7 @@
 
 `apps/core` owns Wandora business semantics and authorization. It is the customer-product layer allowed to coordinate canonical data, the Agent Runtime, Messaging Gateway and approval/policy boundaries.
 
-The first promoted workflow is **Ana — Assistente Comercial Digital / inbound new contact V1**. Core now also owns the first authenticated human read APIs used by Wandora Web.
+The first promoted workflow is **Ana — Assistente Comercial Digital / inbound new contact V1**. Core now also owns the authenticated human read APIs used by Wandora Web.
 
 ## Current responsibilities
 
@@ -15,7 +15,7 @@ Core currently owns these production paths:
 5. human Supabase ES256/JWKS session verification;
 6. external Auth subject → canonical Wandora user resolution;
 7. active organization + active membership authorization;
-8. tenant-scoped customer reads for `Trabalho` and `Conversas`.
+8. tenant-scoped customer reads for `Trabalho`, `Conversas` list and canonical conversation history.
 
 The outbound-capable domain package is **not** the production Gateway entry point. The live Gateway ingress uses the narrower supervised service so the current `supervised` autonomy mode cannot be bypassed merely because outbound-capable code exists elsewhere.
 
@@ -80,11 +80,11 @@ The Compose activation overlay is `infra/stacks/core/compose.agent-runtime-deter
 
 ## Human session and read APIs
 
-ADRs 0017–0020 define the first customer human API boundary.
+ADRs 0017–0021 define the current customer human read boundary.
 
 Supabase Auth remains identity/session infrastructure. Core validates Bearer access tokens with public ES256/JWKS plus issuer, audience and time checks. Core does not receive `service_role` or JWT signing material merely to validate human sessions.
 
-The external JWT `sub` is resolved through narrow Core-owned database functions to canonical Wandora identity. Browser-supplied organization IDs are selectors only; tenant access still requires active organization + active membership under transaction-local `wandora.organization_id` and RLS.
+The external JWT `sub` is resolved through narrow Core-owned database functions to canonical Wandora identity. Browser-supplied organization/conversation IDs are selectors only; tenant access still requires active organization + active membership under transaction-local `wandora.organization_id` and RLS.
 
 Current reviewed routes are:
 
@@ -92,6 +92,7 @@ Current reviewed routes are:
 GET /api/v1/me
 GET /api/v1/organizations/:organizationId/work/attention-required
 GET /api/v1/organizations/:organizationId/conversations
+GET /api/v1/organizations/:organizationId/conversations/:conversationId
 ```
 
 Current failure semantics:
@@ -100,18 +101,23 @@ Current failure semantics:
 - Auth/JWKS unavailable where applicable: `503`;
 - valid but unlinked external identity: `403`;
 - cross-tenant/suspended membership/suspended organization: `403`;
+- malformed selector or conversation absent from an already-authorized organization: `404`;
 - unreviewed route: `404`;
 - unexpected server/database failure: `500`.
 
-`/api/v1/me` returns only canonical user plus active organizations. The work route returns only supervision context/proposal needed by `Trabalho`. The conversations route returns only bounded conversation summaries; it does not imply full history, unread state or response actions.
+`/api/v1/me` returns only canonical user plus active organizations. The work route returns only supervision context/proposal needed by `Trabalho`. The conversations list returns bounded conversation summaries. The detail route returns up to the latest 100 canonical messages oldest → newest plus `hasEarlierMessages`, under `REPEATABLE READ READ ONLY` tenant-scoped transactions.
 
-Provider/private identifiers, private receipts, provider bindings, outbound-attempt state and Mastra runtime IDs do not cross these customer contracts.
+The detail route authorizes the organization before conversation lookup. A foreign or nonexistent conversation under an authorized organization is therefore exposed only as generic `404`.
+
+Provider/private identifiers, private receipts, provider bindings, outbound-attempt state and Mastra runtime IDs do not cross these customer contracts. Conversation detail also omits message IDs because the current read-only contract has no customer action requiring them.
 
 ## Database runtime boundary
 
 `wandora_core_runtime` is the least-privilege PostgreSQL identity for Core. It has no `BYPASSRLS`, database/role administration or provider-binding access.
 
 Every organization-scoped repository transaction sets `wandora.organization_id` transaction-locally before tenant-owned queries. PostgreSQL RLS provides defense in depth and tenant scope disappears automatically after commit/rollback, including when pool connections are reused.
+
+Human tenant reads use `REPEATABLE READ READ ONLY` so multi-query projections remain internally consistent and PostgreSQL itself rejects accidental writes inside that read transaction class.
 
 Migration `003` creates the role disabled by default. Production later activated it through a separate reviewed operation with a dedicated credential and `CONNECTION LIMIT 4`; the migration itself does not embed a production password.
 
@@ -151,10 +157,10 @@ The private runtime has no public hostname or published host port. Customer huma
 Current production image:
 
 ```text
-wandora/core:conversations-read-ae6177a3
+wandora/core:conversation-history-2105f6e3
 ```
 
-See `docs/infra/conversations-read-live-v1.md` for the activation proof.
+See `docs/infra/conversation-history-live-v1.md` for the current activation proof.
 
 ## Verification
 
@@ -169,3 +175,5 @@ The verifier uses disposable `supabase/postgres:17.6.1.136` plus pinned Node 22.
 The test harness separates fixture administration from the actual runtime identity. Application behavior is executed as `wandora_core_runtime`. Core CI also validates the reviewed runtime overlays and human-route behavior.
 
 Before promoting a human-read change, additionally prove the exact route, tenant denial cases, provider/private-field absence, no outbound side effect and private candidate readiness before production recreation.
+
+Any future human response action is a separate outbound-effect boundary and must define authorization, canonical proposal relationship, idempotency, audit evidence and delivery uncertainty/reconciliation before production activation.
