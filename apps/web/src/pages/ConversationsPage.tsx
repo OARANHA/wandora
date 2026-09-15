@@ -24,9 +24,38 @@ type ConversationListItem = {
   } | null;
 };
 
+type ConversationDetail = {
+  conversation: {
+    id: string;
+    status: 'open' | 'closed';
+    lastActivityAt: string;
+  };
+  contact: {
+    id: string;
+    label: string;
+  };
+  employee: {
+    id: string;
+    name: string;
+  } | null;
+  messages: Array<{
+    direction: 'inbound' | 'outbound';
+    text: string;
+    occurredAt: string;
+  }>;
+  hasEarlierMessages: boolean;
+};
+
 type ConversationsResponse = { items: ConversationListItem[] };
 
 const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
+  day: '2-digit',
+  month: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
+const messageTimeFormatter = new Intl.DateTimeFormat('pt-BR', {
   day: '2-digit',
   month: '2-digit',
   hour: '2-digit',
@@ -71,6 +100,20 @@ export function ConversationsPage() {
   }, [query.data?.items, search]);
 
   const selected = query.data?.items.find((item) => item.conversation.id === selectedId) ?? null;
+
+  const detailQuery = useQuery({
+    queryKey: ['conversation-detail', activeOrganization?.id, selected?.conversation.id],
+    enabled: Boolean(activeOrganization && selected),
+    queryFn: async () => {
+      const response = await authFetch(
+        `/api/v1/organizations/${activeOrganization!.id}/conversations/${selected!.conversation.id}`,
+      );
+      if (response.status === 403) throw new Error('Seu acesso a esta empresa não está ativo.');
+      if (response.status === 404) throw new Error('Esta conversa não está mais disponível nesta empresa.');
+      if (!response.ok) throw new Error('Não foi possível carregar o histórico desta conversa.');
+      return await response.json() as ConversationDetail;
+    },
+  });
 
   if (!activeOrganization) {
     const hasMultiple = (context?.organizations.length ?? 0) > 1;
@@ -161,27 +204,77 @@ export function ConversationsPage() {
           )}
         </div>
 
-        <div className="hidden bg-slate-50/40 p-10 lg:flex lg:flex-col lg:items-center lg:justify-center">
+        <div className="bg-slate-50/40 p-6 lg:p-10">
           {selected ? (
-            <div className="w-full max-w-lg">
-              <div className="grid size-14 place-items-center rounded-2xl bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200/70">
-                <MessageCircleMore className="size-6" />
+            <div className="mx-auto flex h-full w-full max-w-2xl flex-col">
+              <div>
+                <div className="grid size-14 place-items-center rounded-2xl bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200/70">
+                  <MessageCircleMore className="size-6" />
+                </div>
+                <div className="mt-5 flex flex-wrap items-end justify-between gap-3">
+                  <div>
+                    <h3 className="m-0 text-lg font-semibold text-slate-900">{selected.contact.label}</h3>
+                    <p className="m-0 mt-1 text-sm text-slate-500">{selected.employee ? `Acompanhada por ${selected.employee.name}` : 'Sem funcionário responsável no momento'}</p>
+                  </div>
+                  <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">Somente leitura</span>
+                </div>
               </div>
-              <h3 className="m-0 mt-5 text-lg font-semibold text-slate-900">{selected.contact.label}</h3>
-              <p className="m-0 mt-1 text-sm text-slate-500">{selected.employee ? `Acompanhada por ${selected.employee.name}` : 'Sem funcionário responsável no momento'}</p>
-              <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-5">
-                <p className="m-0 text-xs font-semibold uppercase tracking-[0.08em] text-slate-400">Última mensagem registrada</p>
-                <p className="m-0 mt-3 text-sm leading-6 text-slate-700">{selected.latestMessage?.text ?? 'Ainda não há mensagem registrada nesta conversa.'}</p>
-              </div>
-              <p className="m-0 mt-4 text-xs leading-5 text-slate-400">Esta etapa mostra apenas o resumo canônico da conversa. O histórico completo e qualquer ação de resposta terão contratos próprios antes de serem liberados.</p>
+
+              {detailQuery.isLoading ? (
+                <div className="flex min-h-64 flex-1 items-center justify-center text-sm font-medium text-slate-500">
+                  <LoaderCircle className="mr-2 size-5 animate-spin" /> Carregando histórico…
+                </div>
+              ) : detailQuery.isError ? (
+                <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 p-5 text-rose-800">
+                  <p className="m-0 text-sm font-semibold">Não foi possível carregar o histórico</p>
+                  <p className="m-0 mt-2 text-xs leading-5">{detailQuery.error instanceof Error ? detailQuery.error.message : 'Tente novamente.'}</p>
+                  <button onClick={() => void detailQuery.refetch()} className="mt-3 rounded-xl bg-rose-900 px-3 py-2 text-xs font-semibold text-white">Tentar novamente</button>
+                </div>
+              ) : detailQuery.data ? (
+                <div className="mt-6 flex min-h-0 flex-1 flex-col">
+                  {detailQuery.data.hasEarlierMessages ? (
+                    <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-800">
+                      Esta conversa possui mensagens anteriores. Esta etapa mostra as 100 mensagens canônicas mais recentes.
+                    </div>
+                  ) : null}
+
+                  {!detailQuery.data.messages.length ? (
+                    <div className="flex min-h-48 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white/70 px-6 text-center">
+                      <Inbox className="size-6 text-slate-300" />
+                      <p className="m-0 mt-3 text-sm font-semibold text-slate-700">Ainda não há mensagens</p>
+                      <p className="m-0 mt-1 text-xs leading-5 text-slate-400">Quando houver mensagens canônicas nesta conversa, elas aparecerão aqui.</p>
+                    </div>
+                  ) : (
+                    <div className="max-h-[500px] space-y-3 overflow-y-auto rounded-2xl border border-slate-200 bg-white/70 p-4">
+                      {detailQuery.data.messages.map((message, index) => {
+                        const outbound = message.direction === 'outbound';
+                        return (
+                          <div key={`${message.occurredAt}-${index}`} className={`flex ${outbound ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-[82%] rounded-2xl px-4 py-3 ${outbound ? 'bg-slate-900 text-white' : 'border border-slate-200 bg-white text-slate-700'}`}>
+                              <div className={`flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.08em] ${outbound ? 'text-slate-300' : 'text-slate-400'}`}>
+                                <span>{outbound ? 'Enviada' : 'Recebida'}</span>
+                                <span>•</span>
+                                <time>{messageTimeFormatter.format(new Date(message.occurredAt))}</time>
+                              </div>
+                              <p className="m-0 mt-2 whitespace-pre-wrap text-sm leading-6">{message.text}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  <p className="m-0 mt-4 text-xs leading-5 text-slate-400">O histórico é canônico e independente do provedor. Responder, editar ou enviar continua bloqueado até existir um contrato humano específico para essas ações.</p>
+                </div>
+              ) : null}
             </div>
           ) : (
-            <div className="text-center">
+            <div className="flex h-full min-h-64 flex-col items-center justify-center text-center">
               <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200/70">
                 <MessageCircleMore className="size-6" />
               </div>
               <h3 className="m-0 mt-5 text-lg font-semibold text-slate-900">Selecione uma conversa</h3>
-              <p className="m-0 mt-2 max-w-md text-sm leading-6 text-slate-500">Veja o resumo canônico mais recente sem depender da interface do provedor de mensagens.</p>
+              <p className="m-0 mt-2 max-w-md text-sm leading-6 text-slate-500">Veja o histórico canônico recente sem depender da interface do provedor de mensagens.</p>
             </div>
           )}
         </div>
