@@ -4,6 +4,9 @@ import { createStep, createWorkflow } from '@mastra/core/workflows';
 import { z } from 'zod';
 import type { AgentRuntime, EmployeeProposal, PlannerInput } from '../ana/contracts.js';
 
+// Wandora does not allow framework telemetry from the customer-processing runtime.
+process.env.MASTRA_TELEMETRY_DISABLED = 'true';
+
 const deterministicInputSchema = z.object({
   customerText: z.string().trim().min(1).max(12000),
 });
