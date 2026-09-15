@@ -1,33 +1,34 @@
 # Wandora Core
 
-`apps/core` owns Wandora business semantics and authorization. It is the only customer-product layer allowed to coordinate canonical data, the Agent Runtime, Messaging Gateway and approval policy.
+`apps/core` owns Wandora business semantics and authorization. It is the customer-product layer allowed to coordinate canonical data, the Agent Runtime, Messaging Gateway and approval/policy boundaries.
 
-The first promoted workflow is **Ana — Assistente Comercial Digital / inbound new contact V1**.
+The first promoted workflow is **Ana — Assistente Comercial Digital / inbound new contact V1**. Core now also owns the first authenticated human read APIs used by Wandora Web.
 
-## Current V1 responsibility
+## Current responsibilities
 
-For one normalized inbound WhatsApp event, the Core domain package can execute the full durable Ana workflow:
+Core currently owns these production paths:
 
-1. validates organization and messaging-connection ownership;
-2. persists one canonical contact, conversation and qualification work item;
-3. persists the inbound message and durable event receipt;
-4. asks the provider-neutral `AgentRuntime` for a proposed reply;
-5. applies Wandora policy;
-6. creates a human approval when the proposal contains a commercial commitment;
-7. otherwise prepares one idempotent outbound attempt through `MessagingGateway`;
-8. records canonical Wandora audit state.
+1. supervised provider-neutral inbound ingestion from Messaging Gateway;
+2. canonical contact/conversation/message/work persistence;
+3. deterministic Mastra proposal generation behind the Wandora-owned `AgentRuntime` adapter;
+4. canonical `wandora.work_proposals` persistence for `commitment=none` proposals;
+5. human Supabase ES256/JWKS session verification;
+6. external Auth subject → canonical Wandora user resolution;
+7. active organization + active membership authorization;
+8. tenant-scoped customer reads for `Trabalho` and `Conversas`.
 
-That full outbound-capable service is **not** the production Gateway entry point. The live Gateway ingress uses the narrower supervised service so the current `supervised` autonomy mode cannot be bypassed merely because an outbound implementation exists in the domain package.
+The outbound-capable domain package is **not** the production Gateway entry point. The live Gateway ingress uses the narrower supervised service so the current `supervised` autonomy mode cannot be bypassed merely because outbound-capable code exists elsewhere.
 
 ## Safety boundaries
 
 - No provider/runtime ID becomes a customer-facing Wandora identity.
 - Unknown delivery state becomes `delivery-uncertain`; Core does not auto-resend.
-- Discount, special price, delivery deadline, payment terms and contractual commitments require an authorized human decision.
-- `owner`/`admin` may decide this V1 approval; another tenant cannot.
-- The browser does not receive direct table grants for Ana's Core state.
+- Discount, special price, delivery deadline, payment terms and contractual commitments require the stronger approval boundary.
+- `owner`/`admin` may decide the currently reviewed V1 commitment approvals; another tenant cannot.
+- Browser clients do not receive direct grants to Core-owned workflow/private state.
 - Transactional facts live in PostgreSQL, not only in model memory.
 - The live supervised ingress does not enable autonomous outbound traffic.
+- Human read routes remain read-only; reply/send/edit-send/dismiss/takeover require separate reviewed contracts.
 
 ## Gateway → Core supervised ingress
 
@@ -41,9 +42,9 @@ ADR 0012 defines the production-shaped inbound boundary:
 - request timestamp must be within five minutes;
 - only Wandora-normalized/canonical organization, connection and inbound-text fields are accepted.
 
-The private Docker network is not treated as caller authentication. A valid HMAC proves the caller holds the dedicated Gateway secret; transaction-local tenant scope plus RLS independently prove that the supplied canonical connection belongs to the supplied organization.
+The private Docker network is not caller authentication. A valid HMAC proves the caller holds the dedicated Gateway secret; transaction-local tenant scope plus RLS independently prove that the supplied canonical connection belongs to the supplied organization.
 
-A new supervised inbound event persists canonical contact/conversation/message/work/audit state, moves the work item to `attention-required` and completes the durable receipt with `supervision-required`.
+A new supervised inbound event persists canonical contact/conversation/message/work/audit state, produces a safe proposal, moves the work item to `attention-required` and completes the durable receipt with `supervision-required`.
 
 The controlled production cutover and real handset proof completed on 2026-09-15 with zero approvals and zero outbound attempts. See `docs/infra/messaging-gateway-supervised-live-v1.md`.
 
@@ -51,7 +52,7 @@ A completed duplicate returns the stored durable result. Invalid/stale authentic
 
 ## Deterministic Mastra supervised proposal
 
-ADR 0014 introduces the first Core → Agent Runtime Adapter → Mastra integration without a model-provider credential.
+ADR 0014 introduces the Core → Agent Runtime Adapter → Mastra integration without a model-provider credential.
 
 Activation is explicit:
 
@@ -59,56 +60,101 @@ Activation is explicit:
 WANDORA_AGENT_RUNTIME_MODE=mastra-deterministic
 ```
 
-The default is `disabled`. The deterministic mode is valid only in database mode with the authenticated supervised Gateway ingress enabled.
-
-When enabled, `AnaSupervisedIngressService` asks the Wandora-owned `AgentRuntime` for a deterministic proposal and persists that proposal only inside the private inbound receipt result. The canonical work item still ends at `attention-required` and the receipt still ends at `supervision-required`.
-
-This mode deliberately creates:
-
-- no approval row;
-- no outbound-attempt row;
-- no outbound message;
-- no model-provider call.
+The default is `disabled`. Deterministic mode is valid only in database mode with the authenticated supervised Gateway ingress enabled.
 
 Only normalized customer text crosses into the Mastra workflow. Organization IDs, phone/customer address, connection IDs and provider IDs are not Mastra workflow input. Mastra-specific workflow/run metadata does not cross the Wandora adapter boundary.
 
-The Compose activation overlay is `infra/stacks/core/compose.agent-runtime-deterministic.yaml`. Merging the code does not apply that overlay to production.
+ADR 0016 superseded the earlier receipt-only proposal representation. A safe `commitment=none` result is now persisted canonically in `wandora.work_proposals` in the same transaction that leaves work at `attention-required` and completes the receipt as `supervision-required`.
+
+This current path deliberately creates:
+
+- one canonical safe proposal when applicable;
+- no approval row for `commitment=none`;
+- no outbound-attempt row;
+- no outbound message;
+- no real model-provider call.
+
+Stronger commercial commitments remain on `wandora.approvals`.
+
+The Compose activation overlay is `infra/stacks/core/compose.agent-runtime-deterministic.yaml`.
+
+## Human session and read APIs
+
+ADRs 0017–0020 define the first customer human API boundary.
+
+Supabase Auth remains identity/session infrastructure. Core validates Bearer access tokens with public ES256/JWKS plus issuer, audience and time checks. Core does not receive `service_role` or JWT signing material merely to validate human sessions.
+
+The external JWT `sub` is resolved through narrow Core-owned database functions to canonical Wandora identity. Browser-supplied organization IDs are selectors only; tenant access still requires active organization + active membership under transaction-local `wandora.organization_id` and RLS.
+
+Current reviewed routes are:
+
+```text
+GET /api/v1/me
+GET /api/v1/organizations/:organizationId/work/attention-required
+GET /api/v1/organizations/:organizationId/conversations
+```
+
+Current failure semantics:
+
+- missing/invalid token: `401`;
+- Auth/JWKS unavailable where applicable: `503`;
+- valid but unlinked external identity: `403`;
+- cross-tenant/suspended membership/suspended organization: `403`;
+- unreviewed route: `404`;
+- unexpected server/database failure: `500`.
+
+`/api/v1/me` returns only canonical user plus active organizations. The work route returns only supervision context/proposal needed by `Trabalho`. The conversations route returns only bounded conversation summaries; it does not imply full history, unread state or response actions.
+
+Provider/private identifiers, private receipts, provider bindings, outbound-attempt state and Mastra runtime IDs do not cross these customer contracts.
 
 ## Database runtime boundary
 
-`wandora_core_runtime` is the least-privilege PostgreSQL identity for the Core. It has no `BYPASSRLS`, database/role administration or provider-binding access.
+`wandora_core_runtime` is the least-privilege PostgreSQL identity for Core. It has no `BYPASSRLS`, database/role administration or provider-binding access.
 
-Every repository transaction sets `wandora.organization_id` transaction-locally before tenant-owned queries. PostgreSQL RLS therefore provides defense in depth and the tenant scope disappears automatically after commit/rollback, including when pool connections are reused.
+Every organization-scoped repository transaction sets `wandora.organization_id` transaction-locally before tenant-owned queries. PostgreSQL RLS provides defense in depth and tenant scope disappears automatically after commit/rollback, including when pool connections are reused.
 
-Migration `003` creates the role disabled by default. Production later activated it through a separate reviewed operation with a dedicated credential and `CONNECTION LIMIT 4`; the migration itself still never embeds or activates a production password.
+Migration `003` creates the role disabled by default. Production later activated it through a separate reviewed operation with a dedicated credential and `CONNECTION LIMIT 4`; the migration itself does not embed a production password.
 
-Canonical audit writes go through `wandora.append_core_audit(...)`; the runtime does not receive direct read/update/delete access to the audit table.
-
-## Private runtime process
-
-`src/runtime/main.ts` is the deployable private Core process. Its operational endpoints are:
-
-- `GET /healthz` — process health;
-- `GET /readyz` — business readiness.
-
-The process can start in explicit `standby` mode without a database secret. Database mode accepts only the canonical `wandora_core_runtime` user and reads its password from a mounted secret file rather than an environment variable. Readiness becomes green only when PostgreSQL confirms the expected role and an unscoped pooled connection.
-
-The private runtime has no public hostname or published host port. See `infra/stacks/core/`.
+Canonical audit writes go through the reviewed Core audit boundary; the runtime does not receive broad audit-table mutation rights.
 
 ### Database secret file
 
-The production container remains the non-root image `node` user. A host-managed database-password file must therefore not rely on host UID ownership alone.
+The production container remains the non-root image `node` user. A host-managed database-password file must not rely on host UID ownership alone.
 
-Use these rules for database activation:
+Use these rules for database activation/recreation:
 
 - keep the secret outside Git/chat and outside container environment variables;
 - store it in an operator-controlled directory;
 - mode the secret `0640` or stricter, never world-readable;
 - keep the file group-owned by the intended operator group;
 - set `WANDORA_CORE_SECRET_GID` to that group's numeric GID when applying `compose.database.yaml`;
-- the overlay adds only that numeric group as a supplemental group to the non-root Core process.
+- the overlay adds only that numeric group as a supplemental group to the non-root Core process;
+- use the canonical host file `wandora_core_db_password`; do not substitute the legacy `core-db-password` filename.
 
-This lets the Node process read the mounted secret without running as root or widening the file to `0644`.
+A Conversations Read V1 candidate using the legacy filename failed readiness while the live service remained healthy; correcting only the candidate path restored `readyz=200`. No production credential was changed.
+
+## Private runtime process
+
+`src/runtime/main.ts` is the deployable private Core process.
+
+Operational endpoints:
+
+```text
+GET /healthz
+GET /readyz
+```
+
+The process can start in explicit `standby` mode without a database secret. Database mode accepts only the canonical `wandora_core_runtime` user and reads its password from a mounted secret file. Readiness becomes green only when PostgreSQL confirms the expected role and an unscoped pooled connection.
+
+The private runtime has no public hostname or published host port. Customer human routes reach it only through the exact allow-listed Web Nginx bridge.
+
+Current production image:
+
+```text
+wandora/core:conversations-read-ae6177a3
+```
+
+See `docs/infra/conversations-read-live-v1.md` for the activation proof.
 
 ## Verification
 
@@ -118,6 +164,8 @@ From repository root:
 ./apps/core/scripts/verify-ana-v1.sh
 ```
 
-The verifier uses disposable `supabase/postgres:17.6.1.136` plus pinned Node 22.23.2, applies the reviewed migrations, runs SQL invariants/read-only production verifiers, strict TypeScript and integration tests, then destroys the disposable environment.
+The verifier uses disposable `supabase/postgres:17.6.1.136` plus pinned Node 22.23.2, applies reviewed migrations, runs SQL invariants/read-only production verifiers, strict TypeScript and integration tests, then destroys the disposable environment.
 
-The test harness deliberately separates fixture administration from the actual runtime identity. Application behavior is executed as `wandora_core_runtime`. The Core CI also validates the deterministic Agent Runtime Compose overlay together with database + supervised ingress overlays.
+The test harness separates fixture administration from the actual runtime identity. Application behavior is executed as `wandora_core_runtime`. Core CI also validates the reviewed runtime overlays and human-route behavior.
+
+Before promoting a human-read change, additionally prove the exact route, tenant denial cases, provider/private-field absence, no outbound side effect and private candidate readiness before production recreation.
