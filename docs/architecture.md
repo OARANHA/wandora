@@ -33,13 +33,21 @@ The customer application is React 19 + Vite with TanStack Router/Query. Current 
 
 The browser never calls Paperclip, Mastra, Evolution, model providers or privileged database/admin capabilities directly.
 
-The current public shell still uses preview/mock data. The next integration boundary is a tenant-authorized Core supervision read model. The first real-data target is `Trabalho`, then `Conversas`.
+The first real customer session path is now live. Supabase Auth provides identity/session; Wandora Core provides canonical identity, organization membership and business authorization. The shell derives the visible company/user from `/api/v1/me` rather than hard-coded preview identity.
+
+`Trabalho` and `Conversas` now use tenant-authorized canonical Core reads. Other customer surfaces may still contain preview/product-contract placeholders and must be converted only after their own reviewed Core contracts exist.
+
+### Browser authentication
+
+The browser signs in directly against the stable Supabase Auth endpoint using only the public/publishable browser key. Public signup remains disabled. V1 stores session material in `sessionStorage`; closing the tab/browser removes the local persisted session.
+
+A valid Auth session is not itself Wandora authorization. Web sends the Bearer token to Core, which resolves the external `sub` to a canonical Wandora user and authorizes active organization membership.
 
 ### Web → Core network direction
 
-Core remains private. Do not create a generic public Core hostname merely to support the Web.
+Core remains private. There is no generic public Core hostname.
 
-The reviewed direction for the first human API is:
+The live human-read direction is:
 
 ```text
 Browser
@@ -49,9 +57,17 @@ Browser
   -> Wandora Core
 ```
 
-The Web container may join both `wandora-edge` and `wandora-core` so its Nginx can proxy only explicitly reviewed human API routes. A generic proxy must not expose internal Core routes such as `/internal/v1/gateway/inbound`.
+The Web container joins `wandora-edge` and `wandora-core`. Its Nginx proxies only explicitly reviewed routes, forwards `Authorization`, strips browser cookies before Core and leaves unreviewed `/api/` plus all `/internal/` paths closed.
 
-Same-origin routing avoids unnecessary browser CORS policy while preserving the Core service as private infrastructure.
+Current reviewed customer routes are:
+
+```text
+GET /api/v1/me
+GET /api/v1/organizations/:organizationId/work/attention-required
+GET /api/v1/organizations/:organizationId/conversations
+```
+
+`/internal/v1/gateway/inbound` remains private and is not reachable through the customer Web.
 
 ## Wandora Platform Admin
 
@@ -72,30 +88,31 @@ Core owns product semantics and business authorization:
 - audit-facing events;
 - provider-neutral adapter contracts.
 
-Accepted boundaries include ADR 0007 identity/tenancy, ADR 0009 durable Ana state, ADR 0010 least-privilege DB identity, ADR 0011 private runtime, ADR 0012 authenticated Gateway ingress, ADR 0014 Mastra deterministic runtime, ADR 0015 Platform Admin direction and ADR 0016 canonical supervised proposals.
+Accepted boundaries now include ADR 0007 identity/tenancy, ADR 0009 durable Ana state, ADR 0010 least-privilege DB identity, ADR 0011 private runtime, ADR 0012 authenticated Gateway ingress, ADR 0014 Mastra deterministic runtime, ADR 0015 Platform Admin direction, ADR 0016 canonical supervised proposals, ADR 0017 Human Supervision Read V1, ADR 0018 Human Session Bootstrap V1, ADR 0019 Web Human Session V1 and ADR 0020 Conversations Read V1.
 
-## Identity and human-session direction
+## Identity and human session — live
 
 Supabase Auth issues human sessions. Its JWT `sub` is external identity data, not a Wandora business user ID.
 
-Live Auth currently publishes an EC/ES256 key through its JWKS endpoint with:
+Live Auth publishes an EC/ES256 key through its JWKS endpoint with:
 
 ```text
 issuer: https://supabase.wandora.com.br/auth/v1
 audience: authenticated
 ```
 
-Therefore human Core APIs should validate Bearer access tokens using public JWKS + issuer/audience checks. Do **not** give Core `service_role` or the shared JWT signing secret solely to validate sessions.
+Human Core APIs validate Bearer access tokens using public JWKS plus issuer/audience/time checks. Core does **not** receive `service_role` or a JWT signing secret merely to validate sessions.
 
 After cryptographic validation:
 
 1. JWT `sub` resolves to canonical Wandora `user.id` through a narrow Core identity boundary;
-2. a browser-supplied organization ID is treated only as a selector;
-3. Core opens that organization scope under `wandora_core_runtime`;
-4. active organization + active membership for the resolved user are required;
-5. only then may the tenant read proceed.
+2. `/api/v1/me` returns only canonical Wandora user plus active memberships in active organizations;
+3. a browser-supplied organization ID is only a selector;
+4. Core opens that organization scope under `wandora_core_runtime`;
+5. active organization + active membership for the resolved user are required;
+6. only then may the tenant read proceed.
 
-Invalid tokens, unknown identities, cross-tenant access, suspended membership and suspended organizations must fail closed.
+Invalid tokens, unknown identities, cross-tenant access, suspended membership and suspended organizations fail closed. A user with zero active organizations gets an explicit empty state; Web never silently selects between multiple active organizations.
 
 ## Core database runtime boundary
 
@@ -108,7 +125,7 @@ Invalid tokens, unknown identities, cross-tenant access, suspended membership an
 - secrets only through operator-controlled mounted files;
 - each organization-scoped transaction sets `wandora.organization_id` transaction-locally;
 - RLS independently enforces tenant isolation;
-- pooled connections must return unscoped after commit/rollback.
+- pooled connections return unscoped after commit/rollback.
 
 Do not replace this role with a broader Supabase role to simplify human API implementation.
 
@@ -118,7 +135,7 @@ Current live Core:
 
 ```text
 container: wandora-core
-image: wandora/core:canonical-proposal-79b5b082
+image: wandora/core:conversations-read-ae6177a3
 mode: database
 agent runtime: mastra-deterministic
 MASTRA_TELEMETRY_DISABLED: true
@@ -131,6 +148,8 @@ published host ports: none
 healthz: 200
 readyz: 200
 ```
+
+The Core database secret is mounted from the canonical operator file `wandora_core_db_password`; a legacy host filename must not be substituted during recreate/candidate operations.
 
 ## Canonical business state
 
@@ -155,7 +174,7 @@ Browser clients do not read Core-owned workflow/proposal/private tables directly
 
 ## Canonical supervised proposal boundary
 
-ADR 0016 is live through migration `20260915_004_supervised_proposal_v1.sql` and Core image `wandora/core:canonical-proposal-79b5b082`.
+ADR 0016 is live through migration `20260915_004_supervised_proposal_v1.sql`.
 
 ```text
 Inbound customer message
@@ -177,7 +196,7 @@ work = attention-required
 
 Proposal insertion, `attention-required` transition and receipt completion are one DB transaction. Stronger commitments such as discount, special price, delivery deadline, payment terms or contractual promises remain on `wandora.approvals`.
 
-The private receipt continues to contain replay evidence, but it is no longer the product proposal model.
+The private receipt continues to contain replay evidence, but it is not the product proposal model.
 
 ## Ana supervised inbound path
 
@@ -206,7 +225,7 @@ canonical work_proposals
   -> no outbound side effect
 ```
 
-Current live full-chain proof shows one canonical proposal after replay, zero approvals, zero outbound attempts, zero outbound messages, and no provider-private sentinel leakage.
+Current live full-chain proof shows one canonical proposal after replay, zero approvals, zero outbound attempts, zero outbound messages and no provider-private sentinel leakage.
 
 ## Messaging Gateway
 
@@ -228,19 +247,36 @@ Evolution → Gateway uses per-instance JWT HS256. Gateway → Core uses a disti
 
 Raw provider instance/API-key/server-url/provider message identifiers do not become public Core contracts.
 
-## Human Supervision Read V1 — next
+## Human supervision reads — live
 
-The first human read contract should expose only the business context required by `Trabalho`:
+### Trabalho
+
+`GET /api/v1/organizations/:organizationId/work/attention-required` exposes only the business context required for supervision:
 
 - work ID/kind/status/update time;
 - employee ID/display name;
-- contact/conversation business identity;
+- contact/conversation canonical identity;
 - latest inbound customer text/time;
-- canonical proposal ID/kind/text/rationale/time.
+- canonical proposal ID/kind/text/rationale/time when present.
 
-Do not expose receipt IDs/results, provider IDs, Mastra run/workflow IDs, provider payloads or database implementation details.
+### Conversas
 
-The first slice is read-only. Send, edit-send and dismiss are separate reviewed actions and must not be smuggled into a read endpoint.
+`GET /api/v1/organizations/:organizationId/conversations` returns at most 100 conversations ordered by canonical activity with:
+
+- canonical conversation ID/status/activity time;
+- canonical contact ID/business-facing label;
+- latest canonical message direction/text/time when present;
+- latest active work-assignment employee ID/name when present.
+
+The route deliberately does not claim full history, unread/read state or provider metadata. The Web summary pane may show only fields from this list contract.
+
+The production activation was proven through an authenticated browser with Empresa Exemplo and still produced zero approvals, zero outbound attempts, zero outbound messages and zero provider bindings. See `docs/infra/conversations-read-live-v1.md`.
+
+## Next customer-read boundary
+
+The next likely customer slice is a separately reviewed **Conversation Detail/History Read V1**, because a human should not be asked to decide or send a reply without sufficient conversation context.
+
+It must remain read-only, tenant-authorized and provider-neutral. It may not introduce unread state, reply/send, edit-send, dismiss, takeover or provider/runtime identifiers by implication. Those actions require their own explicit contracts.
 
 ## Model provider status
 
@@ -254,17 +290,16 @@ Versioned DB migrations live under `infra/stacks/supabase/migrations/`; live-saf
 
 ## Near-term execution sequence
 
-1. keep canonical documentation synchronized;
-2. implement human Supabase JWT verification in Core using public ES256/JWKS;
-3. resolve canonical human identity without widening Core DB grants;
-4. expose a tenant-authorized read-only `attention-required` work/proposal projection;
-5. prove invalid token, unknown identity, cross-tenant, suspended-member and suspended-org denial;
-6. expose only the explicit human API path through the Web Nginx onto private `wandora-core`;
-7. replace `Trabalho` mocks with the proven read contract;
-8. connect `Conversas` next;
-9. separately define send/edit-send/dismiss and prove human-supervised outbound;
-10. add Platform Admin vertical slices around stable Wandora contracts;
-11. add a real model provider only when materially useful.
+1. keep canonical documentation synchronized with live state;
+2. define Conversation Detail/History Read V1 from the human journey before adding response actions;
+3. prove tenant isolation, suspended-state denial, ordering and provider/private-data absence for that read;
+4. connect only its exact reviewed Web route if the contract is accepted;
+5. separately define explicit human review actions such as send, edit-then-send and dismiss;
+6. preserve stronger commercial commitments on the existing approval boundary;
+7. prove the complete supervised human action path before enabling any autonomous customer traffic;
+8. add Platform Admin vertical slices around already-stable Wandora contracts;
+9. add customer onboarding, broader login options and organization switching around the proven auth/read journey;
+10. add a real model provider only when materially useful and only with a newly issued credential.
 
 ## Non-goals for the current phase
 
