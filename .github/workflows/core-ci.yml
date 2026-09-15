@@ -30,7 +30,7 @@ jobs:
         shell: bash
         run: bash apps/core/scripts/verify-ana-v1.sh
 
-      - name: Validate deterministic Agent Runtime overlay
+      - name: Validate deterministic Agent Runtime + Human API overlays
         shell: bash
         env:
           WANDORA_CORE_DB_PASSWORD_FILE: /tmp/ci-core-db-secret
@@ -42,4 +42,5 @@ jobs:
             -f infra/stacks/core/compose.database.yaml \
             -f infra/stacks/core/compose.gateway-ingress.yaml \
             -f infra/stacks/core/compose.agent-runtime-deterministic.yaml \
+            -f infra/stacks/core/compose.human-api.yaml \
             config >/dev/null
