@@ -48,6 +48,21 @@ The process starts in explicit `standby` mode without a database secret. In that
 
 The private runtime has no public hostname or published host port. See `infra/stacks/core/`.
 
+### Database secret file
+
+The production container remains the non-root image `node` user. A host-managed database-password file must therefore not rely on host UID ownership alone.
+
+Use these rules for database activation:
+
+- keep the secret outside Git/chat and outside container environment variables;
+- store it in an operator-controlled directory;
+- mode the secret `0640` or stricter, never world-readable;
+- keep the file group-owned by the intended operator group;
+- set `WANDORA_CORE_SECRET_GID` to that group's numeric GID when applying `compose.database.yaml`;
+- the overlay adds only that numeric group as a supplemental group to the non-root Core process.
+
+This lets the Node process read the one mounted secret without running as root or widening the file to `0644`.
+
 ## Verification
 
 From repository root:
@@ -58,4 +73,4 @@ From repository root:
 
 The verifier uses disposable `supabase/postgres:17.6.1.136` plus pinned Node 22.23.2, applies the reviewed migrations, runs SQL invariants/read-only production verifiers, strict TypeScript and integration tests, then destroys the disposable environment.
 
-The test harness deliberately separates fixture administration from the actual runtime identity. Application behavior is executed as `wandora_core_runtime`, currently with 17/17 tests green, plus a production image/standby smoke proof.
+The test harness deliberately separates fixture administration from the actual runtime identity. Application behavior is executed as `wandora_core_runtime`, currently with 17/17 tests green. It also boots the production image in both standby and database modes, proving that the non-root process can read a group-owned `0640` secret and reach database readiness without publishing a host port.
