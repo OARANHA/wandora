@@ -16,9 +16,11 @@ CORE_PASSWORD="wandora-core-test-only"
 FIXTURE_PASSWORD="wandora-fixture-test-only"
 CORE_IMAGE="wandora/core:ci-$SUFFIX"
 CORE_SMOKE="wandora-core-smoke-$SUFFIX"
+CORE_DB_SMOKE="wandora-core-db-smoke-$SUFFIX"
 TMP_SECRET="$(mktemp)"
 
 cleanup() {
+  docker rm -f "$CORE_DB_SMOKE" >/dev/null 2>&1 || true
   docker rm -f "$CORE_SMOKE" >/dev/null 2>&1 || true
   docker rm -f "$DB" >/dev/null 2>&1 || true
   docker image rm -f "$CORE_IMAGE" >/dev/null 2>&1 || true
@@ -94,9 +96,37 @@ docker exec "$CORE_SMOKE" node -e \
   "fetch('http://127.0.0.1:8788/readyz').then(r=>process.exit(r.status===503?0:1)).catch(()=>process.exit(1))"
 test -z "$(docker port "$CORE_SMOKE")"
 
+# Database mode must also prove that the non-root Node process can read a
+# group-owned secret without widening it to world-readable permissions.
+printf '%s\n' "$CORE_PASSWORD" > "$TMP_SECRET"
+chmod 0640 "$TMP_SECRET"
+docker run -d --name "$CORE_DB_SMOKE" --network "$NET" \
+  --group-add "$(id -g)" \
+  -v "$TMP_SECRET:/run/secrets/wandora_core_db_password:ro" \
+  -e WANDORA_CORE_MODE=database \
+  -e WANDORA_CORE_DB_HOST="$DB" \
+  -e WANDORA_CORE_DB_PORT=5432 \
+  -e WANDORA_CORE_DB_NAME="$DB_NAME" \
+  -e WANDORA_CORE_DB_USER=wandora_core_runtime \
+  -e WANDORA_CORE_DB_PASSWORD_FILE=/run/secrets/wandora_core_db_password \
+  -e PORT=8788 \
+  "$CORE_IMAGE" >/dev/null
+for _ in $(seq 1 30); do
+  if docker exec "$CORE_DB_SMOKE" node -e \
+    "fetch('http://127.0.0.1:8788/readyz').then(r=>process.exit(r.status===200?0:1)).catch(()=>process.exit(1))"; then
+    break
+  fi
+  sleep 1
+done
+docker exec "$CORE_DB_SMOKE" node -e \
+  "fetch('http://127.0.0.1:8788/healthz').then(r=>process.exit(r.status===200?0:1)).catch(()=>process.exit(1))"
+docker exec "$CORE_DB_SMOKE" node -e \
+  "fetch('http://127.0.0.1:8788/readyz').then(r=>process.exit(r.status===200?0:1)).catch(()=>process.exit(1))"
+test -z "$(docker port "$CORE_DB_SMOKE")"
+
 # Both standby and later database-activation Compose shapes must remain valid.
 docker compose -f "$ROOT/infra/stacks/core/compose.yaml" config >/dev/null
-WANDORA_CORE_DB_PASSWORD_FILE="$TMP_SECRET" docker compose \
+WANDORA_CORE_DB_PASSWORD_FILE="$TMP_SECRET" WANDORA_CORE_SECRET_GID="$(id -g)" docker compose \
   -f "$ROOT/infra/stacks/core/compose.yaml" \
   -f "$ROOT/infra/stacks/core/compose.database.yaml" config >/dev/null
 
