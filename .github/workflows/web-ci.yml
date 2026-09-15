@@ -59,19 +59,31 @@ jobs:
           assert data['cookie'] == '', data
           assert data['path'] == '/api/v1/me', data
           PY
-          RESPONSE="$(curl -fsS \
+          WORK_RESPONSE="$(curl -fsS \
             -H 'Authorization: Bearer ci-token' \
             -H 'Cookie: browser-session=must-not-cross' \
             http://127.0.0.1:18089/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/work/attention-required)"
-          python3 - "$RESPONSE" <<'PY'
+          python3 - "$WORK_RESPONSE" <<'PY'
           import json, sys
           data = json.loads(sys.argv[1])
           assert data['auth'] == 'Bearer ci-token', data
           assert data['cookie'] == '', data
           assert data['path'] == '/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/work/attention-required', data
           PY
+          CONVERSATIONS_RESPONSE="$(curl -fsS \
+            -H 'Authorization: Bearer ci-token' \
+            -H 'Cookie: browser-session=must-not-cross' \
+            http://127.0.0.1:18089/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/conversations)"
+          python3 - "$CONVERSATIONS_RESPONSE" <<'PY'
+          import json, sys
+          data = json.loads(sys.argv[1])
+          assert data['auth'] == 'Bearer ci-token', data
+          assert data['cookie'] == '', data
+          assert data['path'] == '/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/conversations', data
+          PY
           test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:18089/api/v1/session)" = "404"
           test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:18089/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/work/not-reviewed)" = "404"
+          test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:18089/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/conversations/not-reviewed)" = "404"
           test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:18089/internal/v1/gateway/inbound)" = "404"
           WANDORA_WEB_IMAGE="$WEB_IMAGE" docker compose -f infra/stacks/web/compose.yaml config --format json | \
             python3 -c 'import json,sys; s=json.load(sys.stdin)["services"]["web"]; assert set(s["networks"])=={"wandora-edge","wandora-core"}; assert not s.get("ports")'
