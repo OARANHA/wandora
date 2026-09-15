@@ -37,10 +37,16 @@ jobs:
           WANDORA_CORE_SECRET_GID: "1000"
           WANDORA_GATEWAY_CORE_INGRESS_SECRET_FILE: /tmp/ci-gateway-core-secret
         run: |
-          docker compose \
+          effective="$(docker compose \
             -f infra/stacks/core/compose.yaml \
             -f infra/stacks/core/compose.database.yaml \
             -f infra/stacks/core/compose.gateway-ingress.yaml \
             -f infra/stacks/core/compose.agent-runtime-deterministic.yaml \
             -f infra/stacks/core/compose.human-api.yaml \
-            config >/dev/null
+            config)"
+          printf '%s\n' "$effective" >/dev/null
+          grep -q 'WANDORA_HUMAN_API_ENABLED: "true"' <<<"$effective"
+          grep -q 'WANDORA_AUTH_JWKS_URL: https://supabase.wandora.com.br/auth/v1/.well-known/jwks.json' <<<"$effective"
+          grep -q 'WANDORA_AUTH_ISSUER: https://supabase.wandora.com.br/auth/v1' <<<"$effective"
+          grep -q 'WANDORA_AUTH_AUDIENCE: authenticated' <<<"$effective"
+          ! grep -q 'WANDORA_HUMAN_AUTH_' <<<"$effective"
