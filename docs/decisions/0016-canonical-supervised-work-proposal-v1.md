@@ -1,13 +1,13 @@
 # ADR 0016 — Canonical Supervised Work Proposal V1
 
 Date: 2026-09-15
-Status: **Accepted for implementation; production migration remains a separate reviewed operation.**
+Status: **Accepted, implemented and live.**
 
 ## Context
 
 ADR 0014 proved that the live Mastra deterministic runtime can create a safe `send-text` proposal while work remains `attention-required` and no outbound side effect occurs.
 
-For that proof, the proposal is stored inside `wandora_private.inbound_event_receipts.result`. ADR 0014 explicitly defines that receipt payload as internal evidence rather than the long-term customer-facing proposal model.
+For that proof, the proposal was stored inside `wandora_private.inbound_event_receipts.result`. ADR 0014 explicitly defines that receipt payload as internal evidence rather than the long-term customer-facing proposal model.
 
 The next product boundary is Wandora Web human supervision. Exposing the private receipt would couple the customer experience to ingress/idempotency implementation details and to a storage shape that was never designed as a stable product contract.
 
@@ -31,7 +31,7 @@ The table does not store Mastra workflow/run IDs, Evolution identifiers, raw pro
 
 `work_proposals` V1 accepts only `commitment = none`.
 
-The live supervised ingress must reject any runtime proposal carrying `discount`, `special-price`, `delivery-deadline`, `payment-terms` or `contractual` commitment rather than materializing it as an ordinary supervised proposal.
+The live supervised ingress rejects any runtime proposal carrying `discount`, `special-price`, `delivery-deadline`, `payment-terms` or `contractual` commitment rather than materializing it as an ordinary supervised proposal.
 
 Those stronger commitments remain on the existing `wandora.approvals` boundary.
 
@@ -54,9 +54,46 @@ A completed inbound replay returns the existing durable receipt result and does 
 
 `UNIQUE (organization_id, source_event_id)` provides an additional database invariant preventing duplicate canonical proposals for one normalized inbound event.
 
+## Live implementation
+
+Merged implementation:
+
+```text
+PR #36
+main commit: 79b5b08266acb0e92d65af3a7c7f547558e9cf6d
+migration: 20260915_004_supervised_proposal_v1.sql
+live Core image: wandora/core:canonical-proposal-79b5b082
+```
+
+The production migration was applied only after a fresh logical backup, checksum verification and a restored-schema rehearsal on the same Supabase PostgreSQL image. The live structural verifier returned:
+
+```text
+SUPERVISED_PROPOSAL_V1_LIVE_OK
+```
+
+The Core image was built from a 16/16 Git-blob-verified build context, proved in a private parallel candidate container and then promoted with rollback available to the previous Mastra image.
+
+## Live behavioral evidence
+
+A direct signed Core proof and a separate Messaging Gateway proof both established:
+
+```text
+work: attention-required
+proposal: exactly one / send-text / commitment none
+receipt: completed / supervision-required
+approvals: 0
+outbound attempts: 0
+outbound messages: 0
+replay: idempotent
+```
+
+The full Gateway proof exercised an Evolution-compatible JWT webhook through the live private Gateway and Core. A provider-private sentinel placed outside the normalized contract had zero hits in canonical receipt/message state.
+
+Core and Gateway remained healthy during and after the promotion.
+
 ## Verification
 
-The slice must prove:
+The slice proves:
 
 - schema/type/table existence and RLS enabled;
 - no direct `authenticated` read privilege;
@@ -86,8 +123,8 @@ Trade-offs:
 
 - the receipt still contains proposal evidence for replay compatibility during this phase;
 - human review state/actions are not modeled yet;
-- no Web/API/authentication capability is added by this slice.
+- no customer Web/API action capability was added by this slice.
 
 ## Next step
 
-After this migration/code path is merged and separately applied live, define the **human identity + tenant-authorized Core read projection** for `attention-required` work and canonical proposals, then connect the existing `Trabalho`/`Conversas` Web experience to that projection.
+Define the **human identity + tenant-authorized Core read projection** for `attention-required` work and canonical proposals, prove cross-tenant and suspended/inactive denial, then connect the existing `Trabalho`/`Conversas` Web experience to that projection without exposing provider or private receipt internals.
