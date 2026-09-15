@@ -99,13 +99,26 @@ export type EvolutionOutboundSenderDeps = {
   apiKey: string;
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
+  maxRememberedAttempts?: number;
 };
 
 export function createEvolutionOutboundSender(deps: EvolutionOutboundSenderDeps) {
   const attempts = new Map<string, Attempt>();
   const fetchImpl = deps.fetchImpl ?? fetch;
   const timeoutMs = deps.timeoutMs ?? 5_000;
+  const maxRememberedAttempts = deps.maxRememberedAttempts ?? 10_000;
   const baseUrl = deps.baseUrl.replace(/\/$/, '');
+
+  const makeRoom = (): boolean => {
+    if (attempts.size < maxRememberedAttempts) return true;
+    for (const [key, attempt] of attempts) {
+      if (attempt.state === 'succeeded') {
+        attempts.delete(key);
+        if (attempts.size < maxRememberedAttempts) return true;
+      }
+    }
+    return false;
+  };
 
   return async (command: OutboundTextCommand): Promise<OutboundTextOutcome> => {
     if (command.connectionId !== deps.connectionId) return { kind: 'connection-mismatch' };
@@ -115,6 +128,12 @@ export function createEvolutionOutboundSender(deps: EvolutionOutboundSenderDeps)
     if (existing) {
       if (existing.fingerprint !== commandFingerprint) return { kind: 'idempotency-conflict' };
       if (existing.state === 'succeeded') return { kind: 'accepted', result: existing.result };
+      return { kind: 'delivery-uncertain' };
+    }
+
+    if (!makeRoom()) {
+      // The durable Core attempt is authoritative. If this defensive cache is saturated
+      // with unresolved attempts, fail closed rather than risk another provider call.
       return { kind: 'delivery-uncertain' };
     }
 
