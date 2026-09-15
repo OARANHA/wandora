@@ -62,6 +62,8 @@ The following are current decisions unless superseded by a newer accepted ADR:
 - ADR 0009 accepts `apps/core` and the Ana durable Core vertical slice. Its reviewed Core multitenant/auth and Ana V1 migrations were applied to the live Wandora Supabase database on 2026-09-14 and passed the production-safe read-only post-verifier.
 - ADR 0010 accepts the least-privilege `wandora_core_runtime` database boundary. Migration `003` still creates the role credential-disabled by default; the later reviewed production activation now uses a dedicated secret-file credential, `CONNECTION LIMIT 4`, no `BYPASSRLS`, and a separately versioned activated-state verifier.
 - ADR 0011 accepts the private Wandora Core runtime. Core is live in database mode on private `wandora-core` + internal `wandora-data`, with no published host port, read-only root filesystem, non-root execution and `/readyz = 200` only through `wandora_core_runtime`.
+- ADR 0012 accepts authenticated private Gateway → Core supervised ingress with durable receipt/idempotency semantics and no model/outbound side effect.
+- ADR 0013 accepts the private inbound Evolution Messaging Gateway runtime. As of 2026-09-15 the controlled production webhook cutover and real handset inbound proof are green: the message reaches canonical Core state, stops at `attention-required` / `supervision-required`, and creates zero approvals and zero outbound attempts.
 - Security gate #22 is cleared. The affected shared Supabase HS256/JWT compatibility material and shared PostgreSQL password were rotated with validated backups, old-credential invalidation, full service-health proof and production-safe verifier reruns.
 - Official WhatsApp providers remain a production option behind the same gateway.
 - Model vendors are replaceable infrastructure behind a provider boundary. Do not request or hard-code a provider credential until a real provider call is materially required.
@@ -146,15 +148,15 @@ Routine mechanical steps inside an already-reviewed decision do not each require
 Unless an active blocker or explicit user decision changes priority:
 
 1. keep canonical documentation synchronized with accepted decisions and live operational state;
-2. wire normalized Messaging Gateway inbound traffic to Wandora Core in supervised mode, preserving provider-neutral events and durable receipt/idempotency semantics;
-3. wire the accepted Mastra Agent Runtime Adapter to Core, using a deterministic/fake model path first where possible and keeping model-provider selection replaceable;
+2. wire the accepted Mastra Agent Runtime Adapter to Core through a deterministic internal proposal path first, with no model credential and no outbound side effect;
+3. prove that deterministic runtime output remains Wandora-owned, tenant-scoped and subject to existing policy/approval boundaries before allowing any real model-backed proposal;
 4. expose tenant-authorized Core read/action APIs to Wandora Web so the existing human experience uses canonical state;
-5. prove the complete real path in supervised mode before any autonomous customer traffic;
+5. prove the complete human-supervised proposal/approval path before any autonomous customer traffic;
 6. when the first real model call is materially required, revoke the previously Git-exposed Mistral token, generate a fresh token and configure it only through an approved operator-controlled secret path;
 7. add real customer authentication/onboarding wiring around that proven journey;
 8. add Google/social login and broader integrations only when a validated customer workflow requires them.
 
-Supabase Foundation V1, Mastra Agent Runtime V1, Evolution Messaging Gateway V1, Wandora Core Multi-tenant/Auth Contract V1, Human Interface/Product Shell V1, First-Day Customer Journey V1, Ana inbound new-contact contract V1, Ana durable Core vertical slice V1 including its live database foundation, security gate #22, the Core runtime database boundary and the private Core runtime with **least-privilege database activation live** are complete or accepted. Do not repeat them unless verifying/repairing drift. The next product-path slice is **Messaging Gateway → Wandora Core supervised wiring**. See `docs/CANONICAL_STATE.md` for exact operational status.
+Supabase Foundation V1, Mastra Agent Runtime V1 laboratory validation, Evolution Messaging Gateway V1, Wandora Core Multi-tenant/Auth Contract V1, Human Interface/Product Shell V1, First-Day Customer Journey V1, Ana inbound new-contact contract V1, Ana durable Core vertical slice V1 including its live database foundation, security gate #22, the Core runtime database boundary, the private Core runtime with **least-privilege database activation live**, and **Messaging Gateway → Wandora Core Supervised V1 live real-handset proof** are complete or accepted. Do not repeat them unless verifying/repairing drift. The next product-path slice is **Core → Agent Runtime Adapter → Mastra deterministic proposal V1**. See `docs/infra/messaging-gateway-supervised-live-v1.md` for the completed inbound proof and `docs/CANONICAL_STATE.md` for broader operational status.
 
 ## 9. Definition of progress
 
