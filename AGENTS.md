@@ -65,6 +65,7 @@ The following are current decisions unless superseded by a newer accepted ADR:
 - ADR 0012 accepts authenticated private Gateway → Core supervised ingress with durable receipt/idempotency semantics and no model/outbound side effect.
 - ADR 0013 accepts the private inbound Evolution Messaging Gateway runtime. As of 2026-09-15 the controlled production webhook cutover and real handset inbound proof are green: the message reaches canonical Core state, stops at `attention-required` / `supervision-required`, and creates zero approvals and zero outbound attempts.
 - ADR 0014 accepts the Core → Mastra deterministic supervised proposal path. As of 2026-09-15 it is live behind the existing supervised Gateway ingress: Mastra framework telemetry is forced off before framework load, proposals remain Wandora-owned/private, work remains `attention-required`, receipts remain `supervision-required`, and live direct-Core plus Gateway end-to-end proofs created zero approvals, zero outbound attempts and zero outbound messages.
+- ADR 0015 accepts **Wandora Platform Admin** as the first-party owner/operator control plane. Mastra Studio, Paperclip UI, Evolution Manager, Supabase Studio and Portainer remain protected engineering/diagnostic surfaces, not the normal daily administration workflow and never a customer dependency.
 - Security gate #22 is cleared. The affected shared Supabase HS256/JWT compatibility material and shared PostgreSQL password were rotated with validated backups, old-credential invalidation, full service-health proof and production-safe verifier reruns.
 - Official WhatsApp providers remain a production option behind the same gateway.
 - Model vendors are replaceable infrastructure behind a provider boundary. Do not request or hard-code a provider credential until a real provider call is materially required.
@@ -74,18 +75,20 @@ The following are current decisions unless superseded by a newer accepted ADR:
 ## 5. Preferred component shape
 
 ```text
-Wandora Web
-  -> Wandora Core/API
-      -> Business Graph / Supabase PostgreSQL
-      -> Organization Adapter -> Paperclip
-      -> Agent Runtime Adapter -> Mastra
-      -> Tool Gateway -> authenticated/direct integrations
-      -> Messaging Gateway -> Evolution / Meta / other providers
-      -> Model Provider -> Mistral / Chutes / OpenAI / other providers
-      -> Approval / Policy boundary
+Customer Wandora Web            Wandora Platform Admin
+        \                         /
+         \                       /
+          -> Wandora Core/API <-
+              -> Business Graph / Supabase PostgreSQL
+              -> Organization Adapter -> Paperclip
+              -> Agent Runtime Adapter -> Mastra
+              -> Tool Gateway -> authenticated/direct integrations
+              -> Messaging Gateway -> Evolution / Meta / other providers
+              -> Model Provider -> Mistral / Chutes / OpenAI / other providers
+              -> Approval / Policy boundary
 ```
 
-Mastra, Paperclip, Supabase and Evolution are technologies used by Wandora. None of them is Wandora itself.
+Mastra, Paperclip, Supabase and Evolution are technologies used by Wandora. None of them is Wandora itself. Their native consoles may be used for protected engineering/diagnostics, but normal platform administration should progressively move behind Wandora-owned Platform Admin contracts.
 
 ## 6. Infrastructure rules
 
@@ -118,6 +121,8 @@ Before promoting a third-party dependency into architecture:
 Do not build speculative surface area. Prefer vertical slices that remove a critical uncertainty and leave a reproducible artifact.
 
 For customer-facing work, design the human journey before the technical screen. The interface should answer who is responsible, what is happening, what needs approval and what result was produced. Do not expose technical runtime/provider concepts merely because they are easy to surface.
+
+For platform-operator work, prefer Wandora-owned concepts and controls. Do not make Mastra Studio, Paperclip UI, Evolution Manager, Supabase Studio or Portainer a required daily workflow merely because their native UI is convenient. Promote a control into Platform Admin only after its Wandora-owned contract, authorization, audit and rollback semantics are understood.
 
 The default customer path must aim for useful work on the same day. A multi-day manual implementation dependency may exist as an assisted premium service, but it must not be required for the normal SaaS experience.
 
@@ -155,11 +160,12 @@ Unless an active blocker or explicit user decision changes priority:
 5. connect the existing `Trabalho` / `Conversas` human experience to that reviewed Core projection;
 6. define explicit human review actions such as send, edit then send or dismiss before wiring any outbound effect; keep commercial commitments on the stronger existing approval boundary;
 7. prove the complete human-supervised review/action path before any autonomous customer traffic;
-8. only when the first real model call is materially required, revoke the previously Git-exposed Mistral token, generate a fresh token and configure it only through an approved operator-controlled secret path;
-9. add real customer authentication/onboarding wiring around that proven journey;
-10. add Google/social login and broader integrations only when a validated customer workflow requires them.
+8. add Platform Admin capabilities incrementally around already-stable Wandora-owned contracts; do not pause the first customer-visible employee loop to build a generic infrastructure dashboard;
+9. only when the first real model call is materially required, revoke the previously Git-exposed Mistral token, generate a fresh token and configure it only through an approved operator-controlled secret path;
+10. add real customer authentication/onboarding wiring around that proven journey;
+11. add Google/social login and broader integrations only when a validated customer workflow requires them.
 
-Supabase Foundation V1, Mastra Agent Runtime V1 laboratory validation, Evolution Messaging Gateway V1, Wandora Core Multi-tenant/Auth Contract V1, Human Interface/Product Shell V1, First-Day Customer Journey V1, Ana inbound new-contact contract V1, Ana durable Core vertical slice V1 including its live database foundation, security gate #22, the Core runtime database boundary, the private Core runtime with **least-privilege database activation live**, **Messaging Gateway → Wandora Core Supervised V1 live real-handset proof**, and **Core → Mastra Deterministic Supervised Proposal V1 live end-to-end proof** are complete or accepted. Do not repeat them unless verifying/repairing drift. The next product-path slice is **Supervised Proposal Review V1 — Core → Wandora Web**. See `docs/infra/core-mastra-deterministic-live-activation-v1.md` and `docs/CANONICAL_STATE.md` for current operational evidence and handoff.
+Supabase Foundation V1, Mastra Agent Runtime V1 laboratory validation, Evolution Messaging Gateway V1, Wandora Core Multi-tenant/Auth Contract V1, Human Interface/Product Shell V1, First-Day Customer Journey V1, Ana inbound new-contact contract V1, Ana durable Core vertical slice V1 including its live database foundation, security gate #22, the Core runtime database boundary, the private Core runtime with **least-privilege database activation live**, **Messaging Gateway → Wandora Core Supervised V1 live real-handset proof**, and **Core → Mastra Deterministic Supervised Proposal V1 live end-to-end proof** are complete or accepted. **Wandora Platform Admin** is now the accepted operator-control-plane direction, but is not yet implemented as a complete cockpit. Do not repeat completed foundations unless verifying/repairing drift. The next product-path slice remains **Supervised Proposal Review V1 — Core → Wandora Web**. See ADR 0015, `docs/infra/core-mastra-deterministic-live-activation-v1.md` and `docs/CANONICAL_STATE.md` for current direction and operational evidence.
 
 ## 9. Definition of progress
 
