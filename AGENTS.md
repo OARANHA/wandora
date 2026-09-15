@@ -22,7 +22,7 @@ Do not import assumptions, code, naming, architecture or business rules from unr
 
 The product thesis is business-first: Wandora is not a CRM with AI and not a generic agent builder. CRM, messaging, scheduling, finance and other systems are tools used by digital employees inside a Wandora-governed company.
 
-A normal customer should understand the product through business language — company, team, responsibilities, work, approvals and outcomes — without needing to know Supabase, Evolution, Mastra, RLS, provider IDs, prompts or tokens.
+A normal customer should understand the product through business language — company, team, responsibilities, work, conversations, approvals and outcomes — without needing to know Supabase, Evolution, Mastra, RLS, provider IDs, prompts or tokens.
 
 ## 3. Ownership boundary
 
@@ -52,22 +52,26 @@ The following are current decisions unless superseded by a newer accepted ADR:
 - Supabase is infrastructure, not the Wandora backend. Domain logic remains in Wandora Core/API.
 - One Supabase deployment is used per product/bounded context, not one shared database for unrelated products and not one deployment per Wandora customer.
 - The initial Supabase deployment may run on the current Wandora VPS while load is low; migration to a dedicated data-plane VPS must remain straightforward.
-- `studio.wandora.com.br` is an administrative surface and must be strongly protected (Cloudflare Access preferred). PostgreSQL must never be publicly exposed.
+- `studio.wandora.com.br` is an administrative surface and must be strongly protected. PostgreSQL must never be publicly exposed.
 - `supabase.wandora.com.br` is the stable application-facing Supabase endpoint. Future VPS migration should preserve this contract through DNS/ingress changes.
-- Evolution API 2.3.7 is the accepted initial laboratory WhatsApp provider behind a Wandora-owned `Messaging Gateway`; the provider-neutral boundary has been validated with real inbound and outbound WhatsApp traffic, and digital employees must never call Evolution directly.
+- Evolution API 2.3.7 is the accepted initial laboratory WhatsApp provider behind a Wandora-owned `Messaging Gateway`; digital employees never call Evolution directly.
 - Wandora Core owns canonical organization, user, membership and provider-neutral messaging-connection identity. Supabase Auth subjects and provider/runtime IDs are not Wandora business IDs.
 - Initial human organization roles are `owner`, `admin` and `member`; role is not a universal permission matrix and sensitive/domain actions remain explicit Core policy decisions.
-- React + Vite with TanStack Router/Query is the accepted initial Wandora Web shell. TanStack supplies application behavior, not Wandora's visual identity; customer-facing design remains Wandora-owned.
+- React + Vite with TanStack Router/Query is the accepted initial Wandora Web shell. TanStack supplies application behavior, not Wandora's visual identity.
 - `Empresa` is the customer-facing organization administration center; personal user preferences/security/session belong to the user menu rather than a competing generic Settings section.
-- ADR 0009 accepts `apps/core` and the Ana durable Core vertical slice. Its reviewed Core multitenant/auth and Ana V1 migrations were applied to the live Wandora Supabase database on 2026-09-14 and passed the production-safe read-only post-verifier.
-- ADR 0010 accepts the least-privilege `wandora_core_runtime` database boundary. Migration `003` still creates the role credential-disabled by default; the later reviewed production activation now uses a dedicated secret-file credential, `CONNECTION LIMIT 4`, no `BYPASSRLS`, and a separately versioned activated-state verifier.
-- ADR 0011 accepts the private Wandora Core runtime. Core is live in database mode on private `wandora-core` + internal `wandora-data`, with no published host port, read-only root filesystem, non-root execution and `/readyz = 200` only through `wandora_core_runtime`.
-- ADR 0012 accepts authenticated private Gateway → Core supervised ingress with durable receipt/idempotency semantics and no model/outbound side effect.
-- ADR 0013 accepts the private inbound Evolution Messaging Gateway runtime. As of 2026-09-15 the controlled production webhook cutover and real handset inbound proof are green: the message reaches canonical Core state, stops at `attention-required` / `supervision-required`, and creates zero approvals and zero outbound attempts.
-- ADR 0014 accepts the Core → Mastra deterministic supervised proposal path. As of 2026-09-15 it is live behind the existing supervised Gateway ingress: Mastra framework telemetry is forced off before framework load, work remains `attention-required`, receipts remain `supervision-required`, and live direct-Core plus Gateway end-to-end proofs created zero approvals, zero outbound attempts and zero outbound messages.
-- ADR 0015 accepts **Wandora Platform Admin** as the first-party owner/operator control plane. Mastra Studio, Paperclip UI, Evolution Manager, Supabase Studio and Portainer remain protected engineering/diagnostic surfaces, not the normal daily administration workflow and never a customer dependency.
-- ADR 0016 accepts canonical `wandora.work_proposals` for safe supervised proposals. Migration `20260915_004_supervised_proposal_v1.sql` is live; Core image `wandora/core:canonical-proposal-79b5b082` persists exactly one tenant-scoped `commitment=none` proposal atomically with `attention-required` + receipt completion. `authenticated` has no direct proposal-table access, Core has SELECT+INSERT only, stronger commitments remain on `wandora.approvals`, and live direct-Core + full Gateway proofs show zero approvals/outbound effects with replay idempotency.
-- Security gate #22 is cleared. The affected shared Supabase HS256/JWT compatibility material and shared PostgreSQL password were rotated with validated backups, old-credential invalidation, full service-health proof and production-safe verifier reruns.
+- ADR 0009 accepts `apps/core` and the Ana durable Core vertical slice. Its reviewed multitenant/auth and Ana V1 migrations are live.
+- ADR 0010 accepts the least-privilege `wandora_core_runtime` database boundary. The live role has a dedicated secret-file credential, `CONNECTION LIMIT 4`, no `BYPASSRLS`, and a separate activated-state verifier.
+- ADR 0011 accepts the private Wandora Core runtime: database mode, private networks only, no published host port, read-only root filesystem, non-root execution and readiness through the least-privilege role.
+- ADR 0012 accepts authenticated private Gateway → Core supervised ingress with durable receipt/idempotency semantics and no model/outbound side effect by itself.
+- ADR 0013 accepts the private inbound Evolution Messaging Gateway runtime. Real handset proof is green and stops at human supervision.
+- ADR 0014 accepts Core → Mastra deterministic supervised proposal generation behind the Wandora-owned Agent Runtime Adapter. Mastra telemetry is forced off and no model credential is required.
+- ADR 0015 accepts **Wandora Platform Admin** as the first-party owner/operator control plane. Native third-party consoles remain engineering/diagnostic surfaces, never a customer dependency.
+- ADR 0016 accepts canonical `wandora.work_proposals` for safe supervised proposals. Stronger commitments remain on `wandora.approvals`.
+- ADR 0017 accepts **Human Supervision Read V1**: Core validates Supabase ES256/JWKS Bearer sessions, resolves canonical identity and exposes the reviewed tenant-authorized `attention-required` read without provider/private leakage.
+- ADR 0018 accepts **Human Session Bootstrap V1** through `GET /api/v1/me`, returning only canonical Wandora user and active organization memberships.
+- ADR 0019 accepts **Web Human Session V1**: browser sign-in uses Supabase Auth directly with only the public/publishable key, session material stays in `sessionStorage`, public signup remains disabled, and `Trabalho` consumes the reviewed Core read.
+- ADR 0020 accepts **Conversations Read V1**: the exact tenant-authorized conversations list route is live in production and remains read-only/provider-neutral.
+- Security gate #22 is cleared. Affected shared Supabase JWT compatibility material and the shared PostgreSQL password were rotated with backups, old-value invalidation and verifier reruns.
 - Official WhatsApp providers remain a production option behind the same gateway.
 - Model vendors are replaceable infrastructure behind a provider boundary. Do not request or hard-code a provider credential until a real provider call is materially required.
 - Structured business facts belong in canonical PostgreSQL storage, not only in agent memory/RAG.
@@ -89,7 +93,7 @@ Customer Wandora Web            Wandora Platform Admin
               -> Approval / Policy boundary
 ```
 
-Mastra, Paperclip, Supabase and Evolution are technologies used by Wandora. None of them is Wandora itself. Their native consoles may be used for protected engineering/diagnostics, but normal platform administration should progressively move behind Wandora-owned Platform Admin contracts.
+Mastra, Paperclip, Supabase and Evolution are technologies used by Wandora. None of them is Wandora itself. Their native consoles may be used for protected engineering/diagnostics, but normal customer and platform administration must progressively move behind Wandora-owned contracts.
 
 ## 6. Infrastructure rules
 
@@ -98,16 +102,17 @@ Mastra, Paperclip, Supabase and Evolution are technologies used by Wandora. None
 - Prefer pinned image/release versions over unreviewed `latest` tags.
 - Do not expose Docker socket, PostgreSQL, Redis, internal runtimes, Paperclip internals or management APIs publicly.
 - Administrative surfaces require stronger controls than customer-facing APIs.
-- Frequently used operator applications may receive their own HTTPS hostname when useful, but they must remain operator-only and strongly access-controlled; a convenient URL is not permission to expose the underlying machine service directly.
+- Frequently used operator applications may receive their own HTTPS hostname when useful, but must remain operator-only and strongly access-controlled.
 - Never commit secrets, tokens, private keys, OAuth client secrets, SMTP credentials or real customer credentials. A credential that ever enters Git history must be treated as compromised and rotated before use; repository privacy does not make Git a secret store.
 - Design persistent data so it can be backed up, restore-tested and moved to another VPS.
 - New public hostnames must be intentional contracts, not third-party product names.
 - Versioned Wandora DB migrations live under `infra/stacks/supabase/migrations/`; verifiers live under `infra/stacks/supabase/verifiers/`. Never apply SQL directly from `spikes/` to the live database.
-- A migration being reviewed/merged does not mean it is already applied live. Live schema changes require explicit operational preflight, reversibility/backup awareness and post-verification.
-- A live database role existing does not justify activating its credential early. Runtime credentials are provisioned only together with the reviewed service deployment and secret-injection path that will consume them.
-- Keep migration-state and activated-runtime verifiers separate when both are legitimate states; do not relax a fail-closed migration invariant merely because a later operator step intentionally activates a capability.
-- A known credential exposure or rotation gate must be cleared before introducing a dependent production credential or customer traffic. Do not bypass a security gate merely because the affected environment currently has no customer rows.
+- A migration being reviewed/merged does not mean it is already applied live. Live schema changes require explicit operational preflight, backup/reversibility awareness and post-verification.
+- A live database role existing does not justify activating its credential early. Runtime credentials are provisioned only together with the reviewed service deployment and secret-injection path that consumes them.
+- Keep migration-state and activated-runtime verifiers separate when both are legitimate states; do not relax fail-closed migration invariants because a later operator step intentionally activates a capability.
+- A known credential exposure or rotation gate must be cleared before introducing a dependent production credential or customer traffic.
 - Credentials retained only in protected rollback snapshots after a completed rotation are compromised historical material; they must not be restored as steady-state credentials.
+- For Core production recreation/candidate work, use the canonical host secret file `wandora_core_db_password`. Do not substitute the legacy `core-db-password` filename; a candidate using that wrong file failed readiness while the live canonical secret remained valid.
 
 ## 7. Product and development discipline
 
@@ -123,11 +128,15 @@ Do not build speculative surface area. Prefer vertical slices that remove a crit
 
 For customer-facing work, design the human journey before the technical screen. The interface should answer who is responsible, what is happening, what needs approval and what result was produced. Do not expose technical runtime/provider concepts merely because they are easy to surface.
 
-For platform-operator work, prefer Wandora-owned concepts and controls. Do not make Mastra Studio, Paperclip UI, Evolution Manager, Supabase Studio or Portainer a required daily workflow merely because their native UI is convenient. Promote a control into Platform Admin only after its Wandora-owned contract, authorization, audit and rollback semantics are understood.
+For platform-operator work, prefer Wandora-owned concepts and controls. Do not make Mastra Studio, Paperclip UI, Evolution Manager, Supabase Studio or Portainer a required daily workflow merely because their native UI is convenient.
 
 The default customer path must aim for useful work on the same day. A multi-day manual implementation dependency may exist as an assisted premium service, but it must not be required for the normal SaaS experience.
 
 For Ana or future employees, unknown/ambiguous external side effects must fail conservatively. In particular, an uncertain message delivery must not be retried automatically unless reconciliation proves it safe.
+
+Read-only slices must stay read-only. Do not smuggle reply/send/edit-send/dismiss/takeover or any other outbound effect into a read contract.
+
+A browser-supplied organization or conversation identifier is always a selector, never authorization evidence. Core must independently authorize active membership and keep transaction-local tenant scope + RLS.
 
 ### Dual business perspective
 
@@ -155,18 +164,20 @@ Routine mechanical steps inside an already-reviewed decision do not each require
 Unless an active blocker or explicit user decision changes priority:
 
 1. keep canonical documentation synchronized with accepted decisions and live operational state;
-2. define **Human Supervision Read V1**: validate Supabase human sessions in Core using public ES256/JWKS verification, map `sub` to canonical Wandora identity without giving Core `service_role` or a JWT signing secret, and treat any organization ID supplied by the browser only as a selector after membership authorization;
-3. expose the smallest tenant-authorized Core read projection for `attention-required` work + canonical `work_proposals`, without exposing `wandora_private.inbound_event_receipts`, provider metadata, source provider IDs or Mastra internals;
-4. prove invalid token, unknown identity, cross-tenant, suspended membership and suspended organization denial before connecting the browser;
-5. route only the reviewed human API path from `app.wandora.com.br` through the Web Nginx onto private `wandora-core`; do not make the internal Gateway ingress or a generic Core proxy public;
-6. connect the existing `Trabalho` first, then `Conversas`, replacing mocks only after the corresponding canonical read contract is proven;
-7. define explicit human review actions such as send, edit then send or dismiss before wiring any outbound effect; keep commercial commitments on the stronger existing approval boundary;
-8. prove the complete human-supervised review/action path before any autonomous customer traffic;
+2. preserve the proven Human Session + `Trabalho` + `Conversas` read path and do not reopen it without evidence;
+3. define a separately reviewed **Conversation Detail/History Read V1** if the human journey needs enough context before response decisions;
+4. keep that slice read-only, tenant-authorized, bounded and provider-neutral; prove invalid token, unknown identity, cross-tenant, suspended membership and suspended organization denial;
+5. expose only the exact reviewed detail/history Web route after the Core contract is green; generic `/api/` and all `/internal/` paths remain closed;
+6. only after sufficient context exists, define explicit human review actions such as send, edit-then-send and dismiss as a separate contract;
+7. keep commercial commitments such as discount, price, deadline and payment terms on the stronger existing approval boundary;
+8. prove the complete human-supervised action path before any autonomous customer traffic;
 9. add Platform Admin capabilities incrementally around already-stable Wandora-owned contracts; do not pause the first customer-visible employee loop to build a generic infrastructure dashboard;
-10. only when the first real model call is materially required, revoke the previously Git-exposed Mistral token, generate a fresh token and configure it only through an approved operator-controlled secret path;
-11. add customer onboarding and broader login/integration options around the proven auth/read journey rather than bypassing Core authorization.
+10. add customer onboarding, password recovery/OAuth and organization switching around the proven authorization path rather than bypassing Core;
+11. only when the first real model call is materially required, revoke/replace the previously Git-exposed Mistral credential and configure the fresh value only through an approved operator-controlled secret path.
 
-Supabase Foundation V1, Mastra Agent Runtime V1 laboratory validation, Evolution Messaging Gateway V1, Wandora Core Multi-tenant/Auth Contract V1, Human Interface/Product Shell V1, First-Day Customer Journey V1, Ana inbound new-contact contract V1, Ana durable Core vertical slice V1 including its live database foundation, security gate #22, the Core runtime database boundary, the private Core runtime with **least-privilege database activation live**, **Messaging Gateway → Wandora Core Supervised V1 live real-handset proof**, **Core → Mastra Deterministic Supervised Proposal V1 live end-to-end proof**, and **Canonical Supervised Work Proposal V1 live** are complete or accepted. **Wandora Platform Admin** is the accepted operator-control-plane direction but is not yet implemented as a complete cockpit. Do not repeat completed foundations unless verifying/repairing drift. The next product-path slice is **Human Supervision Read V1 — authenticated tenant-authorized Core → Wandora Web**. See ADRs 0015–0016 and `docs/CANONICAL_STATE.md` for current direction.
+Supabase Foundation V1, Mastra Agent Runtime V1 laboratory validation, Evolution Messaging Gateway V1, Wandora Core Multi-tenant/Auth Contract V1, Human Interface/Product Shell V1, First-Day Customer Journey V1, Ana inbound new-contact contract V1, Ana durable Core vertical slice V1, security gate #22, the Core runtime database boundary, private Core runtime, Messaging Gateway → Core Supervised V1, Core → Mastra Deterministic Supervised Proposal V1, Canonical Supervised Work Proposal V1, Human Supervision Read V1, Human Session Bootstrap V1, Web Human Session V1 and Conversations Read V1 are complete/live. Do not repeat completed foundations unless verifying or repairing drift.
+
+The current production Core and Web images are `wandora/core:conversations-read-ae6177a3` and `wandora/web:conversations-read-ae6177a3`. Authenticated browser proof is green and post-read state remains zero approvals/outbound attempts/outbound messages/provider bindings for Empresa Exemplo. See ADR 0020, `docs/CANONICAL_STATE.md` and `docs/infra/conversations-read-live-v1.md`.
 
 ## 9. Definition of progress
 
