@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test, { after } from 'node:test';
 import { Pool } from 'pg';
 import { MastraDeterministicAgentRuntime } from '../src/agent-runtime/mastra-deterministic.js';
+import type { AgentRuntime } from '../src/ana/contracts.js';
 import { PostgresAnaRepository } from '../src/ana/postgres-repository.js';
 import { AnaSupervisedIngressService } from '../src/ana/supervised-ingress.js';
 
@@ -22,8 +23,8 @@ async function resetFixture(): Promise<void> {
   await fixturePool.query(`TRUNCATE
     wandora_private.outbound_attempts,
     wandora_private.inbound_event_receipts,
-    wandora.audit_records, wandora.approvals, wandora.messages,
-    wandora.work_items, wandora.conversations, wandora.contacts,
+    wandora.audit_records, wandora.approvals, wandora.work_proposals,
+    wandora.messages, wandora.work_items, wandora.conversations, wandora.contacts,
     wandora.digital_employees, wandora.messaging_connections,
     wandora.memberships, wandora.user_identities, wandora.users,
     wandora.organizations RESTART IDENTITY CASCADE`);
@@ -83,10 +84,52 @@ test('MASTRA DETERMINISTIC SUPERVISED PROPOSAL V1', async () => {
 
   assert.equal(await scalar(`SELECT count(*)::text AS value FROM wandora.messages`), '1');
   assert.equal(await scalar(`SELECT count(*)::text AS value FROM wandora.approvals`), '0');
+  assert.equal(await scalar(`SELECT count(*)::text AS value FROM wandora.work_proposals`), '1');
   assert.equal(await scalar(`SELECT count(*)::text AS value FROM wandora_private.outbound_attempts`), '0');
   assert.equal(await scalar(`SELECT status::text AS value FROM wandora.work_items LIMIT 1`), 'attention-required');
   assert.equal(await scalar(`SELECT status::text AS value FROM wandora_private.inbound_event_receipts LIMIT 1`), 'completed');
   assert.equal(await scalar(`SELECT result->>'status' AS value FROM wandora_private.inbound_event_receipts LIMIT 1`), 'supervision-required');
   assert.equal(await scalar(`SELECT result->'proposal'->>'commitment' AS value FROM wandora_private.inbound_event_receipts LIMIT 1`), 'none');
+  assert.equal(await scalar(`SELECT commitment::text AS value FROM wandora.work_proposals LIMIT 1`), 'none');
+  assert.equal(await scalar(`SELECT kind::text AS value FROM wandora.work_proposals LIMIT 1`), 'send-text');
+  assert.equal(await scalar(`SELECT proposed_text AS value FROM wandora.work_proposals LIMIT 1`),
+    'Olá! Obrigado pelo contato. Para eu entender melhor e te orientar, você pode me contar o que precisa?');
   assert.equal(await scalar(`SELECT count(*)::text AS value FROM wandora_private.inbound_event_receipts`), '1');
+});
+
+test('SUPERVISED INGRESS REFUSES COMMITMENT PROPOSALS', async () => {
+  await resetFixture();
+  const unsafeRuntime: AgentRuntime = {
+    async proposeCommercialReply() {
+      return {
+        kind: 'send-text',
+        text: 'Posso conceder 12% de desconto.',
+        commitment: 'discount',
+        rationale: 'Cliente pediu condição especial.',
+      };
+    },
+  };
+  const service = new AnaSupervisedIngressService({
+    repository,
+    pool: runtimePool,
+    runtime: unsafeRuntime,
+    now: () => NOW,
+  });
+
+  await assert.rejects(
+    () => service.handle(ORG, {
+      eventId: 'evt_mastra_supervised_unsafe_00000001',
+      connectionId: CONN,
+      sender: '+5551888888888',
+      text: 'Você consegue me dar desconto?',
+      occurredAt: NOW,
+    }),
+    (error: unknown) => error instanceof Error && error.message.includes('without a commercial commitment'),
+  );
+
+  assert.equal(await scalar(`SELECT count(*)::text AS value FROM wandora.work_proposals`), '0');
+  assert.equal(await scalar(`SELECT count(*)::text AS value FROM wandora.approvals`), '0');
+  assert.equal(await scalar(`SELECT count(*)::text AS value FROM wandora_private.outbound_attempts`), '0');
+  assert.equal(await scalar(`SELECT status::text AS value FROM wandora.work_items LIMIT 1`), 'in-progress');
+  assert.equal(await scalar(`SELECT status::text AS value FROM wandora_private.inbound_event_receipts LIMIT 1`), 'failed');
 });

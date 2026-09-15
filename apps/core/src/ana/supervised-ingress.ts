@@ -74,6 +74,12 @@ export class AnaSupervisedIngressService {
           'Agent Runtime returned an invalid supervised text proposal.',
         );
       }
+      if (proposal.commitment !== 'none') {
+        throw new CoreStateError(
+          'supervised_proposal_requires_approval',
+          'Supervised ingress accepts only proposals without a commercial commitment.',
+        );
+      }
       return proposal;
     } catch (error) {
       await this.deps.repository
@@ -103,6 +109,33 @@ export class AnaSupervisedIngressService {
 
     try {
       await this.tx(organizationId, async (client) => {
+        if (proposal) {
+          const persistedProposal = await client.query(
+            `INSERT INTO wandora.work_proposals
+               (organization_id, employee_id, work_item_id, conversation_id,
+                source_event_id, kind, proposed_text, commitment, rationale)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+             RETURNING id`,
+            [
+              organizationId,
+              context.employee.id,
+              context.workItemId,
+              context.conversationId,
+              event.eventId,
+              proposal.kind,
+              proposal.text,
+              proposal.commitment,
+              proposal.rationale,
+            ],
+          );
+          if (persistedProposal.rowCount !== 1) {
+            throw new CoreStateError(
+              'supervised_proposal_persist_failed',
+              'Supervised proposal could not be stored canonically.',
+            );
+          }
+        }
+
         const work = await client.query(
           `UPDATE wandora.work_items
               SET status = 'attention-required'
