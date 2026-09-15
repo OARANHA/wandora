@@ -22,7 +22,7 @@ Public customer application:
 
 Navigation remains `Início`, `Equipe`, `Trabalho`, `Conversas`, `Aprovações` and `Empresa`.
 
-The browser session path is now real:
+The browser session path is real:
 
 1. an already-provisioned user signs in against Supabase Auth;
 2. Web keeps V1 session material in `sessionStorage`;
@@ -31,9 +31,9 @@ The browser session path is now real:
 5. with exactly one active organization, Web selects it automatically;
 6. tenant reads still independently re-check active organization + active membership in Core under transaction-local tenant scope and RLS.
 
-The shell now displays canonical user/company identity rather than hard-coded preview identity.
+The shell displays canonical user/company identity rather than hard-coded preview identity.
 
-`Trabalho` and `Conversas` are connected to canonical tenant-authorized Core reads. Other customer surfaces may still contain preview/product-contract placeholders and must not be described as real until their own reviewed contracts are live.
+`Trabalho`, the `Conversas` list and the selected-conversation history are connected to canonical tenant-authorized Core reads. Other customer surfaces may still contain preview/product-contract placeholders and must not be described as real until their own reviewed contracts are live.
 
 ### Empresa Exemplo beta proof
 
@@ -41,7 +41,7 @@ A canonical `Empresa Exemplo` exists as production beta/demo data, not as a fron
 
 The example messaging connection has no provider binding, so the example cannot accidentally route to Evolution.
 
-The authenticated browser proof succeeded with canonical shell identity and canonical conversation data for `Mariana Exemplo` / `Ana`.
+The authenticated browser proof succeeded with canonical shell identity, canonical conversation list and canonical read-only history for `Mariana Exemplo` / `Ana`.
 
 ## Platform administration direction — ACCEPTED
 
@@ -99,8 +99,8 @@ Core and Messaging Gateway publish no host ports. Core has no generic public hos
 Current live containers/images:
 
 ```text
-Core image:    wandora/core:conversations-read-ae6177a3
-Web image:     wandora/web:conversations-read-ae6177a3
+Core image:    wandora/core:conversation-history-2105f6e3
+Web image:     wandora/web:conversation-history-2105f6e3
 Gateway image: wandora/messaging-gateway:inbound-v1-2a49c066
 Core networks: wandora-core + wandora-data
 Web networks:  wandora-edge + wandora-core
@@ -113,11 +113,12 @@ Gateway health: 200
 
 Core/Gateway run non-root with read-only root filesystems, `cap_drop=ALL` and `no-new-privileges`. Core secrets are mounted from operator-controlled files.
 
-Rollback preserved for the Conversations Read V1 activation:
+Rollback preserved for the Conversation Detail/History Read V1 activation:
 
 ```text
-Core previous: wandora/core:human-session-82aacc6d
-Web previous:  wandora/web:web-human-session-76698780
+Core previous: wandora/core:conversations-read-ae6177a3
+Web previous:  wandora/web:conversations-read-ae6177a3
+Operator snapshot: /home/wandora-admin/backups/conversation-history-20260915T214558Z
 ```
 
 ## Completed/live foundations
@@ -245,7 +246,7 @@ Exactly one active organization is auto-selected; zero gets an explicit empty st
 
 ### Conversations Read V1 — LIVE
 
-ADR 0020 is implemented in PR #45 / main `ae6177a3732b58c2d6f14403f9dc029a174c1712` and production-active through Core/Web image `conversations-read-ae6177a3`.
+ADR 0020 is implemented in PR #45 / main `ae6177a3732b58c2d6f14403f9dc029a174c1712` and remains part of the active customer read path.
 
 Reviewed route:
 
@@ -260,14 +261,37 @@ It returns at most 100 tenant-authorized conversation summaries ordered by canon
 - latest canonical message direction/text/time when present;
 - latest active work-assignment employee ID/name when present.
 
-It deliberately does not expose full message history, unread/read state, provider bindings, provider payloads, receipt internals, outbound-attempt state or Mastra runtime identifiers.
+It deliberately does not expose unread/read state, provider bindings, provider payloads, receipt internals, outbound-attempt state or Mastra runtime identifiers.
 
-Production proof through the real customer browser established:
+### Conversation Detail/History Read V1 — LIVE
+
+ADR 0021 is implemented in PR #47 / main `2105f6e3c7f4ad07924210ccc039d5ff91ce5a79` and production-active through Core/Web image `conversation-history-2105f6e3`.
+
+Reviewed route:
+
+```text
+GET /api/v1/organizations/:organizationId/conversations/:conversationId
+```
+
+It returns canonical authorized conversation/contact/active-assignment context plus up to the latest 100 canonical messages, ordered oldest → newest for display, with `hasEarlierMessages=true` when older history exists.
+
+V1 invariants:
+
+- organization authorization happens before conversation lookup;
+- browser organization/conversation IDs are selectors only;
+- foreign/missing conversation inside an authorized organization returns generic `404`;
+- tenant-scoped human reads run under `REPEATABLE READ READ ONLY`, transaction-local tenant scope and RLS;
+- source/provider/private identifiers remain absent;
+- no message ID is exposed because V1 has no action requiring one;
+- no composer, reply, send, edit-send, dismiss, takeover or approval action is exposed.
+
+Authenticated production proof established:
 
 ```text
 GET /api/v1/me = 200
 GET /api/v1/organizations/<Empresa Exemplo>/conversations = 200
-UI = Mariana Exemplo + latest canonical inbound message + Ana
+GET /api/v1/organizations/<Empresa Exemplo>/conversations/<conversation> = 200
+UI = Mariana Exemplo + Ana + canonical received history + Somente leitura
 ```
 
 Post-read no-side-effect proof:
@@ -279,7 +303,7 @@ outbound_messages = 0
 provider_bindings = 0
 ```
 
-See `docs/infra/conversations-read-live-v1.md`.
+See `docs/infra/conversation-history-live-v1.md`.
 
 ## Current Auth evidence
 
@@ -292,7 +316,7 @@ issuer: https://supabase.wandora.com.br/auth/v1
 audience: authenticated
 ```
 
-A provisioned beta Auth identity is now linked to the canonical Empresa Exemplo owner. Do not put the user's password, access token, refresh token or private identity metadata into Git or operator notes.
+A provisioned beta Auth identity is linked to the canonical Empresa Exemplo owner. Do not put the user's password, access token, refresh token or private identity metadata into Git or operator notes.
 
 ## Current customer API allow-list
 
@@ -302,30 +326,27 @@ Wandora Web Nginx may expose only the exact reviewed customer routes:
 GET /api/v1/me
 GET /api/v1/organizations/:organizationId/work/attention-required
 GET /api/v1/organizations/:organizationId/conversations
+GET /api/v1/organizations/:organizationId/conversations/:conversationId
 ```
 
-It forwards `Authorization`, strips cookies before Core and leaves generic/unreviewed `/api/` plus all `/internal/` routes closed.
+It forwards `Authorization`, strips cookies before Core and leaves generic/unreviewed `/api/` plus all `/internal/` routes closed. The nearby unreviewed `/conversations/:conversationId/messages` path remains `404`.
 
-## Next executable slice — Conversation Detail/History Read V1
+## Next executable slice — Human Conversation Response Action V1
 
-The screenshot/browser proof of Conversations Read V1 confirms that the list contract is intentionally only a summary. Before asking a human to make or send a response, the product should provide enough canonical conversation context to make that decision safely.
+The customer now has enough canonical context to inspect the recent conversation before deciding on a response. The next product-path slice must remain separately reviewed because it is the first customer-facing outbound-effect boundary.
 
-The next slice should therefore define a separately reviewed **Conversation Detail/History Read V1** if the customer journey requires it.
+Required design direction:
 
-Required direction:
-
-1. remain read-only;
-2. use the existing ES256/JWKS human session and canonical identity boundary;
-3. treat organization/conversation IDs as selectors only after active membership authorization;
-4. keep transaction-local tenant scope + RLS;
-5. return canonical history only, with a bounded order/limit contract;
-6. expose no provider IDs/payloads, private receipts, provider bindings, outbound attempts or Mastra internals;
-7. prove cross-tenant and suspended-state denial;
-8. add only the exact reviewed Web route;
-9. introduce no unread model unless a canonical unread/read model is separately designed;
-10. introduce no send/reply/edit-send/dismiss/takeover action inside the read slice.
-
-After sufficient conversation context exists, define human review actions as a separate contract. Commercial commitments remain on the stronger approval boundary.
+1. define the exact human action vocabulary first — e.g. send proposal as-is, edit-then-send, dismiss/no-send — without silently adding autonomous behavior;
+2. require the existing ES256/JWKS human session and independent active organization/membership authorization;
+3. bind any send action to canonical conversation/work/proposal state rather than provider IDs;
+4. define idempotency before calling the Messaging Gateway;
+5. create durable Wandora audit evidence for human decision and outbound attempt/result;
+6. preserve conservative `delivery-uncertain` behavior and reconciliation; never blind-retry an unknown provider outcome;
+7. keep discounts, prices, delivery deadlines, payment terms and contractual commitments on the stronger approval boundary;
+8. expose only exact reviewed Web action routes; generic `/api/` and all `/internal/` paths stay closed;
+9. prove cross-tenant, suspended-state, replay/idempotency and uncertain-delivery behavior in disposable tests before production;
+10. do not enable autonomous customer traffic as part of the first human response slice.
 
 ## Model provider status
 
@@ -335,7 +356,7 @@ The previously Git-exposed Mistral token is compromised and must never be reused
 
 - Wandora Web never calls Paperclip, Mastra or Evolution directly.
 - Supabase Auth identifies/sessionizes; Wandora Core owns business authorization.
-- Browser-supplied tenant IDs are selectors only after canonical membership authorization.
+- Browser-supplied tenant/conversation IDs are selectors only after canonical membership authorization.
 - Do not give Core `service_role` or a JWT signing secret merely to validate human sessions.
 - Private receipt state is not a customer-facing proposal model.
 - `work_proposals` is canonical, but direct browser DB access remains forbidden.
@@ -348,4 +369,4 @@ The previously Git-exposed Mistral token is compromised and must never be reused
 
 ## Startup instruction for another chat
 
-> Read `AGENTS.md`, accepted ADRs through ADR 0020, `docs/architecture.md` and this file. Security gate #22, least-privilege Core DB activation, private Messaging Gateway → Core ingress, Mastra deterministic supervision, canonical `wandora.work_proposals`, Human Supervision Read V1, Human Session Bootstrap V1, Web Human Session V1 and Conversations Read V1 are live. Core and Web currently run `conversations-read-ae6177a3`; Gateway remains `inbound-v1-2a49c066`. Authenticated Empresa Exemplo browser proof is green: `/api/v1/me=200`, conversations read `=200`, canonical Mariana/Ana data renders, and approvals/outbound attempts/outbound messages/provider bindings all remain zero. Generic `/api/` and `/internal/` paths remain closed. The next product-path slice is a separately reviewed Conversation Detail/History Read V1 if needed before human response actions. Do not add send/edit-send/dismiss or a model token implicitly.
+> Read `AGENTS.md`, accepted ADRs through ADR 0021, `docs/architecture.md` and this file. Security gate #22, least-privilege Core DB activation, private Messaging Gateway → Core ingress, Mastra deterministic supervision, canonical `wandora.work_proposals`, Human Supervision Read V1, Human Session Bootstrap V1, Web Human Session V1, Conversations Read V1 and Conversation Detail/History Read V1 are live. Core and Web currently run `conversation-history-2105f6e3`; Gateway remains `inbound-v1-2a49c066`. Authenticated Empresa Exemplo browser proof is green: `/api/v1/me=200`, conversations list `=200`, conversation detail `=200`, canonical Mariana/Ana history renders as `Somente leitura`, and approvals/outbound attempts/outbound messages/provider bindings all remain zero. Generic `/api/` and `/internal/` paths remain closed. The next product-path slice is a separately reviewed human conversation response action contract. Do not add outbound/autonomous behavior or a model token implicitly.

@@ -35,7 +35,7 @@ The browser never calls Paperclip, Mastra, Evolution, model providers or privile
 
 The first real customer session path is now live. Supabase Auth provides identity/session; Wandora Core provides canonical identity, organization membership and business authorization. The shell derives the visible company/user from `/api/v1/me` rather than hard-coded preview identity.
 
-`Trabalho` and `Conversas` now use tenant-authorized canonical Core reads. Other customer surfaces may still contain preview/product-contract placeholders and must be converted only after their own reviewed Core contracts exist.
+`Trabalho`, the `Conversas` list and the selected-conversation history now use tenant-authorized canonical Core reads. Other customer surfaces may still contain preview/product-contract placeholders and must be converted only after their own reviewed Core contracts exist.
 
 ### Browser authentication
 
@@ -65,6 +65,7 @@ Current reviewed customer routes are:
 GET /api/v1/me
 GET /api/v1/organizations/:organizationId/work/attention-required
 GET /api/v1/organizations/:organizationId/conversations
+GET /api/v1/organizations/:organizationId/conversations/:conversationId
 ```
 
 `/internal/v1/gateway/inbound` remains private and is not reachable through the customer Web.
@@ -88,7 +89,7 @@ Core owns product semantics and business authorization:
 - audit-facing events;
 - provider-neutral adapter contracts.
 
-Accepted boundaries now include ADR 0007 identity/tenancy, ADR 0009 durable Ana state, ADR 0010 least-privilege DB identity, ADR 0011 private runtime, ADR 0012 authenticated Gateway ingress, ADR 0014 Mastra deterministic runtime, ADR 0015 Platform Admin direction, ADR 0016 canonical supervised proposals, ADR 0017 Human Supervision Read V1, ADR 0018 Human Session Bootstrap V1, ADR 0019 Web Human Session V1 and ADR 0020 Conversations Read V1.
+Accepted boundaries now include ADR 0007 identity/tenancy, ADR 0009 durable Ana state, ADR 0010 least-privilege DB identity, ADR 0011 private runtime, ADR 0012 authenticated Gateway ingress, ADR 0014 Mastra deterministic runtime, ADR 0015 Platform Admin direction, ADR 0016 canonical supervised proposals, ADR 0017 Human Supervision Read V1, ADR 0018 Human Session Bootstrap V1, ADR 0019 Web Human Session V1, ADR 0020 Conversations Read V1 and ADR 0021 Conversation Detail/History Read V1.
 
 ## Identity and human session — live
 
@@ -135,7 +136,7 @@ Current live Core:
 
 ```text
 container: wandora-core
-image: wandora/core:conversations-read-ae6177a3
+image: wandora/core:conversation-history-2105f6e3
 mode: database
 agent runtime: mastra-deterministic
 MASTRA_TELEMETRY_DISABLED: true
@@ -259,7 +260,7 @@ Raw provider instance/API-key/server-url/provider message identifiers do not bec
 - latest inbound customer text/time;
 - canonical proposal ID/kind/text/rationale/time when present.
 
-### Conversas
+### Conversas — list
 
 `GET /api/v1/organizations/:organizationId/conversations` returns at most 100 conversations ordered by canonical activity with:
 
@@ -268,15 +269,23 @@ Raw provider instance/API-key/server-url/provider message identifiers do not bec
 - latest canonical message direction/text/time when present;
 - latest active work-assignment employee ID/name when present.
 
-The route deliberately does not claim full history, unread/read state or provider metadata. The Web summary pane may show only fields from this list contract.
+### Conversas — detail/history
 
-The production activation was proven through an authenticated browser with Empresa Exemplo and still produced zero approvals, zero outbound attempts, zero outbound messages and zero provider bindings. See `docs/infra/conversations-read-live-v1.md`.
+`GET /api/v1/organizations/:organizationId/conversations/:conversationId` returns the authorized canonical conversation context and at most the latest 100 messages, ordered oldest → newest for display. The response includes only inbound/outbound direction, message text and occurrence time plus a `hasEarlierMessages` flag when earlier history exists.
 
-## Next customer-read boundary
+Organization authorization happens before conversation lookup. A foreign or missing conversation under an already-authorized organization is exposed only as generic `404`. Tenant-scoped human reads execute in `REPEATABLE READ READ ONLY` transactions with transaction-local tenant scope + RLS.
 
-The next likely customer slice is a separately reviewed **Conversation Detail/History Read V1**, because a human should not be asked to decide or send a reply without sufficient conversation context.
+The Web renders this history with an explicit `Somente leitura` state. No composer, reply, send, edit-send, dismiss, takeover, approval action, provider identifier or private runtime state is exposed.
 
-It must remain read-only, tenant-authorized and provider-neutral. It may not introduce unread state, reply/send, edit-send, dismiss, takeover or provider/runtime identifiers by implication. Those actions require their own explicit contracts.
+The production activation was proven through an authenticated browser with Empresa Exemplo and still produced zero approvals, zero outbound attempts, zero outbound messages and zero provider bindings. See `docs/infra/conversation-history-live-v1.md`.
+
+## Next customer-action boundary
+
+The next customer-path slice is a separately reviewed **Human Conversation Response Action V1** (name may be refined by its ADR). Sufficient read-only context now exists; outbound effect still does not.
+
+Before any send/edit-then-send/dismiss capability is exposed, the contract must define at minimum authorization, relationship to the canonical proposal, idempotency, audit evidence, delivery uncertainty/reconciliation, failure semantics and the stronger approval path for discounts, prices, deadlines, payment terms or contractual commitments.
+
+Do not smuggle response controls into a read contract and do not enable autonomous customer traffic as part of the first human response slice.
 
 ## Model provider status
 
@@ -291,11 +300,11 @@ Versioned DB migrations live under `infra/stacks/supabase/migrations/`; live-saf
 ## Near-term execution sequence
 
 1. keep canonical documentation synchronized with live state;
-2. define Conversation Detail/History Read V1 from the human journey before adding response actions;
-3. prove tenant isolation, suspended-state denial, ordering and provider/private-data absence for that read;
-4. connect only its exact reviewed Web route if the contract is accepted;
-5. separately define explicit human review actions such as send, edit-then-send and dismiss;
-6. preserve stronger commercial commitments on the existing approval boundary;
+2. preserve Human Session + `Trabalho` + `Conversas` list/history reads as read-only customer context;
+3. separately define the smallest human conversation response action contract;
+4. prove authorization, canonical proposal relationship, idempotency, audit and delivery-uncertainty handling before any outbound effect;
+5. keep stronger commercial commitments on the existing approval boundary;
+6. expose only exact reviewed Web action routes and preserve generic `/api/` + all `/internal/` closure;
 7. prove the complete supervised human action path before enabling any autonomous customer traffic;
 8. add Platform Admin vertical slices around already-stable Wandora contracts;
 9. add customer onboarding, broader login options and organization switching around the proven auth/read journey;

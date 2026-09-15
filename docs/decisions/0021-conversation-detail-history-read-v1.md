@@ -1,7 +1,7 @@
 # ADR 0021 — Conversation Detail/History Read V1
 
 Date: 2026-09-15
-Status: **Accepted for implementation; production activation remains separate.**
+Status: **Accepted and production-active.**
 
 ## Context
 
@@ -86,6 +86,40 @@ The slice must prove:
 - Web renders canonical history and has no response controls;
 - read creates no approval, outbound attempt or outbound message.
 
+## Production activation — 2026-09-15
+
+PR #47 was merged to `main` as `2105f6e3c7f4ad07924210ccc039d5ff91ce5a79` after Core, Web and Messaging Gateway CI were green on the reviewed head.
+
+Production images:
+
+```text
+Core: wandora/core:conversation-history-2105f6e3
+Web:  wandora/web:conversation-history-2105f6e3
+```
+
+Activation used private Core/Web candidates first, then Core-first and Web-second promotion. Rollback artifacts were preserved before recreation.
+
+Post-activation proof established:
+
+```text
+Core /healthz = 200
+Core /readyz = 200
+Web /healthz = 200
+unauthenticated detail route = 401
+nearby /conversations/:id/messages = 404
+/internal/... through Web = 404
+authenticated /api/v1/me = 200
+authenticated conversations list = 200
+authenticated conversation detail = 200
+UI = canonical Mariana Exemplo history + Ana + Somente leitura
+approvals = 0
+outbound_attempts = 0
+outbound_messages = 0
+provider_bindings = 0
+```
+
+The production proof contains no customer password, Auth UUID, access token, refresh token or provider credential. See `docs/infra/conversation-history-live-v1.md`.
+
 ## Non-goals
 
 - unread/read receipts;
@@ -100,4 +134,4 @@ The slice must prove:
 
 ## Next step
 
-After this read-only context is proven live, separately design the smallest human response action contract. A send/edit-then-send/dismiss slice must define authorization, proposal relationship, idempotency, audit, failure/reconciliation semantics and stronger commercial-commitment handling before any outbound effect is enabled.
+With sufficient read-only conversation context now proven live, separately design the smallest human response action contract. A send/edit-then-send/dismiss slice must define authorization, proposal relationship, idempotency, audit, failure/reconciliation semantics and stronger commercial-commitment handling before any outbound effect is enabled.

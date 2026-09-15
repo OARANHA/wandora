@@ -71,6 +71,7 @@ The following are current decisions unless superseded by a newer accepted ADR:
 - ADR 0018 accepts **Human Session Bootstrap V1** through `GET /api/v1/me`, returning only canonical Wandora user and active organization memberships.
 - ADR 0019 accepts **Web Human Session V1**: browser sign-in uses Supabase Auth directly with only the public/publishable key, session material stays in `sessionStorage`, public signup remains disabled, and `Trabalho` consumes the reviewed Core read.
 - ADR 0020 accepts **Conversations Read V1**: the exact tenant-authorized conversations list route is live in production and remains read-only/provider-neutral.
+- ADR 0021 accepts **Conversation Detail/History Read V1**: the exact tenant-authorized conversation detail route is live, returns a bounded canonical history under `REPEATABLE READ READ ONLY` + tenant RLS, and exposes no response/outbound action.
 - Security gate #22 is cleared. The affected shared Supabase JWT compatibility material and shared PostgreSQL password were rotated with validated backups, old-credential invalidation, full service-health proof and production-safe verifier reruns.
 - Official WhatsApp providers remain a production option behind the same gateway.
 - Model vendors are replaceable infrastructure behind a provider boundary. Do not request or hard-code a provider credential until a real provider call is materially required.
@@ -164,20 +165,21 @@ Routine mechanical steps inside an already-reviewed decision do not each require
 Unless an active blocker or explicit user decision changes priority:
 
 1. keep canonical documentation synchronized with accepted decisions and live operational state;
-2. preserve the proven Human Session + `Trabalho` + `Conversas` read path and do not reopen it without evidence;
-3. define a separately reviewed **Conversation Detail/History Read V1** if the human journey needs enough context before response decisions;
-4. keep that slice read-only, tenant-authorized, bounded and provider-neutral; prove invalid token, unknown identity, cross-tenant, suspended membership and suspended organization denial;
-5. expose only the exact reviewed detail/history Web route after the Core contract is green; generic `/api/` and all `/internal/` paths remain closed;
-6. only after sufficient context exists, define explicit human review actions such as send, edit-then-send and dismiss as a separate contract;
-7. keep commercial commitments such as discount, price, deadline and payment terms on the stronger existing approval boundary;
-8. prove the complete human-supervised action path before any autonomous customer traffic;
-9. add Platform Admin capabilities incrementally around already-stable Wandora-owned contracts; do not pause the first customer-visible employee loop to build a generic infrastructure dashboard;
-10. add customer onboarding, password recovery/OAuth and organization switching around the proven authorization path rather than bypassing Core;
-11. only when the first real model call is materially required, revoke/replace the previously Git-exposed Mistral credential and configure the fresh value only through an approved operator-controlled secret path.
+2. preserve the proven Human Session + `Trabalho` + `Conversas` list/history read path and do not reopen it without evidence;
+3. separately define the smallest **Human Conversation Response Action V1** before exposing any customer-facing outbound effect;
+4. require active human session + tenant authorization and bind response actions to canonical conversation/work/proposal state rather than provider IDs;
+5. define idempotency, durable audit evidence, delivery uncertainty/reconciliation and failure semantics before calling the Messaging Gateway;
+6. keep commercial commitments such as discount, price, deadline and payment terms on the stronger existing approval boundary;
+7. expose only exact reviewed Web action routes; generic `/api/` and all `/internal/` paths remain closed;
+8. prove replay, cross-tenant, suspended-state and uncertain-delivery behavior before production activation;
+9. prove the complete human-supervised action path before any autonomous customer traffic;
+10. add Platform Admin capabilities incrementally around already-stable Wandora-owned contracts; do not pause the first customer-visible employee loop to build a generic infrastructure dashboard;
+11. add customer onboarding, password recovery/OAuth and organization switching around the proven authorization path rather than bypassing Core;
+12. only when the first real model call is materially required, revoke/replace the previously Git-exposed Mistral credential and configure the fresh value only through an approved operator-controlled secret path.
 
-Supabase Foundation V1, Mastra Agent Runtime V1 laboratory validation, Evolution Messaging Gateway V1, Wandora Core Multi-tenant/Auth Contract V1, Human Interface/Product Shell V1, First-Day Customer Journey V1, Ana inbound new-contact contract V1, Ana durable Core vertical slice V1 including its live database foundation, security gate #22, the Core runtime database boundary, the private Core runtime with least-privilege database activation live, Messaging Gateway → Wandora Core Supervised V1 live real-handset proof, Core → Mastra Deterministic Supervised Proposal V1 live end-to-end proof, Canonical Supervised Work Proposal V1, Human Supervision Read V1, Human Session Bootstrap V1, Web Human Session V1 and Conversations Read V1 are complete/live. **Wandora Platform Admin** is accepted as the operator-control-plane direction but is not yet a complete cockpit. Do not repeat completed foundations unless verifying or repairing drift.
+Supabase Foundation V1, Mastra Agent Runtime V1 laboratory validation, Evolution Messaging Gateway V1, Wandora Core Multi-tenant/Auth Contract V1, Human Interface/Product Shell V1, First-Day Customer Journey V1, Ana inbound new-contact contract V1, Ana durable Core vertical slice V1 including its live database foundation, security gate #22, the Core runtime database boundary, the private Core runtime with least-privilege database activation live, Messaging Gateway → Wandora Core Supervised V1 live real-handset proof, Core → Mastra Deterministic Supervised Proposal V1 live end-to-end proof, Canonical Supervised Work Proposal V1, Human Supervision Read V1, Human Session Bootstrap V1, Web Human Session V1, Conversations Read V1 and Conversation Detail/History Read V1 are complete/live. **Wandora Platform Admin** is accepted as the operator-control-plane direction but is not yet a complete cockpit. Do not repeat completed foundations unless verifying or repairing drift.
 
-The current production Core and Web images are `wandora/core:conversations-read-ae6177a3` and `wandora/web:conversations-read-ae6177a3`. Authenticated browser proof is green and post-read state remains zero approvals/outbound attempts/outbound messages/provider bindings for Empresa Exemplo. See ADR 0020, `docs/CANONICAL_STATE.md` and `docs/infra/conversations-read-live-v1.md`.
+The current production Core and Web images are `wandora/core:conversation-history-2105f6e3` and `wandora/web:conversation-history-2105f6e3`. Authenticated browser proof is green for session, conversation list and conversation detail/history, and post-read state remains zero approvals/outbound attempts/outbound messages/provider bindings for Empresa Exemplo. See ADR 0021, `docs/CANONICAL_STATE.md` and `docs/infra/conversation-history-live-v1.md`.
 
 ## 9. Definition of progress
 
