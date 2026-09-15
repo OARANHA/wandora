@@ -1,0 +1,4 @@
+services:
+  core:
+    environment:
+      WANDORA_AGENT_RUNTIME_MODE: mastra-deterministic
