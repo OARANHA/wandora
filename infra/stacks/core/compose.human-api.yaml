@@ -2,6 +2,6 @@ services:
   core:
     environment:
       WANDORA_HUMAN_API_ENABLED: "true"
-      WANDORA_HUMAN_AUTH_JWKS_URL: "https://supabase.wandora.com.br/auth/v1/.well-known/jwks.json"
-      WANDORA_HUMAN_AUTH_ISSUER: "https://supabase.wandora.com.br/auth/v1"
-      WANDORA_HUMAN_AUTH_AUDIENCE: "authenticated"
+      WANDORA_AUTH_JWKS_URL: "https://supabase.wandora.com.br/auth/v1/.well-known/jwks.json"
+      WANDORA_AUTH_ISSUER: "https://supabase.wandora.com.br/auth/v1"
+      WANDORA_AUTH_AUDIENCE: "authenticated"
