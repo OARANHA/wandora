@@ -16,7 +16,9 @@ async function withServer(fn: (baseUrl: string) => Promise<void>): Promise<void>
     handleHumanSupervision: async (request) => ({
       status: request.authorization === 'Bearer fixture' ? 200 : 401,
       body: request.authorization === 'Bearer fixture'
-        ? { items: [{ path: request.pathname }] }
+        ? request.pathname === '/api/v1/me'
+          ? { user: { id: 'user-1', name: 'Gestor' }, organizations: [] }
+          : { items: [{ path: request.pathname }] }
         : { error: 'unauthorized' },
     }),
   });
@@ -71,8 +73,17 @@ test('Human API is opt-in, database-only and requires explicit Auth trust config
   }
 });
 
-test('Runtime forwards only organization human API namespace to human handler', async () => {
+test('Runtime forwards only reviewed Human API namespaces to human handler', async () => {
   await withServer(async (baseUrl) => {
+    const session = await fetch(`${baseUrl}/api/v1/me`, {
+      headers: { authorization: 'Bearer fixture' },
+    });
+    assert.equal(session.status, 200);
+    const sessionBody = await session.json() as { user: { name: string }; organizations: unknown[] };
+    assert.equal(sessionBody.user.name, 'Gestor');
+    assert.deepEqual(sessionBody.organizations, []);
+    assert.equal((await fetch(`${baseUrl}/api/v1/me`)).status, 401);
+
     const allowed = await fetch(
       `${baseUrl}/api/v1/organizations/${ORG}/work/attention-required`,
       { headers: { authorization: 'Bearer fixture' } },

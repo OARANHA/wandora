@@ -2,7 +2,8 @@ import { HumanAuthError } from '../human-auth/es256-jwks.js';
 import { HumanAccessError, type HumanSupervisionReadService } from '../supervision/human-read.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/work\/attention-required$/;
+const WORK_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/work\/attention-required$/;
+const SESSION_PATH = '/api/v1/me';
 
 export type HumanSupervisionRequest = {
   method: string | undefined;
@@ -16,7 +17,7 @@ export type HumanSupervisionResponse = {
 };
 
 export function isHumanSupervisionPath(pathname: string): boolean {
-  return pathname.startsWith('/api/v1/organizations/');
+  return pathname === SESSION_PATH || pathname.startsWith('/api/v1/organizations/');
 }
 
 export function createHumanSupervisionHandler(service: HumanSupervisionReadService) {
@@ -25,13 +26,18 @@ export function createHumanSupervisionHandler(service: HumanSupervisionReadServi
       return { status: 405, body: { error: 'method-not-allowed' } };
     }
 
-    const match = PATH_RE.exec(request.pathname);
-    const organizationId = match?.[1];
-    if (!organizationId || !UUID_RE.test(organizationId)) {
-      return { status: 404, body: { error: 'not-found' } };
-    }
-
     try {
+      if (request.pathname === SESSION_PATH) {
+        const session = await service.getSessionContext(request.authorization);
+        return { status: 200, body: session };
+      }
+
+      const match = WORK_PATH_RE.exec(request.pathname);
+      const organizationId = match?.[1];
+      if (!organizationId || !UUID_RE.test(organizationId)) {
+        return { status: 404, body: { error: 'not-found' } };
+      }
+
       const items = await service.listAttentionRequired(request.authorization, organizationId);
       return { status: 200, body: { items } };
     } catch (error) {

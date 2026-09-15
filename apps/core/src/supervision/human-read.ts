@@ -10,6 +10,19 @@ export class HumanAccessError extends Error {
   }
 }
 
+export type HumanSessionContext = {
+  user: {
+    id: string;
+    name: string;
+  };
+  organizations: Array<{
+    id: string;
+    slug: string;
+    name: string;
+    role: 'owner' | 'admin' | 'member';
+  }>;
+};
+
 export type AttentionRequiredWork = {
   work: {
     id: string;
@@ -39,6 +52,15 @@ export type AttentionRequiredWork = {
     rationale: string;
     createdAt: string;
   } | null;
+};
+
+type HumanSessionRow = {
+  user_id: string;
+  user_display_name: string;
+  organization_id: string | null;
+  organization_slug: string | null;
+  organization_display_name: string | null;
+  membership_role: 'owner' | 'admin' | 'member' | null;
 };
 
 type AttentionRow = {
@@ -72,6 +94,43 @@ export class HumanSupervisionReadService {
       [subject],
     );
     return result.rows[0]?.user_id ?? undefined;
+  }
+
+  async getSessionContext(authorization: string | undefined): Promise<HumanSessionContext> {
+    const identity = await this.verifier.verifyAuthorization(authorization);
+    const result = await this.pool.query<HumanSessionRow>(
+      `SELECT user_id::text AS user_id,
+              user_display_name,
+              organization_id::text AS organization_id,
+              organization_slug,
+              organization_display_name,
+              membership_role::text AS membership_role
+         FROM wandora.resolve_core_human_session('supabase', $1)`,
+      [identity.subject],
+    );
+    const first = result.rows[0];
+    if (!first) {
+      throw new HumanAccessError('identity-unlinked', 'Authenticated identity is not linked to Wandora.');
+    }
+
+    const organizations = result.rows.flatMap((row) => (
+      row.organization_id
+      && row.organization_slug
+      && row.organization_display_name
+      && row.membership_role
+        ? [{
+            id: row.organization_id,
+            slug: row.organization_slug,
+            name: row.organization_display_name,
+            role: row.membership_role,
+          }]
+        : []
+    ));
+
+    return {
+      user: { id: first.user_id, name: first.user_display_name },
+      organizations,
+    };
   }
 
   private async scoped<T>(
