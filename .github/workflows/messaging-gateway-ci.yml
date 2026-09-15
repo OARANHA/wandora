@@ -89,14 +89,17 @@ jobs:
             -v "$tmp/evolution-jwt:/run/secrets/evolution-jwt:ro" \
             -v "$tmp/core-hmac:/run/secrets/core-hmac:ro" \
             wandora/messaging-gateway:verify >/dev/null
+          ready=0
           for _ in $(seq 1 20); do
             if docker run --rm --network "$network" \
               node:22.23.2-bookworm-slim@sha256:83f487e0a63425e5b4d146fb5e5be574bcbe1b7b843d3ebafdd95eaf7767a7e5 \
-              node -e "fetch('http://${container}:8787/healthz').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"; then
+              node -e "fetch('http://${container}:8787/healthz').then(async r=>{if(!r.ok)process.exit(1);const body=await r.json();if(body.service!=='wandora-messaging-gateway')process.exit(1)}).catch(()=>process.exit(1))"; then
+              ready=1
               break
             fi
             sleep 1
           done
+          test "$ready" -eq 1
           test "$(docker inspect -f '{{.Config.User}}' "$container")" = node
           test "$(docker inspect -f '{{.HostConfig.ReadonlyRootfs}}' "$container")" = true
           test -z "$(docker port "$container")"
