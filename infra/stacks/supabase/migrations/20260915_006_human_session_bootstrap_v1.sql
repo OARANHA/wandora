@@ -35,10 +35,11 @@ AS $$
        WHERE m.user_id = u.id
          AND m.status = 'active'
          AND o.status = 'active'
-       ORDER BY o.display_name, o.id
     ) active_org ON true
    WHERE ui.provider = p_provider
-     AND ui.provider_subject = p_provider_subject;
+     AND ui.provider_subject = p_provider_subject
+   ORDER BY active_org.organization_display_name NULLS LAST,
+            active_org.organization_id NULLS LAST;
 $$;
 
 REVOKE ALL ON FUNCTION wandora.resolve_core_human_session(text, text) FROM PUBLIC;
