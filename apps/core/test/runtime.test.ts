@@ -43,6 +43,7 @@ test('WANDORA CORE PRIVATE RUNTIME V1', async (t) => {
       assert.equal(config.database?.user, 'wandora_core_runtime');
       assert.equal(config.database?.password, 'synthetic-test-password');
       assert.equal(config.database?.host, 'wandora-postgres');
+      assert.equal(config.gatewayIngress, undefined);
 
       await assert.rejects(
         loadRuntimeConfig({
@@ -70,6 +71,12 @@ test('WANDORA CORE PRIVATE RUNTIME V1', async (t) => {
       assert.deepEqual(await ready.json(), {
         status: 'not-ready', service: 'wandora-core', reason: 'standby',
       });
+
+      const closedIngress = await fetch(`${baseUrl}/internal/v1/gateway/inbound`, {
+        method: 'POST',
+        body: '{}',
+      });
+      assert.equal(closedIngress.status, 404);
     });
   });
 

@@ -1,5 +1,14 @@
-import { createServer, type Server, type ServerResponse } from 'node:http';
+import {
+  createServer,
+  type IncomingMessage,
+  type Server,
+  type ServerResponse,
+} from 'node:http';
 import type { RuntimeMode } from './config.js';
+import type {
+  GatewayIngressRequest,
+  GatewayIngressResponse,
+} from './gateway-ingress.js';
 
 export type RuntimeReadiness =
   | { ready: true }
@@ -8,6 +17,7 @@ export type RuntimeReadiness =
 export type RuntimeServerDeps = {
   mode: RuntimeMode;
   checkReady: () => Promise<RuntimeReadiness>;
+  handleGatewayInbound?: (request: GatewayIngressRequest) => Promise<GatewayIngressResponse>;
 };
 
 const writeJson = (
@@ -22,9 +32,56 @@ const writeJson = (
   response.end(`${JSON.stringify(payload)}\n`);
 };
 
+const header = (request: IncomingMessage, name: string): string | undefined => {
+  const value = request.headers[name];
+  return Array.isArray(value) ? value[0] : value;
+};
+
+class PayloadTooLargeError extends Error {}
+
+async function readBody(request: IncomingMessage, maxBytes = 65_536): Promise<string> {
+  const chunks: Buffer[] = [];
+  let size = 0;
+  for await (const chunk of request) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    size += buffer.length;
+    if (size > maxBytes) throw new PayloadTooLargeError();
+    chunks.push(buffer);
+  }
+  return Buffer.concat(chunks).toString('utf8');
+}
+
 export function createRuntimeServer(deps: RuntimeServerDeps): Server {
   return createServer(async (request, response) => {
     const url = new URL(request.url ?? '/', 'http://wandora-core.local');
+
+    if (url.pathname === '/internal/v1/gateway/inbound') {
+      if (request.method !== 'POST') {
+        writeJson(response, 405, { error: 'method-not-allowed' });
+        return;
+      }
+      if (!deps.handleGatewayInbound) {
+        writeJson(response, 404, { error: 'not-found' });
+        return;
+      }
+
+      try {
+        const rawBody = await readBody(request);
+        const result = await deps.handleGatewayInbound({
+          rawBody,
+          timestamp: header(request, 'x-wandora-timestamp'),
+          signature: header(request, 'x-wandora-signature'),
+        });
+        writeJson(response, result.status, result.body);
+      } catch (error) {
+        if (error instanceof PayloadTooLargeError) {
+          writeJson(response, 413, { error: 'payload-too-large' });
+        } else {
+          writeJson(response, 500, { error: 'internal-error' });
+        }
+      }
+      return;
+    }
 
     if (request.method !== 'GET') {
       writeJson(response, 405, { error: 'method-not-allowed' });

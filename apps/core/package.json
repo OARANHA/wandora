@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/runtime/main.js",
-    "test": "node --import tsx --test test/*.test.ts",
+    "test": "node --import tsx --test --test-concurrency=1 test/*.test.ts",
     "verify": "npm run typecheck && npm run build && npm test"
   },
   "dependencies": {

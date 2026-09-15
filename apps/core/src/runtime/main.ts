@@ -1,5 +1,8 @@
 import { Pool } from 'pg';
+import { PostgresAnaRepository } from '../ana/postgres-repository.js';
+import { AnaSupervisedIngressService } from '../ana/supervised-ingress.js';
 import { loadRuntimeConfig } from './config.js';
+import { createGatewayIngressHandler } from './gateway-ingress.js';
 import { createRuntimeServer, type RuntimeReadiness } from './server.js';
 
 const config = await loadRuntimeConfig();
@@ -38,12 +41,31 @@ const checkReady = async (): Promise<RuntimeReadiness> => {
     return { ready: false, reason: 'database-unavailable' };
   }
 };
-const server = createRuntimeServer({ mode: config.mode, checkReady });
+
+const handleGatewayInbound = pool && config.gatewayIngress
+  ? createGatewayIngressHandler({
+      secret: config.gatewayIngress.secret,
+      processInbound: (() => {
+        const service = new AnaSupervisedIngressService({
+          repository: new PostgresAnaRepository(pool),
+          pool,
+        });
+        return (organizationId, event) => service.handle(organizationId, event);
+      })(),
+    })
+  : undefined;
+
+const server = createRuntimeServer({
+  mode: config.mode,
+  checkReady,
+  ...(handleGatewayInbound ? { handleGatewayInbound } : {}),
+});
 server.listen(config.port, '0.0.0.0', () => {
   console.log(JSON.stringify({
     event: 'wandora-core.started',
     mode: config.mode,
     port: config.port,
+    gatewayIngress: Boolean(handleGatewayInbound),
   }));
 });
 
