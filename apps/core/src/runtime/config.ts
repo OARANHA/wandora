@@ -19,12 +19,19 @@ export type RuntimeAgentConfig = {
   mode: 'mastra-deterministic';
 };
 
+export type RuntimeHumanApiConfig = {
+  jwksUrl: string;
+  issuer: string;
+  audience: string;
+};
+
 export type RuntimeConfig = {
   port: number;
   mode: RuntimeMode;
   database?: RuntimeDatabaseConfig;
   gatewayIngress?: RuntimeGatewayIngressConfig;
   agentRuntime?: RuntimeAgentConfig;
+  humanApi?: RuntimeHumanApiConfig;
 };
 
 const parsePort = (value: string | undefined, fallback: number, name: string): number => {
@@ -65,11 +72,18 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     env.WANDORA_GATEWAY_INGRESS_ENABLED,
     'WANDORA_GATEWAY_INGRESS_ENABLED',
   );
+  const humanApiEnabled = parseEnabled(
+    env.WANDORA_HUMAN_API_ENABLED,
+    'WANDORA_HUMAN_API_ENABLED',
+  );
   const agentRuntimeMode = parseAgentRuntimeMode(env.WANDORA_AGENT_RUNTIME_MODE);
 
   if (mode === 'standby') {
     if (gatewayIngressEnabled) {
       throw new Error('Gateway ingress cannot be enabled while Wandora Core is in standby mode.');
+    }
+    if (humanApiEnabled) {
+      throw new Error('Human API cannot be enabled while Wandora Core is in standby mode.');
     }
     if (agentRuntimeMode !== 'disabled') {
       throw new Error('Agent Runtime cannot be enabled while Wandora Core is in standby mode.');
@@ -100,6 +114,15 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     gatewayIngress = { secret };
   }
 
+  let humanApi: RuntimeHumanApiConfig | undefined;
+  if (humanApiEnabled) {
+    humanApi = {
+      jwksUrl: required(env, 'WANDORA_AUTH_JWKS_URL'),
+      issuer: required(env, 'WANDORA_AUTH_ISSUER'),
+      audience: required(env, 'WANDORA_AUTH_AUDIENCE'),
+    };
+  }
+
   return {
     port,
     mode,
@@ -111,6 +134,7 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
       password,
     },
     ...(gatewayIngress ? { gatewayIngress } : {}),
+    ...(humanApi ? { humanApi } : {}),
     ...(agentRuntimeMode === 'mastra-deterministic'
       ? { agentRuntime: { mode: 'mastra-deterministic' as const } }
       : {}),
