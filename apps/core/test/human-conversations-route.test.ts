@@ -13,7 +13,7 @@ function handlerWithFixture() {
     async listAttentionRequired() {
       return [];
     },
-    async listConversations(_authorization: string | undefined, organizationId: string) {
+    async listConversations() {
       return [{
         conversation: {
           id: '50000000-0000-0000-0000-0000000000a1',
@@ -23,7 +23,6 @@ function handlerWithFixture() {
         contact: { id: '40000000-0000-0000-0000-0000000000a1', label: 'Cliente A' },
         employee: null,
         latestMessage: null,
-        organizationId,
       }];
     },
   } as unknown as HumanSupervisionReadService;
