@@ -1,0 +1,50 @@
+import { HumanAuthError } from '../human-auth/es256-jwks.js';
+import { HumanAccessError, type HumanSupervisionReadService } from '../supervision/human-read.js';
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/work\/attention-required$/;
+
+export type HumanSupervisionRequest = {
+  method: string | undefined;
+  pathname: string;
+  authorization: string | undefined;
+};
+
+export type HumanSupervisionResponse = {
+  status: number;
+  body: Record<string, unknown>;
+};
+
+export function isHumanSupervisionPath(pathname: string): boolean {
+  return pathname.startsWith('/api/v1/organizations/');
+}
+
+export function createHumanSupervisionHandler(service: HumanSupervisionReadService) {
+  return async (request: HumanSupervisionRequest): Promise<HumanSupervisionResponse> => {
+    if (request.method !== 'GET') {
+      return { status: 405, body: { error: 'method-not-allowed' } };
+    }
+
+    const match = PATH_RE.exec(request.pathname);
+    const organizationId = match?.[1];
+    if (!organizationId || !UUID_RE.test(organizationId)) {
+      return { status: 404, body: { error: 'not-found' } };
+    }
+
+    try {
+      const items = await service.listAttentionRequired(request.authorization, organizationId);
+      return { status: 200, body: { items } };
+    } catch (error) {
+      if (error instanceof HumanAuthError) {
+        if (error.code === 'jwks-unavailable') {
+          return { status: 503, body: { error: 'authentication-unavailable' } };
+        }
+        return { status: 401, body: { error: 'unauthorized' } };
+      }
+      if (error instanceof HumanAccessError) {
+        return { status: 403, body: { error: 'forbidden' } };
+      }
+      return { status: 500, body: { error: 'internal-error' } };
+    }
+  };
+}
