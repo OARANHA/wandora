@@ -24,7 +24,9 @@ V1 returns at most 100 conversations ordered by most recent canonical activity. 
 - latest canonical message direction, text and occurrence time when present;
 - latest active work assignment employee ID/name when present.
 
-The response must not expose messaging connection IDs, channel addresses, source event IDs, Evolution identifiers, provider payloads, private receipts, outbound-attempt state or Mastra runtime IDs.
+`contact.label` uses the canonical display name when available and may fall back to the canonical channel address when no display name exists, matching the existing `Trabalho` projection. The raw channel address is not exposed as a separate field and provider/runtime identifiers remain hidden.
+
+The response must not expose messaging connection IDs, source event IDs, Evolution identifiers, provider payloads, private receipts, outbound-attempt state or Mastra runtime IDs.
 
 ## Web behavior
 
