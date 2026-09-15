@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import type { HumanSupervisionReadService } from '../src/supervision/human-read.js';
+import { HumanNotFoundError, type HumanSupervisionReadService } from '../src/supervision/human-read.js';
 import { createHumanSupervisionHandler } from '../src/runtime/human-supervision.js';
 
 const ORG = '00000000-0000-0000-0000-0000000000a1';
@@ -96,6 +96,23 @@ test('only exact UUID conversation detail route is accepted', async () => {
     authorization: 'Bearer fixture',
   });
   assert.equal(extraPath.status, 404);
+});
+
+test('conversation detail not-found is mapped to a generic 404', async () => {
+  const service = {
+    async getConversationDetail() {
+      throw new HumanNotFoundError();
+    },
+  } as unknown as HumanSupervisionReadService;
+  const handler = createHumanSupervisionHandler(service);
+
+  const response = await handler({
+    method: 'GET',
+    pathname: `/api/v1/organizations/${ORG}/conversations/${CONVERSATION}`,
+    authorization: 'Bearer fixture',
+  });
+  assert.equal(response.status, 404);
+  assert.deepEqual(response.body, { error: 'not-found' });
 });
 
 test('conversation reads remain read-only at HTTP boundary', async () => {
