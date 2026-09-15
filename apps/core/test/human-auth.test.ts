@@ -82,7 +82,7 @@ test('rejects invalid issuer, audience, expiration and future iat', async () => 
   }
 });
 
-test('rejects missing bearer token, unknown signing key and non-ES256 alg', async () => {
+test('rejects missing bearer token, unknown signing key, non-ES256 alg and critical extensions', async () => {
   const fixture = createFixture();
   const verifier = createVerifier(fixture.jwk as JsonWebKey & { kid: string }, { count: 0 });
 
@@ -98,6 +98,65 @@ test('rejects missing bearer token, unknown signing key and non-ES256 alg', asyn
     verifier.verifyAuthorization(`Bearer ${fixture.signToken({}, { alg: 'HS256' })}`),
     (error: unknown) => error instanceof HumanAuthError && error.code === 'invalid-token',
   );
+  await assert.rejects(
+    verifier.verifyAuthorization(`Bearer ${fixture.signToken({}, { crit: ['custom'] })}`),
+    (error: unknown) => error instanceof HumanAuthError && error.code === 'invalid-token',
+  );
+});
+
+test('rejects a token whose ES256 signature was tampered', async () => {
+  const fixture = createFixture();
+  const verifier = createVerifier(fixture.jwk as JsonWebKey & { kid: string }, { count: 0 });
+  const token = fixture.signToken();
+  const [header, payload, signature] = token.split('.') as [string, string, string];
+  const bytes = Buffer.from(signature, 'base64url');
+  bytes[0] = (bytes[0] ?? 0) ^ 0x01;
+  const tampered = `${header}.${payload}.${bytes.toString('base64url')}`;
+
+  await assert.rejects(
+    verifier.verifyAuthorization(`Bearer ${tampered}`),
+    (error: unknown) => error instanceof HumanAuthError && error.code === 'invalid-token',
+  );
+});
+
+test('unknown kid cannot force repeated JWKS refresh inside the minimum refresh interval', async () => {
+  const trusted = createFixture('trusted-key');
+  const attacker = createFixture('attacker-key');
+  const calls = { count: 0 };
+  let nowMs = NOW_MS;
+  const verifier = new Es256JwksHumanTokenVerifier({
+    jwksUrl: 'https://jwks.test/.well-known/jwks.json',
+    issuer: ISSUER,
+    audience: AUDIENCE,
+    now: () => nowMs,
+    cacheTtlMs: 300_000,
+    minRefreshIntervalMs: 30_000,
+    fetchImpl: async () => {
+      calls.count += 1;
+      return new Response(JSON.stringify({ keys: [trusted.jwk] }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    },
+  });
+
+  await verifier.verifyAuthorization(`Bearer ${trusted.signToken()}`);
+  assert.equal(calls.count, 1);
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    await assert.rejects(
+      verifier.verifyAuthorization(`Bearer ${attacker.signToken({}, { kid: `unknown-${attempt}` })}`),
+      (error: unknown) => error instanceof HumanAuthError && error.code === 'invalid-token',
+    );
+  }
+  assert.equal(calls.count, 1);
+
+  nowMs += 30_001;
+  await assert.rejects(
+    verifier.verifyAuthorization(`Bearer ${attacker.signToken({}, { kid: 'unknown-after-window' })}`),
+    (error: unknown) => error instanceof HumanAuthError && error.code === 'invalid-token',
+  );
+  assert.equal(calls.count, 2);
 });
 
 test('JWKS transport failure fails closed as authentication unavailable', async () => {
