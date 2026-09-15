@@ -2,8 +2,11 @@ import { Pool } from 'pg';
 import { MastraDeterministicAgentRuntime } from '../agent-runtime/mastra-deterministic.js';
 import { PostgresAnaRepository } from '../ana/postgres-repository.js';
 import { AnaSupervisedIngressService } from '../ana/supervised-ingress.js';
+import { Es256JwksHumanTokenVerifier } from '../human-auth/es256-jwks.js';
+import { HumanSupervisionReadService } from '../supervision/human-read.js';
 import { loadRuntimeConfig } from './config.js';
 import { createGatewayIngressHandler } from './gateway-ingress.js';
+import { createHumanSupervisionHandler } from './human-supervision.js';
 import { createRuntimeServer, type RuntimeReadiness } from './server.js';
 
 const config = await loadRuntimeConfig();
@@ -61,10 +64,24 @@ const handleGatewayInbound = pool && config.gatewayIngress
     })
   : undefined;
 
+const handleHumanSupervision = pool && config.humanApi
+  ? createHumanSupervisionHandler(
+      new HumanSupervisionReadService(
+        pool,
+        new Es256JwksHumanTokenVerifier({
+          jwksUrl: config.humanApi.jwksUrl,
+          issuer: config.humanApi.issuer,
+          audience: config.humanApi.audience,
+        }),
+      ),
+    )
+  : undefined;
+
 const server = createRuntimeServer({
   mode: config.mode,
   checkReady,
   ...(handleGatewayInbound ? { handleGatewayInbound } : {}),
+  ...(handleHumanSupervision ? { handleHumanSupervision } : {}),
 });
 server.listen(config.port, '0.0.0.0', () => {
   console.log(JSON.stringify({
@@ -72,6 +89,7 @@ server.listen(config.port, '0.0.0.0', () => {
     mode: config.mode,
     port: config.port,
     gatewayIngress: Boolean(handleGatewayInbound),
+    humanApi: Boolean(handleHumanSupervision),
     agentRuntime: config.agentRuntime?.mode ?? 'disabled',
   }));
 });
