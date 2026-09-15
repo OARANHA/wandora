@@ -1,5 +1,6 @@
 import { createCoreIngressClient } from './core-client.js';
 import { loadMessagingGatewayConfig } from './config.js';
+import { createEvolutionOutboundSender } from './outbound.js';
 import { createMessagingGatewayServer } from './server.js';
 
 const config = await loadMessagingGatewayConfig();
@@ -8,12 +9,25 @@ const forwardToCore = createCoreIngressClient({
   secret: config.coreIngressSecret,
 });
 
+const outbound = config.outbound
+  ? {
+      secret: config.outbound.coreOutboundSecret,
+      sendText: createEvolutionOutboundSender({
+        connectionId: config.connectionId,
+        instanceName: config.evolutionInstance,
+        baseUrl: config.outbound.evolutionBaseUrl,
+        apiKey: config.outbound.evolutionApiKey,
+      }),
+    }
+  : undefined;
+
 const server = createMessagingGatewayServer({
   evolutionInstance: config.evolutionInstance,
   evolutionWebhookJwtKey: config.evolutionWebhookJwtKey,
   organizationId: config.organizationId,
   connectionId: config.connectionId,
   forwardToCore,
+  outbound,
 });
 
 server.listen(config.port, '0.0.0.0', () => {
@@ -21,6 +35,7 @@ server.listen(config.port, '0.0.0.0', () => {
     event: 'wandora-messaging-gateway.started',
     port: config.port,
     provider: 'evolution',
+    outboundEnabled: Boolean(config.outbound),
   }));
 });
 
