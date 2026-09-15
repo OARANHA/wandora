@@ -3,6 +3,7 @@ import { HumanAccessError, type HumanSupervisionReadService } from '../supervisi
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const WORK_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/work\/attention-required$/;
+const CONVERSATIONS_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/conversations$/;
 const SESSION_PATH = '/api/v1/me';
 
 export type HumanSupervisionRequest = {
@@ -32,14 +33,27 @@ export function createHumanSupervisionHandler(service: HumanSupervisionReadServi
         return { status: 200, body: session };
       }
 
-      const match = WORK_PATH_RE.exec(request.pathname);
-      const organizationId = match?.[1];
-      if (!organizationId || !UUID_RE.test(organizationId)) {
-        return { status: 404, body: { error: 'not-found' } };
+      const workMatch = WORK_PATH_RE.exec(request.pathname);
+      const workOrganizationId = workMatch?.[1];
+      if (workOrganizationId) {
+        if (!UUID_RE.test(workOrganizationId)) {
+          return { status: 404, body: { error: 'not-found' } };
+        }
+        const items = await service.listAttentionRequired(request.authorization, workOrganizationId);
+        return { status: 200, body: { items } };
       }
 
-      const items = await service.listAttentionRequired(request.authorization, organizationId);
-      return { status: 200, body: { items } };
+      const conversationsMatch = CONVERSATIONS_PATH_RE.exec(request.pathname);
+      const conversationsOrganizationId = conversationsMatch?.[1];
+      if (conversationsOrganizationId) {
+        if (!UUID_RE.test(conversationsOrganizationId)) {
+          return { status: 404, body: { error: 'not-found' } };
+        }
+        const items = await service.listConversations(request.authorization, conversationsOrganizationId);
+        return { status: 200, body: { items } };
+      }
+
+      return { status: 404, body: { error: 'not-found' } };
     } catch (error) {
       if (error instanceof HumanAuthError) {
         if (error.code === 'jwks-unavailable') {
