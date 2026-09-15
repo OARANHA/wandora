@@ -56,7 +56,8 @@ for migration in \
   20260914_002_ana_vertical_slice_v1.sql \
   20260914_003_core_runtime_role_v1.sql \
   20260915_004_supervised_proposal_v1.sql \
-  20260915_005_human_supervision_read_v1.sql; do
+  20260915_005_human_supervision_read_v1.sql \
+  20260915_006_human_session_bootstrap_v1.sql; do
   docker cp "$MIGRATIONS/$migration" "$DB:/tmp/$migration" >/dev/null
   docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -f "/tmp/$migration" >/dev/null
 done
@@ -66,6 +67,7 @@ for verifier in \
   VERIFY_20260914_CORE_RUNTIME_ROLE_V1_LIVE.sql \
   VERIFY_20260915_SUPERVISED_PROPOSAL_V1_LIVE.sql \
   VERIFY_20260915_HUMAN_SUPERVISION_READ_V1_LIVE.sql \
+  VERIFY_20260915_HUMAN_SESSION_BOOTSTRAP_V1_LIVE.sql \
   VERIFY_20260914_ANA_VERTICAL_SLICE_V1.sql; do
   docker cp "$VERIFIERS/$verifier" "$DB:/tmp/$verifier" >/dev/null
   docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -f "/tmp/$verifier"
