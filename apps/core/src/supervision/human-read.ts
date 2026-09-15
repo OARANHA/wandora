@@ -106,7 +106,7 @@ type AttentionRow = {
 type ConversationRow = {
   conversation_id: string;
   conversation_status: 'open' | 'closed';
-  conversation_updated_at: Date;
+  last_activity_at: Date;
   contact_id: string;
   contact_label: string;
   employee_id: string | null;
@@ -315,7 +315,7 @@ export class HumanSupervisionReadService {
       const result = await client.query<ConversationRow>(
         `SELECT cv.id::text AS conversation_id,
                 cv.status::text AS conversation_status,
-                cv.updated_at AS conversation_updated_at,
+                GREATEST(cv.updated_at, COALESCE(lm.occurred_at, cv.updated_at)) AS last_activity_at,
                 ct.id::text AS contact_id,
                 COALESCE(NULLIF(BTRIM(ct.display_name), ''), ct.channel_address) AS contact_label,
                 aw.employee_id,
@@ -346,7 +346,7 @@ export class HumanSupervisionReadService {
               LIMIT 1
            ) lm ON true
           WHERE cv.organization_id = $1
-          ORDER BY COALESCE(lm.occurred_at, cv.updated_at) DESC, cv.id
+          ORDER BY last_activity_at DESC, cv.id
           LIMIT 100`,
         [organizationId],
       );
@@ -355,7 +355,7 @@ export class HumanSupervisionReadService {
         conversation: {
           id: row.conversation_id,
           status: row.conversation_status,
-          lastActivityAt: (row.message_occurred_at ?? row.conversation_updated_at).toISOString(),
+          lastActivityAt: row.last_activity_at.toISOString(),
         },
         contact: { id: row.contact_id, label: row.contact_label },
         employee: row.employee_id && row.employee_name
