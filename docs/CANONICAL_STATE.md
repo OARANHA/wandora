@@ -39,6 +39,31 @@ The current-user menu owns personal preferences, notifications, security and ses
 
 The current Web shell still uses preview/mock product-contract data. It must not be mistaken for a connected production customer account until tenant-authorized Core reads/actions are wired.
 
+## Platform administration direction — ACCEPTED, NOT YET COMPLETE
+
+ADR 0015 accepts **Wandora Platform Admin** as the first-party control plane for the Wandora owner/operator.
+
+The long-term normal operating model is **not** to require daily administration through Mastra Studio, Paperclip UI, Evolution Manager, Supabase Studio or Portainer. Those native consoles remain strongly protected engineering, diagnostics and emergency-recovery tools.
+
+Platform Admin will be implemented incrementally behind Wandora-owned Core/operator APIs and adapters. Its intended scope includes:
+
+- organizations/tenants and lifecycle;
+- human users, memberships and access state;
+- digital employees, responsibilities, status and autonomy;
+- prompt/instruction versions when canonicalized;
+- workflows, tools and capabilities;
+- models/providers, cost and usage visibility;
+- messaging connections and provider-neutral health;
+- work, conversations, supervision and approvals;
+- traces/execution diagnostics through Wandora-owned observability contracts;
+- plans, limits and billing-support state;
+- audit/security events;
+- service health/incidents and controlled recovery actions.
+
+Customer administration and Platform Admin are separate trust planes. A tenant `owner` or `admin` does not gain platform-wide access.
+
+This direction does not change the immediate priority: first make the real supervised employee loop visible and usable through the existing customer Wandora Web. Platform Admin follows in vertical slices around stable contracts rather than as a speculative generic infrastructure dashboard.
+
 ## Accepted technology roles
 
 - Cloudflare — public edge/protection and preferred Access layer for privileged surfaces.
@@ -47,8 +72,10 @@ The current Web shell still uses preview/mock product-contract data. It must not
 - Supabase self-hosted — PostgreSQL/Auth/data foundation, not Wandora business backend.
 - Wandora Core — canonical business semantics and authorization.
 - Mastra — accepted initial Agent Runtime behind Wandora's adapter.
+- Paperclip — validated organization/control-plane candidate behind a Wandora-owned adapter; not the customer/operator product itself.
 - Evolution API 2.3.7 — accepted initial WhatsApp provider behind Messaging Gateway.
 - React 19 + Vite with TanStack Router/Query — accepted customer web shell.
+- Wandora Platform Admin — accepted first-party owner/operator control-plane direction.
 - Model providers — replaceable behind a Wandora-owned boundary; no real provider is required by the current live path.
 
 ## Current live topology
@@ -294,7 +321,8 @@ Required order:
 7. keep commercial commitments on the existing stronger approval boundary;
 8. prove cross-tenant denial and disabled/inactive actor denial;
 9. keep Evolution, Mastra and provider/runtime IDs private;
-10. keep model providers disabled during this slice unless the UI/review contract is already proven and a model-backed test is materially justified.
+10. keep model providers disabled during this slice unless the UI/review contract is already proven and a model-backed test is materially justified;
+11. preserve ADR 0015: Platform Admin is the operator control-plane direction, but do not delay this customer-visible slice to build the full cockpit first.
 
 The next slice is therefore about **customer-visible supervision**, not model quality and not autonomy.
 
@@ -314,6 +342,7 @@ Before implementing a capability, answer from both customer and owner/operator v
 ## Non-negotiable boundaries
 
 - Wandora Web never calls Paperclip, Mastra or Evolution directly.
+- Wandora Platform Admin is the preferred normal operator control plane; native provider consoles remain protected engineering/diagnostic tools, not customer dependencies or the daily source of operational truth.
 - Supabase Auth identifies/sessionizes; Wandora Core owns business authorization and tenant membership.
 - Agent memory/RAG is not canonical storage for transactional facts.
 - Provider identifiers never become public Wandora identities without an explicit boundary decision.
@@ -329,4 +358,4 @@ Before implementing a capability, answer from both customer and owner/operator v
 
 ## Startup instruction for another chat
 
-> Read `AGENTS.md`, accepted ADRs, `docs/architecture.md` and `docs/CANONICAL_STATE.md`. Security gate #22, Core database activation, authenticated Messaging Gateway → Core ingress and Mastra deterministic supervised proposals are live. Core is private on `wandora-core + wandora-data`, uses only `wandora_core_runtime`, publishes no host port and reports `/healthz = 200` / `/readyz = 200`. Messaging Gateway is private on `wandora-core`, authenticates Evolution webhooks with JWT and Core with a separate HMAC secret. Mastra deterministic mode is live with framework telemetry forced off; it creates a durable proposal inside the private receipt while work remains `attention-required`. Live synthetic direct-Core and Gateway end-to-end proofs both show `approvals=0`, `outbound_attempts=0` and `outbound_messages=0`. No real model credential is configured or required. The next slice is **Supervised Proposal Review V1 — Core → Wandora Web**: define a Wandora-owned human-review contract and tenant-authorized reads/actions without exposing private receipt/provider internals or enabling automatic sends. Keep the paying-business-customer + Wandora-owner dual perspective and the decision → second review → execution discipline.
+> Read `AGENTS.md`, accepted ADRs, `docs/architecture.md` and `docs/CANONICAL_STATE.md`. Security gate #22, Core database activation, authenticated Messaging Gateway → Core ingress and Mastra deterministic supervised proposals are live. Core is private on `wandora-core + wandora-data`, uses only `wandora_core_runtime`, publishes no host port and reports `/healthz = 200` / `/readyz = 200`. Messaging Gateway is private on `wandora-core`, authenticates Evolution webhooks with JWT and Core with a separate HMAC secret. Mastra deterministic mode is live with framework telemetry forced off; it creates a durable proposal inside the private receipt while work remains `attention-required`. Live synthetic direct-Core and Gateway end-to-end proofs both show `approvals=0`, `outbound_attempts=0` and `outbound_messages=0`. No real model credential is configured or required. ADR 0015 accepts Wandora Platform Admin as the first-party owner/operator control plane; Mastra Studio, Paperclip UI, Evolution Manager, Supabase Studio and Portainer remain protected engineering/diagnostic surfaces rather than the normal operating workflow. The next slice remains **Supervised Proposal Review V1 — Core → Wandora Web**: define a Wandora-owned human-review contract and tenant-authorized reads/actions without exposing private receipt/provider internals or enabling automatic sends. Keep the paying-business-customer + Wandora-owner dual perspective and the decision → second review → execution discipline.
