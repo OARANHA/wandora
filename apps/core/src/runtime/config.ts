@@ -10,10 +10,15 @@ export type RuntimeDatabaseConfig = {
   password: string;
 };
 
+export type RuntimeGatewayIngressConfig = {
+  secret: string;
+};
+
 export type RuntimeConfig = {
   port: number;
   mode: RuntimeMode;
   database?: RuntimeDatabaseConfig;
+  gatewayIngress?: RuntimeGatewayIngressConfig;
 };
 
 const parsePort = (value: string | undefined, fallback: number, name: string): number => {
@@ -29,6 +34,14 @@ const required = (env: NodeJS.ProcessEnv, name: string): string => {
   if (!value) throw new Error(`${name} is required in database mode.`);
   return value;
 };
+
+const parseEnabled = (value: string | undefined, name: string): boolean => {
+  const normalized = (value ?? 'false').trim().toLowerCase();
+  if (normalized === 'true') return true;
+  if (normalized === 'false') return false;
+  throw new Error(`${name} must be true or false.`);
+};
+
 export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): Promise<RuntimeConfig> {
   const port = parsePort(env.PORT, 8788, 'PORT');
   const mode = (env.WANDORA_CORE_MODE ?? 'standby').trim();
@@ -36,7 +49,17 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     throw new Error('WANDORA_CORE_MODE must be standby or database.');
   }
 
-  if (mode === 'standby') return { port, mode };
+  const gatewayIngressEnabled = parseEnabled(
+    env.WANDORA_GATEWAY_INGRESS_ENABLED,
+    'WANDORA_GATEWAY_INGRESS_ENABLED',
+  );
+
+  if (mode === 'standby') {
+    if (gatewayIngressEnabled) {
+      throw new Error('Gateway ingress cannot be enabled while Wandora Core is in standby mode.');
+    }
+    return { port, mode };
+  }
 
   const user = (env.WANDORA_CORE_DB_USER ?? 'wandora_core_runtime').trim();
   if (user !== 'wandora_core_runtime') {
@@ -46,6 +69,16 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
   const passwordFile = required(env, 'WANDORA_CORE_DB_PASSWORD_FILE');
   const password = (await readFile(passwordFile, 'utf8')).trim();
   if (!password) throw new Error('Wandora Core database password file is empty.');
+
+  let gatewayIngress: RuntimeGatewayIngressConfig | undefined;
+  if (gatewayIngressEnabled) {
+    const secretFile = required(env, 'WANDORA_GATEWAY_INGRESS_SECRET_FILE');
+    const secret = (await readFile(secretFile, 'utf8')).trim();
+    if (secret.length < 32) {
+      throw new Error('Wandora Gateway ingress secret must contain at least 32 characters.');
+    }
+    gatewayIngress = { secret };
+  }
 
   return {
     port,
@@ -57,5 +90,6 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
       user: 'wandora_core_runtime',
       password,
     },
+    gatewayIngress,
   };
 }
