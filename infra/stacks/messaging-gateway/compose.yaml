@@ -1,0 +1,47 @@
+services:
+  messaging-gateway:
+    image: ${WANDORA_MESSAGING_GATEWAY_IMAGE:-wandora/messaging-gateway:inbound-runtime-v1}
+    container_name: wandora-messaging-gateway
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    group_add:
+      - "${WANDORA_GATEWAY_SECRET_GID:?set WANDORA_GATEWAY_SECRET_GID to the group that can read Gateway secrets}"
+    environment:
+      PORT: "8787"
+      WANDORA_EVOLUTION_INSTANCE: ${WANDORA_EVOLUTION_INSTANCE:?set canonical Evolution instance name}
+      WANDORA_ORGANIZATION_ID: ${WANDORA_ORGANIZATION_ID:?set canonical Wandora organization UUID}
+      WANDORA_CONNECTION_ID: ${WANDORA_CONNECTION_ID:?set canonical Wandora messaging connection UUID}
+      WANDORA_EVOLUTION_WEBHOOK_JWT_KEY_FILE: /run/secrets/evolution_webhook_jwt_key
+      WANDORA_CORE_INGRESS_SECRET_FILE: /run/secrets/core_ingress_hmac
+      WANDORA_CORE_INGRESS_URL: http://wandora-core:8788/internal/v1/gateway/inbound
+    expose:
+      - "8787"
+    networks:
+      - wandora-core
+    secrets:
+      - evolution_webhook_jwt_key
+      - core_ingress_hmac
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8787/healthz').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    stop_grace_period: 15s
+
+secrets:
+  evolution_webhook_jwt_key:
+    file: ${WANDORA_EVOLUTION_WEBHOOK_JWT_KEY_FILE:?set Evolution webhook JWT key file outside Git}
+  core_ingress_hmac:
+    file: ${WANDORA_GATEWAY_CORE_INGRESS_SECRET_FILE:?set Gateway to Core HMAC secret file outside Git}
+
+networks:
+  wandora-core:
+    external: true

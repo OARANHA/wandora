@@ -1,0 +1,146 @@
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
+import {
+  CoreUnavailableError,
+  IgnoredEvolutionEvent,
+  InvalidEvolutionEvent,
+  type CoreForwardOutcome,
+  type CoreInboundEnvelope,
+} from './contracts.js';
+import { verifyEvolutionWebhookJwt } from './evolution-jwt.js';
+import { normalizeEvolutionInbound } from './normalize-evolution-inbound.js';
+
+export type MessagingGatewayServerDeps = {
+  evolutionInstance: string;
+  evolutionWebhookJwtKey: string;
+  organizationId: string;
+  connectionId: string;
+  forwardToCore: (envelope: CoreInboundEnvelope) => Promise<CoreForwardOutcome>;
+  now?: () => number;
+};
+
+class PayloadTooLargeError extends Error {}
+
+function writeJson(response: ServerResponse, status: number, payload: Record<string, unknown>): void {
+  response.writeHead(status, {
+    'content-type': 'application/json; charset=utf-8',
+    'cache-control': 'no-store',
+  });
+  response.end(`${JSON.stringify(payload)}\n`);
+}
+
+async function readBody(request: IncomingMessage, maxBytes = 1_048_576): Promise<string> {
+  const chunks: Buffer[] = [];
+  let size = 0;
+  for await (const chunk of request) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    size += buffer.length;
+    if (size > maxBytes) throw new PayloadTooLargeError();
+    chunks.push(buffer);
+  }
+  return Buffer.concat(chunks).toString('utf8');
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined;
+}
+
+function mapCoreOutcome(response: ServerResponse, outcome: CoreForwardOutcome): void {
+  if (outcome.kind === 'accepted') {
+    writeJson(response, 200, { accepted: true });
+    return;
+  }
+  if (outcome.kind === 'processing') {
+    writeJson(response, 409, { accepted: false, retry: true, reason: 'event-processing' });
+    return;
+  }
+  writeJson(response, 422, { accepted: false, retry: false, reason: 'canonical-rejection' });
+}
+
+export function createMessagingGatewayServer(deps: MessagingGatewayServerDeps): Server {
+  const now = deps.now ?? (() => Date.now());
+
+  return createServer(async (request, response) => {
+    const url = new URL(request.url ?? '/', 'http://wandora-messaging-gateway.local');
+
+    if (request.method === 'GET' && url.pathname === '/healthz') {
+      writeJson(response, 200, { status: 'ok', service: 'wandora-messaging-gateway' });
+      return;
+    }
+
+    if (url.pathname !== '/providers/evolution/webhook') {
+      writeJson(response, 404, { error: 'not-found' });
+      return;
+    }
+    if (request.method !== 'POST') {
+      writeJson(response, 405, { error: 'method-not-allowed' });
+      return;
+    }
+
+    const authorization = Array.isArray(request.headers.authorization)
+      ? request.headers.authorization[0]
+      : request.headers.authorization;
+    if (!verifyEvolutionWebhookJwt(authorization, deps.evolutionWebhookJwtKey, now())) {
+      writeJson(response, 401, { error: 'unauthorized-provider-webhook' });
+      return;
+    }
+
+    let rawBody: string;
+    try {
+      rawBody = await readBody(request);
+    } catch (error) {
+      if (error instanceof PayloadTooLargeError) {
+        writeJson(response, 413, { error: 'payload-too-large' });
+      } else {
+        writeJson(response, 500, { error: 'internal-error' });
+      }
+      return;
+    }
+
+    let payload: unknown;
+    try {
+      payload = JSON.parse(rawBody);
+    } catch {
+      writeJson(response, 400, { error: 'invalid-json' });
+      return;
+    }
+
+    const raw = asRecord(payload);
+    if (!raw || raw.instance !== deps.evolutionInstance) {
+      writeJson(response, 403, { error: 'unexpected-provider-instance' });
+      return;
+    }
+
+    let event;
+    try {
+      event = normalizeEvolutionInbound(deps.connectionId, payload);
+    } catch (error) {
+      if (error instanceof IgnoredEvolutionEvent) {
+        response.writeHead(204, { 'cache-control': 'no-store' });
+        response.end();
+        return;
+      }
+      if (error instanceof InvalidEvolutionEvent) {
+        writeJson(response, 400, { error: 'invalid-provider-event', reason: error.reason });
+        return;
+      }
+      writeJson(response, 500, { error: 'internal-error' });
+      return;
+    }
+
+    try {
+      const outcome = await deps.forwardToCore({
+        organizationId: deps.organizationId,
+        event,
+      });
+      mapCoreOutcome(response, outcome);
+    } catch (error) {
+      if (error instanceof CoreUnavailableError) {
+        writeJson(response, 503, { accepted: false, retry: true, reason: 'core-unavailable' });
+      } else {
+        writeJson(response, 500, { accepted: false, retry: true, reason: 'internal-error' });
+      }
+    }
+  });
+}
