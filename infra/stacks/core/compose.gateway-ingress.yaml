@@ -1,0 +1,11 @@
+services:
+  core:
+    environment:
+      WANDORA_GATEWAY_INGRESS_ENABLED: "true"
+      WANDORA_GATEWAY_INGRESS_SECRET_FILE: /run/secrets/wandora_gateway_core_ingress_secret
+    secrets:
+      - wandora_gateway_core_ingress_secret
+
+secrets:
+  wandora_gateway_core_ingress_secret:
+    file: ${WANDORA_GATEWAY_CORE_INGRESS_SECRET_FILE:?set Gateway to Core ingress secret file outside Git}
