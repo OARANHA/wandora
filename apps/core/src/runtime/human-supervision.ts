@@ -1,9 +1,14 @@
 import { HumanAuthError } from '../human-auth/es256-jwks.js';
-import { HumanAccessError, type HumanSupervisionReadService } from '../supervision/human-read.js';
+import {
+  HumanAccessError,
+  HumanNotFoundError,
+  type HumanSupervisionReadService,
+} from '../supervision/human-read.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const WORK_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/work\/attention-required$/;
 const CONVERSATIONS_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/conversations$/;
+const CONVERSATION_DETAIL_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/conversations\/([^/]+)$/;
 const SESSION_PATH = '/api/v1/me';
 
 export type HumanSupervisionRequest = {
@@ -53,6 +58,21 @@ export function createHumanSupervisionHandler(service: HumanSupervisionReadServi
         return { status: 200, body: { items } };
       }
 
+      const detailMatch = CONVERSATION_DETAIL_PATH_RE.exec(request.pathname);
+      const detailOrganizationId = detailMatch?.[1];
+      const conversationId = detailMatch?.[2];
+      if (detailOrganizationId && conversationId) {
+        if (!UUID_RE.test(detailOrganizationId) || !UUID_RE.test(conversationId)) {
+          return { status: 404, body: { error: 'not-found' } };
+        }
+        const detail = await service.getConversationDetail(
+          request.authorization,
+          detailOrganizationId,
+          conversationId,
+        );
+        return { status: 200, body: detail };
+      }
+
       return { status: 404, body: { error: 'not-found' } };
     } catch (error) {
       if (error instanceof HumanAuthError) {
@@ -63,6 +83,9 @@ export function createHumanSupervisionHandler(service: HumanSupervisionReadServi
       }
       if (error instanceof HumanAccessError) {
         return { status: 403, body: { error: 'forbidden' } };
+      }
+      if (error instanceof HumanNotFoundError) {
+        return { status: 404, body: { error: 'not-found' } };
       }
       return { status: 500, body: { error: 'internal-error' } };
     }
