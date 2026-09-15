@@ -88,8 +88,9 @@ function authorized(
   if (Math.abs(Math.floor(now / 1000) - timestampSeconds) > MAX_CLOCK_SKEW_SECONDS) return false;
 
   const match = SIGNATURE_RE.exec(request.signature);
-  if (!match) return false;
-  const supplied = Buffer.from(match[1], 'hex');
+  const suppliedDigest = match?.[1];
+  if (!suppliedDigest) return false;
+  const supplied = Buffer.from(suppliedDigest, 'hex');
   const expected = Buffer.from(
     signGatewayIngress(secret, request.timestamp, request.rawBody).slice('sha256='.length),
     'hex',
