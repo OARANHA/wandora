@@ -9,6 +9,10 @@ import type {
   GatewayIngressRequest,
   GatewayIngressResponse,
 } from './gateway-ingress.js';
+import type {
+  HumanSupervisionRequest,
+  HumanSupervisionResponse,
+} from './human-supervision.js';
 
 export type RuntimeReadiness =
   | { ready: true }
@@ -18,6 +22,7 @@ export type RuntimeServerDeps = {
   mode: RuntimeMode;
   checkReady: () => Promise<RuntimeReadiness>;
   handleGatewayInbound?: (request: GatewayIngressRequest) => Promise<GatewayIngressResponse>;
+  handleHumanSupervision?: (request: HumanSupervisionRequest) => Promise<HumanSupervisionResponse>;
 };
 
 const writeJson = (
@@ -79,6 +84,24 @@ export function createRuntimeServer(deps: RuntimeServerDeps): Server {
         } else {
           writeJson(response, 500, { error: 'internal-error' });
         }
+      }
+      return;
+    }
+
+    if (url.pathname.startsWith('/api/v1/organizations/')) {
+      if (!deps.handleHumanSupervision) {
+        writeJson(response, 404, { error: 'not-found' });
+        return;
+      }
+      try {
+        const result = await deps.handleHumanSupervision({
+          method: request.method,
+          pathname: url.pathname,
+          authorization: header(request, 'authorization'),
+        });
+        writeJson(response, result.status, result.body);
+      } catch {
+        writeJson(response, 500, { error: 'internal-error' });
       }
       return;
     }
