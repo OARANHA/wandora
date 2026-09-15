@@ -89,6 +89,7 @@ export class Es256JwksHumanTokenVerifier implements HumanTokenVerifier {
     try {
       response = await this.fetchImpl(this.options.jwksUrl, {
         headers: { accept: 'application/json' },
+        redirect: 'error',
         signal: AbortSignal.timeout(this.requestTimeoutMs),
       });
     } catch {
@@ -105,8 +106,8 @@ export class Es256JwksHumanTokenVerifier implements HumanTokenVerifier {
       throw new HumanAuthError('jwks-unavailable', 'Human Auth JWKS returned invalid JSON.');
     }
     const keysValue = record(payload)?.keys;
-    if (!Array.isArray(keysValue)) {
-      throw new HumanAuthError('jwks-unavailable', 'Human Auth JWKS has no keys array.');
+    if (!Array.isArray(keysValue) || keysValue.length > 32) {
+      throw new HumanAuthError('jwks-unavailable', 'Human Auth JWKS keys are invalid.');
     }
 
     const keys = new Map<string, KeyObject>();
@@ -116,7 +117,7 @@ export class Es256JwksHumanTokenVerifier implements HumanTokenVerifier {
       if (jwk.kty !== 'EC' || jwk.crv !== 'P-256') continue;
       if (jwk.alg !== undefined && jwk.alg !== 'ES256') continue;
       if (jwk.use !== undefined && jwk.use !== 'sig') continue;
-      if (typeof jwk.kid !== 'string' || !jwk.kid) continue;
+      if (typeof jwk.kid !== 'string' || !jwk.kid || jwk.kid.length > 255) continue;
       if (keys.has(jwk.kid)) {
         throw new HumanAuthError('jwks-unavailable', 'Human Auth JWKS contains duplicate key IDs.');
       }
@@ -157,7 +158,7 @@ export class Es256JwksHumanTokenVerifier implements HumanTokenVerifier {
     const exp = payload.exp;
     const iat = payload.iat;
     const nbf = payload.nbf;
-    if (typeof subject !== 'string' || !subject || payload.iss !== this.options.issuer) {
+    if (typeof subject !== 'string' || subject.length < 1 || subject.length > 255 || payload.iss !== this.options.issuer) {
       throw new HumanAuthError('invalid-token', 'JWT claims are invalid.');
     }
     if (!audienceMatches(payload.aud, this.options.audience)) {
