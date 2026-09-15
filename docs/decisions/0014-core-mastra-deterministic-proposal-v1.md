@@ -15,6 +15,8 @@ The existing full `AnaInboundService` is not the correct live entry point for th
 
 The current schema also has no generic customer-facing proposal/draft entity. `wandora.approvals` represents sensitive actions requiring a human decision and must not be repurposed as a generic store for every safe draft merely because it already contains proposed text.
 
+A second-pass inspection of the exact pinned `@mastra/core 1.66.0` runtime found that Mastra feature telemetry is enabled by default and uses PostHog unless `MASTRA_TELEMETRY_DISABLED` is set. Although the inspected feature telemetry does not directly include customer message text, Wandora has no need for that framework egress in this customer-processing path.
+
 ## Decision
 
 Integrate Mastra into the **existing supervised ingress service**, not the outbound-capable full Ana service.
@@ -31,6 +33,12 @@ The deterministic mode is valid only when:
 - authenticated supervised Gateway ingress is enabled.
 
 No model-provider secret is accepted or required by this mode.
+
+The Wandora deterministic adapter unconditionally sets:
+
+`MASTRA_TELEMETRY_DISABLED=true`
+
+before constructing the Mastra runtime. Operators cannot opt this customer-processing mode back into Mastra framework telemetry through an environment override.
 
 ## Mastra boundary
 
@@ -50,6 +58,8 @@ The workflow returns only the Wandora-owned `EmployeeProposal` shape:
 - rationale.
 
 Mastra workflow/run IDs and framework internals do not cross the adapter boundary.
+
+Observability is not configured for this V1 path and the pinned Core runtime's framework telemetry is explicitly disabled. The deterministic proposal path therefore requires no model call and no Mastra telemetry egress.
 
 ## Durable supervised result
 
@@ -74,7 +84,8 @@ The deterministic supervised path must create:
 - no `wandora_private.outbound_attempts` row;
 - no outbound message;
 - no Messaging Gateway send call;
-- no model-provider call.
+- no model-provider call;
+- no Mastra framework telemetry egress.
 
 The live inbound path remains supervised even when Mastra is enabled.
 
@@ -91,6 +102,7 @@ A completed duplicate returns the durable stored result, including the previousl
 The PR must prove:
 
 - the Mastra adapter returns exactly the Wandora `EmployeeProposal` contract;
+- `MASTRA_TELEMETRY_DISABLED=true` is forced by the adapter;
 - deterministic execution succeeds while network access is forbidden in the test;
 - blank input fails;
 - runtime mode is disabled by default;
@@ -111,6 +123,7 @@ Positive:
 - the customer-facing supervision meaning remains stronger than implementation convenience;
 - no premature generic proposal schema is introduced before the Web human-review experience is designed;
 - provider/framework metadata remains internal;
+- unnecessary framework telemetry egress is disabled at the adapter boundary;
 - the first later model-backed proposal can reuse the same Wandora adapter contract.
 
 Trade-offs:
