@@ -10,6 +10,11 @@ export type MessagingGatewayConfig = {
   evolutionWebhookJwtKey: string;
   coreIngressSecret: string;
   coreIngressUrl: string;
+  outbound?: {
+    coreOutboundSecret: string;
+    evolutionApiKey: string;
+    evolutionBaseUrl: string;
+  };
 };
 
 function required(env: NodeJS.ProcessEnv, name: string): string {
@@ -48,6 +53,30 @@ function validateCoreIngressUrl(value: string): string {
   return url.toString();
 }
 
+function validateEvolutionBaseUrl(value: string): string {
+  const url = new URL(value);
+  if (
+    url.protocol !== 'http:'
+    || url.hostname !== 'wandora-evolution'
+    || url.port !== '8080'
+    || (url.pathname !== '/' && url.pathname !== '')
+    || url.username
+    || url.password
+    || url.search
+    || url.hash
+  ) {
+    throw new Error('WANDORA_EVOLUTION_BASE_URL must target the private canonical Evolution service.');
+  }
+  return url.toString();
+}
+
+function parseEnabled(value: string | undefined): boolean {
+  const normalized = value?.trim().toLowerCase();
+  if (!normalized || normalized === 'false') return false;
+  if (normalized === 'true') return true;
+  throw new Error('WANDORA_GATEWAY_OUTBOUND_ENABLED must be true or false.');
+}
+
 async function readSecret(env: NodeJS.ProcessEnv, name: string): Promise<string> {
   const file = required(env, name);
   const value = (await readFile(file, 'utf8')).trim();
@@ -61,7 +90,7 @@ export async function loadMessagingGatewayConfig(
   const evolutionInstance = required(env, 'WANDORA_EVOLUTION_INSTANCE');
   if (evolutionInstance.length > 128) throw new Error('WANDORA_EVOLUTION_INSTANCE is too long.');
 
-  return {
+  const config: MessagingGatewayConfig = {
     port: parsePort(env.PORT),
     evolutionInstance,
     organizationId: canonicalUuid(required(env, 'WANDORA_ORGANIZATION_ID'), 'WANDORA_ORGANIZATION_ID'),
@@ -73,4 +102,16 @@ export async function loadMessagingGatewayConfig(
         || 'http://wandora-core:8788/internal/v1/gateway/inbound',
     ),
   };
+
+  if (parseEnabled(env.WANDORA_GATEWAY_OUTBOUND_ENABLED)) {
+    config.outbound = {
+      coreOutboundSecret: await readSecret(env, 'WANDORA_CORE_OUTBOUND_SECRET_FILE'),
+      evolutionApiKey: await readSecret(env, 'WANDORA_EVOLUTION_API_KEY_FILE'),
+      evolutionBaseUrl: validateEvolutionBaseUrl(
+        env.WANDORA_EVOLUTION_BASE_URL?.trim() || 'http://wandora-evolution:8080',
+      ),
+    };
+  }
+
+  return config;
 }

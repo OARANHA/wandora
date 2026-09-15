@@ -1,0 +1,16 @@
+services:
+  messaging-gateway:
+    environment:
+      WANDORA_GATEWAY_OUTBOUND_ENABLED: "true"
+      WANDORA_CORE_OUTBOUND_SECRET_FILE: /run/secrets/core_outbound_hmac
+      WANDORA_EVOLUTION_API_KEY_FILE: /run/secrets/evolution_api_key
+      WANDORA_EVOLUTION_BASE_URL: http://wandora-evolution:8080
+    secrets:
+      - core_outbound_hmac
+      - evolution_api_key
+
+secrets:
+  core_outbound_hmac:
+    file: ${WANDORA_CORE_GATEWAY_OUTBOUND_SECRET_FILE:?set Core to Gateway outbound HMAC secret file outside Git}
+  evolution_api_key:
+    file: ${WANDORA_EVOLUTION_API_KEY_FILE:?set Evolution API key file outside Git}

@@ -38,6 +38,8 @@ jobs:
           trap 'rm -rf "$tmp"' EXIT
           printf '%s\n' 'synthetic-evolution-jwt-secret-01234567890123456789' > "$tmp/evolution-jwt"
           printf '%s\n' 'synthetic-gateway-core-secret-012345678901234567890' > "$tmp/core-hmac"
+          printf '%s\n' 'synthetic-core-outbound-secret-01234567890123456789' > "$tmp/core-outbound-hmac"
+          printf '%s\n' 'synthetic-evolution-api-key-012345678901234567890' > "$tmp/evolution-api-key"
           printf '%s\n' 'synthetic-core-db-secret-012345678901234567890123' > "$tmp/core-db"
           WANDORA_GATEWAY_SECRET_GID="$(id -g)" \
           WANDORA_EVOLUTION_INSTANCE=wandora-ci-01 \
@@ -46,6 +48,18 @@ jobs:
           WANDORA_EVOLUTION_WEBHOOK_JWT_KEY_FILE="$tmp/evolution-jwt" \
           WANDORA_GATEWAY_CORE_INGRESS_SECRET_FILE="$tmp/core-hmac" \
           docker compose -f infra/stacks/messaging-gateway/compose.yaml config >/dev/null
+          WANDORA_GATEWAY_SECRET_GID="$(id -g)" \
+          WANDORA_EVOLUTION_INSTANCE=wandora-ci-01 \
+          WANDORA_ORGANIZATION_ID=11111111-1111-1111-1111-111111111111 \
+          WANDORA_CONNECTION_ID=22222222-2222-2222-2222-222222222222 \
+          WANDORA_EVOLUTION_WEBHOOK_JWT_KEY_FILE="$tmp/evolution-jwt" \
+          WANDORA_GATEWAY_CORE_INGRESS_SECRET_FILE="$tmp/core-hmac" \
+          WANDORA_CORE_GATEWAY_OUTBOUND_SECRET_FILE="$tmp/core-outbound-hmac" \
+          WANDORA_EVOLUTION_API_KEY_FILE="$tmp/evolution-api-key" \
+          docker compose \
+            -f infra/stacks/messaging-gateway/compose.yaml \
+            -f infra/stacks/messaging-gateway/compose.outbound-evolution.yaml \
+            config >/dev/null
           WANDORA_CORE_SECRET_GID="$(id -g)" \
           WANDORA_CORE_DB_PASSWORD_FILE="$tmp/core-db" \
           WANDORA_GATEWAY_CORE_INGRESS_SECRET_FILE="$tmp/core-hmac" \
@@ -100,6 +114,9 @@ jobs:
             sleep 1
           done
           test "$ready" -eq 1
+          docker run --rm --network "$network" \
+            node:22.23.2-bookworm-slim@sha256:83f487e0a63425e5b4d146fb5e5be574bcbe1b7b843d3ebafdd95eaf7767a7e5 \
+            node -e "fetch('http://${container}:8787/internal/v1/core/outbound/text',{method:'POST'}).then(r=>{if(r.status!==404)process.exit(1)}).catch(()=>process.exit(1))"
           test "$(docker inspect -f '{{.Config.User}}' "$container")" = node
           test "$(docker inspect -f '{{.HostConfig.ReadonlyRootfs}}' "$container")" = true
           test -z "$(docker port "$container")"
