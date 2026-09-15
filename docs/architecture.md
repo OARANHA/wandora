@@ -11,21 +11,18 @@ Authority order is `AGENTS.md` → accepted ADRs → this document → `docs/CAN
 The customer should perceive a company operating with human and digital employees. Technical implementation details are intentionally hidden.
 
 ```text
-Customer
-  |
-  v
-Wandora Web
-  |
-  v
-Wandora Core/API
-  |
-  +--> canonical business state / Supabase PostgreSQL
-  +--> Organization Adapter -> Paperclip candidate
-  +--> Agent Runtime Adapter -> Mastra
-  +--> Tool Gateway -> authenticated integrations
-  +--> Messaging Gateway -> Evolution / Meta / other providers
-  +--> Model Provider Gateway -> Mistral / Chutes / OpenAI / others
-  +--> Approval / Policy boundary
+Customer Wandora Web             Wandora Platform Admin
+        \                           /
+         \                         /
+          -----> Wandora Core/API <-----
+                    |
+                    +--> canonical business state / Supabase PostgreSQL
+                    +--> Organization Adapter -> Paperclip candidate
+                    +--> Agent Runtime Adapter -> Mastra
+                    +--> Tool Gateway -> authenticated integrations
+                    +--> Messaging Gateway -> Evolution / Meta / other providers
+                    +--> Model Provider Gateway -> Mistral / Chutes / OpenAI / others
+                    +--> Approval / Policy boundary
 ```
 
 Wandora is not a CRM-with-AI and not a generic agent builder. Messaging, CRM, scheduling, finance and other systems are tools/business surfaces used by employees inside a Wandora-governed organization.
@@ -44,6 +41,34 @@ The browser never calls Paperclip, Mastra, Evolution, model providers or privile
 
 The current public shell is still preview/product-contract data. The next integration boundary is to expose tenant-authorized Core supervision/review state so a human can see and act on a digital employee proposal without exposing private implementation storage.
 
+## Wandora Platform Admin
+
+ADR 0015 defines a first-party **Wandora Platform Admin** as the owner/operator control plane for normal SaaS administration.
+
+It is separate from tenant-scoped customer administration. A customer organization `owner` or `admin` does not become a Wandora platform administrator.
+
+Platform Admin is intended to progressively centralize Wandora-owned views/actions for:
+
+- organizations/tenants and lifecycle;
+- human users, memberships and access state;
+- digital employees, responsibilities, autonomy and status;
+- prompt/instruction versions once those have a canonical Wandora contract;
+- workflows and tools/capabilities;
+- model/provider selection, usage and cost visibility;
+- messaging connections and provider-neutral health;
+- work, conversations, supervision and approvals;
+- traces/execution diagnostics through Wandora-owned observability contracts;
+- plans, limits, billing-support state and usage;
+- audit/security events;
+- service health and incidents;
+- controlled enable/disable/suspend/recovery actions.
+
+This target is implemented incrementally. It is not permission to surface raw provider schemas or to build a generic infrastructure dashboard ahead of proven product needs.
+
+Mastra Studio, Paperclip UI, Evolution Manager, Supabase Studio and Portainer remain protected engineering/diagnostic/emergency surfaces. They may be extremely useful to Wandora operators, but they are not the required daily workflow and are never a customer dependency.
+
+The operator should normally think in Wandora vocabulary — company, employee, responsibility, autonomy, work, conversation, approval, connection, model, cost, health and incident — rather than provider instance IDs, Mastra runtime objects, database internals or container names.
+
 ## Wandora Core/API
 
 Wandora Core owns product semantics and business authorization:
@@ -57,7 +82,7 @@ Wandora Core owns product semantics and business authorization:
 - plans, usage and billing boundaries;
 - provider-neutral adapter contracts.
 
-`apps/core` is the promoted durable Core package. ADR 0009 defines Ana's durable vertical slice, ADR 0010 the least-privilege database identity, ADR 0011 the private deployable runtime, ADR 0012 the authenticated supervised Gateway ingress and ADR 0014 the Mastra deterministic supervised proposal path.
+`apps/core` is the promoted durable Core package. ADR 0009 defines Ana's durable vertical slice, ADR 0010 the least-privilege database identity, ADR 0011 the private deployable runtime, ADR 0012 the authenticated supervised Gateway ingress and ADR 0014 the Mastra deterministic supervised proposal path. ADR 0015 defines the first-party operator control-plane direction around those boundaries.
 
 ### Identity and tenancy
 
@@ -271,11 +296,11 @@ Supabase Auth subjects, Evolution IDs and Mastra run IDs are implementation meta
 
 ## Operator and infrastructure boundary
 
-Cloudflare is the public edge and Traefik is the VPS ingress/reverse proxy. Docker Engine/Compose remains the initial deployment substrate; Portainer is an operator console, while Git is source of truth.
+Cloudflare is the public edge and Traefik is the VPS ingress/reverse proxy. Docker Engine/Compose remains the initial deployment substrate; Git remains infrastructure source of truth.
 
 Customer/public contracts may include `wandora.com.br`, `app.wandora.com.br`, `api.wandora.com.br`, `hooks.wandora.com.br` and `supabase.wandora.com.br` when justified.
 
-Operator surfaces include `studio.wandora.com.br`, `portainer.wandora.com.br` and `manager.wandora.com.br`; these require stronger access controls.
+Protected native operator surfaces may include Mastra Studio, Paperclip UI, Supabase Studio, Evolution Manager and Portainer. These require stronger access controls and exist for engineering, diagnostics and emergency recovery. Their presence does not make them the Wandora operating model.
 
 PostgreSQL, Redis, Docker socket, Paperclip internals, Mastra internals, Core runtime ports and provider management ports remain private.
 
@@ -305,13 +330,16 @@ Operational details include:
 5. preserve the stronger approval path for commercial commitments;
 6. prove cross-tenant and inactive/disabled actor denial;
 7. connect the Web review experience to canonical Core APIs;
-8. only after the human-review contract is proven, decide whether a first real model-backed supervised proposal is materially useful;
-9. request a fresh model credential only at that point;
-10. do not enable automatic outbound sends merely because deterministic Mastra is live.
+8. add Platform Admin capabilities incrementally around stable Wandora-owned contracts, without delaying the first customer-visible employee loop;
+9. only after the human-review contract is proven, decide whether a first real model-backed supervised proposal is materially useful;
+10. request a fresh model credential only at that point;
+11. do not enable automatic outbound sends merely because deterministic Mastra is live.
 
 ## Non-goals for the current phase
 
 - autonomous outbound customer messaging;
+- building the entire Platform Admin before the first employee workflow is customer-visible;
+- rebuilding every native provider console inside Wandora;
 - Kubernetes;
 - microservices for every domain;
 - generic prompt/workflow builder as the customer product;
