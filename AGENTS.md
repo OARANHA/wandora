@@ -109,7 +109,7 @@ Mastra, Paperclip, Supabase and Evolution are technologies used by Wandora. None
 - New public hostnames must be intentional contracts, not third-party product names.
 - Versioned Wandora DB migrations live under `infra/stacks/supabase/migrations/`; verifiers live under `infra/stacks/supabase/verifiers/`. Never apply SQL directly from `spikes/` to the live database.
 - A migration being reviewed/merged does not mean it is already applied live. Live schema changes require explicit operational preflight, reversibility/backup awareness and post-verification.
-- A live database role existing does not justify activating its credential early. Runtime credentials are provisioned only together with the reviewed service deployment and secret-injection path that will consume them immediately.
+- A live database role existing does not justify activating its credential early. Runtime credentials are provisioned only together with the reviewed service deployment and secret-injection path that will consume them.
 - Keep migration-state and activated-runtime verifiers separate when both are legitimate states; do not relax a fail-closed migration invariant merely because a later operator step intentionally activates a capability.
 - A known credential exposure or rotation gate must be cleared before introducing a dependent production credential or customer traffic. Do not bypass a security gate merely because the affected environment currently has no customer rows.
 - Credentials retained only in protected rollback snapshots after a completed rotation are compromised historical material; they must not be restored as steady-state credentials.
