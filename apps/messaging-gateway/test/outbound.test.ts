@@ -179,3 +179,35 @@ test('provider non-2xx becomes uncertain and blocks automatic resend', async () 
   assert.deepEqual(await sender(command), { kind: 'delivery-uncertain' });
   assert.equal(calls, 1);
 });
+
+test('pending duplicate and saturated unresolved cache never trigger another provider call', async () => {
+  let calls = 0;
+  let release: (() => void) | undefined;
+  const pendingResponse = new Promise<Response>((resolve) => {
+    release = () => resolve(new Response('{}', { status: 200 }));
+  });
+  const sender = createEvolutionOutboundSender({
+    connectionId,
+    instanceName: 'evo-internal-123',
+    baseUrl: 'http://wandora-evolution:8080',
+    apiKey: 'private-key',
+    maxRememberedAttempts: 1,
+    fetchImpl: async () => {
+      calls += 1;
+      return await pendingResponse;
+    },
+  });
+
+  const first = sender(command);
+  await Promise.resolve();
+  assert.equal(calls, 1);
+  assert.deepEqual(await sender(command), { kind: 'delivery-uncertain' });
+  assert.deepEqual(await sender({ ...command, idempotencyKey: 'proposal:87654321' }), { kind: 'delivery-uncertain' });
+  assert.equal(calls, 1);
+
+  release?.();
+  assert.deepEqual(await first, {
+    kind: 'accepted',
+    result: { accepted: true, requestId: command.idempotencyKey },
+  });
+});
