@@ -55,6 +55,12 @@ export interface MessagingGateway {
 }
 export type InboundProcessingResult =
   | {
+      status: 'supervision-required';
+      contactId: string;
+      conversationId: string;
+      workItemId: string;
+    }
+  | {
       status: 'replied';
       contactId: string;
       conversationId: string;
