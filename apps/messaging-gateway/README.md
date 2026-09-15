@@ -1,15 +1,16 @@
 # Wandora Messaging Gateway
 
-`apps/messaging-gateway` is Wandora's private provider adapter for messaging ingress. It owns provider-specific webhook handling and emits only Wandora-owned normalized events toward Core.
+`apps/messaging-gateway` is Wandora's private provider adapter for messaging. It owns provider-specific webhook handling and, when explicitly enabled, provider-specific outbound delivery behind Wandora-owned contracts.
 
-The current promoted implementation supports **Evolution API 2.3.7 inbound text V1**. It does not implement outbound WhatsApp and it does not execute an Agent Runtime.
+The current production activation supports **Evolution API 2.3.7 inbound text V1**. ADR 0022 adds a private outbound implementation that remains disabled by default and is not customer-facing until a later reviewed activation.
 
 ## Private routes
 
 - `GET /healthz` — process health;
-- `POST /providers/evolution/webhook` — authenticated Evolution webhook ingress.
+- `POST /providers/evolution/webhook` — authenticated Evolution webhook ingress;
+- `POST /internal/v1/core/outbound/text` — private Core → Gateway outbound text route, present only when outbound is explicitly enabled.
 
-The service has no public hostname and no published host port. Evolution and the Gateway communicate on the private `wandora-core` Docker network.
+The service has no public hostname and no published host port. Evolution, Core and the Gateway communicate on the private `wandora-core` Docker network.
 
 ## Evolution → Gateway authentication
 
@@ -40,11 +41,11 @@ organizationId
 
 Evolution instance names, API keys, server URLs, raw JIDs and raw provider message IDs do not cross the Gateway → Core boundary.
 
-The V1 runtime binds one configured Evolution instance to one canonical Wandora `organizationId` + `connectionId`. This is an intentionally narrow first supervised path, not a general dynamic routing model.
+The V1 runtime binds one configured Evolution instance to one canonical Wandora `organizationId` + `connectionId`. This intentionally narrow process-level binding is also reused by Private Messaging Gateway Outbound V1: an outbound command is rejected unless its canonical `connectionId` exactly matches the configured connection.
 
 ## Gateway → Core authentication
 
-ADR 0012 defines the private Core ingress contract. The Gateway signs the exact normalized JSON envelope with a second, independent HMAC secret over:
+ADR 0012 defines the private Core ingress contract. The Gateway signs the exact normalized JSON envelope with a dedicated HMAC secret over:
 
 ```text
 <unix-seconds>.<raw-body>
@@ -52,11 +53,52 @@ ADR 0012 defines the private Core ingress contract. The Gateway signs the exact 
 
 The HMAC secret is loaded only from `WANDORA_CORE_INGRESS_SECRET_FILE`.
 
-The Evolution JWT key and Gateway → Core HMAC secret are deliberately different credentials. Compromise or rotation of one boundary does not implicitly authenticate the other.
+## Core → Gateway outbound authentication
 
-## Failure and retry semantics
+ADR 0022 defines a separate reverse-direction trust boundary. Core → Gateway outbound requests use a **different HMAC secret**, loaded by the Gateway only from `WANDORA_CORE_OUTBOUND_SECRET_FILE` when outbound is enabled.
 
-The Gateway maps outcomes so Evolution 2.3.7 can retry only when retry is useful:
+The Gateway requires:
+
+- exact private route `/internal/v1/core/outbound/text`;
+- HMAC-SHA256 over `<unix-seconds>.<raw-body>`;
+- timestamp within five minutes;
+- canonical UUID `connectionId` matching this process;
+- E.164-like recipient;
+- non-blank text up to 12,000 characters;
+- bounded Wandora idempotency key.
+
+The Evolution webhook JWT key, Gateway → Core HMAC, Core → Gateway HMAC and Evolution API key are four distinct credentials. Compromise/rotation of one boundary must not implicitly authenticate another.
+
+## Outbound provider mapping
+
+When explicitly enabled, the Gateway maps one provider-neutral text command to the private Evolution target:
+
+```text
+POST http://wandora-evolution:8080/message/sendText/<configured-instance>
+```
+
+The Evolution API key is read only from `WANDORA_EVOLUTION_API_KEY_FILE`. `WANDORA_EVOLUTION_BASE_URL` is restricted to the private canonical `wandora-evolution:8080` service; arbitrary provider URLs are rejected during config load.
+
+The returned Wandora result uses the Wandora idempotency key as `requestId`. Evolution instance names, API keys, raw provider payloads and provider-native message IDs are not returned.
+
+## Outbound idempotency and uncertain delivery
+
+Durable exactly-once safety belongs to Core's canonical `wandora_private.outbound_attempts`. Core must create/lock that attempt before calling the Gateway and must refuse blind resend from `sending` or `uncertain`.
+
+The Gateway adds a bounded process-local fingerprint guard only as defense in depth:
+
+- same key + same succeeded payload returns the stored Wandora result without another provider call;
+- same key + different content is rejected;
+- pending/uncertain duplicate never makes another provider call;
+- the defensive cache is bounded; if unresolved state saturates it, Gateway fails closed rather than send.
+
+The cache is not durable across restart. Core remains the authority for cross-restart safety.
+
+A transport failure or provider non-2xx result is treated conservatively as **delivery uncertain**. Gateway returns a non-success response with `retry:false`; future Core callers must mark the durable attempt uncertain and never blind-retry.
+
+## Inbound failure and retry semantics
+
+The Gateway maps inbound outcomes so Evolution 2.3.7 can retry only when retry is useful:
 
 - unsupported provider event, outbound echo, group/status sender or unsupported non-text content → `204`;
 - invalid JSON/provider event → `400`;
@@ -84,23 +126,40 @@ The production-shaped stack uses:
 
 See `infra/stacks/messaging-gateway/compose.yaml`.
 
-Core ingress remains separately opt-in through `infra/stacks/core/compose.gateway-ingress.yaml`. Merging these files does not activate live traffic.
+Outbound activation is a separate overlay:
+
+```text
+infra/stacks/messaging-gateway/compose.outbound-evolution.yaml
+```
+
+Merging that file into Git does not activate live outbound traffic. Production activation requires a separately reviewed operator step and real secret files.
 
 ## Required runtime configuration
 
-Non-secret configuration:
+Base non-secret configuration:
 
 - `WANDORA_EVOLUTION_INSTANCE`
 - `WANDORA_ORGANIZATION_ID`
 - `WANDORA_CONNECTION_ID`
 - optional `PORT` (default `8787`)
 
-Secret-file configuration:
+Base secret-file configuration:
 
 - `WANDORA_EVOLUTION_WEBHOOK_JWT_KEY_FILE`
 - `WANDORA_CORE_INGRESS_SECRET_FILE`
 
 The Core target is pinned to the private canonical route `http://wandora-core:8788/internal/v1/gateway/inbound`.
+
+Explicit outbound activation additionally requires:
+
+```text
+WANDORA_GATEWAY_OUTBOUND_ENABLED=true
+WANDORA_CORE_OUTBOUND_SECRET_FILE=/run/secrets/core_outbound_hmac
+WANDORA_EVOLUTION_API_KEY_FILE=/run/secrets/evolution_api_key
+WANDORA_EVOLUTION_BASE_URL=http://wandora-evolution:8080
+```
+
+Operator host paths for both outbound secret files are supplied only through the activation overlay variables; they are never committed.
 
 ## Verification
 
@@ -110,6 +169,6 @@ From repository root:
 bash apps/messaging-gateway/scripts/verify-v1.sh
 ```
 
-`Messaging Gateway CI` additionally validates both Compose contracts and boots the final image with read-only root filesystem, non-root user, dropped capabilities and no published port.
+`Messaging Gateway CI` validates the base Compose contract, the opt-in outbound overlay with synthetic secret files, and a hardened default runtime where the outbound route remains `404`.
 
-Current branch evidence includes 14/14 strict TypeScript/runtime tests covering JWT validation, provider normalization, exact HMAC signing, authentication failure, instance binding, terminal vs retryable outcomes and provider-data isolation.
+The runtime/unit suite proves inbound behavior, directional HMAC boundaries, config fail-closed behavior, provider normalization, connection binding, provider-data isolation, outbound fingerprint/idempotency, and conservative uncertain-delivery handling.
