@@ -4,7 +4,7 @@
 
 This document describes the current Wandora architecture for the laboratory / early-beta foundation. Wandora boundaries remain provider-neutral even where a concrete implementation has been selected.
 
-Authority order is `AGENTS.md` → accepted ADRs → this document → `docs/CANONICAL_STATE.md` → component README/runbook.
+Authority order is `AGENTS.md` → accepted ADRs → `docs/CAPABILITY_AUTHORITY.md` → this document → `docs/CANONICAL_STATE.md` → component README/runbook.
 
 ## Product model
 
@@ -16,8 +16,8 @@ Customer Wandora Web             Wandora Platform Admin
          \                         /
           -----> Wandora Core/API <-----
                     |
-                    +--> canonical business state / Supabase PostgreSQL
-                    +--> Organization Adapter -> Paperclip candidate
+                    +--> Wandora-owned durable facts / Supabase PostgreSQL
+                    +--> Organization Adapter -> Paperclip
                     +--> Agent Runtime Adapter -> Mastra
                     +--> Tool Gateway -> authenticated integrations
                     +--> Messaging Gateway -> Evolution / Meta / other providers
@@ -25,9 +25,32 @@ Customer Wandora Web             Wandora Platform Admin
                     +--> Approval / Policy boundary
 ```
 
-Wandora is not a CRM-with-AI and not a generic agent builder. Every material product/architecture decision follows **decision → second adversarial review → execution → validation** and must work both for the paying business customer and for the Wandora owner/operator.
+Wandora is not a CRM-with-AI and not a generic agent builder. Every material product/architecture decision follows **state real → proven evidence → gaps → capability authority/reuse gate → decision → second adversarial review → execution → validation** and must work both for the paying business customer and for the Wandora owner/operator.
 
 The adversarial review is not a confirmation ritual. It deliberately searches for a concrete reason the first decision is wrong, too broad, unsafe, duplicated, irreversible or based on an unproven premise. Execution proceeds only if that challenge fails to invalidate the decision, and validation then proves the executed state rather than assuming it.
+
+## Capability authority — contract ownership is not implementation ownership
+
+Wandora owns its product vocabulary, stable public identifiers, authorization, policy, supervision, audit semantics and provider-neutral contracts. That does **not** imply that every underlying capability or state machine must be reimplemented inside Wandora Core/PostgreSQL.
+
+Specialist components lend capabilities through Wandora-owned adapters:
+
+- **Paperclip / Organization Adapter** — digital-employee organization/control-plane capability, subject to the adapter contract and failure/reconciliation proof;
+- **Mastra / Agent Runtime Adapter** — agent/workflow/tool execution;
+- **Evolution / Messaging Gateway** — WhatsApp transport;
+- **Supabase** — identity/session and PostgreSQL/data infrastructure for Wandora-owned durable facts, mappings, projections, policy and audit state;
+- **model providers** — model inference behind replaceable provider boundaries;
+- **Docker/Portainer/Traefik/Cloudflare** — deployment/runtime/edge capability, not product-domain models.
+
+Wandora may persist stable Wandora IDs, tenant ownership, provider mappings, policy, customer-facing projections, audit/reconciliation evidence and idempotency/version state required to make adapters safe and replaceable. It must not copy a provider's complete domain merely because the equivalent concept is absent from the local schema.
+
+The mandatory ADR 0036 rule is:
+
+> **Before adding a material table/entity/state machine/workflow/assignment/control-plane subsystem, first prove that the capability is Wandora-owned rather than already supplied by an accepted component.**
+
+The existing beta tables for `digital_employees`, `work_items`, conversations, proposals and approvals are validated vertical-slice state and remain live. Their existence does **not** establish precedent for growing Wandora Core into a full Paperclip-like control plane. Any expansion must pass the Capability Authority / Reuse Gate.
+
+See `docs/CAPABILITY_AUTHORITY.md` and ADR 0036.
 
 ## Wandora Web
 
@@ -37,9 +60,9 @@ The browser never calls Paperclip, Mastra, Evolution, model providers or privile
 
 The real customer session path is live. Supabase Auth provides identity/session; Wandora Core provides canonical identity, organization membership and business authorization. The shell derives the visible company/user from `/api/v1/me` rather than hard-coded preview identity.
 
-`Trabalho`, the `Conversas` list and the selected-conversation history use tenant-authorized canonical Core reads. `Trabalho` also contains the reviewed two-step Human Send UI, but the live runtime currently keeps Human Send disabled unless an operator explicitly activates the accepted overlays.
+`Equipe`, `Trabalho`, the `Conversas` list and the selected-conversation history use tenant-authorized Core reads. `Trabalho` also contains the reviewed two-step Human Send UI, but the live runtime currently keeps Human Send disabled unless an operator explicitly activates the accepted overlays.
 
-Other customer surfaces may still contain preview/product-contract placeholders and must be converted only after their own reviewed Core contracts exist.
+Other customer surfaces may still contain preview/product-contract placeholders and must be converted only after their own reviewed Wandora contract exists and the Capability Authority / Reuse Gate identifies the correct underlying component.
 
 ### Browser authentication
 
@@ -76,10 +99,11 @@ Browser
 
 The Web container joins `wandora-edge` and `wandora-core`. Its Nginx proxies only explicitly reviewed routes, forwards `Authorization`, strips browser cookies before Core and leaves unreviewed `/api/` plus all `/internal/` paths closed.
 
-Current reviewed customer routes are:
+Current reviewed customer routes include:
 
 ```text
 GET  /api/v1/me
+GET  /api/v1/organizations/:organizationId/digital-employees
 GET  /api/v1/organizations/:organizationId/work/attention-required
 POST /api/v1/organizations/:organizationId/work/:workId/proposals/:proposalId/send
 GET  /api/v1/organizations/:organizationId/conversations
@@ -94,23 +118,27 @@ The POST route being present in the Web allow-list does not mean the capability 
 
 ADR 0015 defines Wandora Platform Admin as the first-party owner/operator control plane. Customer administration and platform administration are separate trust planes.
 
+Platform Admin controls Wandora and exercises specialist capabilities through the same Wandora-owned adapter boundaries. It is not a second Paperclip, Mastra Studio, Evolution Manager, Supabase Studio or Portainer.
+
 Mastra Studio, Paperclip UI, Evolution Manager, Supabase Studio and Portainer remain protected engineering/diagnostic/emergency surfaces. They do not become the daily product operating model and are never required by customers.
 
 ## Wandora Core/API
 
-Core owns product semantics and business authorization:
+Core owns **Wandora product semantics and business authorization**, including:
 
-- organizations/tenants;
+- organizations/tenants and stable Wandora selectors/identity;
 - canonical human users, external identity mapping, memberships and roles;
-- digital employees and autonomy;
-- contacts, conversations, messages and work;
+- customer-facing digital-employee identity/policy projections needed by Wandora;
+- contacts, conversations, supervised messaging semantics and current beta work state;
 - canonical supervised proposals;
 - human supervised-send authorization and confirmation versioning;
 - approvals and policy decisions;
 - audit-facing events;
-- provider-neutral adapter contracts.
+- provider-neutral adapter contracts and orchestration.
 
-Accepted boundaries now include ADR 0007 identity/tenancy, ADR 0009 durable Ana state, ADR 0010 least-privilege DB identity, ADR 0011 private runtime, ADR 0012 authenticated Gateway ingress, ADR 0014 Mastra deterministic runtime, ADR 0015 Platform Admin direction, ADR 0016 canonical supervised proposals, ADR 0017 Human Supervision Read V1, ADR 0018 Human Session Bootstrap V1, ADR 0019 Web Human Session V1, ADR 0020 Conversations Read V1, ADR 0021 Conversation Detail/History Read V1, ADR 0022 private Gateway outbound, ADR 0023 Human Send Proposal V1, ADR 0024 multi-organization selection, ADR 0025 private Evolution outbound Origin, ADR 0026 explicit human confirmation, ADR 0027 canonical confirmation V2 and ADR 0028 supervised inbound active-work reuse.
+This is product-contract ownership, not blanket implementation ownership. Digital-employee organization/control-plane expansion must be evaluated against Paperclip; execution belongs behind Mastra; messaging transport belongs behind the Messaging Gateway/Evolution boundary; identity/session/data infrastructure belongs behind Supabase boundaries.
+
+Accepted boundaries now include ADR 0007 identity/tenancy, ADR 0009 durable Ana state, ADR 0010 least-privilege DB identity, ADR 0011 private runtime, ADR 0012 authenticated Gateway ingress, ADR 0014 Mastra deterministic runtime, ADR 0015 Platform Admin direction, ADR 0016 canonical supervised proposals, ADR 0017 Human Supervision Read V1, ADR 0018 Human Session Bootstrap V1, ADR 0019 Web Human Session V1, ADR 0020 Conversations Read V1, ADR 0021 Conversation Detail/History Read V1, ADR 0022 private Gateway outbound, ADR 0023 Human Send Proposal V1, ADR 0024 multi-organization selection, ADR 0025 private Evolution outbound Origin, ADR 0026 explicit human confirmation, ADR 0027 canonical confirmation V2, ADR 0028 supervised inbound active-work reuse, ADR 0034 state-first continuity, ADR 0035 Team Read V1 and ADR 0036 Capability Authority / Reuse Gate.
 
 ## Identity and human session — live
 
@@ -153,12 +181,12 @@ Do not replace this role with a broader Supabase role to simplify human API impl
 
 ## Core private runtime
 
-Current live Core after ADR 0028 promotion and the controlled Confirmation V2 proof:
+Current live Core after the customer Team Read V1 promotion:
 
 ```text
 container: wandora-core
-image: wandora/core:inbound-reopen-384bfee6
-runtime application source head: 384bfee6b340b18d0206ad5e7f9227c0250e3673
+image: wandora/core:team-read-b31db507
+merged application source head: b31db507b225bb03ebd221c8f05b111fe100e25d
 mode: database
 agent runtime: mastra-deterministic
 MASTRA_TELEMETRY_DISABLED: true
@@ -174,26 +202,30 @@ healthz: 200
 readyz: 200
 ```
 
+Current live Web is `wandora/web:team-read-b31db507`; Gateway remains `wandora/messaging-gateway:origin-fix-94cfb4de`. All three were healthy after the Team Read promotion and both external-effect switches remained absent/OFF.
+
 The Core database secret is mounted from the canonical operator file `wandora_core_db_password`; a legacy host filename must not be substituted during recreate/candidate operations.
 
 ## Canonical business state
 
-Supabase self-hosted provides PostgreSQL/Auth/data infrastructure. It is not the Wandora business backend.
+Supabase self-hosted provides PostgreSQL/Auth/data infrastructure. It is not the Wandora business backend and it is not automatically the owner of every capability's state.
 
-Live canonical state includes:
+Live Wandora-owned/current beta state includes:
 
 - organizations, users, external identities and memberships;
 - provider-neutral messaging connections;
-- digital employees;
+- digital-employee Wandora identity/projection currently used by the proven beta slice;
 - contacts;
 - conversations;
 - inbound/outbound messages;
-- qualification work items;
+- current qualification work items used by the proven beta slice;
 - `work_proposals` for safe supervised employee proposals;
 - approvals for stronger commitments;
 - canonical audit records.
 
 Private state includes provider bindings, normalized inbound receipts and outbound-attempt/idempotency state.
+
+These live tables are preserved. **They do not authorize automatic expansion into a complete employee organization/control-plane model.** Before adding hiring, responsibility assignment, hierarchy, task/control-plane lifecycle or analogous concepts, ADR 0036 requires checking Paperclip and defining the Organization Adapter/minimal Wandora state first.
 
 Browser clients do not read Core-owned workflow/proposal/private tables directly.
 
@@ -236,7 +268,7 @@ Messaging Gateway
       v
 private Core ingress
   -> verify Gateway HMAC
-  -> validate tenant / connection / employee
+  -> validate tenant / connection / current beta employee routing
   -> persist contact / conversation / inbound message / work
       |
       v
@@ -253,6 +285,8 @@ canonical work_proposals
 ADR 0028 permits the final supervised transition to reuse an existing active work only from `in-progress`, `attention-required` or `waiting-customer`, always ending atomically in `attention-required`. `waiting-approval` remains fail-closed.
 
 The real inbound that originally produced `422 canonical-rejection` was reprocessed after promotion through the normal private Gateway → Core client path without manual DB repair. The receipt became `completed`, the inbound message remained unique, one new proposal was created, the same work remained unique and no outbound side effect occurred during replay.
+
+The current beta routing of a single active commercial employee is existing proven state, not the final hiring/control-plane architecture. The abandoned unmerged native assignment/migration 010 direction is not authoritative. Hiring/responsibility work must first prove the Paperclip Organization Adapter boundary.
 
 The inbound path remains independently safe even though a separate human-authorized outbound capability exists in code.
 
@@ -283,6 +317,12 @@ Raw provider instance/API-key/server-url/provider message identifiers do not bec
 
 ## Human supervision reads — live
 
+### Equipe
+
+`GET /api/v1/organizations/:organizationId/digital-employees` returns the tenant-authorized current Wandora employee projection used by the customer Team surface. Active membership and organization state are revalidated inside the read transaction and RLS independently scopes the data. The customer UI no longer invents Clara/progress values.
+
+This read projection does not define the future control-plane/hiring implementation; ADR 0036 remains mandatory before expanding it.
+
 ### Trabalho
 
 `GET /api/v1/organizations/:organizationId/work/attention-required` exposes only the business context required for supervision:
@@ -301,7 +341,7 @@ Raw provider instance/API-key/server-url/provider message identifiers do not bec
 - canonical conversation ID/status/activity time;
 - canonical contact ID/business-facing label;
 - latest canonical message direction/text/time when present;
-- latest active work-assignment employee ID/name when present.
+- latest active current-beta work employee ID/name when present.
 
 ### Conversas — detail/history
 
@@ -355,9 +395,7 @@ Durable outbound semantics remain conservative:
 - newer inbound state is not overwritten by a late completion;
 - stronger commercial commitments stay on `wandora.approvals`.
 
-The separately reviewed Confirmation V2 activation proof is now complete. After ADR 0028 replay created the canonical `commitment=none` proposal, Gateway outbound and Core Human Send were temporarily enabled in that order. Merely enabling them created no effect. The human explicitly reviewed and confirmed the Core-owned snapshot, one new attempt succeeded, one new canonical outbound message was persisted, the same work moved to `waiting-customer`, and the WhatsApp message was observed on the authorized handset.
-
-Both effect switches were then returned to OFF.
+The separately reviewed Confirmation V2 activation proof is complete. After ADR 0028 replay created the canonical `commitment=none` proposal, Gateway outbound and Core Human Send were temporarily enabled in that order. Merely enabling them created no effect. The human explicitly reviewed and confirmed the Core-owned snapshot, controlled successful deliveries were observed on the authorized handset, and both effect switches were returned to OFF.
 
 See `docs/infra/human-send-canonical-confirmation-v2-live.md` and `docs/infra/inbound-reopen-confirmation-v2-live-20260916.md`.
 
@@ -370,7 +408,7 @@ WANDORA_HUMAN_SEND_PROPOSAL_ENABLED = absent
 WANDORA_GATEWAY_OUTBOUND_ENABLED    = absent
 ```
 
-Observed state after the completed Confirmation V2 proof:
+Observed state after the completed controlled proofs:
 
 ```text
 outbound_attempts total = 4
@@ -391,7 +429,9 @@ Deterministic Mastra mode requires no model credential. The previously Git-expos
 
 Cloudflare is public edge and Traefik is VPS ingress. Git is infrastructure source of truth. PostgreSQL, Docker socket, Core internal ports, Paperclip/Mastra internals and provider management APIs remain private.
 
-Versioned DB migrations live under `infra/stacks/supabase/migrations/`; live-safe verifiers live under `infra/stacks/supabase/verifiers/`. Mutation-heavy behavioral verifiers run only in disposable environments.
+Paperclip, Mastra Studio, Evolution Manager, Supabase Studio and Portainer are operator/engineering consoles. The normal operator cockpit is Wandora Platform Admin over adapters as stable contracts are promoted.
+
+Versioned DB migrations live under `infra/stacks/supabase/migrations/`; live-safe verifiers live under `infra/stacks/supabase/verifiers/`. Mutation-heavy behavioral verifiers run only in disposable environments. A proposed product-domain migration must pass ADR 0036 before SQL is written.
 
 The Confirmation V2 pre-promotion operator snapshot is:
 
@@ -399,20 +439,21 @@ The Confirmation V2 pre-promotion operator snapshot is:
 /home/wandora-admin/backups/canonical-confirm-v2-20260916T061650Z
 ```
 
-Additional rollback metadata was captured before the ADR 0028 Core promotion and before controlled capability activation.
+Additional rollback metadata was captured before the ADR 0028 Core promotion and before controlled capability activation. Team Read V1 used separate rollback metadata and changed no business rows during deployment.
 
 ## Near-term execution sequence
 
 1. keep canonical documentation synchronized with the live state;
-2. preserve Human Session, explicit multi-organization selection, `Trabalho` and `Conversas` authorization boundaries;
-3. keep Human Send and Gateway outbound OFF by default after the successful controlled Confirmation V2 proof;
-4. define the smallest normal-beta outbound policy rather than enabling autonomous traffic;
-5. preserve exactly-once durable attempt semantics and never retry historical `uncertain` attempts blindly;
-6. keep stronger commercial commitments on the existing approval boundary;
-7. expose only exact reviewed Web action routes and preserve generic `/api/` + all `/internal/` closure;
-8. evaluate the next higher-value vertical — normal-beta supervised outbound policy, Platform Admin, onboarding/account recovery, or first model-backed Ana — through decision → second adversarial review before implementation;
-9. add customer onboarding, password recovery/OAuth and broader customer lifecycle flows around the proven authorization path when selected;
-10. add a real model provider only when materially useful and only with a newly issued credential.
+2. preserve Human Session, explicit multi-organization selection, `Equipe`, `Trabalho` and `Conversas` authorization boundaries;
+3. finish the existing customer-facing product by converting remaining PARTIAL/PLACEHOLDER surfaces through the correct Wandora contracts;
+4. **before any customer digital-employee hiring/responsibility/control-plane implementation, audit/prove current Paperclip capabilities and the Wandora `Organization Adapter`; do not revive the abandoned native assignment/migration 010 direction by convenience;**
+5. keep Human Send and Gateway outbound OFF by default after the successful controlled Confirmation V2 proof;
+6. preserve exactly-once durable attempt semantics and never retry historical `uncertain` attempts blindly;
+7. keep stronger commercial commitments on the existing approval boundary;
+8. expose only exact reviewed Web action routes and preserve generic `/api/` + all `/internal/` closure;
+9. keep Platform Admin as a separate trust plane over Wandora adapters rather than a generic infrastructure dashboard or provider reimplementation;
+10. add customer onboarding, password recovery/OAuth and broader customer lifecycle flows around the proven authorization/adapters when selected;
+11. add a real model provider only when materially useful and only with a newly issued credential.
 
 ## Non-goals for the current phase
 
@@ -421,6 +462,7 @@ Additional rollback metadata was captured before the ADR 0028 Core promotion and
 - public generic Core hostname;
 - direct browser access to workflow/private DB state;
 - building the whole Platform Admin before the customer loop is operationally clear;
+- rebuilding Paperclip/Mastra/Evolution/Supabase capability inside Wandora without passing ADR 0036;
 - generic customer prompt/workflow builder;
 - customer access to provider consoles;
 - requesting a model token before it is needed.
