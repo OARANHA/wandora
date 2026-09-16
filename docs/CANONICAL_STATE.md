@@ -109,11 +109,11 @@ Core -> directional outbound HMAC -> Messaging Gateway -> private Evolution API
 
 Core and Messaging Gateway publish no host ports. Core has no generic public hostname.
 
-Current live containers/images after Confirmation V2 promotion:
+Current live containers/images after ADR 0028 promotion and the completed controlled Confirmation V2 proof:
 
 ```text
-Runtime application source head: a1ee475570c9314198068537003918a6022d8490
-Core image:    wandora/core:canonical-confirm-a1ee4755
+Runtime application source head: 384bfee6b340b18d0206ad5e7f9227c0250e3673
+Core image:    wandora/core:inbound-reopen-384bfee6
 Web image:     wandora/web:canonical-confirm-a1ee4755
 Gateway image: wandora/messaging-gateway:origin-fix-94cfb4de
 Core networks: wandora-core + wandora-data
@@ -141,7 +141,7 @@ Core: wandora/core:human-send-capable-72b1c49a
 Web:  wandora/web:send-confirmation-49a21303
 ```
 
-Gateway was not changed by the Confirmation V2 promotion.
+Gateway was not changed by the Confirmation V2 promotion. Additional rollback metadata was captured before the ADR 0028 Core promotion and before the controlled capability activation.
 
 ## Completed/live foundations
 
@@ -217,6 +217,34 @@ V1 invariants:
 - Core RLS requires tenant scope;
 - one normalized inbound event can produce at most one canonical proposal;
 - the browser consumes tenant-authorized Core projections, never private receipts or Core-owned workflow tables directly.
+
+### ADR 0028 — Supervised Inbound Active-Work Reuse — LIVE
+
+ADR 0028 is implemented in PR #62 / main `384bfee6b340b18d0206ad5e7f9227c0250e3673`.
+
+The final supervised persistence transaction may reuse the same active work only from:
+
+- `in-progress`;
+- `attention-required`;
+- `waiting-customer`.
+
+All three accepted source states terminate atomically in `attention-required` with the new canonical proposal and completed receipt. `waiting-approval` remains deliberately fail-closed.
+
+The real WhatsApp inbound that previously produced `422 canonical-rejection` was reprocessed after live Core promotion through the normal private Gateway → Core client path, without manual SQL repair.
+
+Observed replay proof:
+
+```text
+receipt            = completed
+event_messages     = 1
+event_proposals    = 1
+conversation_works = 1
+work_status        = attention-required
+outbound_attempts  = 3
+outbound_messages  = 1
+```
+
+This proves the replay did not duplicate the inbound message, did not create a duplicate work item and did not create an outbound side effect.
 
 ### Human Supervision Read V1 — LIVE
 
@@ -336,13 +364,9 @@ Confirmar e enviar
 
 The first click cannot call the send endpoint. Post-success feedback remains visible even when the work item leaves `attention-required`.
 
-### Human Send Canonical Confirmation V2 — LIVE CODE, SWITCH OFF
+### Human Send Canonical Confirmation V2 — LIVE CODE, SWITCH OFF AFTER PROOF
 
-ADR 0027 is production-deployed through Core PR #58 and Web PR #59, runtime application source head:
-
-```text
-a1ee475570c9314198068537003918a6022d8490
-```
+ADR 0027 is production-deployed through Core PR #58 and Web PR #59.
 
 For `state=ready`, Core owns the reviewed confirmation snapshot:
 
@@ -368,26 +392,30 @@ Web /internal route = 404
 live bundle contains confirmationVersion + stale UX + send-success feedback
 ```
 
-No new outbound attempt/message was created by candidate or deployment work.
+The deployment itself created no new outbound attempt/message.
 
-See `docs/infra/human-send-canonical-confirmation-v2-live.md`.
+The separately reviewed real Confirmation V2 activation proof is now complete. After the ADR 0028 replay created the canonical `commitment=none` proposal, Gateway outbound was enabled first and Core Human Send second. Merely enabling those capabilities created no outbound effect. The human then reviewed and explicitly confirmed the Core-owned snapshot in Wandora Web.
+
+The resulting attempt was `succeeded`, one new canonical outbound message was persisted, the same work transitioned to `waiting-customer`, and the WhatsApp message was observed on the authorized handset. Both effect switches were returned to absent afterward.
+
+See `docs/infra/human-send-canonical-confirmation-v2-live.md` and `docs/infra/inbound-reopen-confirmation-v2-live-20260916.md`.
 
 ## Controlled outbound evidence — historical and immutable
 
-The internal proof path produced one real successful human-supervised WhatsApp delivery to an explicitly authorized handset before Confirmation V2 deployment. The delivered proof message was observed on the handset and Core persisted one canonical outbound message.
+The internal proof path now contains two real successful human-supervised WhatsApp deliveries to explicitly authorized test handsets/contexts. Provider/private destination data is not recorded in Git documentation.
 
-At the time of Confirmation V2 post-promotion validation:
+Current live database evidence after the completed Confirmation V2 proof:
 
 ```text
-outbound_attempts total = 3
+outbound_attempts total = 4
 uncertain              = 2
-succeeded              = 1
-canonical outbound messages = 1
+succeeded              = 2
+canonical outbound messages = 2
 ```
 
-The two `uncertain` attempts predate Confirmation V2 candidate/promotion work and are not blindly retryable. The one `succeeded` attempt is the controlled real delivery proof. No provider/private destination data is recorded in Git documentation.
+The two `uncertain` attempts predate the final controlled Confirmation V2 proof and are not blindly retryable. Both `succeeded` attempts are controlled real delivery evidence.
 
-This replaces the old global `outbound_attempts=0 / outbound_messages=0` statement, which was true only for earlier read-only/proposal foundation proofs.
+This replaces the earlier `3 attempts / 1 canonical outbound message` snapshot, which was accurate before the final V2 activation proof.
 
 ## Current Auth evidence
 
@@ -418,18 +446,26 @@ It forwards `Authorization`, strips cookies before Core and leaves generic/unrev
 
 ## Current executable next step
 
-The immediate product gate is **not** to redesign outbound again. The Human Send/Confirmation V2 contract is already deployed.
+The ADR 0028 real inbound replay and the separately reviewed Confirmation V2 end-to-end activation proof are **complete**. Do not repeat either proof as the next gate and do not redesign the same outbound boundary without new evidence.
 
-Before normal beta outbound can be enabled, run one separately reviewed controlled Confirmation V2 activation proof:
+The immediate product decision is now to choose the **smallest normal-beta outbound policy** versus the next higher-value product vertical while preserving the proven supervised contract.
 
-1. decision — define the exact controlled proof and its allowed tenant/connection;
-2. second adversarial review — actively seek a reason activation is wrong/unsafe/duplicated or based on stale assumptions;
-3. execution — enable only the existing reviewed Core/Gateway overlays if the adversarial review fails to invalidate activation;
-4. validation — prove the exact confirmation shown to the human matches the Core effect, exactly one provider delivery occurs, durable audit/state are correct, and switches are returned to the intended final state.
+For the next decision → second adversarial review cycle, compare at least:
 
-Do not reuse historical `uncertain` attempts. Do not broaden provider bindings or convert Empresa Exemplo into the proof channel.
+1. a minimal normal-beta supervised outbound policy using the existing Human Send contract;
+2. a Platform Admin slice around already-stable tenant/runtime contracts;
+3. customer onboarding / password recovery / OAuth around the proven auth path;
+4. the first genuinely model-backed Ana capability, only if it creates more customer value than the above.
 
-Only after that V2 end-to-end proof should a normal-beta outbound policy be chosen. Autonomous customer traffic remains out of scope.
+Whichever is selected must preserve:
+
+- explicit human confirmation for external effects;
+- Human Send/Gateway outbound OFF by default until deliberately activated by policy;
+- existing provider-binding and tenant boundaries;
+- one durable attempt per canonical proposal;
+- no blind retry of historical `uncertain` attempts;
+- stronger commitments on `wandora.approvals`;
+- autonomous customer traffic out of scope.
 
 ## Model provider status
 
@@ -455,4 +491,4 @@ The previously Git-exposed Mistral token is compromised and must never be reused
 
 ## Startup instruction for another chat
 
-> Read `AGENTS.md`, accepted ADRs through ADR 0027, `docs/architecture.md`, this file and `docs/infra/human-send-canonical-confirmation-v2-live.md`. Security gate #22, least-privilege Core DB activation, private Messaging Gateway → Core ingress, Mastra deterministic supervision, canonical `wandora.work_proposals`, Human Supervision Read, Human Session, explicit multi-organization selection, Conversations list/history, private Gateway outbound, Human Send Proposal and Canonical Confirmation V2 are implemented. Production currently runs Core `wandora/core:canonical-confirm-a1ee4755`, Web `wandora/web:canonical-confirm-a1ee4755` and Gateway `wandora/messaging-gateway:origin-fix-94cfb4de`; all are healthy. Human Send and Gateway outbound enable flags are currently absent, so real outbound is OFF. Historical controlled proof state is 3 outbound attempts (2 uncertain, 1 succeeded) and 1 canonical outbound message; do not retry uncertain attempts. Generic/unreviewed `/api/` and all Web `/internal/` paths remain closed. The next gate is a separately reviewed controlled Confirmation V2 activation proof, using **decision → second adversarial review → execution → validation**. Do not ask the user to reconstruct already-recorded decisions and do not enable autonomous outbound.
+> Read `AGENTS.md`, accepted ADRs through ADR 0028, `docs/architecture.md`, this file, `docs/infra/human-send-canonical-confirmation-v2-live.md` and `docs/infra/inbound-reopen-confirmation-v2-live-20260916.md`. Security gate #22, least-privilege Core DB activation, private Messaging Gateway → Core ingress, Mastra deterministic supervision, canonical `wandora.work_proposals`, Human Supervision Read, Human Session, explicit multi-organization selection, Conversations list/history, private Gateway outbound, Human Send Proposal, Canonical Confirmation V2 and ADR 0028 active-work reuse are implemented. Production currently runs Core `wandora/core:inbound-reopen-384bfee6`, Web `wandora/web:canonical-confirm-a1ee4755` and Gateway `wandora/messaging-gateway:origin-fix-94cfb4de`; all are healthy. Human Send and Gateway outbound enable flags are currently absent, so real outbound is OFF. Historical controlled proof state is 4 outbound attempts (2 uncertain, 2 succeeded) and 2 canonical outbound messages; never retry uncertain attempts blindly. The ADR 0028 real replay and Confirmation V2 handset delivery proof are complete and must not be repeated as the next gate. The next decision is the smallest normal-beta supervised outbound policy versus the next higher-value product slice, using **decision → second adversarial review → execution → validation**. Do not ask the user to reconstruct already-recorded decisions and do not enable autonomous outbound.

@@ -110,7 +110,7 @@ Core owns product semantics and business authorization:
 - audit-facing events;
 - provider-neutral adapter contracts.
 
-Accepted boundaries now include ADR 0007 identity/tenancy, ADR 0009 durable Ana state, ADR 0010 least-privilege DB identity, ADR 0011 private runtime, ADR 0012 authenticated Gateway ingress, ADR 0014 Mastra deterministic runtime, ADR 0015 Platform Admin direction, ADR 0016 canonical supervised proposals, ADR 0017 Human Supervision Read V1, ADR 0018 Human Session Bootstrap V1, ADR 0019 Web Human Session V1, ADR 0020 Conversations Read V1, ADR 0021 Conversation Detail/History Read V1, ADR 0022 private Gateway outbound, ADR 0023 Human Send Proposal V1, ADR 0024 multi-organization selection, ADR 0025 private Evolution outbound Origin, ADR 0026 explicit human confirmation and ADR 0027 canonical confirmation V2.
+Accepted boundaries now include ADR 0007 identity/tenancy, ADR 0009 durable Ana state, ADR 0010 least-privilege DB identity, ADR 0011 private runtime, ADR 0012 authenticated Gateway ingress, ADR 0014 Mastra deterministic runtime, ADR 0015 Platform Admin direction, ADR 0016 canonical supervised proposals, ADR 0017 Human Supervision Read V1, ADR 0018 Human Session Bootstrap V1, ADR 0019 Web Human Session V1, ADR 0020 Conversations Read V1, ADR 0021 Conversation Detail/History Read V1, ADR 0022 private Gateway outbound, ADR 0023 Human Send Proposal V1, ADR 0024 multi-organization selection, ADR 0025 private Evolution outbound Origin, ADR 0026 explicit human confirmation, ADR 0027 canonical confirmation V2 and ADR 0028 supervised inbound active-work reuse.
 
 ## Identity and human session — live
 
@@ -153,12 +153,12 @@ Do not replace this role with a broader Supabase role to simplify human API impl
 
 ## Core private runtime
 
-Current live Core after ADR 0027 promotion:
+Current live Core after ADR 0028 promotion and the controlled Confirmation V2 proof:
 
 ```text
 container: wandora-core
-image: wandora/core:canonical-confirm-a1ee4755
-runtime application source head: a1ee475570c9314198068537003918a6022d8490
+image: wandora/core:inbound-reopen-384bfee6
+runtime application source head: 384bfee6b340b18d0206ad5e7f9227c0250e3673
 mode: database
 agent runtime: mastra-deterministic
 MASTRA_TELEMETRY_DISABLED: true
@@ -250,7 +250,11 @@ canonical work_proposals
   -> no automatic outbound side effect
 ```
 
-The inbound path remains independently safe even though a separate human-authorized outbound capability now exists in code.
+ADR 0028 permits the final supervised transition to reuse an existing active work only from `in-progress`, `attention-required` or `waiting-customer`, always ending atomically in `attention-required`. `waiting-approval` remains fail-closed.
+
+The real inbound that originally produced `422 canonical-rejection` was reprocessed after promotion through the normal private Gateway → Core client path without manual DB repair. The receipt became `completed`, the inbound message remained unique, one new proposal was created, the same work remained unique and no outbound side effect occurred during replay.
+
+The inbound path remains independently safe even though a separate human-authorized outbound capability exists in code.
 
 ## Messaging Gateway
 
@@ -351,9 +355,11 @@ Durable outbound semantics remain conservative:
 - newer inbound state is not overwritten by a late completion;
 - stronger commercial commitments stay on `wandora.approvals`.
 
-The controlled internal proof before ADR 0027 established a real human-supervised WhatsApp delivery to an explicitly authorized handset. Historical attempts remain immutable. Confirmation V2 was then deployed with outbound switched back OFF; its deployment created no new attempt/message.
+The separately reviewed Confirmation V2 activation proof is now complete. After ADR 0028 replay created the canonical `commitment=none` proposal, Gateway outbound and Core Human Send were temporarily enabled in that order. Merely enabling them created no effect. The human explicitly reviewed and confirmed the Core-owned snapshot, one new attempt succeeded, one new canonical outbound message was persisted, the same work moved to `waiting-customer`, and the WhatsApp message was observed on the authorized handset.
 
-See `docs/infra/human-send-canonical-confirmation-v2-live.md`.
+Both effect switches were then returned to OFF.
+
+See `docs/infra/human-send-canonical-confirmation-v2-live.md` and `docs/infra/inbound-reopen-confirmation-v2-live-20260916.md`.
 
 ## Current production state of external effects
 
@@ -364,16 +370,16 @@ WANDORA_HUMAN_SEND_PROPOSAL_ENABLED = absent
 WANDORA_GATEWAY_OUTBOUND_ENABLED    = absent
 ```
 
-Observed state after Confirmation V2 promotion:
+Observed state after the completed Confirmation V2 proof:
 
 ```text
-outbound_attempts total = 3
+outbound_attempts total = 4
 uncertain              = 2
-succeeded              = 1
-canonical outbound messages = 1
+succeeded              = 2
+canonical outbound messages = 2
 ```
 
-Those rows are historical evidence from controlled internal proof work; no new outbound effect was produced by the V2 candidate or production promotion.
+The two `uncertain` rows are historical evidence and must not be blindly retried. The two `succeeded` attempts are controlled human-supervised deliveries.
 
 Empresa Exemplo remains non-sending and has no need to become the provider-bound proof tenant.
 
@@ -393,19 +399,20 @@ The Confirmation V2 pre-promotion operator snapshot is:
 /home/wandora-admin/backups/canonical-confirm-v2-20260916T061650Z
 ```
 
+Additional rollback metadata was captured before the ADR 0028 Core promotion and before controlled capability activation.
+
 ## Near-term execution sequence
 
 1. keep canonical documentation synchronized with the live state;
 2. preserve Human Session, explicit multi-organization selection, `Trabalho` and `Conversas` authorization boundaries;
-3. keep Confirmation V2 code live with outbound OFF until a separately reviewed controlled V2 activation proof is intentionally requested/executed;
-4. before that proof, run the full **decision → second adversarial review → execution → validation** cycle and reject activation if any capability/config/binding/rollback premise is weak;
+3. keep Human Send and Gateway outbound OFF by default after the successful controlled Confirmation V2 proof;
+4. define the smallest normal-beta outbound policy rather than enabling autonomous traffic;
 5. preserve exactly-once durable attempt semantics and never retry historical `uncertain` attempts blindly;
 6. keep stronger commercial commitments on the existing approval boundary;
 7. expose only exact reviewed Web action routes and preserve generic `/api/` + all `/internal/` closure;
-8. after the V2 controlled proof, decide the smallest normal-beta outbound policy rather than enabling autonomous traffic by default;
-9. add Platform Admin vertical slices around already-stable Wandora contracts;
-10. add customer onboarding, password recovery/OAuth and broader customer lifecycle flows around the proven authorization path;
-11. add a real model provider only when materially useful and only with a newly issued credential.
+8. evaluate the next higher-value vertical — normal-beta supervised outbound policy, Platform Admin, onboarding/account recovery, or first model-backed Ana — through decision → second adversarial review before implementation;
+9. add customer onboarding, password recovery/OAuth and broader customer lifecycle flows around the proven authorization path when selected;
+10. add a real model provider only when materially useful and only with a newly issued credential.
 
 ## Non-goals for the current phase
 
