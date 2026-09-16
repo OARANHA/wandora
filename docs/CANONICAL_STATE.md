@@ -112,7 +112,7 @@ Core and Messaging Gateway publish no host ports. Core has no generic public hos
 Current live containers/images after Confirmation V2 promotion:
 
 ```text
-Canonical repo head: a1ee475570c9314198068537003918a6022d8490
+Runtime application source head: a1ee475570c9314198068537003918a6022d8490
 Core image:    wandora/core:canonical-confirm-a1ee4755
 Web image:     wandora/web:canonical-confirm-a1ee4755
 Gateway image: wandora/messaging-gateway:origin-fix-94cfb4de
@@ -338,7 +338,7 @@ The first click cannot call the send endpoint. Post-success feedback remains vis
 
 ### Human Send Canonical Confirmation V2 — LIVE CODE, SWITCH OFF
 
-ADR 0027 is production-deployed through Core PR #58 and Web PR #59, canonical head:
+ADR 0027 is production-deployed through Core PR #58 and Web PR #59, runtime application source head:
 
 ```text
 a1ee475570c9314198068537003918a6022d8490
