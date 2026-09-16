@@ -31,6 +31,7 @@ const EVENT_NEW = 'evt_cccccccccccccccccccccccccccccccc';
 const SUBJECT = 'supabase-human-send-subject-a';
 const NOW = '2026-09-15T20:00:00.000Z';
 const LATER = '2026-09-15T20:01:00.000Z';
+const DUMMY_CONFIRMATION = `sha256:${'0'.repeat(64)}`;
 
 const runtimePool = new Pool({ connectionString: process.env.DATABASE_URL });
 const fixturePool = new Pool({ connectionString: process.env.FIXTURE_DATABASE_URL });
@@ -55,6 +56,22 @@ function successfulGateway(captured: PrivateGatewayTextCommand[] = []): PrivateG
       return { accepted: true, requestId: command.idempotencyKey };
     },
   };
+}
+
+
+async function readyConfirmation(
+  service: HumanSendProposalService,
+  organizationId = ORG_A,
+  proposalId = PROPOSAL_A,
+): Promise<{ recipientMasked: string; text: string; version: string }> {
+  const states = await service.getAttentionActionStates({
+    authorization: 'Bearer valid', organizationId, proposalIds: [proposalId],
+  });
+  const action = states.get(proposalId);
+  assert.equal(action?.state, 'ready');
+  if (!action || action.state !== 'ready') throw new Error('Expected ready confirmation.');
+  assert.match(action.confirmation.version, /^sha256:[0-9a-f]{64}$/);
+  return action.confirmation;
 }
 
 async function resetFixture(): Promise<void> {
@@ -150,16 +167,17 @@ test('owner sends only the canonical proposal and replay never calls Gateway twi
   const calls: PrivateGatewayTextCommand[] = [];
   const service = new HumanSendProposalService(runtimePool, verifier(), successfulGateway(calls), CONN_A, () => NOW);
 
-  const states = await service.getAttentionActionStates({
-    authorization: 'Bearer valid', organizationId: ORG_A, proposalIds: [PROPOSAL_A],
-  });
-  assert.deepEqual(states.get(PROPOSAL_A), { state: 'ready' });
+  const confirmation = await readyConfirmation(service);
+  assert.equal(confirmation.text, 'Resposta segura A');
+  assert.match(confirmation.recipientMasked, /^\+5551.*0001$/);
 
   const first = await service.sendProposal({
     authorization: 'Bearer valid', organizationId: ORG_A, workItemId: WORK_A, proposalId: PROPOSAL_A,
+    confirmationVersion: confirmation.version,
   });
   const second = await service.sendProposal({
     authorization: 'Bearer valid', organizationId: ORG_A, workItemId: WORK_A, proposalId: PROPOSAL_A,
+    confirmationVersion: confirmation.version,
   });
   assert.deepEqual(second, first);
   assert.equal(calls.length, 1);
@@ -218,26 +236,26 @@ test('member, foreign tenant, suspended membership and suspended organization fa
 
   await fixturePool.query(`UPDATE wandora.memberships SET role = 'member' WHERE organization_id = $1 AND user_id = $2`, [ORG_A, USER]);
   await assert.rejects(
-    service.sendProposal({ authorization: 'Bearer valid', organizationId: ORG_A, workItemId: WORK_A, proposalId: PROPOSAL_A }),
+    service.sendProposal({ authorization: 'Bearer valid', organizationId: ORG_A, workItemId: WORK_A, proposalId: PROPOSAL_A, confirmationVersion: DUMMY_CONFIRMATION }),
     (error: unknown) => error instanceof HumanAccessError && error.code === 'forbidden',
   );
 
   await fixturePool.query(`UPDATE wandora.memberships SET role = 'owner' WHERE organization_id = $1 AND user_id = $2`, [ORG_A, USER]);
   await assert.rejects(
-    service.sendProposal({ authorization: 'Bearer valid', organizationId: ORG_B, workItemId: WORK_B, proposalId: PROPOSAL_B }),
+    service.sendProposal({ authorization: 'Bearer valid', organizationId: ORG_B, workItemId: WORK_B, proposalId: PROPOSAL_B, confirmationVersion: DUMMY_CONFIRMATION }),
     (error: unknown) => error instanceof HumanAccessError && error.code === 'forbidden',
   );
 
   await fixturePool.query(`UPDATE wandora.memberships SET status = 'suspended' WHERE organization_id = $1 AND user_id = $2`, [ORG_A, USER]);
   await assert.rejects(
-    service.sendProposal({ authorization: 'Bearer valid', organizationId: ORG_A, workItemId: WORK_A, proposalId: PROPOSAL_A }),
+    service.sendProposal({ authorization: 'Bearer valid', organizationId: ORG_A, workItemId: WORK_A, proposalId: PROPOSAL_A, confirmationVersion: DUMMY_CONFIRMATION }),
     (error: unknown) => error instanceof HumanAccessError && error.code === 'forbidden',
   );
 
   await fixturePool.query(`UPDATE wandora.memberships SET status = 'active' WHERE organization_id = $1 AND user_id = $2`, [ORG_A, USER]);
   await fixturePool.query(`UPDATE wandora.organizations SET status = 'suspended' WHERE id = $1`, [ORG_A]);
   await assert.rejects(
-    service.sendProposal({ authorization: 'Bearer valid', organizationId: ORG_A, workItemId: WORK_A, proposalId: PROPOSAL_A }),
+    service.sendProposal({ authorization: 'Bearer valid', organizationId: ORG_A, workItemId: WORK_A, proposalId: PROPOSAL_A, confirmationVersion: DUMMY_CONFIRMATION }),
     (error: unknown) => error instanceof HumanAccessError && error.code === 'forbidden',
   );
 
@@ -259,7 +277,7 @@ test('stale proposal and configured-connection mismatch fail closed before durab
     [ORG_A, CONV_A, EVENT_NEW, LATER],
   );
   await assert.rejects(
-    service.sendProposal({ authorization: 'Bearer valid', organizationId: ORG_A, workItemId: WORK_A, proposalId: PROPOSAL_A }),
+    service.sendProposal({ authorization: 'Bearer valid', organizationId: ORG_A, workItemId: WORK_A, proposalId: PROPOSAL_A, confirmationVersion: DUMMY_CONFIRMATION }),
     (error: unknown) => error instanceof HumanSendProposalConflictError && error.code === 'proposal-not-current',
   );
   assert.equal(calls.length, 0);
@@ -269,12 +287,48 @@ test('stale proposal and configured-connection mismatch fail closed before durab
     runtimePool, verifier(), successfulGateway(calls), CONN_B, () => NOW,
   );
   await assert.rejects(
-    wrongConnectionService.sendProposal({ authorization: 'Bearer valid', organizationId: ORG_A, workItemId: WORK_A, proposalId: PROPOSAL_A }),
+    wrongConnectionService.sendProposal({ authorization: 'Bearer valid', organizationId: ORG_A, workItemId: WORK_A, proposalId: PROPOSAL_A, confirmationVersion: DUMMY_CONFIRMATION }),
     (error: unknown) => error instanceof HumanSendProposalConflictError && error.code === 'send-unavailable',
   );
   assert.equal(calls.length, 0);
   const attempts = await fixturePool.query(`SELECT count(*)::int AS count FROM wandora_private.outbound_attempts`);
   assert.equal(attempts.rows[0]?.count, 0);
+});
+
+test('canonical confirmation binds reviewed effect and stale recipient fails before durable attempt', async () => {
+  await resetFixture();
+  const calls: PrivateGatewayTextCommand[] = [];
+  const service = new HumanSendProposalService(runtimePool, verifier(), successfulGateway(calls), CONN_A, () => NOW);
+  const reviewed = await readyConfirmation(service);
+
+  await fixturePool.query(
+    `UPDATE wandora.contacts SET channel_address = '+5551888880001' WHERE organization_id = $1 AND id = $2`,
+    [ORG_A, CONTACT_A],
+  );
+
+  await assert.rejects(
+    service.sendProposal({
+      authorization: 'Bearer valid', organizationId: ORG_A, workItemId: WORK_A, proposalId: PROPOSAL_A,
+      confirmationVersion: reviewed.version,
+    }),
+    (error: unknown) => error instanceof HumanSendProposalConflictError && error.code === 'confirmation-stale',
+  );
+  assert.equal(calls.length, 0);
+  const before = await fixturePool.query(`SELECT count(*)::int AS count FROM wandora_private.outbound_attempts`);
+  assert.equal(before.rows[0]?.count, 0);
+
+  const refreshed = await readyConfirmation(service);
+  assert.notEqual(refreshed.version, reviewed.version);
+  assert.equal(refreshed.text, reviewed.text);
+  assert.match(refreshed.recipientMasked, /^\+5551.*0001$/);
+
+  await service.sendProposal({
+    authorization: 'Bearer valid', organizationId: ORG_A, workItemId: WORK_A, proposalId: PROPOSAL_A,
+    confirmationVersion: refreshed.version,
+  });
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0]?.recipient, '+5551888880001');
+  assert.equal(calls[0]?.text, 'Resposta segura A');
 });
 
 test('ambiguous Gateway delivery becomes durable uncertain and replay never calls Gateway again', async () => {
@@ -287,13 +341,14 @@ test('ambiguous Gateway delivery becomes durable uncertain and replay never call
     },
   };
   const service = new HumanSendProposalService(runtimePool, verifier(), gateway, CONN_A, () => NOW);
+  const confirmation = await readyConfirmation(service);
 
   await assert.rejects(
-    service.sendProposal({ authorization: 'Bearer valid', organizationId: ORG_A, workItemId: WORK_A, proposalId: PROPOSAL_A }),
+    service.sendProposal({ authorization: 'Bearer valid', organizationId: ORG_A, workItemId: WORK_A, proposalId: PROPOSAL_A, confirmationVersion: confirmation.version }),
     (error: unknown) => error instanceof HumanSendProposalDeliveryUncertainError,
   );
   await assert.rejects(
-    service.sendProposal({ authorization: 'Bearer valid', organizationId: ORG_A, workItemId: WORK_A, proposalId: PROPOSAL_A }),
+    service.sendProposal({ authorization: 'Bearer valid', organizationId: ORG_A, workItemId: WORK_A, proposalId: PROPOSAL_A, confirmationVersion: confirmation.version }),
     (error: unknown) => error instanceof HumanSendProposalDeliveryUncertainError,
   );
   assert.equal(calls, 1);
@@ -338,9 +393,11 @@ test('new inbound arriving during provider call keeps newer supervision state af
     },
   };
   const service = new HumanSendProposalService(runtimePool, verifier(), gateway, CONN_A, () => NOW);
+  const confirmation = await readyConfirmation(service);
 
   const pending = service.sendProposal({
     authorization: 'Bearer valid', organizationId: ORG_A, workItemId: WORK_A, proposalId: PROPOSAL_A,
+    confirmationVersion: confirmation.version,
   });
   await gatewayCalled;
 

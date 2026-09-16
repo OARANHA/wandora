@@ -12,6 +12,11 @@ const ORG = '00000000-0000-0000-0000-0000000000a1';
 const WORK = '60000000-0000-0000-0000-0000000000a1';
 const PROPOSAL = '70000000-0000-0000-0000-0000000000a1';
 const CONVERSATION = '50000000-0000-0000-0000-0000000000a1';
+const CONFIRMATION = `sha256:${'a'.repeat(64)}`;
+const READY_ACTION = {
+  state: 'ready' as const,
+  confirmation: { recipientMasked: '+5551••••0001', text: 'Resposta segura', version: CONFIRMATION },
+};
 
 function readService(): HumanSupervisionReadService {
   return {
@@ -49,7 +54,7 @@ test('exact enabled POST forwards only canonical selectors and work read gains n
   let captured: unknown;
   const sendService = {
     async getAttentionActionStates() {
-      return new Map([[PROPOSAL, { state: 'ready' as const }]]);
+      return new Map([[PROPOSAL, READY_ACTION]]);
     },
     async sendProposal(args: unknown) {
       captured = args;
@@ -65,12 +70,13 @@ test('exact enabled POST forwards only canonical selectors and work read gains n
   });
   assert.equal(work.status, 200);
   const items = work.body.items as Array<{ proposal?: { sendAction?: unknown } }>;
-  assert.deepEqual(items[0]?.proposal?.sendAction, { state: 'ready' });
+  assert.deepEqual(items[0]?.proposal?.sendAction, READY_ACTION);
 
   const response = await handler({
     method: 'POST',
     pathname: `/api/v1/organizations/${ORG}/work/${WORK}/proposals/${PROPOSAL}/send`,
     authorization: 'Bearer fixture',
+    rawBody: JSON.stringify({ confirmationVersion: CONFIRMATION }),
   });
   assert.equal(response.status, 200);
   assert.deepEqual(response.body, {
@@ -81,7 +87,32 @@ test('exact enabled POST forwards only canonical selectors and work read gains n
     organizationId: ORG,
     workItemId: WORK,
     proposalId: PROPOSAL,
+    confirmationVersion: CONFIRMATION,
   });
+});
+
+test('send route rejects missing, malformed or widened confirmation bodies before service call', async () => {
+  let calls = 0;
+  const sendService = {
+    async sendProposal() {
+      calls += 1;
+      return { status: 'sent' as const, proposalId: PROPOSAL, conversationId: CONVERSATION };
+    },
+  } as unknown as HumanSendProposalService;
+  const handler = createHumanSupervisionHandler(readService(), sendService);
+  const base = {
+    method: 'POST',
+    pathname: `/api/v1/organizations/${ORG}/work/${WORK}/proposals/${PROPOSAL}/send`,
+    authorization: 'Bearer fixture',
+  };
+
+  assert.deepEqual(await handler(base), { status: 400, body: { error: 'invalid-confirmation' } });
+  assert.deepEqual(await handler({ ...base, rawBody: '{bad' }), { status: 400, body: { error: 'invalid-confirmation' } });
+  assert.deepEqual(
+    await handler({ ...base, rawBody: JSON.stringify({ confirmationVersion: CONFIRMATION, text: 'override' }) }),
+    { status: 400, body: { error: 'invalid-confirmation' } },
+  );
+  assert.equal(calls, 0);
 });
 
 test('send route is exact, UUID-bound and POST-only', async () => {
@@ -124,11 +155,22 @@ test('stale/unavailable and uncertain effects map to normalized non-success resp
     method: 'POST',
     pathname: `/api/v1/organizations/${ORG}/work/${WORK}/proposals/${PROPOSAL}/send`,
     authorization: 'Bearer fixture',
+    rawBody: JSON.stringify({ confirmationVersion: CONFIRMATION }),
   };
 
   const conflict = await handler(request);
   assert.equal(conflict.status, 409);
   assert.deepEqual(conflict.body, { error: 'proposal-not-current' });
+
+  const confirmationService = {
+    async sendProposal() {
+      throw new HumanSendProposalConflictError('confirmation-stale', 'changed');
+    },
+  } as unknown as HumanSendProposalService;
+  const confirmationHandler = createHumanSupervisionHandler(readService(), confirmationService);
+  const confirmationConflict = await confirmationHandler(request);
+  assert.equal(confirmationConflict.status, 409);
+  assert.deepEqual(confirmationConflict.body, { error: 'confirmation-stale' });
 
   mode = 'uncertain';
   const uncertain = await handler(request);

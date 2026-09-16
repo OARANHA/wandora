@@ -9,9 +9,10 @@ import type {
   GatewayIngressRequest,
   GatewayIngressResponse,
 } from './gateway-ingress.js';
-import type {
-  HumanSupervisionRequest,
-  HumanSupervisionResponse,
+import {
+  isHumanSendProposalPath,
+  type HumanSupervisionRequest,
+  type HumanSupervisionResponse,
 } from './human-supervision.js';
 
 export type RuntimeReadiness =
@@ -94,14 +95,22 @@ export function createRuntimeServer(deps: RuntimeServerDeps): Server {
         return;
       }
       try {
+        const rawBody = request.method === 'POST' && isHumanSendProposalPath(url.pathname)
+          ? await readBody(request, 2_048)
+          : undefined;
         const result = await deps.handleHumanSupervision({
           method: request.method,
           pathname: url.pathname,
           authorization: header(request, 'authorization'),
+          rawBody,
         });
         writeJson(response, result.status, result.body);
-      } catch {
-        writeJson(response, 500, { error: 'internal-error' });
+      } catch (error) {
+        if (error instanceof PayloadTooLargeError) {
+          writeJson(response, 413, { error: 'payload-too-large' });
+        } else {
+          writeJson(response, 500, { error: 'internal-error' });
+        }
       }
       return;
     }
