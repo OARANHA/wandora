@@ -1,4 +1,5 @@
 import { HumanAuthError } from '../human-auth/es256-jwks.js';
+import type { HumanDigitalEmployeesReadService } from '../supervision/human-digital-employees-read.js';
 import {
   HumanAccessError,
   HumanNotFoundError,
@@ -14,6 +15,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const CONFIRMATION_VERSION_RE = /^sha256:[0-9a-f]{64}$/;
 const WORK_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/work\/attention-required$/;
 const SEND_PROPOSAL_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/work\/([^/]+)\/proposals\/([^/]+)\/send$/;
+const DIGITAL_EMPLOYEES_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/digital-employees$/;
 const CONVERSATIONS_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/conversations$/;
 const CONVERSATION_DETAIL_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/conversations\/([^/]+)$/;
 const SESSION_PATH = '/api/v1/me';
@@ -63,6 +65,7 @@ function parseConfirmationVersion(rawBody: string | undefined): string | undefin
 export function createHumanSupervisionHandler(
   service: HumanSupervisionReadService,
   sendProposalService?: HumanSendProposalService,
+  digitalEmployeesService?: HumanDigitalEmployeesReadService,
 ) {
   return async (request: HumanSupervisionRequest): Promise<HumanSupervisionResponse> => {
     try {
@@ -142,6 +145,22 @@ export function createHumanSupervisionHandler(
             : item
         ));
         return { status: 200, body: { items: decoratedItems } };
+      }
+
+      const digitalEmployeesMatch = DIGITAL_EMPLOYEES_PATH_RE.exec(request.pathname);
+      const digitalEmployeesOrganizationId = digitalEmployeesMatch?.[1];
+      if (digitalEmployeesOrganizationId) {
+        if (!digitalEmployeesService) {
+          return { status: 404, body: { error: 'not-found' } };
+        }
+        if (!UUID_RE.test(digitalEmployeesOrganizationId)) {
+          return { status: 404, body: { error: 'not-found' } };
+        }
+        const items = await digitalEmployeesService.listDigitalEmployees(
+          request.authorization,
+          digitalEmployeesOrganizationId,
+        );
+        return { status: 200, body: { items } };
       }
 
       const conversationsMatch = CONVERSATIONS_PATH_RE.exec(request.pathname);
