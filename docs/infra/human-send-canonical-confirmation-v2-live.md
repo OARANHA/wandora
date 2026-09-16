@@ -107,6 +107,32 @@ The versioned activation overlays remain available for a later separately review
 
 Empresa Exemplo remains non-sending; the controlled provider-bound proof state remains separate from the demo tenant.
 
+## Adversarial cleanup after validation
+
+The post-promotion adversarial review found six obsolete candidate containers still running, including old Human Send / Gateway outbound candidates that retained mounted test secrets or enabled capability flags inside isolated candidate networks.
+
+They were not production-routed and published no host ports, but leaving them running was unnecessary attack surface and made operational state less clear. The following ephemeral containers were removed after proving they were not part of any live Compose project:
+
+```text
+wandora-core-human-send-enabled-candidate
+wandora-messaging-gateway-outbound-candidate
+wandora-messaging-gateway-outbound-synthetic
+wandora-core-confirm-v2-candidate-a1ee4755
+wandora-web-confirm-v2-candidate-a1ee4755
+wandora-web-core-v2-pair-a1ee4755
+```
+
+The two now-empty candidate outbound networks were also removed:
+
+```text
+wandora-outbound-candidate
+wandora-outbound-synthetic
+```
+
+Images, operator snapshots and canonical secret files were preserved. Post-cleanup validation again showed Core/Web/Gateway/Evolution healthy, both outbound enable flags absent, and database counters unchanged (`3` attempts / `1` canonical outbound message).
+
+Older unrelated laboratory/probe containers were deliberately left outside this cleanup scope rather than being removed without their own review.
+
 ## Rollback evidence
 
 Pre-promotion operator snapshot:
@@ -130,4 +156,4 @@ The promotion followed:
 
 **decision → second adversarial review → execution → validation**
 
-The adversarial review explicitly attempted to invalidate promotion by checking for hidden source drift, missing candidate containers, accidental outbound effects, DNS alias collision, compose-overlay drift and rollback weakness. Promotion proceeded only after those checks were reconciled.
+The adversarial review explicitly attempted to invalidate promotion by checking for hidden source drift, missing candidate containers, accidental outbound effects, DNS alias collision, compose-overlay drift, rollback weakness and post-proof capability residue. Promotion/cleanup proceeded only after those checks were reconciled and were independently revalidated afterward.
