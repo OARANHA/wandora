@@ -1,0 +1,13 @@
+services:
+  core:
+    environment:
+      WANDORA_HUMAN_SEND_PROPOSAL_ENABLED: "true"
+      WANDORA_HUMAN_SEND_PROPOSAL_CONNECTION_ID: ${WANDORA_HUMAN_SEND_PROPOSAL_CONNECTION_ID:?set canonical outbound connection UUID}
+      WANDORA_MESSAGING_GATEWAY_OUTBOUND_URL: http://wandora-messaging-gateway:8787/internal/v1/core/outbound/text
+      WANDORA_CORE_OUTBOUND_SECRET_FILE: /run/secrets/core_outbound_hmac
+    secrets:
+      - core_outbound_hmac
+
+secrets:
+  core_outbound_hmac:
+    file: ${WANDORA_CORE_GATEWAY_OUTBOUND_SECRET_FILE:?set Core to Gateway outbound HMAC secret file outside Git}
