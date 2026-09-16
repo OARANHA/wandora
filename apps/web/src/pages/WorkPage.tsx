@@ -12,13 +12,24 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../AuthProvider';
 
+type HumanSendConfirmation = {
+  recipientMasked: string;
+  text: string;
+  version: string;
+};
+
 type ProposalSendAction =
-  | { state: 'ready' }
+  | { state: 'ready'; confirmation: HumanSendConfirmation }
   | {
       state: 'unavailable';
       reason: 'role-required' | 'channel-unavailable' | 'proposal-not-current' | 'already-sent';
     }
   | { state: 'delivery-uncertain' };
+
+type ReviewedSend = HumanSendConfirmation & {
+  workItemId: string;
+  proposalId: string;
+};
 
 type AttentionRequiredWork = {
   work: {
@@ -174,15 +185,6 @@ function actionMessage(action: ProposalSendAction): string | null {
   return 'A proposta ficou desatualizada e precisa ser recalculada antes de qualquer envio.';
 }
 
-function maskContactLabel(label: string): string {
-  const compact = label.replace(/[\s()-]/g, '');
-  if (!/^\+?\d{10,15}$/.test(compact)) return label;
-  const prefixLength = compact.startsWith('+') ? 5 : 4;
-  if (compact.length <= prefixLength + 4) return label;
-  const hiddenLength = compact.length - prefixLength - 4;
-  return `${compact.slice(0, prefixLength)}${'•'.repeat(hiddenLength)}${compact.slice(-4)}`;
-}
-
 function WorkCard({
   item,
   organizationId,
@@ -194,14 +196,21 @@ function WorkCard({
 }) {
   const { authFetch } = useAuth();
   const queryClient = useQueryClient();
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [reviewedSend, setReviewedSend] = useState<ReviewedSend | null>(null);
   const sendMutation = useMutation({
     mutationFn: async () => {
-      if (!item.proposal) throw new Error('Não existe proposta para enviar.');
+      if (!reviewedSend) throw new Error('Revise novamente o destinatário e a mensagem antes de enviar.');
       const response = await authFetch(
-        `/api/v1/organizations/${organizationId}/work/${item.work.id}/proposals/${item.proposal.id}/send`,
-        { method: 'POST' },
+        `/api/v1/organizations/${organizationId}/work/${reviewedSend.workItemId}/proposals/${reviewedSend.proposalId}/send`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ confirmationVersion: reviewedSend.version }),
+        },
       );
+      if (response.status === 400) {
+        throw new Error('A confirmação canônica não é mais válida. Atualize Trabalho e revise novamente.');
+      }
       if (response.status === 403) {
         throw new Error('Seu perfil não pode autorizar este envio.');
       }
@@ -216,6 +225,9 @@ function WorkCard({
         if (payload.error === 'proposal-not-current') {
           throw new Error('A proposta ficou desatualizada. Atualize Trabalho antes de enviar.');
         }
+        if (payload.error === 'confirmation-stale') {
+          throw new Error('O destinatário ou a mensagem mudaram desde sua revisão. Atualize Trabalho e revise novamente antes de enviar.');
+        }
         if (payload.error === 'send-unavailable') {
           throw new Error('O canal não está disponível para este envio supervisionado.');
         }
@@ -225,7 +237,7 @@ function WorkCard({
       return await response.json() as { status: 'sent'; proposalId: string; conversationId: string };
     },
     onSuccess: async () => {
-      setConfirmOpen(false);
+      setReviewedSend(null);
       onSent();
       await queryClient.invalidateQueries({ queryKey: ['attention-required', organizationId] });
     },
@@ -233,6 +245,10 @@ function WorkCard({
 
   const action = item.proposal?.sendAction;
   const actionStatus = action ? actionMessage(action) : null;
+  const readyConfirmation = action?.state === 'ready' ? action.confirmation : null;
+  const missingConfirmation = action?.state === 'ready' && !readyConfirmation
+    ? 'Atualize Trabalho para carregar a confirmação canônica antes de enviar.'
+    : null;
 
   return (
     <>
@@ -261,13 +277,17 @@ function WorkCard({
                 <p className="m-0 text-sm leading-6 text-slate-800">{item.proposal.text}</p>
                 <p className="m-0 mt-3 text-xs leading-5 text-slate-500">{item.proposal.rationale}</p>
 
-                {action?.state === 'ready' ? (
+                {readyConfirmation ? (
                   <div className="mt-4 border-t border-indigo-100 pt-4">
                     <button
                       type="button"
                       onClick={() => {
                         sendMutation.reset();
-                        setConfirmOpen(true);
+                        setReviewedSend({
+                          ...readyConfirmation,
+                          workItemId: item.work.id,
+                          proposalId: item.proposal!.id,
+                        });
                       }}
                       disabled={sendMutation.isPending}
                       className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
@@ -275,16 +295,16 @@ function WorkCard({
                       <Send className="size-4" />
                       Revisar e enviar
                     </button>
-                    <p className="m-0 mt-2 text-xs leading-5 text-slate-500">O envio só acontece depois de uma confirmação final com destinatário e texto.</p>
+                    <p className="m-0 mt-2 text-xs leading-5 text-slate-500">O envio só acontece depois de uma confirmação final emitida pelo Core com destinatário e texto canônicos.</p>
                   </div>
-                ) : actionStatus ? (
+                ) : actionStatus || missingConfirmation ? (
                   <div className="mt-4 flex items-start gap-2 border-t border-indigo-100 pt-4 text-xs leading-5 text-slate-500">
                     <ShieldAlert className="mt-0.5 size-4 shrink-0" />
-                    <span>{actionStatus}</span>
+                    <span>{actionStatus ?? missingConfirmation}</span>
                   </div>
                 ) : null}
 
-                {sendMutation.isError && !confirmOpen ? (
+                {sendMutation.isError && !reviewedSend ? (
                   <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs leading-5 text-rose-700">
                     {sendMutation.error instanceof Error ? sendMutation.error.message : 'Não foi possível concluir o envio.'}
                   </div>
@@ -295,30 +315,30 @@ function WorkCard({
         </div>
       </article>
 
-      {confirmOpen && item.proposal ? (
+      {reviewedSend ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4" role="presentation">
           <div
             role="dialog"
             aria-modal="true"
-            aria-labelledby={`confirm-send-${item.proposal.id}`}
+            aria-labelledby={`confirm-send-${reviewedSend.proposalId}`}
             className="w-full max-w-xl rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl"
           >
             <div className="flex items-start gap-3">
               <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-indigo-50 text-indigo-600"><Send className="size-5" /></span>
               <div>
-                <h3 id={`confirm-send-${item.proposal.id}`} className="m-0 text-lg font-semibold text-slate-950">Confirmar envio</h3>
-                <p className="m-0 mt-1 text-sm leading-6 text-slate-500">Confira o destinatário e a mensagem. O segundo botão abaixo é o único que efetivamente envia.</p>
+                <h3 id={`confirm-send-${reviewedSend.proposalId}`} className="m-0 text-lg font-semibold text-slate-950">Confirmar envio</h3>
+                <p className="m-0 mt-1 text-sm leading-6 text-slate-500">Confira o destinatário e a mensagem canônicos. O segundo botão abaixo é o único que efetivamente envia.</p>
               </div>
             </div>
 
             <div className="mt-5 space-y-4 rounded-2xl bg-slate-50 p-4">
               <div>
                 <p className="m-0 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Destinatário</p>
-                <p className="m-0 mt-1 text-sm font-semibold text-slate-800">{maskContactLabel(item.contact.label)}</p>
+                <p className="m-0 mt-1 text-sm font-semibold text-slate-800">{reviewedSend.recipientMasked}</p>
               </div>
               <div>
                 <p className="m-0 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Mensagem exata</p>
-                <p className="m-0 mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-800">{item.proposal.text}</p>
+                <p className="m-0 mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-800">{reviewedSend.text}</p>
               </div>
             </div>
 
@@ -331,7 +351,7 @@ function WorkCard({
             <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <button
                 type="button"
-                onClick={() => setConfirmOpen(false)}
+                onClick={() => setReviewedSend(null)}
                 disabled={sendMutation.isPending}
                 className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
