@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle, Bot, CircleCheck, LoaderCircle, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, Bot, LoaderCircle, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../AuthProvider';
 
 type DigitalEmployee = {
@@ -65,7 +65,7 @@ export function TeamPage() {
 
       {query.isLoading ? (
         <div className="flex min-h-56 items-center justify-center rounded-3xl border border-slate-200 bg-white text-sm font-medium text-slate-500">
-          <LoaderCircle className="mr-2 size-5 animate-spin" /> Carregando equipe real…
+          <LoaderCircle className="mr-2 size-5 animate-spin" /> Carregando sua equipe…
         </div>
       ) : query.isError ? (
         <div className="rounded-3xl border border-rose-200 bg-rose-50 p-6 text-rose-800">
@@ -85,7 +85,7 @@ export function TeamPage() {
           <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-slate-50 text-slate-500">
             <Bot className="size-5" />
           </span>
-          <h3 className="m-0 mt-4 text-base font-semibold text-slate-900">Nenhum funcionário digital ativo nesta empresa</h3>
+          <h3 className="m-0 mt-4 text-base font-semibold text-slate-900">Nenhum funcionário digital nesta empresa</h3>
           <p className="m-0 mt-2 text-sm text-slate-500">
             Quando a empresa tiver funcionários digitais contratados, eles aparecerão aqui.
           </p>
@@ -109,7 +109,7 @@ function PageHeader() {
         Funcionários digitais da empresa
       </h2>
       <p className="m-0 mt-3 max-w-2xl text-[15px] leading-6 text-slate-500">
-        Veja quem já faz parte da empresa, sua função, estado e nível de autonomia configurado na Wandora.
+        Veja quem já faz parte da empresa, sua função, estado e nível de autonomia.
       </p>
     </div>
   );
@@ -156,16 +156,9 @@ function EmployeeCard({ employee }: { employee: DigitalEmployee }) {
             </div>
             <div className="rounded-2xl bg-slate-50 p-4">
               <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
-                <Bot className="size-4" /> Função canônica
+                <Bot className="size-4" /> Função
               </div>
               <p className="m-0 mt-2 text-sm font-semibold text-slate-800">{roleLabel[employee.role]}</p>
-            </div>
-          </div>
-
-          <div className="mt-5 border-t border-slate-100 pt-5">
-            <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-              <CircleCheck className="size-4 text-emerald-500" />
-              Dados carregados do estado canônico da empresa
             </div>
           </div>
         </div>
