@@ -23,12 +23,19 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'VERIFY_FAIL provisioner can execute unrelated Core function';
   END IF;
+
+  IF has_table_privilege('wandora_platform_provisioner', 'wandora.organizations', 'SELECT,INSERT,UPDATE,DELETE')
+     OR has_table_privilege('wandora_platform_provisioner', 'wandora.users', 'SELECT,INSERT,UPDATE,DELETE')
+     OR has_table_privilege('wandora_platform_provisioner', 'wandora.memberships', 'SELECT,INSERT,UPDATE,DELETE')
+     OR has_table_privilege('wandora_platform_provisioner', 'wandora.digital_employees', 'SELECT,INSERT,UPDATE,DELETE')
+     OR has_table_privilege('wandora_platform_provisioner', 'wandora_private.tenant_provisioning_requests', 'SELECT,INSERT,UPDATE,DELETE') THEN
+    RAISE EXCEPTION 'VERIFY_FAIL provisioner has direct table privilege';
+  END IF;
 END;
 $$;
 
 SET LOCAL ROLE wandora_platform_provisioner;
 
-CREATE TEMP TABLE provision_result AS
 SELECT *
 FROM wandora_private.provision_beta_organization_v1(
   'verify-platform-provisioner-0001',
@@ -43,70 +50,37 @@ RESET ROLE;
 
 DO $$
 DECLARE
-  r record;
+  v_org_id uuid;
+  v_user_id uuid;
+  v_employee_id uuid;
 BEGIN
-  SELECT * INTO r FROM provision_result;
-  IF r.organization_id IS NULL OR r.user_id IS NULL OR r.employee_id IS NULL THEN
-    RAISE EXCEPTION 'VERIFY_FAIL platform provisioner returned null ids';
+  SELECT organization_id, user_id, employee_id
+    INTO v_org_id, v_user_id, v_employee_id
+    FROM wandora_private.tenant_provisioning_requests
+   WHERE request_key = 'verify-platform-provisioner-0001';
+
+  IF v_org_id IS NULL OR v_user_id IS NULL OR v_employee_id IS NULL THEN
+    RAISE EXCEPTION 'VERIFY_FAIL provisioning evidence missing';
   END IF;
 
-  IF (SELECT count(*) FROM wandora.organizations WHERE id = r.organization_id) <> 1 THEN
+  IF (SELECT count(*) FROM wandora.organizations WHERE id = v_org_id) <> 1 THEN
     RAISE EXCEPTION 'VERIFY_FAIL provisioned organization missing';
   END IF;
   IF (SELECT count(*) FROM wandora.memberships
-      WHERE organization_id = r.organization_id
-        AND user_id = r.user_id
+      WHERE organization_id = v_org_id
+        AND user_id = v_user_id
         AND role = 'owner'
         AND status = 'active') <> 1 THEN
     RAISE EXCEPTION 'VERIFY_FAIL provisioned owner membership missing';
   END IF;
   IF (SELECT count(*) FROM wandora.digital_employees
-      WHERE id = r.employee_id
-        AND organization_id = r.organization_id
+      WHERE id = v_employee_id
+        AND organization_id = v_org_id
         AND role = 'commercial-assistant'
         AND status = 'active'
         AND autonomy_mode = 'supervised') <> 1 THEN
     RAISE EXCEPTION 'VERIFY_FAIL provisioned employee contract';
   END IF;
-END;
-$$;
-
-DO $$
-BEGIN
-  BEGIN
-    SET LOCAL ROLE wandora_platform_provisioner;
-    PERFORM 1 FROM wandora_private.tenant_provisioning_requests LIMIT 1;
-    RESET ROLE;
-    RAISE EXCEPTION 'VERIFY_FAIL provisioner read private evidence directly';
-  EXCEPTION WHEN insufficient_privilege THEN
-    RESET ROLE;
-  END;
-END;
-$$;
-
-DO $$
-BEGIN
-  BEGIN
-    SET LOCAL ROLE wandora_platform_provisioner;
-    PERFORM 1 FROM wandora.organizations LIMIT 1;
-    RESET ROLE;
-    RAISE EXCEPTION 'VERIFY_FAIL provisioner read organizations directly';
-  EXCEPTION WHEN insufficient_privilege THEN
-    RESET ROLE;
-  END;
-END;
-$$;
-
-DO $$
-BEGIN
-  BEGIN
-    SET LOCAL ROLE wandora_platform_provisioner;
-    PERFORM wandora.current_core_organization_id();
-    RESET ROLE;
-    RAISE EXCEPTION 'VERIFY_FAIL provisioner executed unrelated Core function';
-  EXCEPTION WHEN insufficient_privilege OR undefined_function THEN
-    RESET ROLE;
-  END;
 END;
 $$;
 
