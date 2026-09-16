@@ -2,19 +2,19 @@
 
 DO $$
 DECLARE
-  table_name text;
+  target_table_name text;
   policy_count integer;
   sensitive_column_count integer;
   privilege_name text;
 BEGIN
-  FOREACH table_name IN ARRAY ARRAY[
+  FOREACH target_table_name IN ARRAY ARRAY[
     'control_plane_provider_bindings',
     'digital_employee_provider_bindings',
     'digital_employee_hire_operations'
   ]
   LOOP
-    IF to_regclass('wandora_private.' || table_name) IS NULL THEN
-      RAISE EXCEPTION 'organization_adapter_state_missing_table:%', table_name;
+    IF to_regclass('wandora_private.' || target_table_name) IS NULL THEN
+      RAISE EXCEPTION 'organization_adapter_state_missing_table:%', target_table_name;
     END IF;
 
     IF NOT EXISTS (
@@ -22,57 +22,57 @@ BEGIN
       FROM pg_class c
       JOIN pg_namespace n ON n.oid = c.relnamespace
       WHERE n.nspname = 'wandora_private'
-        AND c.relname = table_name
+        AND c.relname = target_table_name
         AND c.relrowsecurity
     ) THEN
-      RAISE EXCEPTION 'organization_adapter_state_rls_disabled:%', table_name;
+      RAISE EXCEPTION 'organization_adapter_state_rls_disabled:%', target_table_name;
     END IF;
 
     SELECT count(*) INTO policy_count
-    FROM pg_policies
-    WHERE schemaname = 'wandora_private' AND tablename = table_name;
+    FROM pg_policies p
+    WHERE p.schemaname = 'wandora_private' AND p.tablename = target_table_name;
     IF policy_count <> 0 THEN
-      RAISE EXCEPTION 'organization_adapter_state_must_remain_inert:%:%', table_name, policy_count;
+      RAISE EXCEPTION 'organization_adapter_state_must_remain_inert:%:%', target_table_name, policy_count;
     END IF;
 
     FOREACH privilege_name IN ARRAY ARRAY['SELECT', 'INSERT', 'UPDATE', 'DELETE']
     LOOP
-      IF has_table_privilege('authenticated', 'wandora_private.' || table_name, privilege_name)
-         OR has_table_privilege('anon', 'wandora_private.' || table_name, privilege_name)
-         OR has_table_privilege('wandora_core_runtime', 'wandora_private.' || table_name, privilege_name) THEN
-        RAISE EXCEPTION 'organization_adapter_state_unexpected_application_privilege:%:%', table_name, privilege_name;
+      IF has_table_privilege('authenticated', 'wandora_private.' || target_table_name, privilege_name)
+         OR has_table_privilege('anon', 'wandora_private.' || target_table_name, privilege_name)
+         OR has_table_privilege('wandora_core_runtime', 'wandora_private.' || target_table_name, privilege_name) THEN
+        RAISE EXCEPTION 'organization_adapter_state_unexpected_application_privilege:%:%', target_table_name, privilege_name;
       END IF;
     END LOOP;
   END LOOP;
 
   SELECT count(*) INTO sensitive_column_count
-  FROM information_schema.columns
-  WHERE table_schema = 'wandora_private'
-    AND table_name IN (
+  FROM information_schema.columns c
+  WHERE c.table_schema = 'wandora_private'
+    AND c.table_name IN (
       'control_plane_provider_bindings',
       'digital_employee_provider_bindings',
       'digital_employee_hire_operations'
     )
-    AND column_name ~* '(secret|credential|token|password|api.?key)';
+    AND c.column_name ~* '(secret|credential|token|password|api.?key)';
   IF sensitive_column_count <> 0 THEN
     RAISE EXCEPTION 'organization_adapter_state_contains_secret_like_columns:%', sensitive_column_count;
   END IF;
 
   IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint
-    WHERE conrelid = 'wandora_private.digital_employee_hire_operations'::regclass
-      AND contype = 'u'
-      AND pg_get_constraintdef(oid) LIKE '%organization_id, employee_id, provider%'
+    SELECT 1 FROM pg_constraint pc
+    WHERE pc.conrelid = 'wandora_private.digital_employee_hire_operations'::regclass
+      AND pc.contype = 'u'
+      AND pg_get_constraintdef(pc.oid) LIKE '%organization_id, employee_id, provider%'
   ) THEN
     RAISE EXCEPTION 'organization_adapter_state_employee_provider_uniqueness_missing';
   END IF;
 
   IF EXISTS (
     SELECT 1
-    FROM pg_constraint
-    WHERE conrelid = 'wandora_private.digital_employee_hire_operations'::regclass
-      AND contype = 'f'
-      AND pg_get_constraintdef(oid) LIKE '%employee_id%REFERENCES wandora.digital_employees%'
+    FROM pg_constraint pc
+    WHERE pc.conrelid = 'wandora_private.digital_employee_hire_operations'::regclass
+      AND pc.contype = 'f'
+      AND pg_get_constraintdef(pc.oid) LIKE '%employee_id%REFERENCES wandora.digital_employees%'
   ) THEN
     RAISE EXCEPTION 'organization_adapter_state_reserved_employee_must_not_require_existing_employee';
   END IF;
@@ -151,6 +151,17 @@ BEGIN
       ('11111111-1111-4111-8111-111111111101', 'hire-proof-v2',
        repeat('b', 64), '33333333-3333-4333-8333-333333333301', 'paperclip', 'planned');
     RAISE EXCEPTION 'expected_reserved_employee_uniqueness_failure';
+  EXCEPTION WHEN unique_violation THEN
+    NULL;
+  END;
+
+  BEGIN
+    INSERT INTO wandora_private.digital_employee_hire_operations
+      (organization_id, idempotency_key, request_hash, employee_id, provider, status)
+    VALUES
+      ('11111111-1111-4111-8111-111111111101', 'hire-proof-v1',
+       repeat('c', 64), '33333333-3333-4333-8333-333333333302', 'paperclip', 'planned');
+    RAISE EXCEPTION 'expected_idempotency_key_uniqueness_failure';
   EXCEPTION WHEN unique_violation THEN
     NULL;
   END;
