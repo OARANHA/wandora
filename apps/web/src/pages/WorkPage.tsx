@@ -1,6 +1,23 @@
-import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle, CheckCircle2, Clock3, LoaderCircle, MessageCircleMore, Sparkles } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Clock3,
+  LoaderCircle,
+  MessageCircleMore,
+  Send,
+  ShieldAlert,
+  Sparkles,
+} from 'lucide-react';
 import { useAuth } from '../AuthProvider';
+
+type ProposalSendAction =
+  | { state: 'ready' }
+  | {
+      state: 'unavailable';
+      reason: 'role-required' | 'channel-unavailable' | 'proposal-not-current' | 'already-sent';
+    }
+  | { state: 'delivery-uncertain' };
 
 type AttentionRequiredWork = {
   work: {
@@ -30,6 +47,7 @@ type AttentionRequiredWork = {
     text: string;
     rationale: string;
     createdAt: string;
+    sendAction?: ProposalSendAction;
   } | null;
 };
 
@@ -99,7 +117,13 @@ export function WorkPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {query.data.items.map((item) => <WorkCard key={item.work.id} item={item} />)}
+          {query.data.items.map((item) => (
+            <WorkCard
+              key={item.work.id}
+              item={item}
+              organizationId={activeOrganization.id}
+            />
+          ))}
         </div>
       )}
     </div>
@@ -116,7 +140,57 @@ function PageHeader() {
   );
 }
 
-function WorkCard({ item }: { item: AttentionRequiredWork }) {
+function actionMessage(action: ProposalSendAction): string | null {
+  if (action.state === 'ready') return null;
+  if (action.state === 'delivery-uncertain') {
+    return 'Entrega incerta. A Wandora bloqueou o reenvio automático até existir reconciliação segura.';
+  }
+  if (action.reason === 'role-required') return 'Somente owner ou admin pode enviar respostas nesta versão.';
+  if (action.reason === 'channel-unavailable') return 'Este canal ainda não está habilitado para envio supervisionado.';
+  if (action.reason === 'already-sent') return 'Esta resposta já foi enviada.';
+  return 'A proposta ficou desatualizada e precisa ser recalculada antes de qualquer envio.';
+}
+
+function WorkCard({ item, organizationId }: { item: AttentionRequiredWork; organizationId: string }) {
+  const { authFetch } = useAuth();
+  const queryClient = useQueryClient();
+  const sendMutation = useMutation({
+    mutationFn: async () => {
+      if (!item.proposal) throw new Error('Não existe proposta para enviar.');
+      const response = await authFetch(
+        `/api/v1/organizations/${organizationId}/work/${item.work.id}/proposals/${item.proposal.id}/send`,
+        { method: 'POST' },
+      );
+      if (response.status === 403) {
+        throw new Error('Seu perfil não pode autorizar este envio.');
+      }
+      if (response.status === 404) {
+        throw new Error('O envio supervisionado ainda não está habilitado para este trabalho.');
+      }
+      if (response.status === 409) {
+        const payload = await response.json().catch(() => ({})) as { error?: string; retry?: boolean };
+        if (payload.error === 'delivery-uncertain') {
+          throw new Error('Entrega incerta. A Wandora bloqueou o reenvio automático para evitar mensagem duplicada.');
+        }
+        if (payload.error === 'proposal-not-current') {
+          throw new Error('A proposta ficou desatualizada. Atualize Trabalho antes de enviar.');
+        }
+        if (payload.error === 'send-unavailable') {
+          throw new Error('O canal não está disponível para este envio supervisionado.');
+        }
+        throw new Error('O envio não pode mais ser executado neste estado.');
+      }
+      if (!response.ok) throw new Error('Não foi possível concluir o envio supervisionado.');
+      return await response.json() as { status: 'sent'; proposalId: string; conversationId: string };
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['attention-required', organizationId] });
+    },
+  });
+
+  const action = item.proposal?.sendAction;
+  const actionStatus = action ? actionMessage(action) : null;
+
   return (
     <article className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
       <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-start">
@@ -142,6 +216,34 @@ function WorkCard({ item }: { item: AttentionRequiredWork }) {
               <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-indigo-700"><Sparkles className="size-4" /> Proposta de {item.employee.name}</div>
               <p className="m-0 text-sm leading-6 text-slate-800">{item.proposal.text}</p>
               <p className="m-0 mt-3 text-xs leading-5 text-slate-500">{item.proposal.rationale}</p>
+
+              {action?.state === 'ready' ? (
+                <div className="mt-4 border-t border-indigo-100 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => sendMutation.mutate()}
+                    disabled={sendMutation.isPending}
+                    className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {sendMutation.isPending
+                      ? <LoaderCircle className="size-4 animate-spin" />
+                      : <Send className="size-4" />}
+                    {sendMutation.isPending ? 'Enviando…' : 'Enviar resposta'}
+                  </button>
+                  <p className="m-0 mt-2 text-xs leading-5 text-slate-500">A mensagem será enviada exatamente como aparece acima. Edição livre não está habilitada nesta versão.</p>
+                </div>
+              ) : actionStatus ? (
+                <div className="mt-4 flex items-start gap-2 border-t border-indigo-100 pt-4 text-xs leading-5 text-slate-500">
+                  <ShieldAlert className="mt-0.5 size-4 shrink-0" />
+                  <span>{actionStatus}</span>
+                </div>
+              ) : null}
+
+              {sendMutation.isError ? (
+                <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs leading-5 text-rose-700">
+                  {sendMutation.error instanceof Error ? sendMutation.error.message : 'Não foi possível concluir o envio.'}
+                </div>
+              ) : null}
             </div>
           ) : null}
         </div>

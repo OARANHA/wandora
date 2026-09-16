@@ -1,5 +1,7 @@
 import { readFile } from 'node:fs/promises';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export type RuntimeMode = 'standby' | 'database';
 export type RuntimeAgentMode = 'disabled' | 'mastra-deterministic';
 
@@ -25,6 +27,12 @@ export type RuntimeHumanApiConfig = {
   audience: string;
 };
 
+export type RuntimeHumanSendProposalConfig = {
+  connectionId: string;
+  gatewayUrl: string;
+  gatewaySecret: string;
+};
+
 export type RuntimeConfig = {
   port: number;
   mode: RuntimeMode;
@@ -32,6 +40,7 @@ export type RuntimeConfig = {
   gatewayIngress?: RuntimeGatewayIngressConfig;
   agentRuntime?: RuntimeAgentConfig;
   humanApi?: RuntimeHumanApiConfig;
+  humanSendProposal?: RuntimeHumanSendProposalConfig;
 };
 
 const parsePort = (value: string | undefined, fallback: number, name: string): number => {
@@ -61,6 +70,30 @@ const parseAgentRuntimeMode = (value: string | undefined): RuntimeAgentMode => {
   throw new Error('WANDORA_AGENT_RUNTIME_MODE must be disabled or mastra-deterministic.');
 };
 
+const canonicalUuid = (value: string, name: string): string => {
+  if (!UUID_RE.test(value)) throw new Error(`${name} must be a canonical UUID.`);
+  return value.toLowerCase();
+};
+
+const validateMessagingGatewayOutboundUrl = (value: string): string => {
+  const url = new URL(value);
+  if (
+    url.protocol !== 'http:'
+    || url.hostname !== 'wandora-messaging-gateway'
+    || url.port !== '8787'
+    || url.pathname !== '/internal/v1/core/outbound/text'
+    || url.username
+    || url.password
+    || url.search
+    || url.hash
+  ) {
+    throw new Error(
+      'WANDORA_MESSAGING_GATEWAY_OUTBOUND_URL must target the private canonical Messaging Gateway route.',
+    );
+  }
+  return url.toString();
+};
+
 export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): Promise<RuntimeConfig> {
   const port = parsePort(env.PORT, 8788, 'PORT');
   const mode = (env.WANDORA_CORE_MODE ?? 'standby').trim();
@@ -76,6 +109,10 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     env.WANDORA_HUMAN_API_ENABLED,
     'WANDORA_HUMAN_API_ENABLED',
   );
+  const humanSendProposalEnabled = parseEnabled(
+    env.WANDORA_HUMAN_SEND_PROPOSAL_ENABLED,
+    'WANDORA_HUMAN_SEND_PROPOSAL_ENABLED',
+  );
   const agentRuntimeMode = parseAgentRuntimeMode(env.WANDORA_AGENT_RUNTIME_MODE);
 
   if (mode === 'standby') {
@@ -85,6 +122,9 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     if (humanApiEnabled) {
       throw new Error('Human API cannot be enabled while Wandora Core is in standby mode.');
     }
+    if (humanSendProposalEnabled) {
+      throw new Error('Human Send Proposal cannot be enabled while Wandora Core is in standby mode.');
+    }
     if (agentRuntimeMode !== 'disabled') {
       throw new Error('Agent Runtime cannot be enabled while Wandora Core is in standby mode.');
     }
@@ -93,6 +133,9 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
 
   if (agentRuntimeMode !== 'disabled' && !gatewayIngressEnabled) {
     throw new Error('Deterministic Agent Runtime requires supervised Gateway ingress to be enabled.');
+  }
+  if (humanSendProposalEnabled && !humanApiEnabled) {
+    throw new Error('Human Send Proposal requires the Human API to be enabled.');
   }
 
   const user = (env.WANDORA_CORE_DB_USER ?? 'wandora_core_runtime').trim();
@@ -123,6 +166,30 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     };
   }
 
+  let humanSendProposal: RuntimeHumanSendProposalConfig | undefined;
+  if (humanSendProposalEnabled) {
+    const secretFile = required(env, 'WANDORA_CORE_OUTBOUND_SECRET_FILE');
+    const gatewaySecret = (await readFile(secretFile, 'utf8')).trim();
+    if (gatewaySecret.length < 32) {
+      throw new Error('Wandora Core outbound secret must contain at least 32 characters.');
+    }
+    if (gatewayIngress?.secret === gatewaySecret) {
+      throw new Error('Core outbound and Gateway ingress must use distinct HMAC secrets.');
+    }
+
+    humanSendProposal = {
+      connectionId: canonicalUuid(
+        required(env, 'WANDORA_HUMAN_SEND_PROPOSAL_CONNECTION_ID'),
+        'WANDORA_HUMAN_SEND_PROPOSAL_CONNECTION_ID',
+      ),
+      gatewayUrl: validateMessagingGatewayOutboundUrl(
+        env.WANDORA_MESSAGING_GATEWAY_OUTBOUND_URL?.trim()
+          || 'http://wandora-messaging-gateway:8787/internal/v1/core/outbound/text',
+      ),
+      gatewaySecret,
+    };
+  }
+
   return {
     port,
     mode,
@@ -135,6 +202,7 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     },
     ...(gatewayIngress ? { gatewayIngress } : {}),
     ...(humanApi ? { humanApi } : {}),
+    ...(humanSendProposal ? { humanSendProposal } : {}),
     ...(agentRuntimeMode === 'mastra-deterministic'
       ? { agentRuntime: { mode: 'mastra-deterministic' as const } }
       : {}),
