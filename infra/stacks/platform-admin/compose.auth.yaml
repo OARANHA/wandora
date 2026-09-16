@@ -9,9 +9,8 @@ services:
     volumes:
       - ${WANDORA_PLATFORM_OPERATOR_SUBJECTS_FILE:?set WANDORA_PLATFORM_OPERATOR_SUBJECTS_FILE}:/run/secrets/platform_operator_subjects:ro
     networks:
-      - wandora-edge
+      - wandora-platform-auth-egress
 
 networks:
-  wandora-edge:
-    external: true
-    name: wandora-edge
+  wandora-platform-auth-egress:
+    name: wandora-platform-auth-egress
