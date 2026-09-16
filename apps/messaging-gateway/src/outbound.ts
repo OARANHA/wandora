@@ -3,6 +3,7 @@ import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const RECIPIENT_RE = /^\+?[1-9]\d{7,14}$/;
 const IDEMPOTENCY_RE = /^[A-Za-z0-9._:-]{8,255}$/;
+const EVOLUTION_INTERNAL_ORIGIN = 'http://wandora-messaging-gateway:8787';
 
 export type OutboundTextCommand = {
   connectionId: string;
@@ -149,6 +150,7 @@ export function createEvolutionOutboundSender(deps: EvolutionOutboundSenderDeps)
           headers: {
             'content-type': 'application/json',
             apikey: deps.apiKey,
+            origin: EVOLUTION_INTERNAL_ORIGIN,
           },
           body: JSON.stringify({ number, text: command.text }),
           signal: AbortSignal.timeout(timeoutMs),
