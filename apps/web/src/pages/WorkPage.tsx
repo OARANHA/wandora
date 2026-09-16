@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangle,
@@ -62,6 +63,7 @@ const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
 
 export function WorkPage() {
   const { activeOrganization, context, authFetch } = useAuth();
+  const [sendSuccess, setSendSuccess] = useState(false);
   const query = useQuery({
     queryKey: ['attention-required', activeOrganization?.id],
     enabled: Boolean(activeOrganization),
@@ -72,6 +74,10 @@ export function WorkPage() {
       return await response.json() as AttentionResponse;
     },
   });
+
+  useEffect(() => {
+    setSendSuccess(false);
+  }, [activeOrganization?.id]);
 
   if (!activeOrganization) {
     const hasMultiple = (context?.organizations.length ?? 0) > 1;
@@ -85,7 +91,7 @@ export function WorkPage() {
               <h3 className="m-0 text-sm font-semibold">{hasMultiple ? 'Escolha de empresa necessária' : 'Nenhuma empresa ativa'}</h3>
               <p className="m-0 mt-2 text-sm leading-6 text-amber-800/80">
                 {hasMultiple
-                  ? 'Sua conta possui mais de uma empresa ativa. O seletor multiempresa será tratado em uma slice própria; nenhuma empresa será escolhida silenciosamente.'
+                  ? 'Sua conta possui mais de uma empresa ativa. Escolha explicitamente uma empresa no seletor para continuar.'
                   : 'Sua conta está vinculada à Wandora, mas ainda não possui uma empresa ativa.'}
               </p>
             </div>
@@ -98,6 +104,22 @@ export function WorkPage() {
   return (
     <div className="space-y-6">
       <PageHeader />
+
+      {sendSuccess ? (
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-800"
+        >
+          <CheckCircle2 className="mt-0.5 size-5 shrink-0" />
+          <div>
+            <p className="m-0 text-sm font-semibold">Mensagem enviada com sucesso</p>
+            <p className="m-0 mt-1 text-sm leading-5 text-emerald-700/80">
+              O envio foi registrado pela Wandora. O trabalho foi atualizado e não precisa de um novo clique.
+            </p>
+          </div>
+        </div>
+      ) : null}
 
       {query.isLoading ? (
         <div className="flex min-h-56 items-center justify-center rounded-3xl border border-slate-200 bg-white text-sm font-medium text-slate-500">
@@ -122,6 +144,7 @@ export function WorkPage() {
               key={item.work.id}
               item={item}
               organizationId={activeOrganization.id}
+              onSent={() => setSendSuccess(true)}
             />
           ))}
         </div>
@@ -151,7 +174,15 @@ function actionMessage(action: ProposalSendAction): string | null {
   return 'A proposta ficou desatualizada e precisa ser recalculada antes de qualquer envio.';
 }
 
-function WorkCard({ item, organizationId }: { item: AttentionRequiredWork; organizationId: string }) {
+function WorkCard({
+  item,
+  organizationId,
+  onSent,
+}: {
+  item: AttentionRequiredWork;
+  organizationId: string;
+  onSent: () => void;
+}) {
   const { authFetch } = useAuth();
   const queryClient = useQueryClient();
   const sendMutation = useMutation({
@@ -184,6 +215,7 @@ function WorkCard({ item, organizationId }: { item: AttentionRequiredWork; organ
       return await response.json() as { status: 'sent'; proposalId: string; conversationId: string };
     },
     onSuccess: async () => {
+      onSent();
       await queryClient.invalidateQueries({ queryKey: ['attention-required', organizationId] });
     },
   });
