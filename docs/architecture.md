@@ -158,7 +158,7 @@ Current live Core after ADR 0027 promotion:
 ```text
 container: wandora-core
 image: wandora/core:canonical-confirm-a1ee4755
-canonical repository head: a1ee475570c9314198068537003918a6022d8490
+runtime application source head: a1ee475570c9314198068537003918a6022d8490
 mode: database
 agent runtime: mastra-deterministic
 MASTRA_TELEMETRY_DISABLED: true
