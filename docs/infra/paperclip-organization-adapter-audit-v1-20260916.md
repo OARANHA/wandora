@@ -87,6 +87,8 @@ Wandora/Mastra -> Paperclip callback
 
 The bridge signs timestamp + exact JSON body. The run JWT travels separately and is never placed in the request body, logs or product state.
 
+The bridge request also uses an explicit task-context allow-list. It does **not** forward Paperclip's entire runtime context; provider internals such as managed MCP metadata/tokens must stay behind the Paperclip boundary unless separately reviewed.
+
 ## Reproducible live-image spike
 
 Repository path:
@@ -95,12 +97,12 @@ Repository path:
 spikes/paperclip-wandora-mastra-adapter-v1/
 ```
 
-Before execution on the VPS, the materialized files were checked with `git hash-object` against the GitHub branch blobs:
+Before the final execution on the VPS, the changed materialized files were checked with `git hash-object` against the GitHub branch blobs:
 
 ```text
 package.json          0e2f537c36b6f0c991548c912c069d3d62ae4488
-index.mjs             906ee2e3045b913a849f4fa2339acf452c30b1ee
-run-spike.mjs         29dfb55dd5c35a7509550469c6f31408ff2a600d
+index.mjs             b176a5e5a151664c55c0b10f8e08b1f39bbf7e9a
+run-spike.mjs         4edc8672510e8a7c9230aa7dfeb137720a52ef59
 verify-live-image.sh  1f596c60b84a56c565313380468d30bd75db27f5
 ```
 
@@ -115,11 +117,14 @@ signatureOk = true
 timestampOk = true
 runTokenOk = true
 bodyOk = true
+contextMinimized = true
 result exitCode = 0
 provider = wandora
 model = deterministic-spike
 executionId = exec-spike-1
 ```
+
+The `contextMinimized` assertion deliberately placed synthetic provider-internal/MCP-like data in the source context and proved it did not cross the adapter boundary.
 
 This proves the adapter/plugin and trust contract, not customer functionality.
 
