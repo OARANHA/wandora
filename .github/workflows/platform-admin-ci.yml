@@ -64,5 +64,7 @@ jobs:
           grep -q 'WANDORA_PLATFORM_ADMIN_AUTH_ENABLED: "true"' <<<"$auth"
           grep -q 'WANDORA_PLATFORM_OPERATOR_SUBJECTS_FILE: /run/secrets/platform_operator_subjects' <<<"$auth"
           grep -q '/tmp/platform-operators:/run/secrets/platform_operator_subjects:ro' <<<"$auth"
+          grep -q 'wandora-platform-auth-egress' <<<"$auth"
+          ! grep -q 'wandora-edge' <<<"$auth"
           ! grep -q 'WANDORA_PLATFORM_ADMIN_DB_' <<<"$auth"
           ! grep -q 'DATABASE_URL' <<<"$auth"
