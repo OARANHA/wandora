@@ -5,6 +5,7 @@ DECLARE
   table_name text;
   policy_count integer;
   sensitive_column_count integer;
+  privilege_name text;
 BEGIN
   FOREACH table_name IN ARRAY ARRAY[
     'control_plane_provider_bindings',
@@ -34,10 +35,14 @@ BEGIN
       RAISE EXCEPTION 'organization_adapter_state_must_remain_inert:%:%', table_name, policy_count;
     END IF;
 
-    IF has_table_privilege('authenticated', 'wandora_private.' || table_name, 'SELECT,INSERT,UPDATE,DELETE')
-       OR has_table_privilege('wandora_core_runtime', 'wandora_private.' || table_name, 'SELECT,INSERT,UPDATE,DELETE') THEN
-      RAISE EXCEPTION 'organization_adapter_state_unexpected_application_privilege:%', table_name;
-    END IF;
+    FOREACH privilege_name IN ARRAY ARRAY['SELECT', 'INSERT', 'UPDATE', 'DELETE']
+    LOOP
+      IF has_table_privilege('authenticated', 'wandora_private.' || table_name, privilege_name)
+         OR has_table_privilege('anon', 'wandora_private.' || table_name, privilege_name)
+         OR has_table_privilege('wandora_core_runtime', 'wandora_private.' || table_name, privilege_name) THEN
+        RAISE EXCEPTION 'organization_adapter_state_unexpected_application_privilege:%:%', table_name, privilege_name;
+      END IF;
+    END LOOP;
   END LOOP;
 
   SELECT count(*) INTO sensitive_column_count
@@ -139,6 +144,17 @@ BEGIN
   END;
 
   BEGIN
+    INSERT INTO wandora_private.digital_employee_hire_operations
+      (organization_id, idempotency_key, request_hash, employee_id, provider, status)
+    VALUES
+      ('11111111-1111-4111-8111-111111111101', 'hire-proof-invalid-hash',
+       'not-a-sha256', '33333333-3333-4333-8333-333333333399', 'paperclip', 'planned');
+    RAISE EXCEPTION 'expected_request_hash_validation_failure';
+  EXCEPTION WHEN check_violation THEN
+    NULL;
+  END;
+
+  BEGIN
     UPDATE wandora_private.digital_employee_hire_operations
        SET status = 'completed'
      WHERE organization_id = '11111111-1111-4111-8111-111111111101'
@@ -160,13 +176,19 @@ UPDATE wandora_private.digital_employee_hire_operations
 DO $$
 DECLARE
   operation_status text;
+  operation_ref text;
+  operation_completed_at timestamptz;
 BEGIN
-  SELECT status INTO operation_status
+  SELECT status, provider_agent_ref, completed_at
+    INTO operation_status, operation_ref, operation_completed_at
   FROM wandora_private.digital_employee_hire_operations
   WHERE organization_id = '11111111-1111-4111-8111-111111111101'
     AND idempotency_key = 'hire-proof-v1';
-  IF operation_status <> 'completed' THEN
-    RAISE EXCEPTION 'organization_adapter_state_valid_completion_failed:%', operation_status;
+  IF operation_status <> 'completed'
+     OR operation_ref <> 'paperclip-agent-proof-final'
+     OR operation_completed_at IS NULL THEN
+    RAISE EXCEPTION 'organization_adapter_state_valid_completion_failed:%:%:%',
+      operation_status, operation_ref, operation_completed_at;
   END IF;
 END
 $$;
