@@ -1,0 +1,28 @@
+services:
+  platform-admin:
+    image: ${WANDORA_PLATFORM_ADMIN_IMAGE:-wandora/platform-admin:local}
+    container_name: wandora-platform-admin
+    restart: unless-stopped
+    environment:
+      PORT: "8790"
+      WANDORA_PLATFORM_ADMIN_AUTH_ENABLED: "false"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8790/healthz').then(r=>process.exit(r.status===200?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    networks:
+      - wandora-platform-admin
+
+networks:
+  wandora-platform-admin:
+    name: wandora-platform-admin
+    internal: true
