@@ -141,7 +141,7 @@ export class AnaSupervisedIngressService {
               SET status = 'attention-required'
             WHERE organization_id = $1
               AND id = $2
-              AND status = 'in-progress'
+              AND status IN ('in-progress', 'attention-required', 'waiting-customer')
           RETURNING id`,
           [organizationId, context.workItemId],
         );
