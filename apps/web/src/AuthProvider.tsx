@@ -35,6 +35,7 @@ type AuthContextValue = {
   error: string | null;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  selectOrganization: (organizationId: string) => void;
   authFetch: (input: string, init?: RequestInit) => Promise<Response>;
   retryBootstrap: () => Promise<void>;
 };
@@ -47,6 +48,7 @@ class BootstrapError extends Error {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+const ACTIVE_ORGANIZATION_KEY = 'wandora.active-organization-id';
 
 async function fetchSessionContext(accessToken: string): Promise<HumanSessionContext> {
   const response = await fetch('/api/v1/me', {
@@ -70,9 +72,27 @@ async function fetchSessionContext(accessToken: string): Promise<HumanSessionCon
   return payload;
 }
 
+function resolveActiveOrganizationId(nextContext: HumanSessionContext): string | null {
+  if (nextContext.organizations.length === 1) {
+    return nextContext.organizations[0]?.id ?? null;
+  }
+  if (nextContext.organizations.length === 0) {
+    sessionStorage.removeItem(ACTIVE_ORGANIZATION_KEY);
+    return null;
+  }
+
+  const stored = sessionStorage.getItem(ACTIVE_ORGANIZATION_KEY);
+  if (stored && nextContext.organizations.some((organization) => organization.id === stored)) {
+    return stored;
+  }
+  sessionStorage.removeItem(ACTIVE_ORGANIZATION_KEY);
+  return null;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>('loading');
   const [context, setContext] = useState<HumanSessionContext | null>(null);
+  const [activeOrganizationId, setActiveOrganizationId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const sessionRef = useRef<BrowserAuthSession | null>(null);
   const bootStarted = useRef(false);
@@ -96,32 +116,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const clearToAnonymous = useCallback(() => {
     commitSession(null);
+    sessionStorage.removeItem(ACTIVE_ORGANIZATION_KEY);
     setContext(null);
+    setActiveOrganizationId(null);
     setError(null);
     setStatus('anonymous');
   }, [commitSession]);
+
+  const applyContext = useCallback((nextContext: HumanSessionContext) => {
+    setContext(nextContext);
+    setActiveOrganizationId(resolveActiveOrganizationId(nextContext));
+    setStatus('authenticated');
+  }, []);
 
   const bootstrap = useCallback(async (initialSession: BrowserAuthSession) => {
     commitSession(initialSession);
     setStatus('loading');
     setContext(null);
+    setActiveOrganizationId(null);
     setError(null);
 
     try {
       let session = await getFreshSession(false);
       try {
-        const nextContext = await fetchSessionContext(session.accessToken);
-        setContext(nextContext);
-        setStatus('authenticated');
+        applyContext(await fetchSessionContext(session.accessToken));
         return;
       } catch (bootstrapError) {
         if (!(bootstrapError instanceof BootstrapError) || bootstrapError.code !== 'unauthorized') throw bootstrapError;
       }
 
       session = await getFreshSession(true);
-      const nextContext = await fetchSessionContext(session.accessToken);
-      setContext(nextContext);
-      setStatus('authenticated');
+      applyContext(await fetchSessionContext(session.accessToken));
     } catch (bootstrapError) {
       if (bootstrapError instanceof BootstrapError && bootstrapError.code === 'unlinked') {
         setStatus('unlinked');
@@ -139,7 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setStatus('error');
       setError(bootstrapError instanceof Error ? bootstrapError.message : 'Não foi possível validar sua sessão.');
     }
-  }, [clearToAnonymous, commitSession, getFreshSession]);
+  }, [applyContext, clearToAnonymous, commitSession, getFreshSession]);
 
   useEffect(() => {
     if (bootStarted.current) return;
@@ -163,6 +188,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearToAnonymous();
     if (current) await revokeBrowserSession(current);
   }, [clearToAnonymous]);
+
+  const selectOrganization = useCallback((organizationId: string) => {
+    const organization = context?.organizations.find((candidate) => candidate.id === organizationId);
+    if (!organization) return;
+    sessionStorage.setItem(ACTIVE_ORGANIZATION_KEY, organization.id);
+    setActiveOrganizationId(organization.id);
+  }, [context]);
 
   const retryBootstrap = useCallback(async () => {
     const current = sessionRef.current;
@@ -197,7 +229,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [clearToAnonymous, getFreshSession]);
 
-  const activeOrganization = context?.organizations.length === 1 ? context.organizations[0] : null;
+  const activeOrganization = context?.organizations.find((organization) => organization.id === activeOrganizationId)
+    ?? (context?.organizations.length === 1 ? context.organizations[0] ?? null : null);
 
   const value = useMemo<AuthContextValue>(() => ({
     status,
@@ -206,9 +239,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     error,
     signIn,
     signOut,
+    selectOrganization,
     authFetch,
     retryBootstrap,
-  }), [activeOrganization, authFetch, context, error, retryBootstrap, signIn, signOut, status]);
+  }), [activeOrganization, authFetch, context, error, retryBootstrap, selectOrganization, signIn, signOut, status]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

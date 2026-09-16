@@ -56,7 +56,9 @@ function Sidebar() {
           {activeOrganization ? activeOrganization.name : 'Empresa não selecionada'}
         </div>
         <p className="m-0 text-xs leading-5 text-slate-500">
-          {activeOrganization ? 'Seus funcionários digitais estão operando dentro das regras da empresa.' : 'O acesso existe, mas ainda não há uma única empresa ativa para esta sessão.'}
+          {activeOrganization
+            ? 'Seus funcionários digitais estão operando dentro das regras da empresa.'
+            : 'Escolha uma empresa no topo para carregar o contexto operacional correto.'}
         </p>
       </div>
     </aside>
@@ -66,18 +68,37 @@ function Sidebar() {
 function Topbar() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const current = nav.find((item) => item.to === pathname)?.label ?? 'Wandora';
-  const { context, activeOrganization, signOut } = useAuth();
+  const { context, activeOrganization, selectOrganization, signOut } = useAuth();
   const userName = context?.user.name ?? 'Usuário';
-  const organizationLabel = activeOrganization?.name ?? (context?.organizations.length ? 'Mais de uma empresa' : 'Sem empresa ativa');
+  const organizations = context?.organizations ?? [];
+  const organizationLabel = activeOrganization?.name ?? (organizations.length ? 'Escolha uma empresa' : 'Sem empresa ativa');
 
   return (
     <header className="sticky top-0 z-10 border-b border-slate-200/80 bg-[#f5f7fb]/90 backdrop-blur-xl">
       <div className="mx-auto flex h-[76px] max-w-[1500px] items-center justify-between px-5 sm:px-7 lg:px-9">
-        <div>
-          <p className="m-0 text-xs font-medium uppercase tracking-[0.14em] text-slate-400">{organizationLabel}</p>
+        <div className="min-w-0">
+          <p className="m-0 truncate text-xs font-medium uppercase tracking-[0.14em] text-slate-400">{organizationLabel}</p>
           <h1 className="m-0 mt-1 text-lg font-semibold tracking-tight text-slate-900">{current}</h1>
         </div>
         <div className="flex items-center gap-2.5">
+          {organizations.length > 1 ? (
+            <label className="hidden sm:block">
+              <span className="sr-only">Empresa ativa</span>
+              <select
+                aria-label="Empresa ativa"
+                value={activeOrganization?.id ?? ''}
+                onChange={(event) => selectOrganization(event.target.value)}
+                className="h-10 max-w-[280px] rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 shadow-sm outline-none transition focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+              >
+                <option value="" disabled>Escolha uma empresa</option>
+                {organizations.map((organization) => (
+                  <option key={organization.id} value={organization.id}>
+                    {organization.name} · {organization.role}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           <button className="relative grid size-10 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900" aria-label="Notificações">
             <Bell className="size-[18px]" />
           </button>
@@ -91,6 +112,23 @@ function Topbar() {
           </button>
         </div>
       </div>
+      {organizations.length > 1 ? (
+        <div className="border-t border-slate-200/70 px-5 py-2 sm:hidden">
+          <select
+            aria-label="Empresa ativa"
+            value={activeOrganization?.id ?? ''}
+            onChange={(event) => selectOrganization(event.target.value)}
+            className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 shadow-sm outline-none"
+          >
+            <option value="" disabled>Escolha uma empresa</option>
+            {organizations.map((organization) => (
+              <option key={organization.id} value={organization.id}>
+                {organization.name} · {organization.role}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
     </header>
   );
 }
