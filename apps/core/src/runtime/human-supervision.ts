@@ -4,9 +4,15 @@ import {
   HumanNotFoundError,
   type HumanSupervisionReadService,
 } from '../supervision/human-read.js';
+import {
+  HumanSendProposalConflictError,
+  HumanSendProposalDeliveryUncertainError,
+  type HumanSendProposalService,
+} from '../supervision/human-send-proposal.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const WORK_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/work\/attention-required$/;
+const SEND_PROPOSAL_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/work\/([^/]+)\/proposals\/([^/]+)\/send$/;
 const CONVERSATIONS_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/conversations$/;
 const CONVERSATION_DETAIL_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/conversations\/([^/]+)$/;
 const SESSION_PATH = '/api/v1/me';
@@ -26,13 +32,48 @@ export function isHumanSupervisionPath(pathname: string): boolean {
   return pathname === SESSION_PATH || pathname.startsWith('/api/v1/organizations/');
 }
 
-export function createHumanSupervisionHandler(service: HumanSupervisionReadService) {
+export function createHumanSupervisionHandler(
+  service: HumanSupervisionReadService,
+  sendProposalService?: HumanSendProposalService,
+) {
   return async (request: HumanSupervisionRequest): Promise<HumanSupervisionResponse> => {
-    if (request.method !== 'GET') {
-      return { status: 405, body: { error: 'method-not-allowed' } };
-    }
-
     try {
+      const sendMatch = SEND_PROPOSAL_PATH_RE.exec(request.pathname);
+      if (sendMatch) {
+        if (!sendProposalService) {
+          return { status: 404, body: { error: 'not-found' } };
+        }
+        if (request.method !== 'POST') {
+          return { status: 405, body: { error: 'method-not-allowed' } };
+        }
+
+        const organizationId = sendMatch[1];
+        const workItemId = sendMatch[2];
+        const proposalId = sendMatch[3];
+        if (
+          !organizationId
+          || !workItemId
+          || !proposalId
+          || !UUID_RE.test(organizationId)
+          || !UUID_RE.test(workItemId)
+          || !UUID_RE.test(proposalId)
+        ) {
+          return { status: 404, body: { error: 'not-found' } };
+        }
+
+        const result = await sendProposalService.sendProposal({
+          authorization: request.authorization,
+          organizationId,
+          workItemId,
+          proposalId,
+        });
+        return { status: 200, body: result };
+      }
+
+      if (request.method !== 'GET') {
+        return { status: 405, body: { error: 'method-not-allowed' } };
+      }
+
       if (request.pathname === SESSION_PATH) {
         const session = await service.getSessionContext(request.authorization);
         return { status: 200, body: session };
@@ -45,7 +86,29 @@ export function createHumanSupervisionHandler(service: HumanSupervisionReadServi
           return { status: 404, body: { error: 'not-found' } };
         }
         const items = await service.listAttentionRequired(request.authorization, workOrganizationId);
-        return { status: 200, body: { items } };
+        if (!sendProposalService) {
+          return { status: 200, body: { items } };
+        }
+
+        const proposalIds = items.flatMap((item) => item.proposal ? [item.proposal.id] : []);
+        const actionStates = await sendProposalService.getAttentionActionStates({
+          authorization: request.authorization,
+          organizationId: workOrganizationId,
+          proposalIds,
+        });
+        const decoratedItems = items.map((item) => (
+          item.proposal
+            ? {
+                ...item,
+                proposal: {
+                  ...item.proposal,
+                  sendAction: actionStates.get(item.proposal.id)
+                    ?? { state: 'unavailable' as const, reason: 'proposal-not-current' as const },
+                },
+              }
+            : item
+        ));
+        return { status: 200, body: { items: decoratedItems } };
       }
 
       const conversationsMatch = CONVERSATIONS_PATH_RE.exec(request.pathname);
@@ -86,6 +149,15 @@ export function createHumanSupervisionHandler(service: HumanSupervisionReadServi
       }
       if (error instanceof HumanNotFoundError) {
         return { status: 404, body: { error: 'not-found' } };
+      }
+      if (error instanceof HumanSendProposalConflictError) {
+        return { status: 409, body: { error: error.code } };
+      }
+      if (error instanceof HumanSendProposalDeliveryUncertainError) {
+        return {
+          status: 409,
+          body: { error: 'delivery-uncertain', retry: false },
+        };
       }
       return { status: 500, body: { error: 'internal-error' } };
     }
