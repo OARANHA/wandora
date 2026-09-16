@@ -6,6 +6,25 @@ function requiredString(value, code) {
   return normalized;
 }
 
+function optionalString(value) {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function taskContext(context) {
+  const issue = context?.paperclipIssue && typeof context.paperclipIssue === 'object'
+    ? context.paperclipIssue
+    : {};
+  return {
+    issueId: optionalString(issue.id),
+    identifier: optionalString(issue.identifier),
+    title: optionalString(issue.title),
+    description: optionalString(issue.description),
+    workMode: optionalString(issue.workMode),
+    wakeReason: optionalString(context?.wakeReason),
+    wakeCommentId: optionalString(context?.wakeCommentId ?? context?.commentId),
+  };
+}
+
 function sign(secret, timestamp, body) {
   return createHmac('sha256', secret).update(`${timestamp}.${body}`).digest('hex');
 }
@@ -33,7 +52,7 @@ export function createServerAdapter() {
         paperclipAgentId: ctx.agent.id,
         paperclipCompanyId: ctx.agent.companyId,
         paperclipRunId: ctx.runId,
-        context: ctx.context,
+        task: taskContext(ctx.context),
       });
       const signature = sign(bridgeSecret, timestamp, body);
       const res = await fetch(endpoint, {
