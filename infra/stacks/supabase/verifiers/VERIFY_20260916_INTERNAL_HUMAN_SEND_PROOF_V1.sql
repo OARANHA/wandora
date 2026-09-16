@@ -11,6 +11,8 @@
   \quit 3
 \endif
 
+BEGIN;
+
 CREATE TEMP TABLE wandora_internal_send_proof_verify_args (
   target_phone text NOT NULL,
   provider_connection_ref text NOT NULL
@@ -145,3 +147,5 @@ BEGIN
 END $$;
 
 SELECT 'INTERNAL_HUMAN_SEND_PROOF_V1_READY' AS result;
+
+COMMIT;
