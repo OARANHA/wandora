@@ -190,7 +190,7 @@ Supabase Foundation V1, Mastra Agent Runtime V1 laboratory validation, Evolution
 Current production runtime after the 2026-09-16 Confirmation V2 promotion:
 
 ```text
-canonical repository head: a1ee475570c9314198068537003918a6022d8490
+runtime application source head: a1ee475570c9314198068537003918a6022d8490
 Core:    wandora/core:canonical-confirm-a1ee4755
 Web:     wandora/web:canonical-confirm-a1ee4755
 Gateway: wandora/messaging-gateway:origin-fix-94cfb4de
