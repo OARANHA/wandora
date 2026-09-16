@@ -27,6 +27,14 @@ export type HumanSendProposalResult = {
   conversationId: string;
 };
 
+export type HumanProposalSendAction =
+  | { state: 'ready' }
+  | {
+      state: 'unavailable';
+      reason: 'role-required' | 'channel-unavailable' | 'proposal-not-current' | 'already-sent';
+    }
+  | { state: 'delivery-uncertain' };
+
 type ProposalContextRow = {
   proposal_id: string;
   proposal_kind: 'send-text';
@@ -47,6 +55,25 @@ type ProposalContextRow = {
   recipient: string;
   latest_message_direction: 'inbound' | 'outbound' | null;
   latest_message_source_event_id: string | null;
+};
+
+type ActionStateRow = {
+  proposal_id: string;
+  proposal_kind: 'send-text';
+  proposal_commitment: 'none';
+  proposal_source_event_id: string;
+  latest_proposal_id: string;
+  work_status: 'in-progress' | 'waiting-approval' | 'waiting-customer' | 'attention-required' | 'completed';
+  employee_status: 'active' | 'paused';
+  employee_autonomy_mode: 'supervised';
+  conversation_status: 'open' | 'closed';
+  connection_id: string;
+  connection_status: 'active' | 'disabled';
+  connection_channel: 'whatsapp';
+  recipient: string;
+  latest_message_direction: 'inbound' | 'outbound' | null;
+  latest_message_source_event_id: string | null;
+  attempt_status: 'planned' | 'sending' | 'succeeded' | 'uncertain' | null;
 };
 
 type AttemptRow = {
@@ -116,6 +143,22 @@ export class HumanSendProposalService {
     return userId;
   }
 
+  private async scopedRead<T>(organizationId: string, fn: (client: PoolClient) => Promise<T>): Promise<T> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
+      await client.query(`SELECT set_config('wandora.organization_id', $1, true)`, [organizationId]);
+      const result = await fn(client);
+      await client.query('COMMIT');
+      return result;
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
   private async scopedWrite<T>(organizationId: string, fn: (client: PoolClient) => Promise<T>): Promise<T> {
     const client = await this.pool.connect();
     try {
@@ -132,26 +175,149 @@ export class HumanSendProposalService {
     }
   }
 
-  private async requireOwnerOrAdmin(
+  private async requireActiveMembershipRole(
     client: PoolClient,
     organizationId: string,
     userId: string,
-  ): Promise<void> {
-    const membership = await client.query(
-      `SELECT m.role
+  ): Promise<'owner' | 'admin' | 'member'> {
+    const membership = await client.query<{ role: 'owner' | 'admin' | 'member' }>(
+      `SELECT m.role::text AS role
          FROM wandora.memberships m
          JOIN wandora.organizations o ON o.id = m.organization_id
         WHERE m.organization_id = $1
           AND m.user_id = $2
           AND m.status = 'active'
           AND o.status = 'active'
-          AND m.role IN ('owner', 'admin')
         LIMIT 1`,
       [organizationId, userId],
     );
-    if (membership.rowCount !== 1) {
+    const role = membership.rows[0]?.role;
+    if (!role) {
+      throw new HumanAccessError('forbidden', 'Organization access is not allowed.');
+    }
+    return role;
+  }
+
+  private async requireOwnerOrAdmin(
+    client: PoolClient,
+    organizationId: string,
+    userId: string,
+  ): Promise<void> {
+    const role = await this.requireActiveMembershipRole(client, organizationId, userId);
+    if (role !== 'owner' && role !== 'admin') {
       throw new HumanAccessError('forbidden', 'Human actor cannot send supervised proposals for this organization.');
     }
+  }
+
+  async getAttentionActionStates(args: {
+    authorization: string | undefined;
+    organizationId: string;
+    proposalIds: string[];
+  }): Promise<Map<string, HumanProposalSendAction>> {
+    if (args.proposalIds.length === 0) return new Map();
+    const actorUserId = await this.authenticateUser(args.authorization);
+
+    return this.scopedRead(args.organizationId, async (client) => {
+      const role = await this.requireActiveMembershipRole(client, args.organizationId, actorUserId);
+      const result = await client.query<ActionStateRow>(
+        `SELECT p.id::text AS proposal_id,
+                p.kind::text AS proposal_kind,
+                p.commitment::text AS proposal_commitment,
+                p.source_event_id AS proposal_source_event_id,
+                lp.id::text AS latest_proposal_id,
+                wi.status::text AS work_status,
+                de.status::text AS employee_status,
+                de.autonomy_mode::text AS employee_autonomy_mode,
+                cv.status::text AS conversation_status,
+                mc.id::text AS connection_id,
+                mc.status::text AS connection_status,
+                mc.channel::text AS connection_channel,
+                ct.channel_address AS recipient,
+                lm.direction::text AS latest_message_direction,
+                lm.source_event_id AS latest_message_source_event_id,
+                oa.status::text AS attempt_status
+           FROM wandora.work_proposals p
+           JOIN wandora.work_items wi
+             ON wi.organization_id = p.organization_id AND wi.id = p.work_item_id
+           JOIN wandora.digital_employees de
+             ON de.organization_id = wi.organization_id AND de.id = wi.employee_id
+           JOIN wandora.conversations cv
+             ON cv.organization_id = wi.organization_id AND cv.id = wi.conversation_id
+           JOIN wandora.messaging_connections mc
+             ON mc.organization_id = cv.organization_id AND mc.id = cv.messaging_connection_id
+           JOIN wandora.contacts ct
+             ON ct.organization_id = cv.organization_id AND ct.id = cv.contact_id
+           JOIN LATERAL (
+             SELECT p2.id
+               FROM wandora.work_proposals p2
+              WHERE p2.organization_id = wi.organization_id
+                AND p2.work_item_id = wi.id
+              ORDER BY p2.created_at DESC, p2.id DESC
+              LIMIT 1
+           ) lp ON true
+           LEFT JOIN LATERAL (
+             SELECT m.direction, m.source_event_id
+               FROM wandora.messages m
+              WHERE m.organization_id = cv.organization_id
+                AND m.conversation_id = cv.id
+              ORDER BY m.occurred_at DESC, m.created_at DESC, m.id DESC
+              LIMIT 1
+           ) lm ON true
+           LEFT JOIN wandora_private.outbound_attempts oa
+             ON oa.organization_id = p.organization_id AND oa.proposal_id = p.id
+          WHERE p.organization_id = $1
+            AND p.id = ANY($2::uuid[])`,
+        [args.organizationId, args.proposalIds],
+      );
+
+      const states = new Map<string, HumanProposalSendAction>();
+      for (const row of result.rows) {
+        if (role !== 'owner' && role !== 'admin') {
+          states.set(row.proposal_id, { state: 'unavailable', reason: 'role-required' });
+          continue;
+        }
+        if (row.attempt_status === 'succeeded') {
+          states.set(row.proposal_id, { state: 'unavailable', reason: 'already-sent' });
+          continue;
+        }
+        if (row.attempt_status) {
+          states.set(row.proposal_id, { state: 'delivery-uncertain' });
+          continue;
+        }
+
+        const proposalCurrent = row.work_status === 'attention-required'
+          && row.proposal_kind === 'send-text'
+          && row.proposal_commitment === 'none'
+          && row.latest_proposal_id === row.proposal_id
+          && row.latest_message_direction === 'inbound'
+          && row.latest_message_source_event_id === row.proposal_source_event_id;
+        if (!proposalCurrent) {
+          states.set(row.proposal_id, { state: 'unavailable', reason: 'proposal-not-current' });
+          continue;
+        }
+
+        const channelAvailable = row.employee_status === 'active'
+          && row.employee_autonomy_mode === 'supervised'
+          && row.conversation_status === 'open'
+          && row.connection_status === 'active'
+          && row.connection_channel === 'whatsapp'
+          && row.connection_id === this.outboundConnectionId
+          && RECIPIENT_RE.test(row.recipient);
+        states.set(
+          row.proposal_id,
+          channelAvailable
+            ? { state: 'ready' }
+            : { state: 'unavailable', reason: 'channel-unavailable' },
+        );
+      }
+
+      for (const proposalId of args.proposalIds) {
+        if (!states.has(proposalId)) {
+          states.set(proposalId, { state: 'unavailable', reason: 'proposal-not-current' });
+        }
+      }
+      return states;
+    });
   }
 
   private async prepare(
