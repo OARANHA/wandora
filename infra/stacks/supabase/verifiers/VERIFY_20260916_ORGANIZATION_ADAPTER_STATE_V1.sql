@@ -120,7 +120,19 @@ BEGIN
   EXCEPTION WHEN unique_violation THEN
     NULL;
   END;
+END
+$$;
 
+-- Give organization B its own valid provider binding before probing the
+-- composite employee FK. This ensures the expected failure cannot be caused
+-- by the provider-binding FK and specifically proves tenant-safe employee binding.
+INSERT INTO wandora_private.control_plane_provider_bindings
+  (organization_id, provider, provider_company_ref)
+VALUES
+  ('11111111-1111-4111-8111-111111111102', 'paperclip', 'paperclip-company-proof-b');
+
+DO $$
+BEGIN
   BEGIN
     INSERT INTO wandora_private.digital_employee_provider_bindings
       (organization_id, employee_id, provider, provider_agent_ref)
