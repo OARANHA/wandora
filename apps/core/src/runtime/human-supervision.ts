@@ -35,7 +35,16 @@ export function isHumanSupervisionPath(pathname: string): boolean {
 }
 
 export function isHumanSendProposalPath(pathname: string): boolean {
-  return SEND_PROPOSAL_PATH_RE.test(pathname);
+  const match = SEND_PROPOSAL_PATH_RE.exec(pathname);
+  return Boolean(
+    match
+    && match[1]
+    && match[2]
+    && match[3]
+    && UUID_RE.test(match[1])
+    && UUID_RE.test(match[2])
+    && UUID_RE.test(match[3])
+  );
 }
 
 function parseConfirmationVersion(rawBody: string | undefined): string | undefined {
