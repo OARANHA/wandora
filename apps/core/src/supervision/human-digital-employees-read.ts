@@ -42,16 +42,36 @@ export class HumanDigitalEmployeesReadService {
     }
   }
 
+  private async requireActiveMembership(
+    client: PoolClient,
+    organizationId: string,
+    userId: string,
+  ): Promise<void> {
+    const membership = await client.query(
+      `SELECT 1
+         FROM wandora.memberships m
+         JOIN wandora.organizations o ON o.id = m.organization_id
+        WHERE m.organization_id = $1
+          AND m.user_id = $2
+          AND m.status = 'active'
+          AND o.status = 'active'
+        LIMIT 1`,
+      [organizationId, userId],
+    );
+    if (membership.rowCount !== 1) {
+      throw new HumanAccessError('forbidden', 'Organization access is not allowed.');
+    }
+  }
+
   async listDigitalEmployees(
     authorization: string | undefined,
     organizationId: string,
   ): Promise<HumanDigitalEmployee[]> {
     const session = await this.sessionService.getSessionContext(authorization);
-    if (!session.organizations.some((organization) => organization.id === organizationId)) {
-      throw new HumanAccessError('forbidden', 'Organization access is not allowed.');
-    }
 
     return this.scoped(organizationId, async (client) => {
+      await this.requireActiveMembership(client, organizationId, session.user.id);
+
       const result = await client.query<DigitalEmployeeRow>(
         `SELECT de.id::text AS employee_id,
                 de.display_name AS employee_name,
