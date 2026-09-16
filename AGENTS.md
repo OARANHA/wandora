@@ -8,11 +8,14 @@ Before changing code, infrastructure, product contracts or architecture, read in
 
 1. `AGENTS.md`;
 2. accepted ADRs in `docs/decisions/` (newer accepted ADRs override older conflicting guidance);
-3. `docs/architecture.md`;
-4. `docs/CANONICAL_STATE.md`;
-5. the README/runbook for the component being changed.
+3. `docs/CAPABILITY_AUTHORITY.md`;
+4. `docs/architecture.md`;
+5. `docs/CANONICAL_STATE.md`;
+6. the README/runbook for the component being changed.
 
 Do not silently reopen, reinterpret or override an accepted decision. If new evidence creates a conflict, stop the conflicting change, document the evidence and propose a superseding ADR.
+
+**Urgent architecture rule:** a missing local Wandora table/service/workflow is never, by itself, evidence that Wandora should implement that capability. Before any material new domain state or subsystem is designed, apply ADR 0036's Capability Authority / Reuse Gate.
 
 ## 2. Project identity
 
@@ -22,22 +25,26 @@ Do not import assumptions, code, naming, architecture or business rules from unr
 
 The product thesis is business-first: Wandora is not a CRM with AI and not a generic agent builder. CRM, messaging, scheduling, finance and other systems are tools used by digital employees inside a Wandora-governed company.
 
-A normal customer should understand the product through business language — company, team, responsibilities, work, conversations, approvals and outcomes — without needing to know Supabase, Evolution, Mastra, RLS, provider IDs, prompts or tokens.
+A normal customer should understand the product through business language — company, team, responsibilities, work, conversations, approvals and outcomes — without needing to know Supabase, Evolution, Mastra, Paperclip, RLS, provider IDs, prompts or tokens.
 
 ## 3. Ownership boundary
 
-Wandora owns all customer-facing contracts and canonical product semantics, including:
+Wandora owns the **customer/operator product contract and semantics**, including:
 
-- tenancy / organizations;
+- tenancy / organizations and stable Wandora identifiers;
 - customer users, memberships and roles;
-- digital-employee subscriptions and configuration;
+- the customer-facing meaning of digital employees, subscriptions/configuration and policy;
 - plans, usage and billing boundaries;
 - autonomy, policy and human approval;
-- canonical business identifiers and structured state;
 - provider-neutral integration contracts;
-- audit-facing product events.
+- audit-facing product events;
+- authorization and orchestration across specialist capabilities.
 
-Third-party infrastructure must always sit behind Wandora-owned adapters. Provider IDs, schemas and authorization semantics must not leak into customer-facing APIs.
+**Wandora-owned does not mean Wandora-native implementation.** A specialist component may remain authoritative for the implementation/state machine of a capability behind a Wandora-owned adapter while Wandora preserves stable IDs, tenant ownership, policy, mappings/projections, audit/reconciliation evidence and other minimum product-owned state.
+
+Third-party infrastructure and specialist capability providers must always sit behind Wandora-owned adapters. Provider IDs, schemas and authorization semantics must not leak into customer-facing APIs.
+
+Do not clone a provider's complete domain into Wandora PostgreSQL merely to make the product look internally self-contained. Persist only state that is demonstrably Wandora-owned or required to make the adapter safe, replaceable, authorized, auditable or recoverable.
 
 ## 4. Canonical architecture decisions
 
@@ -49,12 +56,12 @@ The following are current decisions unless superseded by a newer accepted ADR:
 - Paperclip is the validated laboratory candidate for organization/control-plane capabilities, behind an `Organization Adapter` and private by default.
 - Mastra is the accepted initial implementation of the Wandora Agent Runtime behind an `Agent Runtime Adapter`; Mastra-specific runtime objects must not become public Wandora contracts.
 - Supabase self-hosted is the selected and laboratory-validated data/auth platform for Wandora: PostgreSQL, Auth, Studio, Storage, Realtime and Supavisor as needed.
-- Supabase is infrastructure, not the Wandora backend. Domain logic remains in Wandora Core/API.
+- Supabase is infrastructure, not the Wandora backend. Domain policy/orchestration remains in Wandora Core/API, but this does not authorize Core to duplicate provider capabilities.
 - One Supabase deployment is used per product/bounded context, not one shared database for unrelated products and not one deployment per Wandora customer.
 - The initial Supabase deployment may run on the current Wandora VPS while load is low; migration to a dedicated data-plane VPS must remain straightforward.
 - `studio.wandora.com.br` is an administrative surface and must be strongly protected (Cloudflare Access preferred). PostgreSQL must never be publicly exposed.
 - `supabase.wandora.com.br` is the stable application-facing Supabase endpoint. Future VPS migration should preserve this contract through DNS/ingress changes.
-- Evolution API 2.3.7 is the accepted initial laboratory WhatsApp provider behind a Wandora-owned `Messaging Gateway`; the provider-neutral boundary has been validated with real inbound and outbound WhatsApp traffic, and digital employees must never call Evolution directly.
+- Evolution API 2.3.7 is the accepted initial WhatsApp provider behind a Wandora-owned `Messaging Gateway`; the provider-neutral boundary has been validated with real inbound and outbound WhatsApp traffic, and digital employees must never call Evolution directly.
 - Wandora Core owns canonical organization, user, membership and provider-neutral messaging-connection identity. Supabase Auth subjects and provider/runtime IDs are not Wandora business IDs.
 - Initial human organization roles are `owner`, `admin` and `member`; role is not a universal permission matrix and sensitive/domain actions remain explicit Core policy decisions.
 - React + Vite with TanStack Router/Query is the accepted initial Wandora Web shell. TanStack supplies application behavior, not Wandora's visual identity; customer-facing design remains Wandora-owned.
@@ -65,7 +72,7 @@ The following are current decisions unless superseded by a newer accepted ADR:
 - ADR 0012 accepts authenticated private Gateway → Core supervised ingress with durable receipt/idempotency semantics and no model/outbound side effect by itself.
 - ADR 0013 accepts the private inbound Evolution Messaging Gateway runtime. Controlled production webhook cutover and real-handset proof are green; the inbound path itself does not authorize outbound effects.
 - ADR 0014 accepts Core → Mastra deterministic supervised proposal generation behind the Wandora-owned Agent Runtime Adapter. Mastra telemetry is forced off; work remains human-supervised and no live model credential is required.
-- ADR 0015 accepts **Wandora Platform Admin** as the first-party owner/operator control plane. Mastra Studio, Paperclip UI, Evolution Manager, Supabase Studio and Portainer remain protected engineering/diagnostic surfaces, not the normal daily administration workflow and never a customer dependency.
+- ADR 0015 accepts **Wandora Platform Admin** as the first-party owner/operator control plane. Platform Admin controls Wandora through Wandora contracts/adapters; it must not become a reimplementation of Paperclip/Mastra/Evolution/Supabase/Portainer. Native consoles remain protected engineering/diagnostic surfaces.
 - ADR 0016 accepts canonical `wandora.work_proposals` for safe supervised proposals. Migration `20260915_004_supervised_proposal_v1.sql` is live; only `commitment=none` proposals enter this boundary and stronger commitments remain on `wandora.approvals`.
 - ADR 0017 accepts **Human Supervision Read V1**: Core validates Supabase ES256/JWKS Bearer sessions, resolves canonical identity and exposes the reviewed tenant-authorized `attention-required` read without provider/private leakage.
 - ADR 0018 accepts **Human Session Bootstrap V1** through `GET /api/v1/me`, returning only canonical Wandora user and active organization memberships.
@@ -78,10 +85,18 @@ The following are current decisions unless superseded by a newer accepted ADR:
 - ADR 0025 accepts **Evolution Private Outbound Origin V1**: private Gateway outbound sends one code-pinned internal Origin and Evolution allows only the reviewed Origin set; wildcard CORS is not used.
 - ADR 0026 accepts **Human Send Explicit Confirmation V1**: the first click only opens a confirmation and the second explicit click is required before the reviewed send POST.
 - ADR 0027 accepts and is production-deployed as **Human Send Canonical Confirmation V2**: Core emits the exact masked recipient, canonical text and SHA-256 confirmation version; Web freezes that reviewed snapshot and final POST may carry only `confirmationVersion`; stale state fails before any durable attempt/Gateway call.
+- ADR 0028 accepts supervised inbound active-work reuse with the reviewed fail-closed lifecycle.
+- ADR 0029 defines the normal-beta supervised outbound policy; live effect switches remain off unless a separately reviewed activation occurs.
+- ADR 0030 accepts private tenant provisioning V1; it does not imply the tenant/customer product path should be replaced by Platform Admin work.
+- ADR 0031 accepts the inert least-privilege platform provisioner database role.
+- ADR 0032 accepts a separate private Platform Admin runtime/trust plane.
+- ADR 0034 makes state-first continuity mandatory: recover real state and evidence before choosing work.
+- ADR 0035 connects customer `Equipe` to canonical tenant-authorized digital-employee reads; it does not decide how a full employee control plane/hiring capability is implemented.
+- ADR 0036 makes the **Capability Authority / Reuse Gate** mandatory before any material new domain entity/state machine/workflow/assignment/admin subsystem. Absence from the current Wandora schema is not evidence of Wandora ownership.
 - Security gate #22 is cleared. The affected shared Supabase JWT compatibility material and shared PostgreSQL password were rotated with validated backups, old-credential invalidation, full service-health proof and production-safe verifier reruns.
 - Official WhatsApp providers remain a production option behind the same gateway.
 - Model vendors are replaceable infrastructure behind a provider boundary. Do not request or hard-code a provider credential until a real provider call is materially required.
-- Structured business facts belong in canonical PostgreSQL storage, not only in agent memory/RAG.
+- Structured Wandora-owned business/policy facts belong in durable canonical storage, not only in agent memory/RAG; this rule does not require duplicating provider-owned control-plane/runtime state.
 - Human approval remains mandatory for sensitive or irreversible actions until explicit product policy says otherwise.
 
 ## 5. Preferred component shape
@@ -91,7 +106,8 @@ Customer Wandora Web            Wandora Platform Admin
         \                         /
          \                       /
           -> Wandora Core/API <-
-              -> Business Graph / Supabase PostgreSQL
+            contracts + authorization + policy
+              -> Wandora-owned durable facts / Supabase PostgreSQL
               -> Organization Adapter -> Paperclip
               -> Agent Runtime Adapter -> Mastra
               -> Tool Gateway -> authenticated/direct integrations
@@ -101,6 +117,8 @@ Customer Wandora Web            Wandora Platform Admin
 ```
 
 Mastra, Paperclip, Supabase and Evolution are technologies used by Wandora. None of them is Wandora itself. Their native consoles may be used for protected engineering/diagnostics, but normal platform administration should progressively move behind Wandora-owned Platform Admin contracts and normal customer administration must remain Wandora-owned.
+
+**Provider-neutral product contracts are wrappers/orchestration boundaries, not instructions to rebuild the provider behind them.**
 
 ## 6. Infrastructure rules
 
@@ -115,6 +133,7 @@ Mastra, Paperclip, Supabase and Evolution are technologies used by Wandora. None
 - New public hostnames must be intentional contracts, not third-party product names.
 - Versioned Wandora DB migrations live under `infra/stacks/supabase/migrations/`; verifiers live under `infra/stacks/supabase/verifiers/`. Never apply SQL directly from `spikes/` to the live database.
 - A migration being reviewed/merged does not mean it is already applied live. Live schema changes require explicit operational preflight, reversibility/backup awareness and post-verification.
+- Before creating a new migration that adds a material product-domain concept, ADR 0036's Capability Reuse Gate must already be satisfied. A convenient PostgreSQL schema is not an architecture decision.
 - A live database role existing does not justify activating its credential early. Runtime credentials are provisioned only together with the reviewed service deployment and secret-injection path that will consume them.
 - Keep migration-state and activated-runtime verifiers separate when both are legitimate states; do not relax a fail-closed migration invariant merely because a later operator step intentionally activates a capability.
 - A known credential exposure or rotation gate must be cleared before introducing a dependent production credential or customer traffic. Do not bypass a security gate merely because the affected environment currently has no customer rows.
@@ -132,11 +151,44 @@ Before promoting a third-party dependency into architecture:
 4. record the outcome in an ADR or research note;
 5. only then promote it into a product path.
 
+### Mandatory Capability Authority / Reuse Gate
+
+**This gate happens before local domain design, before a migration, and before the normal decision/adversarial-review cycle turns a gap into implementation.**
+
+Before creating any material new Wandora table/entity, state machine, workflow engine, scheduler, assignment model, agent registry, integration lifecycle, control plane, admin subsystem or equivalent capability, answer:
+
+1. What exact customer/operator capability is missing?
+2. Does Paperclip, Mastra, Evolution, Supabase or another already accepted component provide all or part of it?
+3. Which layer owns the underlying capability, and which semantics/IDs/policy must remain Wandora-owned?
+4. What is the **minimum** Wandora durable state required — stable ID, tenant mapping, policy, projection, audit/reconciliation evidence, idempotency/version state — rather than a clone of the provider domain?
+5. What Wandora-owned adapter/contract prevents raw provider IDs/schemas/authorization from leaking into Web or Platform Admin?
+6. What happens if the provider is unavailable, partially succeeds or is later replaced?
+7. Would the proposed Wandora-native implementation duplicate an accepted provider capability?
+
+If question 7 is **yes**, the default is **do not build it**. A native implementation may proceed only if a newer accepted ADR gives a concrete product, security, reliability or replaceability reason that proves reuse is insufficient.
+
+If any answer is unknown, stop the implementation and inspect/spike the relevant provider/adapter first.
+
+The following reasoning is invalid:
+
+> “This concept is missing from the Wandora PostgreSQL schema, so Wandora needs a new table/service for it.”
+
+Use instead:
+
+```text
+REAL STATE + PROVEN EVIDENCE
+  -> GAP
+  -> CAPABILITY AUTHORITY / REUSE GATE
+  -> WANDORA CONTRACT / ADAPTER
+  -> MINIMAL WANDORA STATE
+  -> NATIVE DOMAIN ONLY IF REUSE IS PROVEN INSUFFICIENT
+```
+
 Do not build speculative surface area. Prefer vertical slices that remove a critical uncertainty and leave a reproducible artifact.
 
 For customer-facing work, design the human journey before the technical screen. The interface should answer who is responsible, what is happening, what needs approval and what result was produced. Do not expose technical runtime/provider concepts merely because they are easy to surface.
 
-For platform-operator work, prefer Wandora-owned concepts and controls. Do not make Mastra Studio, Paperclip UI, Evolution Manager, Supabase Studio or Portainer a required daily workflow merely because their native UI is convenient. Promote a control into Platform Admin only after its Wandora-owned contract, authorization, audit and rollback semantics are understood.
+For platform-operator work, prefer Wandora-owned concepts and controls. Do not make Mastra Studio, Paperclip UI, Evolution Manager, Supabase Studio or Portainer a required daily workflow merely because their native UI is convenient. Promote a control into Platform Admin only after its Wandora-owned contract, authorization, audit and rollback semantics are understood. Platform Admin should exercise provider capability through adapters rather than rebuilding provider internals.
 
 The default customer path must aim for useful work on the same day. A multi-day manual implementation dependency may exist as an assisted premium service, but it must not be required for the normal SaaS experience.
 
@@ -159,50 +211,56 @@ A choice that is technically elegant but weak from either perspective must be re
 
 ### Mandatory decision cycle: decision → second adversarial review → execution → validation
 
-For every material product, architecture, infrastructure, security or deployment decision, use this sequence:
+For every material product, architecture, infrastructure, security or deployment decision, use this sequence **after state-first recovery and the Capability Reuse Gate**:
 
 1. **Decision** — analyze the problem and form a provisional decision with explicit premises and intended scope.
-2. **Second adversarial review** — do not merely confirm the first decision. Assume it may be wrong and actively seek a concrete reason to reject it. At minimum challenge whether it is too broad, unsafe, duplicated, irreversible, based on stale/unproven state, weaker than a simpler option, operationally unrecoverable, or inconsistent with the dual business perspective and accepted architecture.
+2. **Second adversarial review** — do not merely confirm the first decision. Assume it may be wrong and actively seek a concrete reason to reject it. At minimum challenge whether it is too broad, unsafe, **duplicates an accepted provider capability**, is irreversible, is based on stale/unproven state, is weaker than a simpler adapter/reuse option, is operationally unrecoverable, or is inconsistent with the dual business perspective and accepted architecture.
 3. If the adversarial review finds a material objection, revise the decision and run the adversarial review again. Do not execute just because work has already been invested in the first option.
 4. **Execution** — execute only after the adversarial challenge fails to invalidate the revised/current decision. Keep the change at the smallest reviewed scope and preserve rollback/fail-closed boundaries.
 5. **Validation** — independently prove what actually happened. Validate runtime state, hashes/SHAs, health/readiness, route boundaries, capabilities/flags, durable side effects, database counters and rollback assumptions as applicable. CI green, successful command exit or intended configuration are not substitutes for post-execution validation.
 
-Routine mechanical steps inside an already-reviewed decision do not each require a new design cycle, but any new material choice or contradictory evidence discovered during execution returns the work to step 1/2.
+Routine mechanical steps inside an already-reviewed decision do not each require a new design cycle, but any new material choice or contradictory evidence discovered during execution returns the work to state recovery / capability authority / decision as appropriate.
+
+The complete practical sequence is:
+
+**state real → evidence already proven → gaps → capability authority/reuse gate → decision → second adversarial review → execution → validation**.
 
 ## 8. Current execution order
 
 Unless an active blocker or explicit user decision changes priority:
 
 1. keep canonical documentation synchronized with accepted decisions and observed live operational state;
-2. preserve the proven Human Session, explicit multi-organization selection, `Trabalho` and `Conversas` authorization paths;
-3. keep Human Send Canonical Confirmation V2 deployed with real outbound **disabled** until a separately reviewed controlled V2 activation proof is intentionally executed;
-4. before activation, apply the full decision → second adversarial review → execution → validation cycle to current tenant/connection/binding/secrets/rollback state; do not assume an earlier proof still represents current production;
-5. never reuse/retry historical `uncertain` outbound attempts without a separate reconciliation contract proving it safe;
-6. keep stronger commercial commitments such as discount, price, deadline and payment terms on the stronger existing approval boundary;
-7. expose only exact reviewed Web action routes; generic/unreviewed `/api/` and all `/internal/` paths remain closed;
-8. after a green controlled Confirmation V2 proof, define the smallest normal-beta outbound policy instead of enabling autonomous customer traffic by default;
-9. add Platform Admin capabilities incrementally around already-stable Wandora-owned contracts; do not pause the customer-visible employee loop to build a generic infrastructure dashboard;
-10. add customer onboarding, password recovery/OAuth and organization lifecycle around the proven authorization path rather than bypassing Core;
+2. preserve the proven Human Session, explicit multi-organization selection, `Trabalho`, `Conversas` and now tenant-authorized `Equipe` paths;
+3. finish the existing customer product by connecting remaining PARTIAL/PLACEHOLDER surfaces to the correct Wandora contract **only after** applying the Capability Authority / Reuse Gate;
+4. before implementing customer digital-employee hiring/responsibility/control-plane state, audit/prove Paperclip's current capability and the Wandora `Organization Adapter`; do not revive the abandoned unmerged native `digital_employee_work_assignments` / migration 010 direction without a superseding accepted ADR that passes ADR 0036;
+5. keep Human Send Canonical Confirmation V2 deployed with real outbound **disabled** unless a separately reviewed activation is intentionally executed;
+6. never reuse/retry historical `uncertain` outbound attempts without a separate reconciliation contract proving it safe;
+7. keep stronger commercial commitments such as discount, price, deadline and payment terms on the stronger existing approval boundary;
+8. expose only exact reviewed Web action routes; generic/unreviewed `/api/` and all `/internal/` paths remain closed;
+9. keep Platform Admin as a separate trust plane and build it incrementally over the same Wandora adapters; do not make it a second implementation of provider control planes or pause the customer-visible employee loop to build a generic infrastructure dashboard;
+10. add customer onboarding, password recovery/OAuth and organization lifecycle around the proven authorization/adapters rather than bypassing Core;
 11. only when the first real model call is materially required, revoke/replace the previously Git-exposed Mistral credential and configure the fresh value only through an approved operator-controlled secret path.
 
-Supabase Foundation V1, Mastra Agent Runtime V1 laboratory validation, Evolution Messaging Gateway V1, Wandora Core Multi-tenant/Auth Contract V1, Human Interface/Product Shell V1, First-Day Customer Journey V1, Ana durable Core vertical slice, security gate #22, least-privilege Core runtime, supervised inbound, deterministic proposal generation, canonical `work_proposals`, Human Supervision Read, Human Session Bootstrap, Web Human Session, explicit multi-organization selection, Conversations list/history, Private Messaging Gateway Outbound code, Human Send Proposal code, Evolution private Origin fix, explicit send confirmation and Human Send Canonical Confirmation V2 are complete/implemented as recorded by their ADRs.
+Supabase Foundation V1, Mastra Agent Runtime V1 laboratory validation, Evolution Messaging Gateway V1, Wandora Core Multi-tenant/Auth Contract V1, Human Interface/Product Shell V1, First-Day Customer Journey V1, Ana durable Core vertical slice, security gate #22, least-privilege Core runtime, supervised inbound, deterministic proposal generation, canonical `work_proposals`, Human Supervision Read, Human Session Bootstrap, Web Human Session, explicit multi-organization selection, Conversations list/history, Private Messaging Gateway Outbound code, Human Send Proposal code, Evolution private Origin fix, explicit send confirmation, Human Send Canonical Confirmation V2 and customer Team Read V1 are complete/implemented as recorded by their ADRs/evidence.
 
-Current production runtime after the 2026-09-16 Confirmation V2 promotion:
+Current production runtime after the 2026-09-16 Team Read promotion:
 
 ```text
-runtime application source head: a1ee475570c9314198068537003918a6022d8490
-Core:    wandora/core:canonical-confirm-a1ee4755
-Web:     wandora/web:canonical-confirm-a1ee4755
+merged application source head: b31db507b225bb03ebd221c8f05b111fe100e25d
+Core:    wandora/core:team-read-b31db507
+Web:     wandora/web:team-read-b31db507
 Gateway: wandora/messaging-gateway:origin-fix-94cfb4de
 Core/Web/Gateway: healthy
 Human Send enable flag: absent
 Gateway outbound enable flag: absent
-historical outbound attempts: 3 (2 uncertain, 1 succeeded)
-canonical outbound messages: 1
+organizations: 2
+digital employees: 2 (2 active, 0 paused)
+historical outbound attempts: 4 (2 uncertain, 2 succeeded)
+canonical outbound messages: 2
 ```
 
-The controlled real delivery proof is historical evidence; Confirmation V2 deployment itself created no new outbound attempt/message. See ADR 0027, `docs/CANONICAL_STATE.md` and `docs/infra/human-send-canonical-confirmation-v2-live.md`.
+The controlled real delivery proofs are historical evidence. Both external-effect switches remain OFF. No native responsibility-assignment migration 010 was merged or applied.
 
 ## 9. Definition of progress
 
-Progress is not the number of services, screens or integrations installed. Progress means a critical product or architectural uncertainty was removed, the result is reproducible, the human experience became clearer, the execution survived adversarial review, validation proved the resulting state, and the decision was recorded without weakening Wandora-owned boundaries.
+Progress is not the number of services, screens, tables or integrations installed. Progress means a critical product or architectural uncertainty was removed, the result is reproducible, the human experience became clearer, **existing specialist capability was reused rather than needlessly rebuilt**, the execution survived adversarial review, validation proved the resulting state, and the decision was recorded without weakening Wandora-owned boundaries.
