@@ -53,7 +53,7 @@ test('Core outbound HMAC binds timestamp and raw body and rejects stale signatur
   }), false);
 });
 
-test('maps one provider-neutral request to private Evolution without leaking provider internals', async () => {
+test('maps one provider-neutral request to private Evolution with canonical internal Origin without leaking provider internals', async () => {
   let calls = 0;
   let requestedUrl = '';
   let requestInit: RequestInit | undefined;
@@ -79,6 +79,10 @@ test('maps one provider-neutral request to private Evolution without leaking pro
   assert.equal(requestedUrl, 'http://wandora-evolution:8080/message/sendText/evo-internal-123');
   assert.equal(requestInit?.method, 'POST');
   assert.equal((requestInit?.headers as Record<string, string>)?.apikey, 'private-evolution-api-key');
+  assert.equal(
+    (requestInit?.headers as Record<string, string>)?.origin,
+    'http://wandora-messaging-gateway:8787',
+  );
   assert.equal(requestInit?.body, JSON.stringify({ number: '5551999999999', text: 'Olá!' }));
 
   const serialized = JSON.stringify(result);
