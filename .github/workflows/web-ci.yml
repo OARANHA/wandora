@@ -72,6 +72,18 @@ jobs:
           assert data['method'] == 'GET', data
           assert data['path'] == '/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/work/attention-required', data
           PY
+          DIGITAL_EMPLOYEES_RESPONSE="$(curl -fsS \
+            -H 'Authorization: Bearer ci-token' \
+            -H 'Cookie: browser-session=must-not-cross' \
+            http://127.0.0.1:18089/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/digital-employees)"
+          python3 - "$DIGITAL_EMPLOYEES_RESPONSE" <<'PY'
+          import json, sys
+          data = json.loads(sys.argv[1])
+          assert data['auth'] == 'Bearer ci-token', data
+          assert data['cookie'] == '', data
+          assert data['method'] == 'GET', data
+          assert data['path'] == '/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/digital-employees', data
+          PY
           SEND_PATH='/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/work/60000000-0000-0000-0000-0000000000a1/proposals/70000000-0000-0000-0000-0000000000a1/send'
           SEND_RESPONSE="$(curl -fsS -X POST \
             -H 'Authorization: Bearer ci-token' \
@@ -111,6 +123,7 @@ jobs:
           PY
           test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:18089/api/v1/session)" = "404"
           test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:18089/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/work/not-reviewed)" = "404"
+          test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:18089/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/digital-employees/not-reviewed)" = "404"
           test "$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:18089${SEND_PATH}/again")" = "404"
           test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:18089/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/conversations/not-reviewed)" = "404"
           test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:18089/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/conversations/50000000-0000-0000-0000-0000000000a1/messages)" = "404"
