@@ -25,13 +25,15 @@ This audit records the current customer Web state before selecting the next cust
 - canonical selected-conversation history is real;
 - the surface remains deliberately read-only.
 
-## PARTIAL / PLACEHOLDER BEFORE ADR 0035
+## SELECTED TRANSITION: EQUIPE
 
-### Equipe
+Before ADR 0035, the existing `Equipe` screen was visually complete but backed by hard-coded employee objects (`Ana`, `Clara`), invented progress percentages and non-contractual status copy.
 
-The screen exists but was backed by hard-coded employee objects (`Ana`, `Clara`), invented progress percentages and non-contractual status copy. `wandora.digital_employees` already exists canonically and is tenant-readable by Core under RLS.
+Canonical `wandora.digital_employees` already exists and is tenant-readable by Core under transaction-local tenant scope + RLS. ADR 0035 therefore converts the existing screen to a canonical read without redesigning it or inventing new employee fields.
 
-ADR 0035 is the selected next slice to make the existing Equipe screen real without redesigning it from zero.
+The ADR 0035 implementation removes the fake employee/progress state and deliberately does not expose an active hiring/profile control until those mutation/detail contracts exist.
+
+## PARTIAL / PLACEHOLDER
 
 ### Início
 
@@ -57,4 +59,4 @@ Selected first gap: **Equipe → canonical digital employees read** because:
 4. the production beta company already has canonical digital employee state;
 5. it creates customer-visible truth without introducing a new mutation or provider dependency.
 
-After Team Read V1, re-run this audit before selecting the next slice. Likely candidates are the actual employee hiring/catalog path, Empresa core profile/configuration, or canonical Approvals read/decision, depending on the real remaining customer journey gap.
+After Team Read V1 is merged and validated, re-run this audit before selecting the next slice. Likely candidates are the actual employee hiring/catalog path, Empresa core profile/configuration, or canonical Approvals read/decision, depending on the real remaining customer journey gap.
