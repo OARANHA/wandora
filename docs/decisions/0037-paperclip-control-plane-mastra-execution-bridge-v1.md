@@ -83,6 +83,7 @@ Paperclip issue/task
   -> Paperclip heartbeat/run
   -> external adapter: wandora_mastra
        - receives Paperclip run JWT from the adapter harness
+       - reduces Paperclip runtime context to an explicit reviewed task allow-list
        - authenticates to a PRIVATE Wandora execution endpoint using a separate Wandora HMAC
        - forwards the Paperclip run JWT opaquely for callbacks
   -> Wandora Execution Bridge
@@ -93,6 +94,14 @@ Paperclip issue/task
        - uses the opaque run JWT only when calling Paperclip back for the same run/task
   -> Paperclip task/run lifecycle
 ```
+
+## Context minimization boundary
+
+The adapter must never forward Paperclip's whole `AdapterExecutionContext.context` merely because it is available.
+
+Only explicitly reviewed task fields cross into the Wandora bridge. The laboratory contract currently allows the minimal task projection required for the spike: issue ID/identifier/title/description/work mode plus narrow wake metadata. New Paperclip runtime fields, managed-MCP configuration, provider internals or future context additions do not cross automatically.
+
+Any expansion of this allow-list is a contract change and requires review.
 
 ## Trust boundary
 
@@ -130,18 +139,23 @@ Before customer activation, the Organization Adapter and execution bridge must d
 
 No browser or customer API may depend on provider IDs for idempotency.
 
-## Laboratory proof already obtained
+## Laboratory proof obtained
 
-A disposable adapter package was loaded through Paperclip's actual external-adapter loader inside the exact live Paperclip image, with no production database/network access. The proof established:
+A disposable adapter package was loaded through Paperclip's actual external-adapter loader inside the exact live Paperclip image, with no production database/network access.
+
+The final reproducible spike proved:
 
 - external adapter loader accepted the module;
 - `supportsLocalAgentJwt=true` is available;
 - missing run token fails closed;
-- run token can be forwarded only in a private header;
-- company/agent/run/context are delivered to the external runtime;
+- missing dedicated Wandora HMAC secret fails closed;
+- HMAC covers timestamp + exact request body;
+- Paperclip run token is forwarded only in its dedicated opaque header;
+- company/agent/run identity and the reviewed task projection are delivered;
+- unreviewed provider/MCP-like context does not cross the boundary;
 - execution result returns through Paperclip's adapter result contract.
 
-The repository spike accompanying this ADR strengthens that proof with the dedicated Wandora HMAC boundary.
+See `spikes/paperclip-wandora-mastra-adapter-v1/` and `docs/infra/paperclip-organization-adapter-audit-v1-20260916.md`.
 
 ## Explicit non-goals
 
@@ -167,5 +181,6 @@ After this ADR/spike is green, the next slice is a **disposable Paperclip Organi
 4. prove cross-company denial;
 5. create a disposable `wandora_mastra` agent using the external adapter;
 6. assign a disposable issue/task and prove Paperclip -> Wandora/Mastra bridge -> scoped Paperclip callback;
-7. destroy/reconcile the disposable state;
-8. only then design the customer `Contratar funcionário` Wandora contract.
+7. prove retry/idempotency/reconciliation behavior;
+8. destroy/reconcile the disposable state;
+9. only then design the customer `Contratar funcionário` Wandora contract.
