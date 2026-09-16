@@ -1,6 +1,6 @@
 # Wandora — Canonical State / Handoff
 
-Last synchronized: **2026-09-15**
+Last synchronized: **2026-09-16**
 
 Authority order: `AGENTS.md` → accepted ADRs → `docs/architecture.md` → this file → component README/runbook. Do not ask the user to reconstruct decisions already recorded here and do not silently reopen accepted boundaries.
 
@@ -10,7 +10,9 @@ Wandora is a company-operating layer built around human and digital employees, n
 
 A normal customer should see company, team, responsibilities, work, conversations, approvals and outcomes. Supabase, Mastra, Evolution, Paperclip, RLS, provider IDs, prompts, tokens and infrastructure topology remain implementation details.
 
-The default SaaS path aims for useful supervised work on the same day. Every material decision follows **decision → second review → execution** and is checked from both paying-customer and Wandora-owner/operator perspectives.
+The default SaaS path aims for useful supervised work on the same day. Every material decision follows **decision → second adversarial review → execution → validation** and is checked from both paying-customer and Wandora-owner/operator perspectives.
+
+The second review is deliberately adversarial: assume the first decision may be wrong and search for a concrete reason it is too broad, unsafe, duplicated, irreversible or based on a weak/unproven premise. If a material objection is found, revise the decision and challenge it again before execution. Validation happens after execution and must prove the actual resulting state.
 
 ## Human experience — CURRENT
 
@@ -28,20 +30,28 @@ The browser session path is real:
 2. Web keeps V1 session material in `sessionStorage`;
 3. Web calls same-origin `/api/v1/me` with Bearer authorization;
 4. Core validates ES256/JWKS, resolves canonical Wandora identity and returns active organizations;
-5. with exactly one active organization, Web selects it automatically;
-6. tenant reads still independently re-check active organization + active membership in Core under transaction-local tenant scope and RLS.
+5. exactly one active organization may auto-select;
+6. with multiple active organizations, no tenant is silently chosen and the human must explicitly select one;
+7. the explicit selection is stored only in `sessionStorage` and revalidated against canonical `/api/v1/me`;
+8. tenant reads/actions independently re-check active organization + active membership in Core under transaction-local tenant scope and RLS.
 
 The shell displays canonical user/company identity rather than hard-coded preview identity.
 
-`Trabalho`, the `Conversas` list and the selected-conversation history are connected to canonical tenant-authorized Core reads. Other customer surfaces may still contain preview/product-contract placeholders and must not be described as real until their own reviewed contracts are live.
+`Trabalho`, the `Conversas` list and selected-conversation history are connected to canonical tenant-authorized Core contracts. `Trabalho` also contains the reviewed two-step Human Send UX and Canonical Confirmation V2 client contract, but the live runtime currently keeps real outbound disabled.
 
-### Empresa Exemplo beta proof
+Other customer surfaces may still contain preview/product-contract placeholders and must not be described as real until their own reviewed contracts are live.
+
+### Empresa Exemplo beta/demo boundary
 
 A canonical `Empresa Exemplo` exists as production beta/demo data, not as a front-end fixture. It has a provisioned human owner, digital employee Ana and sample canonical conversation/work state.
 
-The example messaging connection has no provider binding, so the example cannot accidentally route to Evolution.
+The example messaging connection is deliberately kept separate from the provider-bound internal proof tenant. Empresa Exemplo remains non-sending and should not be mutated into a real provider test channel merely for convenience.
 
-The authenticated browser proof succeeded with canonical shell identity, canonical conversation list and canonical read-only history for `Mariana Exemplo` / `Ana`.
+### Internal supervised-proof tenant
+
+A separate internal organization exists for controlled Human Send proof work. The operator account has an explicit tenant membership there; that membership is not Platform Admin authority and does not weaken the tenant/platform separation.
+
+The internal proof tenant owns the provider-bound conversation used for real supervised WhatsApp proof. Real personal destination data used for the controlled proof is not stored in Git/documentation.
 
 ## Platform administration direction — ACCEPTED
 
@@ -89,37 +99,49 @@ WhatsApp / Evolution
         v
 Wandora Messaging Gateway
         |
-        | Wandora HMAC
+        | Wandora ingress HMAC
         v
 private Wandora Core
+
+When explicitly enabled only:
+Core -> directional outbound HMAC -> Messaging Gateway -> private Evolution API
 ```
 
 Core and Messaging Gateway publish no host ports. Core has no generic public hostname.
 
-Current live containers/images:
+Current live containers/images after Confirmation V2 promotion:
 
 ```text
-Core image:    wandora/core:conversation-history-2105f6e3
-Web image:     wandora/web:conversation-history-2105f6e3
-Gateway image: wandora/messaging-gateway:inbound-v1-2a49c066
+Canonical repo head: a1ee475570c9314198068537003918a6022d8490
+Core image:    wandora/core:canonical-confirm-a1ee4755
+Web image:     wandora/web:canonical-confirm-a1ee4755
+Gateway image: wandora/messaging-gateway:origin-fix-94cfb4de
 Core networks: wandora-core + wandora-data
 Web networks:  wandora-edge + wandora-core
 Gateway net:   wandora-core
-Core health:   200
-Core ready:    200
-Web health:    200
-Gateway health: 200
+Core health:   healthy / healthz 200 / readyz 200
+Web health:    healthy / healthz 200
+Gateway health: healthy
+Human Send runtime flag: absent
+Gateway outbound runtime flag: absent
 ```
 
 Core/Gateway run non-root with read-only root filesystems, `cap_drop=ALL` and `no-new-privileges`. Core secrets are mounted from operator-controlled files.
 
-Rollback preserved for the Conversation Detail/History Read V1 activation:
+Pre-Confirmation-V2 rollback snapshot:
 
 ```text
-Core previous: wandora/core:conversations-read-ae6177a3
-Web previous:  wandora/web:conversations-read-ae6177a3
-Operator snapshot: /home/wandora-admin/backups/conversation-history-20260915T214558Z
+/home/wandora-admin/backups/canonical-confirm-v2-20260916T061650Z
 ```
+
+Previous live images recorded there:
+
+```text
+Core: wandora/core:human-send-capable-72b1c49a
+Web:  wandora/web:send-confirmation-49a21303
+```
+
+Gateway was not changed by the Confirmation V2 promotion.
 
 ## Completed/live foundations
 
@@ -158,13 +180,13 @@ The canonical production Core database secret file is `wandora_core_db_password`
 
 The previously affected shared Supabase JWT compatibility material and shared PostgreSQL password were rotated. Old values are invalid and historical copies are recovery evidence only.
 
-### Messaging Gateway → Core Supervised V1
+### Messaging Gateway → Core Supervised Ingress V1 — LIVE
 
 Provider-side ingress uses Evolution per-instance JWT HS256. Gateway → Core uses a distinct HMAC-SHA256 secret. Unsupported provider events are ignored or rejected before canonical state.
 
 Raw Evolution instance/API-key/server-url/provider payload semantics do not cross the provider-neutral Core contract.
 
-### Core → Mastra Deterministic Supervised Proposal V1
+### Core → Mastra Deterministic Supervised Proposal V1 — LIVE
 
 ADR 0014 is live. Mastra is loaded only behind Wandora's `AgentRuntime` adapter. Framework telemetry is forced off.
 
@@ -191,36 +213,24 @@ V1 invariants:
 - discounts, special prices, delivery deadlines, payment terms and contractual commitments remain on `wandora.approvals`;
 - proposal insert + work transition to `attention-required` + receipt completion occur atomically;
 - `authenticated` has no direct table privilege;
-- `wandora_core_runtime` has SELECT + INSERT only where reviewed;
+- `wandora_core_runtime` has only reviewed privileges;
 - Core RLS requires tenant scope;
 - one normalized inbound event can produce at most one canonical proposal;
 - the browser consumes tenant-authorized Core projections, never private receipts or Core-owned workflow tables directly.
-
-Direct-Core and full Gateway live proofs established:
-
-```text
-work: attention-required
-proposal: exactly 1 / send-text / commitment none
-receipt: completed / supervision-required
-approvals: 0
-outbound attempts: 0
-outbound messages: 0
-replay: idempotent
-```
 
 ### Human Supervision Read V1 — LIVE
 
 ADR 0017 is implemented and active.
 
-Core validates Supabase human Bearer sessions with public ES256/JWKS, expected issuer/audience and time checks. It does not receive `service_role` or JWT signing material for this purpose.
-
-The reviewed tenant route is:
+Reviewed route:
 
 ```text
 GET /api/v1/organizations/:organizationId/work/attention-required
 ```
 
-It returns only Wandora-owned supervision context needed by `Trabalho` and exposes no private receipt/provider/Mastra runtime identifiers.
+Core validates Supabase human Bearer sessions with public ES256/JWKS, expected issuer/audience and time checks. It does not receive `service_role` or JWT signing material for this purpose.
+
+The response contains only Wandora-owned supervision context; private receipt/provider/runtime identifiers remain outside the browser contract.
 
 ### Human Session Bootstrap V1 — LIVE
 
@@ -234,15 +244,13 @@ The response contains only canonical Wandora user identity plus active membershi
 
 Unknown external identities fail closed. A linked Wandora user with no active organizations receives `organizations: []`.
 
-### Web Human Session V1 — LIVE
+### Web Human Session V1 + Multi-Organization Selector V1 — LIVE
 
-ADR 0019 is implemented and active.
+ADRs 0019 and 0024 are implemented and active.
 
 The browser signs in directly to the stable Supabase Auth endpoint using only the public/publishable key. Public signup remains disabled. Web stores V1 session material in `sessionStorage`, refreshes through Supabase Auth and uses Bearer authorization for reviewed Core human routes.
 
-Exactly one active organization is auto-selected; zero gets an explicit empty state; multiple organizations are never silently resolved by taking the first tenant.
-
-`Trabalho` reads real canonical data. No send/edit-send/dismiss/outbound action is exposed by this slice.
+Exactly one active organization may auto-select; zero gets an explicit empty state; multiple organizations require explicit human selection and never silently resolve by taking the first tenant.
 
 ### Conversations Read V1 — LIVE
 
@@ -254,18 +262,11 @@ Reviewed route:
 GET /api/v1/organizations/:organizationId/conversations
 ```
 
-It returns at most 100 tenant-authorized conversation summaries ordered by canonical activity:
-
-- canonical conversation ID/status/activity time;
-- canonical contact ID/business-facing label;
-- latest canonical message direction/text/time when present;
-- latest active work-assignment employee ID/name when present.
-
-It deliberately does not expose unread/read state, provider bindings, provider payloads, receipt internals, outbound-attempt state or Mastra runtime identifiers.
+It returns at most 100 tenant-authorized conversation summaries ordered by canonical activity and deliberately excludes provider/private runtime state.
 
 ### Conversation Detail/History Read V1 — LIVE
 
-ADR 0021 is implemented in PR #47 / main `2105f6e3c7f4ad07924210ccc039d5ff91ce5a79` and production-active through Core/Web image `conversation-history-2105f6e3`.
+ADR 0021 is implemented in PR #47 / main `2105f6e3c7f4ad07924210ccc039d5ff91ce5a79` and remains active inside the newer Core/Web images.
 
 Reviewed route:
 
@@ -275,35 +276,118 @@ GET /api/v1/organizations/:organizationId/conversations/:conversationId
 
 It returns canonical authorized conversation/contact/active-assignment context plus up to the latest 100 canonical messages, ordered oldest → newest for display, with `hasEarlierMessages=true` when older history exists.
 
-V1 invariants:
+V1 invariants remain:
 
 - organization authorization happens before conversation lookup;
 - browser organization/conversation IDs are selectors only;
 - foreign/missing conversation inside an authorized organization returns generic `404`;
 - tenant-scoped human reads run under `REPEATABLE READ READ ONLY`, transaction-local tenant scope and RLS;
 - source/provider/private identifiers remain absent;
-- no message ID is exposed because V1 has no action requiring one;
-- no composer, reply, send, edit-send, dismiss, takeover or approval action is exposed.
+- no generic free-text composer is part of this read route.
 
-Authenticated production proof established:
+`Conversas` remains read-only even though a separately reviewed supervised send exists in `Trabalho`.
 
-```text
-GET /api/v1/me = 200
-GET /api/v1/organizations/<Empresa Exemplo>/conversations = 200
-GET /api/v1/organizations/<Empresa Exemplo>/conversations/<conversation> = 200
-UI = Mariana Exemplo + Ana + canonical received history + Somente leitura
-```
+### Private Messaging Gateway Outbound V1 — CODE LIVE, SWITCH OFF
 
-Post-read no-side-effect proof:
+ADR 0022 is implemented.
+
+Private route:
 
 ```text
-approvals = 0
-outbound_attempts = 0
-outbound_messages = 0
-provider_bindings = 0
+POST /internal/v1/core/outbound/text
 ```
 
-See `docs/infra/conversation-history-live-v1.md`.
+Core → Gateway uses a dedicated directional HMAC distinct from ingress/provider credentials. The Gateway accepts only its configured canonical Wandora connection and a private pinned Evolution target. Provider-native identifiers never enter the browser/Core result contract.
+
+When `WANDORA_GATEWAY_OUTBOUND_ENABLED` is absent/false, the route is structurally unavailable and outbound-only secrets are not required by the running process.
+
+### Evolution Private Outbound Origin V1 — LIVE
+
+ADR 0025 fixed the first controlled outbound proof's CORS failure without widening CORS globally.
+
+Gateway outbound sends the code-pinned internal Origin:
+
+```text
+http://wandora-messaging-gateway:8787
+```
+
+Evolution accepts that exact internal Origin; wildcard CORS remains forbidden. The earlier ambiguous attempts remain historical evidence and are not reset/retried.
+
+### Human Send Proposal V1 — CODE LIVE, SWITCH OFF
+
+ADR 0023 is implemented, including migration `007` human linkage for outbound attempts and the exact reviewed Web/Core route:
+
+```text
+POST /api/v1/organizations/:organizationId/work/:workId/proposals/:proposalId/send
+```
+
+When explicitly enabled, V1 permits only an existing canonical `send-text`, `commitment=none` proposal that is current, latest-inbound aligned and attached to active tenant/work/conversation/employee/connection state. `owner`/`admin` human authorization is required.
+
+The browser cannot choose text, recipient, connection, provider or idempotency key. The Core records durable human/proposal linkage before external effect and preserves conservative `uncertain` semantics.
+
+### Human Send Explicit Confirmation V1 — LIVE UX
+
+ADR 0026 introduced two explicit human steps:
+
+```text
+Revisar e enviar
+Confirmar e enviar
+```
+
+The first click cannot call the send endpoint. Post-success feedback remains visible even when the work item leaves `attention-required`.
+
+### Human Send Canonical Confirmation V2 — LIVE CODE, SWITCH OFF
+
+ADR 0027 is production-deployed through Core PR #58 and Web PR #59, canonical head:
+
+```text
+a1ee475570c9314198068537003918a6022d8490
+```
+
+For `state=ready`, Core owns the reviewed confirmation snapshot:
+
+```text
+recipientMasked
+text
+version = sha256:<64 hex>
+```
+
+The fingerprint binds effect-critical canonical state and authenticated human actor. Web freezes the reviewed snapshot locally. The final POST may carry only `confirmationVersion`; it does not carry recipient/text/provider/connection overrides.
+
+At send time Core reauthenticates/re-authorizes, reloads canonical state and compares the fingerprint before creating any durable attempt. Malformed/widened confirmation bodies fail closed; a valid but outdated version fails `confirmation-stale` before Gateway/provider effect.
+
+The V2 deployment validation proved:
+
+```text
+Core /healthz = 200
+Core /readyz  = 200
+GET /api/v1/me without Bearer = 401
+reviewed Trabalho route without Bearer = 401
+unreviewed /api route = 404
+Web /internal route = 404
+live bundle contains confirmationVersion + stale UX + send-success feedback
+```
+
+No new outbound attempt/message was created by candidate or deployment work.
+
+See `docs/infra/human-send-canonical-confirmation-v2-live.md`.
+
+## Controlled outbound evidence — historical and immutable
+
+The internal proof path produced one real successful human-supervised WhatsApp delivery to an explicitly authorized handset before Confirmation V2 deployment. The delivered proof message was observed on the handset and Core persisted one canonical outbound message.
+
+At the time of Confirmation V2 post-promotion validation:
+
+```text
+outbound_attempts total = 3
+uncertain              = 2
+succeeded              = 1
+canonical outbound messages = 1
+```
+
+The two `uncertain` attempts predate Confirmation V2 candidate/promotion work and are not blindly retryable. The one `succeeded` attempt is the controlled real delivery proof. No provider/private destination data is recorded in Git documentation.
+
+This replaces the old global `outbound_attempts=0 / outbound_messages=0` statement, which was true only for earlier read-only/proposal foundation proofs.
 
 ## Current Auth evidence
 
@@ -316,37 +400,36 @@ issuer: https://supabase.wandora.com.br/auth/v1
 audience: authenticated
 ```
 
-A provisioned beta Auth identity is linked to the canonical Empresa Exemplo owner. Do not put the user's password, access token, refresh token or private identity metadata into Git or operator notes.
+A provisioned beta Auth identity is linked to canonical tenant memberships. Do not put passwords, access tokens, refresh tokens, real phone numbers or private identity metadata into Git/operator notes.
 
 ## Current customer API allow-list
 
 Wandora Web Nginx may expose only the exact reviewed customer routes:
 
 ```text
-GET /api/v1/me
-GET /api/v1/organizations/:organizationId/work/attention-required
-GET /api/v1/organizations/:organizationId/conversations
-GET /api/v1/organizations/:organizationId/conversations/:conversationId
+GET  /api/v1/me
+GET  /api/v1/organizations/:organizationId/work/attention-required
+POST /api/v1/organizations/:organizationId/work/:workId/proposals/:proposalId/send
+GET  /api/v1/organizations/:organizationId/conversations
+GET  /api/v1/organizations/:organizationId/conversations/:conversationId
 ```
 
-It forwards `Authorization`, strips cookies before Core and leaves generic/unreviewed `/api/` plus all `/internal/` routes closed. The nearby unreviewed `/conversations/:conversationId/messages` path remains `404`.
+It forwards `Authorization`, strips cookies before Core and leaves generic/unreviewed `/api/` plus all `/internal/` routes closed. The Human Send POST allow-list entry does not activate Human Send; capability activation remains a separate Core/Gateway runtime decision.
 
-## Next executable slice — Human Conversation Response Action V1
+## Current executable next step
 
-The customer now has enough canonical context to inspect the recent conversation before deciding on a response. The next product-path slice must remain separately reviewed because it is the first customer-facing outbound-effect boundary.
+The immediate product gate is **not** to redesign outbound again. The Human Send/Confirmation V2 contract is already deployed.
 
-Required design direction:
+Before normal beta outbound can be enabled, run one separately reviewed controlled Confirmation V2 activation proof:
 
-1. define the exact human action vocabulary first — e.g. send proposal as-is, edit-then-send, dismiss/no-send — without silently adding autonomous behavior;
-2. require the existing ES256/JWKS human session and independent active organization/membership authorization;
-3. bind any send action to canonical conversation/work/proposal state rather than provider IDs;
-4. define idempotency before calling the Messaging Gateway;
-5. create durable Wandora audit evidence for human decision and outbound attempt/result;
-6. preserve conservative `delivery-uncertain` behavior and reconciliation; never blind-retry an unknown provider outcome;
-7. keep discounts, prices, delivery deadlines, payment terms and contractual commitments on the stronger approval boundary;
-8. expose only exact reviewed Web action routes; generic `/api/` and all `/internal/` paths stay closed;
-9. prove cross-tenant, suspended-state, replay/idempotency and uncertain-delivery behavior in disposable tests before production;
-10. do not enable autonomous customer traffic as part of the first human response slice.
+1. decision — define the exact controlled proof and its allowed tenant/connection;
+2. second adversarial review — actively seek a reason activation is wrong/unsafe/duplicated or based on stale assumptions;
+3. execution — enable only the existing reviewed Core/Gateway overlays if the adversarial review fails to invalidate activation;
+4. validation — prove the exact confirmation shown to the human matches the Core effect, exactly one provider delivery occurs, durable audit/state are correct, and switches are returned to the intended final state.
+
+Do not reuse historical `uncertain` attempts. Do not broaden provider bindings or convert Empresa Exemplo into the proof channel.
+
+Only after that V2 end-to-end proof should a normal-beta outbound policy be chosen. Autonomous customer traffic remains out of scope.
 
 ## Model provider status
 
@@ -356,17 +439,20 @@ The previously Git-exposed Mistral token is compromised and must never be reused
 
 - Wandora Web never calls Paperclip, Mastra or Evolution directly.
 - Supabase Auth identifies/sessionizes; Wandora Core owns business authorization.
-- Browser-supplied tenant/conversation IDs are selectors only after canonical membership authorization.
+- Browser-supplied tenant/conversation/work/proposal IDs are selectors only after canonical authorization.
 - Do not give Core `service_role` or a JWT signing secret merely to validate human sessions.
 - Private receipt state is not a customer-facing proposal model.
 - `work_proposals` is canonical, but direct browser DB access remains forbidden.
+- Human Send browser requests cannot override recipient, text, provider, connection or idempotency key.
+- Confirmation V2 fingerprinting is concurrency evidence, not authorization.
+- Historical `uncertain` outbound attempts are never blindly retried.
 - Sensitive/commitment-bearing employee actions remain on the stronger approval boundary.
 - `wandora_core_runtime` must not be replaced with a broader role to simplify integration.
 - Core remains private; do not expose a generic Core hostname merely for Web access.
 - Provider/runtime identifiers never become public Wandora identities without an explicit boundary decision.
 - Git is never a secret store.
-- Read slices do not silently grow outbound effects.
+- Exact reviewed Web routes only; generic `/api/` and all `/internal/` paths remain closed.
 
 ## Startup instruction for another chat
 
-> Read `AGENTS.md`, accepted ADRs through ADR 0021, `docs/architecture.md` and this file. Security gate #22, least-privilege Core DB activation, private Messaging Gateway → Core ingress, Mastra deterministic supervision, canonical `wandora.work_proposals`, Human Supervision Read V1, Human Session Bootstrap V1, Web Human Session V1, Conversations Read V1 and Conversation Detail/History Read V1 are live. Core and Web currently run `conversation-history-2105f6e3`; Gateway remains `inbound-v1-2a49c066`. Authenticated Empresa Exemplo browser proof is green: `/api/v1/me=200`, conversations list `=200`, conversation detail `=200`, canonical Mariana/Ana history renders as `Somente leitura`, and approvals/outbound attempts/outbound messages/provider bindings all remain zero. Generic `/api/` and `/internal/` paths remain closed. The next product-path slice is a separately reviewed human conversation response action contract. Do not add outbound/autonomous behavior or a model token implicitly.
+> Read `AGENTS.md`, accepted ADRs through ADR 0027, `docs/architecture.md`, this file and `docs/infra/human-send-canonical-confirmation-v2-live.md`. Security gate #22, least-privilege Core DB activation, private Messaging Gateway → Core ingress, Mastra deterministic supervision, canonical `wandora.work_proposals`, Human Supervision Read, Human Session, explicit multi-organization selection, Conversations list/history, private Gateway outbound, Human Send Proposal and Canonical Confirmation V2 are implemented. Production currently runs Core `wandora/core:canonical-confirm-a1ee4755`, Web `wandora/web:canonical-confirm-a1ee4755` and Gateway `wandora/messaging-gateway:origin-fix-94cfb4de`; all are healthy. Human Send and Gateway outbound enable flags are currently absent, so real outbound is OFF. Historical controlled proof state is 3 outbound attempts (2 uncertain, 1 succeeded) and 1 canonical outbound message; do not retry uncertain attempts. Generic/unreviewed `/api/` and all Web `/internal/` paths remain closed. The next gate is a separately reviewed controlled Confirmation V2 activation proof, using **decision → second adversarial review → execution → validation**. Do not ask the user to reconstruct already-recorded decisions and do not enable autonomous outbound.
