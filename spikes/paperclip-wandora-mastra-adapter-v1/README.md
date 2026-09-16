@@ -11,7 +11,8 @@ Trust is deliberately split:
 - a dedicated Wandora HMAC authenticates Paperclip-adapter -> Wandora;
 - Paperclip's run-scoped agent JWT is forwarded opaquely for scoped callbacks to Paperclip;
 - Wandora does not receive Paperclip's JWT master signing secret;
-- the Paperclip run token is not placed in the JSON body or result state.
+- the Paperclip run token is not placed in the JSON body or result state;
+- Paperclip runtime context is reduced to an explicit task allow-list before crossing the bridge.
 
 ## Run
 
@@ -42,7 +43,8 @@ The verifier runs with `--network none`, a read-only root filesystem and only th
 - signature covers exact timestamp + exact JSON body;
 - timestamp is bounded in the mock verifier;
 - run token is carried only in its dedicated secret header;
-- company/agent/run/context arrive intact;
+- company/agent/run plus the reviewed task projection arrive intact;
+- unreviewed provider/MCP-like context does not cross the bridge;
 - successful Wandora response maps to Paperclip's `AdapterExecutionResult`.
 
 ## Non-goals
