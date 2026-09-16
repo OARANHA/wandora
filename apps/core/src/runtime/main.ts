@@ -4,6 +4,7 @@ import { PostgresAnaRepository } from '../ana/postgres-repository.js';
 import { AnaSupervisedIngressService } from '../ana/supervised-ingress.js';
 import { Es256JwksHumanTokenVerifier } from '../human-auth/es256-jwks.js';
 import { createPrivateGatewayClient } from '../messaging/private-gateway.js';
+import { HumanDigitalEmployeesReadService } from '../supervision/human-digital-employees-read.js';
 import { HumanSupervisionReadService } from '../supervision/human-read.js';
 import { HumanSendProposalService } from '../supervision/human-send-proposal.js';
 import { loadRuntimeConfig } from './config.js';
@@ -78,6 +79,10 @@ const humanReadService = pool && humanVerifier
   ? new HumanSupervisionReadService(pool, humanVerifier)
   : undefined;
 
+const humanDigitalEmployeesReadService = pool && humanReadService
+  ? new HumanDigitalEmployeesReadService(pool, humanReadService)
+  : undefined;
+
 const humanSendProposalService = pool && humanVerifier && config.humanSendProposal
   ? new HumanSendProposalService(
       pool,
@@ -91,9 +96,11 @@ const humanSendProposalService = pool && humanVerifier && config.humanSendPropos
   : undefined;
 
 const handleHumanSupervision = humanReadService
-  ? humanSendProposalService
-    ? createHumanSupervisionHandler(humanReadService, humanSendProposalService)
-    : createHumanSupervisionHandler(humanReadService)
+  ? createHumanSupervisionHandler(
+      humanReadService,
+      humanSendProposalService,
+      humanDigitalEmployeesReadService,
+    )
   : undefined;
 
 const server = createRuntimeServer({
