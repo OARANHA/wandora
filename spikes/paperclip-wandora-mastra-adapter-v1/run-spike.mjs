@@ -17,6 +17,7 @@ const received = {
   timestampOk: false,
   runTokenOk: false,
   bodyOk: false,
+  contextMinimized: false,
 };
 
 const server = http.createServer(async (req, res) => {
@@ -29,15 +30,23 @@ const server = http.createServer(async (req, res) => {
   const expected = createHmac('sha256', BRIDGE_SECRET).update(`${timestamp}.${rawBody}`).digest('hex');
   const receivedHex = signatureHeader.startsWith('sha256=') ? signatureHeader.slice(7) : '';
   const parsedTimestamp = Number(timestamp);
+  const body = JSON.parse(rawBody);
   received.signatureOk = /^[a-f0-9]{64}$/.test(receivedHex) && safeEqualHex(expected, receivedHex);
   received.timestampOk = Number.isFinite(parsedTimestamp) && Math.abs(Date.now() - parsedTimestamp) <= MAX_CLOCK_SKEW_MS;
   received.runTokenOk = runToken === RUN_TOKEN;
-  const body = JSON.parse(rawBody);
   received.bodyOk = body.paperclipAgentId === 'agent-spike-1'
     && body.paperclipCompanyId === 'company-spike-1'
     && body.paperclipRunId === 'run-spike-1'
-    && body.context?.paperclipIssue?.id === 'issue-spike-1'
-    && !Object.hasOwn(body, 'runToken');
+    && body.task?.issueId === 'issue-spike-1'
+    && body.task?.identifier === 'TEST-1'
+    && body.task?.title === 'Qualificar contato'
+    && body.task?.description === 'Entender a necessidade do contato.'
+    && body.task?.workMode === 'standard'
+    && body.task?.wakeReason === 'issue_assigned';
+  received.contextMinimized = !Object.hasOwn(body, 'context')
+    && !Object.hasOwn(body, 'runToken')
+    && !rawBody.includes('must-not-cross-bridge')
+    && !rawBody.includes('managedMcp');
   const ok = Object.values(received).every(Boolean);
   res.writeHead(ok ? 200 : 401, { 'content-type': 'application/json' });
   res.end(JSON.stringify({ executionId: 'exec-spike-1', model: 'deterministic-spike', summary: ok ? 'accepted' : 'rejected' }));
@@ -53,7 +62,18 @@ const common = {
   agent: { id: 'agent-spike-1', companyId: 'company-spike-1', name: 'Ana', adapterType: adapter.type, adapterConfig: {} },
   runtime: { sessionId: null, sessionParams: null, sessionDisplayId: null, taskKey: null },
   config: { url: `http://127.0.0.1:${port}/execute` },
-  context: { paperclipIssue: { id: 'issue-spike-1', title: 'Qualificar contato' } },
+  context: {
+    paperclipIssue: {
+      id: 'issue-spike-1',
+      identifier: 'TEST-1',
+      title: 'Qualificar contato',
+      description: 'Entender a necessidade do contato.',
+      workMode: 'standard',
+    },
+    wakeReason: 'issue_assigned',
+    paperclipManagedMcp: { token: 'must-not-cross-bridge' },
+    unrelatedProviderInternal: 'must-not-cross-bridge',
+  },
   onLog: async () => {},
 };
 
