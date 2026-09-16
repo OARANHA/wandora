@@ -57,7 +57,7 @@ BEGIN
   END IF;
 
   v_fingerprint := encode(
-    public.digest(
+    extensions.digest(
       convert_to(
         jsonb_build_object(
           'organization_slug', v_slug,
