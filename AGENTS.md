@@ -63,15 +63,21 @@ The following are current decisions unless superseded by a newer accepted ADR:
 - ADR 0010 accepts the least-privilege `wandora_core_runtime` database boundary. Migration `003` still creates the role credential-disabled by default; the later reviewed production activation uses a dedicated secret-file credential, `CONNECTION LIMIT 4`, no `BYPASSRLS`, and a separately versioned activated-state verifier.
 - ADR 0011 accepts the private Wandora Core runtime. Core is live in database mode on private `wandora-core` + internal `wandora-data`, with no published host port, read-only root filesystem, non-root execution and `/readyz = 200` only through `wandora_core_runtime`.
 - ADR 0012 accepts authenticated private Gateway → Core supervised ingress with durable receipt/idempotency semantics and no model/outbound side effect by itself.
-- ADR 0013 accepts the private inbound Evolution Messaging Gateway runtime. The controlled production webhook cutover and real-handset proof are green: canonical work stops at `attention-required` / `supervision-required`, with zero approvals and zero outbound attempts from the supervised ingress.
-- ADR 0014 accepts Core → Mastra deterministic supervised proposal generation behind the Wandora-owned Agent Runtime Adapter. Mastra telemetry is forced off; work remains `attention-required`, receipts remain `supervision-required`, and direct-Core plus Gateway proofs created zero approvals, zero outbound attempts and zero outbound messages.
+- ADR 0013 accepts the private inbound Evolution Messaging Gateway runtime. Controlled production webhook cutover and real-handset proof are green; the inbound path itself does not authorize outbound effects.
+- ADR 0014 accepts Core → Mastra deterministic supervised proposal generation behind the Wandora-owned Agent Runtime Adapter. Mastra telemetry is forced off; work remains human-supervised and no live model credential is required.
 - ADR 0015 accepts **Wandora Platform Admin** as the first-party owner/operator control plane. Mastra Studio, Paperclip UI, Evolution Manager, Supabase Studio and Portainer remain protected engineering/diagnostic surfaces, not the normal daily administration workflow and never a customer dependency.
-- ADR 0016 accepts canonical `wandora.work_proposals` for safe supervised proposals. Migration `20260915_004_supervised_proposal_v1.sql` is live; exactly one tenant-scoped `commitment=none` proposal can be persisted atomically with `attention-required` + receipt completion. `authenticated` has no direct proposal-table access, Core has only the reviewed SELECT/INSERT capability, stronger commitments remain on `wandora.approvals`, and live replay proof is idempotent with zero outbound effects.
+- ADR 0016 accepts canonical `wandora.work_proposals` for safe supervised proposals. Migration `20260915_004_supervised_proposal_v1.sql` is live; only `commitment=none` proposals enter this boundary and stronger commitments remain on `wandora.approvals`.
 - ADR 0017 accepts **Human Supervision Read V1**: Core validates Supabase ES256/JWKS Bearer sessions, resolves canonical identity and exposes the reviewed tenant-authorized `attention-required` read without provider/private leakage.
 - ADR 0018 accepts **Human Session Bootstrap V1** through `GET /api/v1/me`, returning only canonical Wandora user and active organization memberships.
-- ADR 0019 accepts **Web Human Session V1**: browser sign-in uses Supabase Auth directly with only the public/publishable key, session material stays in `sessionStorage`, public signup remains disabled, and `Trabalho` consumes the reviewed Core read.
-- ADR 0020 accepts **Conversations Read V1**: the exact tenant-authorized conversations list route is live in production and remains read-only/provider-neutral.
-- ADR 0021 accepts **Conversation Detail/History Read V1**: the exact tenant-authorized conversation detail route is live, returns a bounded canonical history under `REPEATABLE READ READ ONLY` + tenant RLS, and exposes no response/outbound action.
+- ADR 0019 accepts **Web Human Session V1**: browser sign-in uses Supabase Auth directly with only the public/publishable key, session material stays in `sessionStorage`, public signup remains disabled, and reviewed Core routes consume the Bearer session.
+- ADR 0020 accepts **Conversations Read V1**: the exact tenant-authorized conversations list route is live in production and remains provider-neutral.
+- ADR 0021 accepts **Conversation Detail/History Read V1**: the exact tenant-authorized conversation detail route is live, returns a bounded canonical history under `REPEATABLE READ READ ONLY` + tenant RLS, and remains a read contract.
+- ADR 0022 accepts **Private Messaging Gateway Outbound V1**: Core → Gateway outbound is a private, disabled-by-default capability using a dedicated directional HMAC and operator-mounted Evolution API key; the browser never sees provider configuration.
+- ADR 0023 accepts **Human Send Proposal V1**: an authenticated `owner`/`admin` may authorize only an existing current canonical `send-text`, `commitment=none` proposal; browser text/recipient/provider/idempotency overrides remain forbidden and durable uncertain delivery is non-retryable.
+- ADR 0024 accepts **Multi-Organization Selector V1**: multiple active tenant memberships require explicit human selection; the browser never silently selects the first tenant and Core authorization is unchanged.
+- ADR 0025 accepts **Evolution Private Outbound Origin V1**: private Gateway outbound sends one code-pinned internal Origin and Evolution allows only the reviewed Origin set; wildcard CORS is not used.
+- ADR 0026 accepts **Human Send Explicit Confirmation V1**: the first click only opens a confirmation and the second explicit click is required before the reviewed send POST.
+- ADR 0027 accepts and is production-deployed as **Human Send Canonical Confirmation V2**: Core emits the exact masked recipient, canonical text and SHA-256 confirmation version; Web freezes that reviewed snapshot and final POST may carry only `confirmationVersion`; stale state fails before any durable attempt/Gateway call.
 - Security gate #22 is cleared. The affected shared Supabase JWT compatibility material and shared PostgreSQL password were rotated with validated backups, old-credential invalidation, full service-health proof and production-safe verifier reruns.
 - Official WhatsApp providers remain a production option behind the same gateway.
 - Model vendors are replaceable infrastructure behind a provider boundary. Do not request or hard-code a provider credential until a real provider call is materially required.
@@ -114,6 +120,7 @@ Mastra, Paperclip, Supabase and Evolution are technologies used by Wandora. None
 - A known credential exposure or rotation gate must be cleared before introducing a dependent production credential or customer traffic. Do not bypass a security gate merely because the affected environment currently has no customer rows.
 - Credentials retained only in protected rollback snapshots after a completed rotation are compromised historical material; they must not be restored as steady-state credentials.
 - For Core production recreation/candidate work, use the canonical host secret file `wandora_core_db_password`. Do not substitute the legacy `core-db-password` filename; a candidate using that wrong file failed readiness while the live canonical secret remained valid.
+- A capability overlay existing on disk is not evidence that it is active. Verify the running container environment/configuration before describing Human Send or Gateway outbound as enabled.
 
 ## 7. Product and development discipline
 
@@ -135,9 +142,11 @@ The default customer path must aim for useful work on the same day. A multi-day 
 
 For Ana or future employees, unknown/ambiguous external side effects must fail conservatively. In particular, an uncertain message delivery must not be retried automatically unless reconciliation proves it safe.
 
-Read-only slices must stay read-only. Do not smuggle reply/send/edit-send/dismiss/takeover or any other outbound effect into a read contract.
+Read-only slices must stay read-only. Do not smuggle reply/send/edit-send/dismiss/takeover or any other outbound effect into a read contract. A separately reviewed effect route does not turn `Conversas` history into an implicit composer.
 
-A browser-supplied organization or conversation identifier is always a selector, never authorization evidence. Core must independently authorize active membership and keep transaction-local tenant scope + RLS.
+A browser-supplied organization, conversation, work or proposal identifier is always a selector, never authorization evidence. Core must independently authorize active membership and keep transaction-local tenant scope + RLS.
+
+Human Send browser requests must not supply effectful recipient/text/provider/connection/idempotency overrides. Confirmation V2's hash is optimistic-concurrency evidence, not authorization.
 
 ### Dual business perspective
 
@@ -148,39 +157,52 @@ For every material product or customer-journey decision, review the choice from 
 
 A choice that is technically elegant but weak from either perspective must be revised before implementation.
 
-### Second-pass decision review
+### Mandatory decision cycle: decision → second adversarial review → execution → validation
 
-For every material product, architecture, infrastructure, security or deployment decision, do not execute immediately after the first conclusion. Use this sequence:
+For every material product, architecture, infrastructure, security or deployment decision, use this sequence:
 
-1. analyze the problem and form a provisional decision;
-2. review that decision a second time against accepted architecture, security, reversibility, product experience, operational state, the dual business perspective and simpler alternatives;
-3. actively look for a missed side effect or a better option;
-4. if the second review contradicts the first, revise the decision and review again;
-5. execute only after the second pass confirms the decision is still in conformity.
+1. **Decision** — analyze the problem and form a provisional decision with explicit premises and intended scope.
+2. **Second adversarial review** — do not merely confirm the first decision. Assume it may be wrong and actively seek a concrete reason to reject it. At minimum challenge whether it is too broad, unsafe, duplicated, irreversible, based on stale/unproven state, weaker than a simpler option, operationally unrecoverable, or inconsistent with the dual business perspective and accepted architecture.
+3. If the adversarial review finds a material objection, revise the decision and run the adversarial review again. Do not execute just because work has already been invested in the first option.
+4. **Execution** — execute only after the adversarial challenge fails to invalidate the revised/current decision. Keep the change at the smallest reviewed scope and preserve rollback/fail-closed boundaries.
+5. **Validation** — independently prove what actually happened. Validate runtime state, hashes/SHAs, health/readiness, route boundaries, capabilities/flags, durable side effects, database counters and rollback assumptions as applicable. CI green, successful command exit or intended configuration are not substitutes for post-execution validation.
 
-Routine mechanical steps inside an already-reviewed decision do not each require a separate design cycle, but any new material choice discovered during execution does.
+Routine mechanical steps inside an already-reviewed decision do not each require a new design cycle, but any new material choice or contradictory evidence discovered during execution returns the work to step 1/2.
 
 ## 8. Current execution order
 
 Unless an active blocker or explicit user decision changes priority:
 
-1. keep canonical documentation synchronized with accepted decisions and live operational state;
-2. preserve the proven Human Session + `Trabalho` + `Conversas` list/history read path and do not reopen it without evidence;
-3. separately define the smallest **Human Conversation Response Action V1** before exposing any customer-facing outbound effect;
-4. require active human session + tenant authorization and bind response actions to canonical conversation/work/proposal state rather than provider IDs;
-5. define idempotency, durable audit evidence, delivery uncertainty/reconciliation and failure semantics before calling the Messaging Gateway;
-6. keep commercial commitments such as discount, price, deadline and payment terms on the stronger existing approval boundary;
-7. expose only exact reviewed Web action routes; generic `/api/` and all `/internal/` paths remain closed;
-8. prove replay, cross-tenant, suspended-state and uncertain-delivery behavior before production activation;
-9. prove the complete human-supervised action path before any autonomous customer traffic;
-10. add Platform Admin capabilities incrementally around already-stable Wandora-owned contracts; do not pause the first customer-visible employee loop to build a generic infrastructure dashboard;
-11. add customer onboarding, password recovery/OAuth and organization switching around the proven authorization path rather than bypassing Core;
-12. only when the first real model call is materially required, revoke/replace the previously Git-exposed Mistral credential and configure the fresh value only through an approved operator-controlled secret path.
+1. keep canonical documentation synchronized with accepted decisions and observed live operational state;
+2. preserve the proven Human Session, explicit multi-organization selection, `Trabalho` and `Conversas` authorization paths;
+3. keep Human Send Canonical Confirmation V2 deployed with real outbound **disabled** until a separately reviewed controlled V2 activation proof is intentionally executed;
+4. before activation, apply the full decision → second adversarial review → execution → validation cycle to current tenant/connection/binding/secrets/rollback state; do not assume an earlier proof still represents current production;
+5. never reuse/retry historical `uncertain` outbound attempts without a separate reconciliation contract proving it safe;
+6. keep stronger commercial commitments such as discount, price, deadline and payment terms on the stronger existing approval boundary;
+7. expose only exact reviewed Web action routes; generic/unreviewed `/api/` and all `/internal/` paths remain closed;
+8. after a green controlled Confirmation V2 proof, define the smallest normal-beta outbound policy instead of enabling autonomous customer traffic by default;
+9. add Platform Admin capabilities incrementally around already-stable Wandora-owned contracts; do not pause the customer-visible employee loop to build a generic infrastructure dashboard;
+10. add customer onboarding, password recovery/OAuth and organization lifecycle around the proven authorization path rather than bypassing Core;
+11. only when the first real model call is materially required, revoke/replace the previously Git-exposed Mistral credential and configure the fresh value only through an approved operator-controlled secret path.
 
-Supabase Foundation V1, Mastra Agent Runtime V1 laboratory validation, Evolution Messaging Gateway V1, Wandora Core Multi-tenant/Auth Contract V1, Human Interface/Product Shell V1, First-Day Customer Journey V1, Ana inbound new-contact contract V1, Ana durable Core vertical slice V1 including its live database foundation, security gate #22, the Core runtime database boundary, the private Core runtime with least-privilege database activation live, Messaging Gateway → Wandora Core Supervised V1 live real-handset proof, Core → Mastra Deterministic Supervised Proposal V1 live end-to-end proof, Canonical Supervised Work Proposal V1, Human Supervision Read V1, Human Session Bootstrap V1, Web Human Session V1, Conversations Read V1 and Conversation Detail/History Read V1 are complete/live. **Wandora Platform Admin** is accepted as the operator-control-plane direction but is not yet a complete cockpit. Do not repeat completed foundations unless verifying or repairing drift.
+Supabase Foundation V1, Mastra Agent Runtime V1 laboratory validation, Evolution Messaging Gateway V1, Wandora Core Multi-tenant/Auth Contract V1, Human Interface/Product Shell V1, First-Day Customer Journey V1, Ana durable Core vertical slice, security gate #22, least-privilege Core runtime, supervised inbound, deterministic proposal generation, canonical `work_proposals`, Human Supervision Read, Human Session Bootstrap, Web Human Session, explicit multi-organization selection, Conversations list/history, Private Messaging Gateway Outbound code, Human Send Proposal code, Evolution private Origin fix, explicit send confirmation and Human Send Canonical Confirmation V2 are complete/implemented as recorded by their ADRs.
 
-The current production Core and Web images are `wandora/core:conversation-history-2105f6e3` and `wandora/web:conversation-history-2105f6e3`. Authenticated browser proof is green for session, conversation list and conversation detail/history, and post-read state remains zero approvals/outbound attempts/outbound messages/provider bindings for Empresa Exemplo. See ADR 0021, `docs/CANONICAL_STATE.md` and `docs/infra/conversation-history-live-v1.md`.
+Current production runtime after the 2026-09-16 Confirmation V2 promotion:
+
+```text
+canonical repository head: a1ee475570c9314198068537003918a6022d8490
+Core:    wandora/core:canonical-confirm-a1ee4755
+Web:     wandora/web:canonical-confirm-a1ee4755
+Gateway: wandora/messaging-gateway:origin-fix-94cfb4de
+Core/Web/Gateway: healthy
+Human Send enable flag: absent
+Gateway outbound enable flag: absent
+historical outbound attempts: 3 (2 uncertain, 1 succeeded)
+canonical outbound messages: 1
+```
+
+The controlled real delivery proof is historical evidence; Confirmation V2 deployment itself created no new outbound attempt/message. See ADR 0027, `docs/CANONICAL_STATE.md` and `docs/infra/human-send-canonical-confirmation-v2-live.md`.
 
 ## 9. Definition of progress
 
-Progress is not the number of services, screens or integrations installed. Progress means a critical product or architectural uncertainty was removed, the result is reproducible, the human experience became clearer, and the decision is recorded without weakening Wandora-owned boundaries.
+Progress is not the number of services, screens or integrations installed. Progress means a critical product or architectural uncertainty was removed, the result is reproducible, the human experience became clearer, the execution survived adversarial review, validation proved the resulting state, and the decision was recorded without weakening Wandora-owned boundaries.
