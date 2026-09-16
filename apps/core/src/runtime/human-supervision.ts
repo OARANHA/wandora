@@ -11,6 +11,7 @@ import {
 } from '../supervision/human-send-proposal.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const CONFIRMATION_VERSION_RE = /^sha256:[0-9a-f]{64}$/;
 const WORK_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/work\/attention-required$/;
 const SEND_PROPOSAL_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/work\/([^/]+)\/proposals\/([^/]+)\/send$/;
 const CONVERSATIONS_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/conversations$/;
@@ -21,6 +22,7 @@ export type HumanSupervisionRequest = {
   method: string | undefined;
   pathname: string;
   authorization: string | undefined;
+  rawBody?: string | undefined;
 };
 
 export type HumanSupervisionResponse = {
@@ -30,6 +32,32 @@ export type HumanSupervisionResponse = {
 
 export function isHumanSupervisionPath(pathname: string): boolean {
   return pathname === SESSION_PATH || pathname.startsWith('/api/v1/organizations/');
+}
+
+export function isHumanSendProposalPath(pathname: string): boolean {
+  const match = SEND_PROPOSAL_PATH_RE.exec(pathname);
+  return Boolean(
+    match
+    && match[1]
+    && match[2]
+    && match[3]
+    && UUID_RE.test(match[1])
+    && UUID_RE.test(match[2])
+    && UUID_RE.test(match[3])
+  );
+}
+
+function parseConfirmationVersion(rawBody: string | undefined): string | undefined {
+  if (!rawBody || rawBody.length > 1_024) return undefined;
+  try {
+    const parsed = JSON.parse(rawBody) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return undefined;
+    const record = parsed as Record<string, unknown>;
+    if (Object.keys(record).length !== 1 || typeof record.confirmationVersion !== 'string') return undefined;
+    return CONFIRMATION_VERSION_RE.test(record.confirmationVersion) ? record.confirmationVersion : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export function createHumanSupervisionHandler(
@@ -50,6 +78,7 @@ export function createHumanSupervisionHandler(
         const organizationId = sendMatch[1];
         const workItemId = sendMatch[2];
         const proposalId = sendMatch[3];
+        const confirmationVersion = parseConfirmationVersion(request.rawBody);
         if (
           !organizationId
           || !workItemId
@@ -60,12 +89,16 @@ export function createHumanSupervisionHandler(
         ) {
           return { status: 404, body: { error: 'not-found' } };
         }
+        if (!confirmationVersion) {
+          return { status: 400, body: { error: 'invalid-confirmation' } };
+        }
 
         const result = await sendProposalService.sendProposal({
           authorization: request.authorization,
           organizationId,
           workItemId,
           proposalId,
+          confirmationVersion,
         });
         return { status: 200, body: result };
       }

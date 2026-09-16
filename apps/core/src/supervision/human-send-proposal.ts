@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import type { Pool, PoolClient } from 'pg';
 import type { HumanTokenVerifier } from '../human-auth/es256-jwks.js';
 import type { PrivateGatewayClient } from '../messaging/private-gateway.js';
@@ -5,7 +6,7 @@ import { HumanAccessError, HumanNotFoundError } from './human-read.js';
 
 const RECIPIENT_RE = /^\+?[1-9]\d{7,14}$/;
 
-export type HumanSendProposalConflictCode = 'proposal-not-current' | 'send-unavailable';
+export type HumanSendProposalConflictCode = 'proposal-not-current' | 'send-unavailable' | 'confirmation-stale';
 
 export class HumanSendProposalConflictError extends Error {
   constructor(readonly code: HumanSendProposalConflictCode, message: string) {
@@ -27,15 +28,21 @@ export type HumanSendProposalResult = {
   conversationId: string;
 };
 
+export type HumanSendConfirmation = {
+  recipientMasked: string;
+  text: string;
+  version: string;
+};
+
 export type HumanProposalSendAction =
-  | { state: 'ready' }
+  | { state: 'ready'; confirmation: HumanSendConfirmation }
   | {
       state: 'unavailable';
       reason: 'role-required' | 'channel-unavailable' | 'proposal-not-current' | 'already-sent';
     }
   | { state: 'delivery-uncertain' };
 
-type ProposalContextRow = {
+type ConfirmationContextRow = {
   proposal_id: string;
   proposal_kind: 'send-text';
   proposal_text: string;
@@ -57,22 +64,9 @@ type ProposalContextRow = {
   latest_message_source_event_id: string | null;
 };
 
-type ActionStateRow = {
-  proposal_id: string;
-  proposal_kind: 'send-text';
-  proposal_commitment: 'none';
-  proposal_source_event_id: string;
-  latest_proposal_id: string;
-  work_status: 'in-progress' | 'waiting-approval' | 'waiting-customer' | 'attention-required' | 'completed';
-  employee_status: 'active' | 'paused';
-  employee_autonomy_mode: 'supervised';
-  conversation_status: 'open' | 'closed';
-  connection_id: string;
-  connection_status: 'active' | 'disabled';
-  connection_channel: 'whatsapp';
-  recipient: string;
-  latest_message_direction: 'inbound' | 'outbound' | null;
-  latest_message_source_event_id: string | null;
+type ProposalContextRow = ConfirmationContextRow;
+
+type ActionStateRow = ConfirmationContextRow & {
   attempt_status: 'planned' | 'sending' | 'succeeded' | 'uncertain' | null;
 };
 
@@ -112,6 +106,46 @@ type ExistingSuccess = {
 type Preparation = PreparedSend | ExistingSuccess;
 
 const proposalIdempotencyKey = (proposalId: string): string => `proposal-send:${proposalId}`;
+
+const maskRecipient = (recipient: string): string => {
+  const compact = recipient.replace(/[\s()-]/g, '');
+  if (!/^\+?\d{8,15}$/.test(compact)) return 'Canal autorizado';
+  const prefixLength = compact.startsWith('+') ? Math.min(5, compact.length - 4) : Math.min(4, compact.length - 4);
+  if (prefixLength <= 0) return 'Canal autorizado';
+  return `${compact.slice(0, prefixLength)}${'•'.repeat(compact.length - prefixLength - 4)}${compact.slice(-4)}`;
+};
+
+const confirmationVersion = (
+  organizationId: string,
+  actorUserId: string,
+  context: ConfirmationContextRow,
+): string => {
+  const canonical = [
+    'human-send-confirmation-v2',
+    organizationId,
+    actorUserId,
+    context.proposal_id,
+    context.proposal_kind,
+    context.proposal_text,
+    context.proposal_commitment,
+    context.proposal_source_event_id,
+    context.latest_proposal_id,
+    context.work_item_id,
+    context.work_status,
+    context.employee_id,
+    context.employee_status,
+    context.employee_autonomy_mode,
+    context.conversation_id,
+    context.conversation_status,
+    context.connection_id,
+    context.connection_status,
+    context.connection_channel,
+    context.recipient,
+    context.latest_message_direction,
+    context.latest_message_source_event_id,
+  ];
+  return `sha256:${createHash('sha256').update(JSON.stringify(canonical)).digest('hex')}`;
+};
 
 export class HumanSendProposalService {
   private readonly now: () => string;
@@ -222,12 +256,16 @@ export class HumanSendProposalService {
       const result = await client.query<ActionStateRow>(
         `SELECT p.id::text AS proposal_id,
                 p.kind::text AS proposal_kind,
+                p.proposed_text AS proposal_text,
                 p.commitment::text AS proposal_commitment,
                 p.source_event_id AS proposal_source_event_id,
                 lp.id::text AS latest_proposal_id,
+                wi.id::text AS work_item_id,
                 wi.status::text AS work_status,
+                de.id::text AS employee_id,
                 de.status::text AS employee_status,
                 de.autonomy_mode::text AS employee_autonomy_mode,
+                cv.id::text AS conversation_id,
                 cv.status::text AS conversation_status,
                 mc.id::text AS connection_id,
                 mc.status::text AS connection_status,
@@ -306,7 +344,14 @@ export class HumanSendProposalService {
         states.set(
           row.proposal_id,
           channelAvailable
-            ? { state: 'ready' }
+            ? {
+                state: 'ready',
+                confirmation: {
+                  recipientMasked: maskRecipient(row.recipient),
+                  text: row.proposal_text,
+                  version: confirmationVersion(args.organizationId, actorUserId, row),
+                },
+              }
             : { state: 'unavailable', reason: 'channel-unavailable' },
         );
       }
@@ -325,6 +370,7 @@ export class HumanSendProposalService {
     workItemId: string,
     proposalId: string,
     actorUserId: string,
+    expectedConfirmationVersion: string,
   ): Promise<Preparation> {
     const idempotencyKey = proposalIdempotencyKey(proposalId);
     const requestedAt = this.now();
@@ -453,6 +499,14 @@ export class HumanSendProposalService {
         throw new HumanSendProposalConflictError(
           'send-unavailable',
           'The canonical messaging channel is not available for supervised send.',
+        );
+      }
+
+      const currentConfirmationVersion = confirmationVersion(organizationId, actorUserId, context);
+      if (expectedConfirmationVersion !== currentConfirmationVersion) {
+        throw new HumanSendProposalConflictError(
+          'confirmation-stale',
+          'The reviewed confirmation no longer matches the canonical send effect.',
         );
       }
 
@@ -635,6 +689,7 @@ export class HumanSendProposalService {
     organizationId: string;
     workItemId: string;
     proposalId: string;
+    confirmationVersion: string;
   }): Promise<HumanSendProposalResult> {
     const actorUserId = await this.authenticateUser(args.authorization);
     const preparation = await this.prepare(
@@ -642,6 +697,7 @@ export class HumanSendProposalService {
       args.workItemId,
       args.proposalId,
       actorUserId,
+      args.confirmationVersion,
     );
     if (preparation.kind === 'succeeded') return preparation.result;
 
