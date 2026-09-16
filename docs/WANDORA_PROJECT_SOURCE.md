@@ -2,33 +2,27 @@
 
 Snapshot date: **2026-09-16**
 Repository: `OARANHA/wandora`
-Canonical `main` at snapshot: `9bc7275cf6ab6931335b8afe48b63176cbb47e3c`
+Canonical `main` at snapshot: `b0d708a2cf1f5969bbda11a6f9100e9ae31e9fa0`
 
-> **Purpose:** this file is a compact bootstrap for ChatGPT Project Sources and future development sessions. It exists to prevent architectural drift, accidental reinvention, stale workflow assumptions and loss of project continuity.
+> **Purpose:** compact bootstrap for ChatGPT Project Sources and future development sessions. It prevents architectural drift, accidental reinvention and stale workflow assumptions.
 >
-> **This file is NOT the highest authority and does not replace live verification.** If this snapshot conflicts with Git, accepted ADRs, the current `main` branch or the running environment, the newer canonical evidence wins.
+> **This file is not the highest authority and never replaces live verification.** If this snapshot conflicts with current Git, accepted ADRs or the running environment, the newer canonical evidence wins.
 
----
+## Mandatory authority order
 
-## 1. Mandatory authority order
-
-Before making a material product, architecture, code, database or infrastructure decision, read/resolve in this order:
+Before a material product, architecture, code, database or infrastructure decision:
 
 1. `AGENTS.md`;
-2. accepted ADRs in `docs/decisions/` — newer accepted ADRs override conflicting older guidance;
+2. accepted ADRs in `docs/decisions/`;
 3. `docs/CAPABILITY_AUTHORITY.md`;
 4. `docs/architecture.md`;
 5. `docs/CANONICAL_STATE.md`;
 6. component README/runbook;
 7. this file only as continuity/bootstrap context.
 
-For mutable facts such as current branch, container image, enabled feature flags, database counts or deployment status, **verify the current repo/runtime instead of trusting this snapshot**.
+Mutable facts such as branch, container image, feature flags, database counts and deployment status must be reverified.
 
----
-
-## 2. Mandatory development discipline
-
-Every material next step follows:
+## Mandatory development discipline
 
 ```text
 REAL NOW
@@ -41,32 +35,17 @@ REAL NOW
   -> VALIDATION
 ```
 
-The second review must actively try to prove the first decision wrong, duplicated, unsafe, too broad, irreversible or based on an unproven premise.
+The second review must actively try to prove the first decision wrong, duplicated, unsafe, too broad or based on an unproven premise.
 
-A missing table/service/workflow in Wandora is **never**, by itself, evidence that Wandora must build that capability.
+A missing Wandora table/service/workflow is **never**, by itself, evidence that Wandora must build that capability.
 
----
+## Product thesis
 
-## 3. Product thesis
+Wandora is the product through which businesses hire, train, govern and measure digital employees alongside human teams.
 
-Wandora is a company/product where businesses hire, train, govern and measure **digital employees** alongside human teams.
+Customers should understand company, team, responsibilities, work, conversations, approvals, outcomes and learning. They should not need to know Paperclip, Mastra, Evolution, Supabase, RLS, provider IDs, prompts, tokens or Portainer.
 
-The customer should experience business concepts such as:
-
-- company;
-- team / digital employees;
-- responsibilities;
-- work;
-- conversations;
-- approvals;
-- outcomes;
-- learning/configuration.
-
-The customer should **not** need to know or operate Paperclip, Mastra, Evolution, Supabase, RLS, provider IDs, prompts, tokens, Portainer or runtime implementation details.
-
----
-
-## 4. Canonical capability architecture
+## Canonical capability architecture
 
 ```text
 CUSTOMER                                  WANDORA OPERATOR
@@ -91,104 +70,51 @@ app.wandora.com.br                        Platform Admin
                     Model/Tool providers
 ```
 
-### Core rule
-
 **Wandora owns the product contract and experience; specialist components lend capabilities through Wandora-owned adapters.**
 
 `Wandora-owned` does **not** mean `Wandora-native implementation`.
 
----
+## Capability authority
 
-## 5. Capability authority map
-
-| Capability | Wandora owns | Specialist implementation/capability |
+| Capability | Wandora owns | Specialist capability |
 | --- | --- | --- |
-| Customer product | vocabulary, UX, policy, authorization, stable Wandora IDs | Wandora Web/Core |
-| Platform operation | operator contracts, authorization, audit, cross-tenant controls | Wandora Platform Admin over adapters |
-| Human identity/session | Wandora user/membership semantics | Supabase Auth supplies session/identity |
-| Durable Wandora facts | mappings, policy, projections, audit/reconciliation, stable IDs | Supabase PostgreSQL is storage infrastructure |
-| Digital-employee control plane | customer-facing employee identity/contract/policy | Paperclip through Organization Adapter |
-| Agent execution | allowed execution contract, policy, inputs/outputs | Mastra through Agent Runtime Adapter |
-| WhatsApp transport | provider-neutral messaging contract/effect policy | Evolution through Messaging Gateway |
-| Model inference | provider-neutral runtime/model policy | Mistral/Chutes/OpenAI/etc. |
+| Customer product | vocabulary, UX, policy, authorization, stable IDs | Wandora Web/Core |
+| Platform operation | operator contracts, authorization, audit | Platform Admin over adapters |
+| Human identity/session | Wandora user/membership semantics | Supabase Auth |
+| Durable Wandora facts | mappings, policy, projections, audit/reconciliation | Supabase PostgreSQL |
+| Digital-employee control plane | customer-facing identity/contract/policy | Paperclip via Organization Adapter |
+| Agent execution | allowed execution contract and policy | Mastra via Agent Runtime Adapter |
+| WhatsApp transport | provider-neutral messaging/effect policy | Evolution via Messaging Gateway |
+| Model inference | provider-neutral runtime/model policy | replaceable model providers |
 | Runtime/operations | desired topology in Git | Docker/Compose/Portainer/Traefik/Cloudflare |
 
-Protected native consoles — Paperclip UI, Mastra Studio, Evolution Manager, Supabase Studio and Portainer — are engineering/operator surfaces, not the customer product and not substitutes for Platform Admin.
+Native consoles are protected engineering/operator surfaces. They are not the customer product and do not replace Platform Admin.
 
----
+## Capability Reuse Gate
 
-## 6. Capability Reuse Gate — mandatory before new domain code
-
-Before creating a material new Wandora table, service, workflow, state machine, scheduler, assignment model, agent registry or admin subsystem, answer:
+Before a material new table, service, workflow, state machine, scheduler, assignment model, agent registry or admin subsystem, answer:
 
 1. What exact customer/operator capability is missing?
-2. Does Paperclip, Mastra, Evolution, Supabase or another accepted component already provide all or part of it?
-3. Which layer owns the capability, and which semantics/IDs/policy remain Wandora-owned?
-4. What is the **minimum** Wandora durable state required for safety, replaceability, authorization, idempotency, audit or reconciliation?
+2. Does an accepted component already provide all or part of it?
+3. Which layer owns the capability and which semantics/IDs/policy remain Wandora-owned?
+4. What is the **minimum** Wandora state needed for safety, replaceability, authorization, idempotency, audit or reconciliation?
 5. What adapter prevents provider IDs/schemas/auth from leaking to Web or Platform Admin?
-6. What happens on provider timeout, partial success, outage or replacement?
-7. Would the proposed Wandora-native implementation duplicate an accepted provider capability?
+6. What happens on timeout, partial success, outage or replacement?
+7. Would a Wandora-native implementation duplicate an accepted provider capability?
 
-If #7 is **yes**, default = **do not build it**. A newer ADR must prove why reuse is insufficient before proceeding natively.
+If #7 is yes, default = **do not build it**. A newer ADR must prove reuse insufficient.
 
-Invalid reasoning:
+## Customer Web — current classification
 
-> “This concept is missing from PostgreSQL, therefore Wandora needs a table/service for it.”
+Implemented routes: `/`, `/team`, `/work`, `/conversations`, `/approvals`, `/company`, `/login`, `/start`.
 
-Correct reasoning:
+**REAL:** login/session, explicit multi-organization selection, `Equipe` canonical read, `Trabalho`, `Conversas` list/history, Confirmation V2, controlled WhatsApp end-to-end proof.
 
-```text
-REAL STATE
- -> GAP
- -> REUSE GATE
- -> WANDORA CONTRACT/ADAPTER
- -> MINIMUM WANDORA STATE
- -> NATIVE DOMAIN ONLY IF REUSE IS PROVEN INSUFFICIENT
-```
-
----
-
-## 7. Customer Web — actual implemented surface
-
-Implemented customer routes at this snapshot:
-
-- `Início` — `/`;
-- `Equipe` — `/team`;
-- `Trabalho` — `/work`;
-- `Conversas` — `/conversations`;
-- `Aprovações` — `/approvals`;
-- `Empresa` — `/company`;
-- `/login`;
-- `/start`.
-
-Do **not** describe future menu concepts as implemented routes until code exists.
-
-### Current state-first classification
-
-**REAL**
-
-- human login/session;
-- explicit multi-organization selection;
-- `Equipe` canonical digital-employee read;
-- `Trabalho` supervised work flow;
-- `Conversas` list/history;
-- Canonical Confirmation V2 path;
-- controlled WhatsApp inbound/outbound proof.
-
-**PARTIAL / PLACEHOLDER**
-
-- `Início`;
-- `Aprovações` customer surface;
-- `Empresa` customer configuration surface;
-- production actions in `/start`, including real hiring/activation.
+**PARTIAL / PLACEHOLDER:** `Início`, customer `Aprovações`, customer `Empresa`, and production actions in `/start`, including real hiring/activation.
 
 Do not rebuild REAL surfaces from zero.
 
----
-
-## 8. Proven end-to-end product loop
-
-A controlled real flow has been proven:
+## Proven end-to-end loop
 
 ```text
 WhatsApp inbound
@@ -198,293 +124,172 @@ WhatsApp inbound
  -> Mastra deterministic Agent Runtime
  -> canonical supervised proposal
  -> Trabalho / human review
- -> Canonical Confirmation V2
+ -> Confirmation V2
  -> Gateway / Evolution outbound
  -> message observed on authorized handset
 ```
 
-External-effect switches were returned to OFF after controlled proof.
+External-effect switches were returned to OFF after the controlled proof.
 
----
+## Live snapshot — reverify before relying on it
 
-## 9. Current live snapshot — verify before relying on it
-
-Observed on 2026-09-16 immediately before creating this file:
+Observed on 2026-09-16:
 
 ```text
-wandora-web
-  image: wandora/web:team-read-b31db507
-  status: healthy
+Core:      wandora/core:team-read-b31db507              healthy
+Web:       wandora/web:team-read-b31db507               healthy
+Gateway:   wandora/messaging-gateway:origin-fix-94cfb4de healthy
+Paperclip: wandora/paperclip:v2026.831.1                 healthy
 
-wandora-core
-  image: wandora/core:team-read-b31db507
-  status: healthy
-
-wandora-messaging-gateway
-  image: wandora/messaging-gateway:origin-fix-94cfb4de
-  status: healthy
-
-wandora-paperclip
-  image: wandora/paperclip:v2026.831.1
-  status: healthy
-```
-
-Effect switches at snapshot:
-
-```text
-WANDORA_HUMAN_SEND_PROPOSAL_ENABLED: absent / OFF
-WANDORA_GATEWAY_OUTBOUND_ENABLED: absent / OFF
-```
-
-Canonical business counts at snapshot:
-
-```text
+Human Send: OFF / enable flag absent
+Gateway outbound: OFF / enable flag absent
 organizations = 2
 digital_employees = 2
 active_employees = 2
 ```
 
-Never assume these mutable values are still current in a later session; re-check runtime.
+Migration `20260916_010_organization_adapter_state_v1.sql` is **merged in Git but not applied live** at this snapshot.
 
----
+## Paperclip boundary — proven
 
-## 10. Team Read V1 — live
+The installed Paperclip already supplies companies/memberships, agents, `agent-hires`, org/control-plane concepts, agent lifecycle/configuration, issues/tasks, assignments/run ownership, approvals, goals/projects/routines and external runtime adapters.
 
-PR #71 connected customer `Equipe` to the canonical tenant-authorized endpoint:
+Therefore Wandora must not recreate a parallel control plane.
 
-```text
-GET /api/v1/organizations/:organizationId/digital-employees
-```
+Important findings:
 
-The UI no longer invents employees/progress data.
+- Paperclip company creation is higher-trust instance-admin work;
+- same-company board/service identity with `agents:create` can hire without instance-admin;
+- board API keys inherit the owning user's memberships/permissions, so a broad multi-company key is not acceptable as the normal tenant adapter credential;
+- the final tenant technical-identity mechanism and literal cross-company denial remain activation gates.
 
-This read projection does **not** establish that Wandora itself owns the full employee control plane.
-
----
-
-## 11. Paperclip boundary — proven findings
-
-Installed/lab-audited Paperclip already provides substantial control-plane capabilities:
-
-- companies/memberships;
-- agents/digital employees;
-- `agent-hires`;
-- org structure;
-- lifecycle/permissions/config revisions;
-- issues/tasks;
-- assignments/run ownership;
-- approvals;
-- goals/projects/routines;
-- built-in and external runtime adapters.
-
-Therefore Wandora must not casually recreate these as a parallel native control plane.
-
-### Important authority findings
-
-- Paperclip company creation is a higher-trust instance-admin operation;
-- a same-company board/service identity with `agents:create` can use `agent-hires` without instance-admin authority;
-- board API keys inherit the owning Paperclip user's memberships/permissions rather than having independent per-key tenant scope;
-- a broad multi-company/instance-admin key must not be the normal tenant Organization Adapter credential.
-
----
-
-## 12. Paperclip -> Wandora -> Mastra execution bridge — proven
-
-The accepted direction is:
+## Paperclip -> Wandora -> Mastra bridge — proven in laboratory
 
 ```text
 Paperclip task/run
- -> external adapter: wandora_mastra
- -> dedicated Paperclip->Wandora directional HMAC
+ -> external wandora_mastra adapter
+ -> dedicated Paperclip->Wandora HMAC
  -> private Wandora execution bridge
- -> existing Wandora Agent Runtime
- -> Mastra
- -> callback to Paperclip using opaque run-scoped JWT
+ -> Agent Runtime Adapter / Mastra
+ -> callback to Paperclip with opaque run-scoped JWT
 ```
 
-Security split:
+The adapter minimizes provider context via allow-list. Wandora never receives Paperclip's JWT master signing secret.
 
-- adapter -> Wandora: dedicated HMAC over timestamp + exact body;
-- Wandora -> Paperclip callback: opaque run-scoped Paperclip JWT;
-- Wandora never receives Paperclip JWT master signing secret;
-- browser/Platform Admin never see raw Paperclip credentials/IDs/contracts.
+Disposable proof also established:
 
-The adapter also **minimizes context** via explicit allow-list; raw provider context/MCP material must not cross the boundary by default.
+- two isolated Paperclip companies;
+- a disposable Ana agent hired and assigned task `WAN-1`;
+- a real run crossed the Wandora adapter/bridge and updated `WAN-1` to `done`;
+- repeated equal `agent-hires` returned `201` twice with different agent IDs;
+- Paperclip agent metadata preserves non-secret Wandora reconciliation markers.
 
-Reproducible spike:
+Thus Paperclip does **not** provide the hire idempotency contract Wandora needs.
 
-`spikes/paperclip-wandora-mastra-adapter-v1/`
+## ADR 0038 / Organization Adapter private state — MERGED, INERT
 
----
-
-## 13. Disposable Paperclip proof completed after ADR 0037
-
-A second Paperclip instance was run isolated from live data using the same Paperclip image.
-
-The disposable proof established:
-
-- Company A and Company B can exist independently;
-- `Ana Proof` was hired in Company A through Paperclip `agent-hires`;
-- a Paperclip task `WAN-1` was assigned to Ana Proof;
-- the canonical `wandora_mastra_spike` adapter was installed in the disposable instance;
-- moving `WAN-1` into executable state started a real Paperclip run;
-- Paperclip supplied a run-scoped JWT;
-- the Wandora proof bridge validated its directional HMAC;
-- the bridge used the run-scoped JWT to callback into Paperclip;
-- `WAN-1` finished `done`;
-- provider metadata can preserve a synthetic `wandoraEmployeeId` and `wandoraHireKey` for reconciliation.
-
-### Critical idempotency finding
-
-Repeating the same Paperclip `agent-hires` request returned `201` again and created a **different agent ID**.
-
-Therefore Paperclip does **not** provide the hiring idempotency contract Wandora needs at this boundary.
-
-Wandora must own only the minimum integration safety state required to avoid blind duplicate hires and reconcile ambiguous external outcomes.
-
----
-
-## 14. Abandoned direction — DO NOT REVIVE
-
-The earlier provisional `digital_employee_work_assignments` / native assignment migration direction was rejected before merge and before production.
-
-Do not create a parallel native employee hierarchy/responsibility/task control plane merely because those concepts are convenient locally.
-
-Existing beta `digital_employees`, `work_items`, proposals and approvals remain valid for the proven beta vertical slice, but their existence is **not precedent** for growing Core into another Paperclip.
-
----
-
-## 15. Current in-progress work — NOT canonical until merged
-
-At snapshot time there is an unmerged branch:
+PR #75 merged as:
 
 ```text
-branch: feat/organization-adapter-state-v1
-head: bd89d41c822798d8acdfac31a967dbec8939f914
+main: b0d708a2cf1f5969bbda11a6f9100e9ae31e9fa0
+ADR: docs/decisions/0038-organization-adapter-private-state-v1.md
+migration: infra/stacks/supabase/migrations/20260916_010_organization_adapter_state_v1.sql
 ```
 
-Its purpose is to evaluate the **minimum private Wandora integration state** required by the proven Paperclip boundary, specifically:
+The accepted minimum private state is only:
 
-- organization <-> Paperclip company binding;
-- digital employee <-> Paperclip agent binding;
-- idempotent/reconcilable hiring operation journal.
+- Wandora organization <-> provider company binding;
+- Wandora digital employee <-> provider agent binding;
+- hire external-effect journal for idempotency/reconciliation.
 
-The design explicitly avoids duplicating Paperclip lifecycle, hierarchy, task or assignment state.
+Paperclip remains authoritative for agent lifecycle, hierarchy/coordination, task/issue lifecycle, assignment and run ownership.
 
-The proposed migration is intentionally inert until separately activated: no customer hiring route, no new Core privilege and no production application merely because the migration exists in a branch.
+The migration is deliberately inert:
 
-**Do not treat branch work as canonical until its PR is reviewed, green and merged.**
+- no `wandora_core_runtime` access;
+- no `authenticated` access;
+- no Core write grant to `digital_employees`;
+- no customer hiring route;
+- no provider credential;
+- no live Paperclip adapter installation;
+- no production application merely because it is merged.
 
----
+CI proof on PR #75 included migration 010 first + second application, `ORGANIZATION_ADAPTER_STATE_V1_OK`, existing Core verifiers and 79 passing Core tests.
 
-## 16. Platform Admin
+## Abandoned direction — DO NOT REVIVE
 
-Platform Admin is a separate Wandora operator trust plane.
+The old native `digital_employee_work_assignments` direction was rejected before merge/live application.
 
-Its role is:
+Do not create a Wandora-native employee hierarchy/responsibility/task control plane merely because the concepts are convenient locally.
 
-```text
-Platform Admin
- -> Wandora contracts / authorization
- -> Organization Adapter -> Paperclip
- -> Agent Runtime Adapter -> Mastra
- -> Messaging Gateway -> Evolution
- -> Data/Auth boundary -> Supabase
-```
+Existing beta `digital_employees`, `work_items`, proposals and approvals remain valid for the proven slice but are not precedent for cloning Paperclip.
 
-It must not become a stitched set of embedded provider consoles and must not reimplement their control planes.
+## Next executable slice
 
-ADR 0033 provisioning API work remains frozen unless explicitly reprioritized.
+Do **not** expose customer `Contratar funcionário` yet.
 
----
+The next slice is the **Organization Adapter activation contract proof**, still non-customer and non-production-effect by default:
 
-## 17. Security invariants
+1. define the final least-privilege Paperclip technical identity mechanism;
+2. prove literal Company A credential -> Company B denial using that mechanism;
+3. define the minimum Wandora adapter service/API boundary and minimum DB grants;
+4. prove same idempotency key + same request replay;
+5. prove same key + changed request conflict;
+6. prove ambiguous-response reconciliation through Paperclip metadata;
+7. prove local-only/provider-only partial-success repair behavior;
+8. prove provider IDs/credentials do not leak through Wandora contracts;
+9. only then review customer `Contratar/Ativar funcionário` UX and activation.
 
-Never silently weaken these:
+Migration 010 production application, adapter credentials and runtime activation are separate operational decisions and must not happen implicitly.
 
-- customer browser never talks directly to Paperclip, Mastra, Evolution or privileged database/admin APIs;
-- provider IDs/contracts do not become customer-facing Wandora contracts;
+## Platform Admin
+
+Platform Admin remains a separate Wandora operator trust plane and is not the current priority. ADR 0033 provisioning API work remains frozen unless explicitly reprioritized.
+
+## Security invariants
+
+- browser never talks directly to Paperclip, Mastra, Evolution or privileged DB/admin APIs;
+- provider IDs/contracts never become customer-facing Wandora contracts;
 - no production credential merely because a role/table/adapter exists;
-- outbound remains disabled unless an explicitly reviewed activation occurs;
-- uncertain external effects are never blindly retried;
+- outbound remains OFF unless deliberately activated by a separate reviewed step;
+- uncertain effects are never blindly retried;
 - secrets/tokens/private keys never enter Git;
-- any credential that ever entered Git history is treated as compromised;
-- private Core/Gateway/provider services stay private unless a reviewed public contract says otherwise;
+- private services remain private unless a reviewed public contract says otherwise;
 - tenant selectors are not authorization; Core reauthorizes every tenant request;
-- provider capability reuse is preferred over native duplication;
-- minimum provider binding/reconciliation state is allowed only when justified by safety, replaceability, audit or idempotency.
+- merged migration != live migration.
 
----
-
-## 18. What NOT to do in a future session
-
-Do not:
-
-- restart architecture from generic SaaS abstractions;
-- assume a missing table means a missing capability;
-- recreate Paperclip agent lifecycle, org hierarchy, tasks or assignment engine without a superseding ADR;
-- create Mastra-owned public identity for Wandora employees;
-- let Evolution become the business backend;
-- let Supabase Studio become the customer product;
-- treat Portainer as source of truth;
-- assume old chat summaries override current Git/runtime;
-- activate production effects as a side effect of unrelated work;
-- describe a branch migration as live before it is explicitly applied and verified;
-- treat provider consoles as the normal customer/admin UX;
-- rebuild a customer surface already classified REAL.
-
----
-
-## 19. New-session bootstrap procedure
-
-When resuming Wandora in a new conversation/session:
+## New-session bootstrap
 
 1. read this file for orientation;
 2. read `AGENTS.md` and the authority chain;
-3. fetch current `main` SHA;
-4. inspect any active branch/PR relevant to the requested work;
-5. verify live runtime if the decision depends on deployment state;
-6. classify the target as REAL / PARTIAL / PLACEHOLDER / ABSENT;
-7. run the Capability Reuse Gate before proposing new domain state;
-8. then execute the normal decision -> adversarial review -> execution -> validation cycle.
+3. fetch current `main`;
+4. inspect active PR/branch relevant to the requested work;
+5. verify live runtime when deployment state matters;
+6. classify target as REAL / PARTIAL / PLACEHOLDER / ABSENT;
+7. apply Capability Reuse Gate;
+8. execute decision -> adversarial review -> execution -> validation.
 
-Do not ask the user to reconstruct decisions already documented unless the evidence is genuinely missing or contradictory.
+Do not ask the user to reconstruct decisions already documented unless evidence is genuinely missing or contradictory.
 
----
+## Maintenance rule
 
-## 20. Maintenance rule for this Project Source
+Update this file when architecture authority, REAL customer surfaces, live topology relevant to continuity, selected providers/adapters, major safety invariants or the current executable slice materially changes.
 
-Update this file when one of these materially changes:
+Keep it compact. Detailed history belongs in ADRs/evidence docs.
 
-- accepted architecture/capability authority;
-- customer surfaces becoming REAL;
-- live deployment topology/images when important to continuity;
-- selected provider/adapters;
-- major security invariants;
-- current executable slice;
-- abandoned directions that could otherwise be accidentally revived.
-
-Keep it compact. Link/reference canonical documents instead of copying entire ADRs.
-
-If this file becomes stale, **do not preserve stale facts for continuity** — update them or explicitly mark them historical.
-
----
-
-## 21. Canonical documents to consult
+## Canonical documents
 
 - `AGENTS.md`
 - `docs/CAPABILITY_AUTHORITY.md`
 - `docs/architecture.md`
 - `docs/CANONICAL_STATE.md`
-- `docs/decisions/0034-state-first-project-continuity-rule.md`
-- `docs/decisions/0036-capability-authority-and-reuse-gate.md`
-- `docs/decisions/0037-paperclip-wandora-mastra-execution-bridge-v1.md`
-- current component README/runbook
+- ADR 0034 — state-first continuity
+- ADR 0036 — capability authority/reuse gate
+- ADR 0037 — Paperclip/Wandora/Mastra execution bridge
+- ADR 0038 — Organization Adapter private state
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
----
+## One-line memory anchor
 
-## 22. One-line memory anchor
-
-> **Wandora owns the customer/operator contract; Supabase, Paperclip, Mastra, Evolution and other components lend capabilities behind Wandora adapters. Verify real state first, reuse before rebuilding, persist only minimum Wandora-owned safety/state, and never let a local implementation convenience redefine the architecture.**
+> **Wandora owns the customer/operator contract; specialist components lend capabilities behind Wandora adapters. Verify real state first, reuse before rebuilding, persist only minimum Wandora-owned safety/state, and never let local implementation convenience redefine the architecture.**
