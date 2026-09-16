@@ -174,6 +174,15 @@ function actionMessage(action: ProposalSendAction): string | null {
   return 'A proposta ficou desatualizada e precisa ser recalculada antes de qualquer envio.';
 }
 
+function maskContactLabel(label: string): string {
+  const compact = label.replace(/[\s()-]/g, '');
+  if (!/^\+?\d{10,15}$/.test(compact)) return label;
+  const prefixLength = compact.startsWith('+') ? 5 : 4;
+  if (compact.length <= prefixLength + 4) return label;
+  const hiddenLength = compact.length - prefixLength - 4;
+  return `${compact.slice(0, prefixLength)}${'•'.repeat(hiddenLength)}${compact.slice(-4)}`;
+}
+
 function WorkCard({
   item,
   organizationId,
@@ -185,6 +194,7 @@ function WorkCard({
 }) {
   const { authFetch } = useAuth();
   const queryClient = useQueryClient();
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const sendMutation = useMutation({
     mutationFn: async () => {
       if (!item.proposal) throw new Error('Não existe proposta para enviar.');
@@ -215,6 +225,7 @@ function WorkCard({
       return await response.json() as { status: 'sent'; proposalId: string; conversationId: string };
     },
     onSuccess: async () => {
+      setConfirmOpen(false);
       onSent();
       await queryClient.invalidateQueries({ queryKey: ['attention-required', organizationId] });
     },
@@ -224,62 +235,121 @@ function WorkCard({
   const actionStatus = action ? actionMessage(action) : null;
 
   return (
-    <article className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
-      <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-start">
-        <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-amber-50 text-amber-600"><Clock3 className="size-[19px]" /></span>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h3 className="m-0 text-base font-semibold text-slate-950">Qualificação de {item.contact.label}</h3>
-              <p className="m-0 mt-1 text-xs text-slate-400">{item.employee.name} · atualizado em {dateFormatter.format(new Date(item.work.updatedAt))}</p>
+    <>
+      <article className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+        <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-start">
+          <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-amber-50 text-amber-600"><Clock3 className="size-[19px]" /></span>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="m-0 text-base font-semibold text-slate-950">Qualificação de {item.contact.label}</h3>
+                <p className="m-0 mt-1 text-xs text-slate-400">{item.employee.name} · atualizado em {dateFormatter.format(new Date(item.work.updatedAt))}</p>
+              </div>
+              <span className="rounded-full bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700">Aguardando você</span>
             </div>
-            <span className="rounded-full bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700">Aguardando você</span>
+
+            {item.latestCustomerMessage ? (
+              <div className="mt-5 rounded-2xl bg-slate-50 p-4">
+                <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-slate-500"><MessageCircleMore className="size-4" /> Última mensagem do cliente</div>
+                <p className="m-0 text-sm leading-6 text-slate-700">{item.latestCustomerMessage.text}</p>
+              </div>
+            ) : null}
+
+            {item.proposal ? (
+              <div className="mt-4 rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4">
+                <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-indigo-700"><Sparkles className="size-4" /> Proposta de {item.employee.name}</div>
+                <p className="m-0 text-sm leading-6 text-slate-800">{item.proposal.text}</p>
+                <p className="m-0 mt-3 text-xs leading-5 text-slate-500">{item.proposal.rationale}</p>
+
+                {action?.state === 'ready' ? (
+                  <div className="mt-4 border-t border-indigo-100 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sendMutation.reset();
+                        setConfirmOpen(true);
+                      }}
+                      disabled={sendMutation.isPending}
+                      className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <Send className="size-4" />
+                      Revisar e enviar
+                    </button>
+                    <p className="m-0 mt-2 text-xs leading-5 text-slate-500">O envio só acontece depois de uma confirmação final com destinatário e texto.</p>
+                  </div>
+                ) : actionStatus ? (
+                  <div className="mt-4 flex items-start gap-2 border-t border-indigo-100 pt-4 text-xs leading-5 text-slate-500">
+                    <ShieldAlert className="mt-0.5 size-4 shrink-0" />
+                    <span>{actionStatus}</span>
+                  </div>
+                ) : null}
+
+                {sendMutation.isError && !confirmOpen ? (
+                  <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs leading-5 text-rose-700">
+                    {sendMutation.error instanceof Error ? sendMutation.error.message : 'Não foi possível concluir o envio.'}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </div>
-
-          {item.latestCustomerMessage ? (
-            <div className="mt-5 rounded-2xl bg-slate-50 p-4">
-              <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-slate-500"><MessageCircleMore className="size-4" /> Última mensagem do cliente</div>
-              <p className="m-0 text-sm leading-6 text-slate-700">{item.latestCustomerMessage.text}</p>
-            </div>
-          ) : null}
-
-          {item.proposal ? (
-            <div className="mt-4 rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4">
-              <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-indigo-700"><Sparkles className="size-4" /> Proposta de {item.employee.name}</div>
-              <p className="m-0 text-sm leading-6 text-slate-800">{item.proposal.text}</p>
-              <p className="m-0 mt-3 text-xs leading-5 text-slate-500">{item.proposal.rationale}</p>
-
-              {action?.state === 'ready' ? (
-                <div className="mt-4 border-t border-indigo-100 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => sendMutation.mutate()}
-                    disabled={sendMutation.isPending}
-                    className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {sendMutation.isPending
-                      ? <LoaderCircle className="size-4 animate-spin" />
-                      : <Send className="size-4" />}
-                    {sendMutation.isPending ? 'Enviando…' : 'Enviar resposta'}
-                  </button>
-                  <p className="m-0 mt-2 text-xs leading-5 text-slate-500">A mensagem será enviada exatamente como aparece acima. Edição livre não está habilitada nesta versão.</p>
-                </div>
-              ) : actionStatus ? (
-                <div className="mt-4 flex items-start gap-2 border-t border-indigo-100 pt-4 text-xs leading-5 text-slate-500">
-                  <ShieldAlert className="mt-0.5 size-4 shrink-0" />
-                  <span>{actionStatus}</span>
-                </div>
-              ) : null}
-
-              {sendMutation.isError ? (
-                <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs leading-5 text-rose-700">
-                  {sendMutation.error instanceof Error ? sendMutation.error.message : 'Não foi possível concluir o envio.'}
-                </div>
-              ) : null}
-            </div>
-          ) : null}
         </div>
-      </div>
-    </article>
+      </article>
+
+      {confirmOpen && item.proposal ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4" role="presentation">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={`confirm-send-${item.proposal.id}`}
+            className="w-full max-w-xl rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl"
+          >
+            <div className="flex items-start gap-3">
+              <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-indigo-50 text-indigo-600"><Send className="size-5" /></span>
+              <div>
+                <h3 id={`confirm-send-${item.proposal.id}`} className="m-0 text-lg font-semibold text-slate-950">Confirmar envio</h3>
+                <p className="m-0 mt-1 text-sm leading-6 text-slate-500">Confira o destinatário e a mensagem. O segundo botão abaixo é o único que efetivamente envia.</p>
+              </div>
+            </div>
+
+            <div className="mt-5 space-y-4 rounded-2xl bg-slate-50 p-4">
+              <div>
+                <p className="m-0 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Destinatário</p>
+                <p className="m-0 mt-1 text-sm font-semibold text-slate-800">{maskContactLabel(item.contact.label)}</p>
+              </div>
+              <div>
+                <p className="m-0 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Mensagem exata</p>
+                <p className="m-0 mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-800">{item.proposal.text}</p>
+              </div>
+            </div>
+
+            {sendMutation.isError ? (
+              <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs leading-5 text-rose-700">
+                {sendMutation.error instanceof Error ? sendMutation.error.message : 'Não foi possível concluir o envio.'}
+              </div>
+            ) : null}
+
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setConfirmOpen(false)}
+                disabled={sendMutation.isPending}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => sendMutation.mutate()}
+                disabled={sendMutation.isPending}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {sendMutation.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" />}
+                {sendMutation.isPending ? 'Enviando…' : 'Confirmar e enviar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }
