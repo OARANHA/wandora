@@ -3,7 +3,9 @@ import { MastraDeterministicAgentRuntime } from '../agent-runtime/mastra-determi
 import { PostgresAnaRepository } from '../ana/postgres-repository.js';
 import { AnaSupervisedIngressService } from '../ana/supervised-ingress.js';
 import { Es256JwksHumanTokenVerifier } from '../human-auth/es256-jwks.js';
+import { createPrivateGatewayClient } from '../messaging/private-gateway.js';
 import { HumanSupervisionReadService } from '../supervision/human-read.js';
+import { HumanSendProposalService } from '../supervision/human-send-proposal.js';
 import { loadRuntimeConfig } from './config.js';
 import { createGatewayIngressHandler } from './gateway-ingress.js';
 import { createHumanSupervisionHandler } from './human-supervision.js';
@@ -64,16 +66,34 @@ const handleGatewayInbound = pool && config.gatewayIngress
     })
   : undefined;
 
-const handleHumanSupervision = pool && config.humanApi
+const humanVerifier = pool && config.humanApi
+  ? new Es256JwksHumanTokenVerifier({
+      jwksUrl: config.humanApi.jwksUrl,
+      issuer: config.humanApi.issuer,
+      audience: config.humanApi.audience,
+    })
+  : undefined;
+
+const humanReadService = pool && humanVerifier
+  ? new HumanSupervisionReadService(pool, humanVerifier)
+  : undefined;
+
+const humanSendProposalService = pool && humanVerifier && config.humanSendProposal
+  ? new HumanSendProposalService(
+      pool,
+      humanVerifier,
+      createPrivateGatewayClient({
+        url: config.humanSendProposal.gatewayUrl,
+        secret: config.humanSendProposal.gatewaySecret,
+      }),
+      config.humanSendProposal.connectionId,
+    )
+  : undefined;
+
+const handleHumanSupervision = humanReadService
   ? createHumanSupervisionHandler(
-      new HumanSupervisionReadService(
-        pool,
-        new Es256JwksHumanTokenVerifier({
-          jwksUrl: config.humanApi.jwksUrl,
-          issuer: config.humanApi.issuer,
-          audience: config.humanApi.audience,
-        }),
-      ),
+      humanReadService,
+      ...(humanSendProposalService ? [humanSendProposalService] : []),
     )
   : undefined;
 
@@ -90,6 +110,7 @@ server.listen(config.port, '0.0.0.0', () => {
     port: config.port,
     gatewayIngress: Boolean(handleGatewayInbound),
     humanApi: Boolean(handleHumanSupervision),
+    humanSendProposal: Boolean(humanSendProposalService),
     agentRuntime: config.agentRuntime?.mode ?? 'disabled',
   }));
 });
