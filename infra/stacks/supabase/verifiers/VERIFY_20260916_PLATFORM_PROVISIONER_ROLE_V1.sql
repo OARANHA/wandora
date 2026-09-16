@@ -3,6 +3,8 @@
 BEGIN;
 
 DO $$
+DECLARE
+  v_table text;
 BEGIN
   IF NOT has_function_privilege(
     'wandora_platform_provisioner',
@@ -24,13 +26,21 @@ BEGIN
     RAISE EXCEPTION 'VERIFY_FAIL provisioner can execute unrelated Core function';
   END IF;
 
-  IF has_table_privilege('wandora_platform_provisioner', 'wandora.organizations', 'SELECT,INSERT,UPDATE,DELETE')
-     OR has_table_privilege('wandora_platform_provisioner', 'wandora.users', 'SELECT,INSERT,UPDATE,DELETE')
-     OR has_table_privilege('wandora_platform_provisioner', 'wandora.memberships', 'SELECT,INSERT,UPDATE,DELETE')
-     OR has_table_privilege('wandora_platform_provisioner', 'wandora.digital_employees', 'SELECT,INSERT,UPDATE,DELETE')
-     OR has_table_privilege('wandora_platform_provisioner', 'wandora_private.tenant_provisioning_requests', 'SELECT,INSERT,UPDATE,DELETE') THEN
-    RAISE EXCEPTION 'VERIFY_FAIL provisioner has direct table privilege';
-  END IF;
+  FOREACH v_table IN ARRAY ARRAY[
+    'wandora.organizations',
+    'wandora.users',
+    'wandora.memberships',
+    'wandora.digital_employees',
+    'wandora_private.tenant_provisioning_requests'
+  ]
+  LOOP
+    IF has_table_privilege('wandora_platform_provisioner', v_table, 'SELECT')
+       OR has_table_privilege('wandora_platform_provisioner', v_table, 'INSERT')
+       OR has_table_privilege('wandora_platform_provisioner', v_table, 'UPDATE')
+       OR has_table_privilege('wandora_platform_provisioner', v_table, 'DELETE') THEN
+      RAISE EXCEPTION 'VERIFY_FAIL provisioner has direct table privilege on %', v_table;
+    END IF;
+  END LOOP;
 END;
 $$;
 
