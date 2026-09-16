@@ -61,16 +61,18 @@ for migration in \
   20260915_006_human_session_bootstrap_v1.sql \
   20260915_007_human_send_proposal_v1.sql \
   20260916_008_private_tenant_provisioning_v1.sql \
-  20260916_009_platform_provisioner_role_v1.sql; do
+  20260916_009_platform_provisioner_role_v1.sql \
+  20260916_010_organization_adapter_state_v1.sql; do
   docker cp "$MIGRATIONS/$migration" "$DB:/tmp/$migration" >/dev/null
   docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -f "/tmp/$migration" >/dev/null
 done
 
-# Migrations 008 and 009 are intentionally idempotent. Prove second application
-# before running provisioning behavior verifiers.
+# Migrations 008-010 are intentionally idempotent. Prove second application
+# before running their behavior/invariant verifiers.
 for migration in \
   20260916_008_private_tenant_provisioning_v1.sql \
-  20260916_009_platform_provisioner_role_v1.sql; do
+  20260916_009_platform_provisioner_role_v1.sql \
+  20260916_010_organization_adapter_state_v1.sql; do
   docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" \
     -f "/tmp/$migration" >/dev/null
 done
@@ -86,6 +88,7 @@ for verifier in \
   VERIFY_20260916_PRIVATE_TENANT_PROVISIONING_V1.sql \
   VERIFY_20260916_PLATFORM_PROVISIONER_ROLE_V1_LIVE.sql \
   VERIFY_20260916_PLATFORM_PROVISIONER_ROLE_V1.sql \
+  VERIFY_20260916_ORGANIZATION_ADAPTER_STATE_V1.sql \
   VERIFY_20260914_ANA_VERTICAL_SLICE_V1.sql; do
   docker cp "$VERIFIERS/$verifier" "$DB:/tmp/$verifier" >/dev/null
   docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -f "/tmp/$verifier"
