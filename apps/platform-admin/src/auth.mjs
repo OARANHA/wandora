@@ -48,9 +48,16 @@ export class PlatformOperatorVerifier {
     const keys = new Map();
     for (const value of payload.keys) {
       const jwk = record(value);
-      if (!jwk || jwk.kty !== 'EC' || jwk.crv !== 'P-256' || (jwk.alg && jwk.alg !== 'ES256')) continue;
-      if (typeof jwk.kid !== 'string' || !jwk.kid || keys.has(jwk.kid)) continue;
-      try { keys.set(jwk.kid, createPublicKey({ key: jwk, format: 'jwk' })); } catch { /* ignore invalid key */ }
+      if (!jwk || jwk.kty !== 'EC' || jwk.crv !== 'P-256') continue;
+      if (jwk.alg !== undefined && jwk.alg !== 'ES256') continue;
+      if (jwk.use !== undefined && jwk.use !== 'sig') continue;
+      if (typeof jwk.kid !== 'string' || !jwk.kid || jwk.kid.length > 255) continue;
+      if (keys.has(jwk.kid)) throw new PlatformAuthError('jwks-unavailable', 'Platform Auth JWKS contains duplicate key IDs.');
+      try {
+        keys.set(jwk.kid, createPublicKey({ key: jwk, format: 'jwk' }));
+      } catch {
+        throw new PlatformAuthError('jwks-unavailable', 'Platform Auth JWKS contains an invalid EC key.');
+      }
     }
     if (!keys.size) throw new PlatformAuthError('jwks-unavailable', 'Platform Auth JWKS has no ES256 key.');
     this.cached = { keys, refreshedAt: now, expiresAt: now + 300_000 };
@@ -65,9 +72,11 @@ export class PlatformOperatorVerifier {
     const [encodedHeader, encodedPayload, encodedSignature] = parts;
     const header = decodeJson(encodedHeader);
     const payload = decodeJson(encodedPayload);
-    if (!header || !payload || header.alg !== 'ES256' || typeof header.kid !== 'string' || 'crit' in header) {
+    if (!header || !payload || header.alg !== 'ES256' || typeof header.kid !== 'string' || !header.kid) {
       throw new PlatformAuthError('unauthorized', 'JWT header is invalid.');
     }
+    if ('typ' in header && header.typ !== 'JWT') throw new PlatformAuthError('unauthorized', 'JWT type is invalid.');
+    if ('crit' in header) throw new PlatformAuthError('unauthorized', 'JWT critical extensions are not supported.');
     if (payload.iss !== this.options.issuer || !audienceMatches(payload.aud, this.options.audience)
       || typeof payload.sub !== 'string' || payload.sub.length < 1 || payload.sub.length > 255
       || !Number.isInteger(payload.exp) || !Number.isInteger(payload.iat)) {
