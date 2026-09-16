@@ -91,10 +91,9 @@ const humanSendProposalService = pool && humanVerifier && config.humanSendPropos
   : undefined;
 
 const handleHumanSupervision = humanReadService
-  ? createHumanSupervisionHandler(
-      humanReadService,
-      ...(humanSendProposalService ? [humanSendProposalService] : []),
-    )
+  ? humanSendProposalService
+    ? createHumanSupervisionHandler(humanReadService, humanSendProposalService)
+    : createHumanSupervisionHandler(humanReadService)
   : undefined;
 
 const server = createRuntimeServer({
