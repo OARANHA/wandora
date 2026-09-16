@@ -131,7 +131,8 @@ BEGIN
      AND organization_id = v_org_id
      AND conversation_id = v_conversation_id
      AND direction = 'inbound'
-     AND source_event_id = v_v2_source_event;
+     AND source_event_id = v_v2_source_event
+     AND body = 'Teste interno autorizado V2: repetir a prova após correção do boundary Evolution Origin.';
   IF NOT FOUND THEN
     RAISE EXCEPTION 'V2 inbound message postcondition failed';
   END IF;
@@ -164,7 +165,9 @@ BEGIN
      AND conversation_id = v_conversation_id
      AND source_event_id = v_v2_source_event
      AND kind = 'send-text'
-     AND commitment = 'none';
+     AND commitment = 'none'
+     AND proposed_text = 'Teste Wandora V2: envio supervisionado concluído com sucesso. Nenhuma ação é necessária.'
+     AND rationale = 'Segunda prova interna autorizada após correção do Evolution Private Outbound Origin V1.';
   IF NOT FOUND THEN
     RAISE EXCEPTION 'V2 proposal postcondition failed';
   END IF;
