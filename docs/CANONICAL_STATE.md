@@ -196,6 +196,14 @@ manifest.json Config -> sha256:ea91dfa41b728ed0ee03965ae76c52b95d3a726c5fd655917
 index.json manifest   -> sha256:2afe1888f7398290b92d1539dc5dea1e4ae956078f03ebe85e54f111cd49de14
 ```
 
+The historical loaded candidate carries the exact canonical revision label, `io.wandora.candidate=organization-adapter-core-v1`, `USER node` and only the expected base runtime environment. The running container set before/after that historical load had the same SHA-256 snapshot:
+
+```text
+2f9f03baa78c8cb1a5fff1ca02081aa65085a20f7a388875f5ae0b990d614a81
+```
+
+No container was created or restarted by that historical load.
+
 Portable candidate manifests must henceforth record at least:
 
 ```text
@@ -272,7 +280,7 @@ digital_employee_provider_bindings    ABSENT
 digital_employee_hire_operations      ABSENT
 ```
 
-Organization Adapter HMAC custody remains absent. Paperclip remains the accepted pinned provider implementation; no production managed-plugin/HMAC activation was performed by this slice.
+Organization Adapter HMAC custody remains absent. Paperclip remains `wandora/paperclip:v2026.831.1`, healthy, with only the accepted loopback operator binding `127.0.0.1:3100->3100/tcp`. No production managed-plugin/HMAC activation was performed by this slice.
 
 The historical `7c7e7706…` candidate and unrelated old laboratory/probe containers/images were deliberately not cleaned up in this provenance slice. Cleanup is a separate operational concern and must not be mixed into activation/provenance evidence.
 
