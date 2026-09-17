@@ -1,0 +1,15 @@
+http:
+  routers:
+    wandora-paperclip:
+      rule: "Host(`paperclip.wandora.com.br`)"
+      entryPoints:
+        - websecure
+      service: wandora-paperclip
+      tls:
+        certResolver: letsencrypt
+
+  services:
+    wandora-paperclip:
+      loadBalancer:
+        servers:
+          - url: "http://wandora-paperclip:3100"
