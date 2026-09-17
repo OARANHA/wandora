@@ -7,6 +7,7 @@ on:
       - 'infra/stacks/core/**'
       - '.github/workflows/core-candidate.yml'
       - 'docs/decisions/0044-organization-adapter-core-candidate-artifact-v1.md'
+      - 'docs/decisions/0047-container-image-portable-provenance-digests-v1.md'
   push:
     branches:
       - main
@@ -15,6 +16,7 @@ on:
       - 'infra/stacks/core/**'
       - '.github/workflows/core-candidate.yml'
       - 'docs/decisions/0044-organization-adapter-core-candidate-artifact-v1.md'
+      - 'docs/decisions/0047-container-image-portable-provenance-digests-v1.md'
   workflow_dispatch:
 
 permissions:
@@ -36,29 +38,65 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Build candidate archive and provenance manifest
+      - name: Build candidate archive and portable provenance manifest
         shell: bash
         env:
           WANDORA_SOURCE_SHA: ${{ github.sha }}
           WANDORA_CANDIDATE_OUT_DIR: ${{ github.workspace }}/candidate-artifacts/core-${{ github.sha }}
         run: bash apps/core/scripts/build-organization-adapter-candidate-v1.sh
 
-      - name: Re-load archive and re-check provenance
+      - name: Re-load archive and re-check portable provenance
         shell: bash
         run: |
+          set -euo pipefail
+          verifier='apps/core/scripts/verify-organization-adapter-candidate-archive-v1.py'
           candidate_dir="$(find candidate-artifacts -mindepth 1 -maxdepth 1 -type d -name 'core-*' -print -quit)"
           test -n "$candidate_dir"
+          manifest="$candidate_dir/candidate-manifest.txt"
           archive="$(find "$candidate_dir" -maxdepth 1 -type f -name '*.tar.gz' -print -quit)"
           test -n "$archive"
-          image_tag="$(awk -F= '$1=="image_tag"{print substr($0,index($0,"=")+1)}' "$candidate_dir/candidate-manifest.txt")"
-          expected_id="$(awk -F= '$1=="image_id"{print substr($0,index($0,"=")+1)}' "$candidate_dir/candidate-manifest.txt")"
-          expected_revision="$(awk -F= '$1=="source_sha"{print $2}' "$candidate_dir/candidate-manifest.txt")"
+
+          python3 "$verifier" --archive "$archive" --manifest "$manifest"
+          (cd "$candidate_dir" && sha256sum -c SHA256SUMS)
+
+          image_tag="$(awk -F= '$1=="image_tag"{print substr($0,index($0,"=")+1)}' "$manifest")"
+          runner_image_id="$(awk -F= '$1=="runner_image_id"{print substr($0,index($0,"=")+1)}' "$manifest")"
+          expected_config_digest="$(awk -F= '$1=="oci_config_digest"{print substr($0,index($0,"=")+1)}' "$manifest")"
+          expected_manifest_digest="$(awk -F= '$1=="oci_manifest_digest"{print substr($0,index($0,"=")+1)}' "$manifest")"
+          expected_revision="$(awk -F= '$1=="source_sha"{print $2}' "$manifest")"
+          expected_contract="$(awk -F= '$1=="candidate_contract"{print $2}' "$manifest")"
+
+          current_runner_id="$(docker image inspect --format '{{.Id}}' "$image_tag")"
+          test "$current_runner_id" = "$runner_image_id"
+
+          regression_manifest="$RUNNER_TEMP/candidate-manifest-runner-id-regression.txt"
+          cp "$manifest" "$regression_manifest"
+          sed -i 's/^runner_image_id=.*/runner_image_id=sha256:0000000000000000000000000000000000000000000000000000000000000000/' "$regression_manifest"
+          test "$(awk -F= '$1==\"runner_image_id\"{print substr($0,index($0,\"=\")+1)}' "$regression_manifest")" != "$runner_image_id"
+          python3 "$verifier" --archive "$archive" --manifest "$regression_manifest"
+
           docker image rm -f "$image_tag" >/dev/null
           gunzip -c "$archive" | docker load >/dev/null
+
           actual_id="$(docker image inspect --format '{{.Id}}' "$image_tag")"
+          case "$actual_id" in
+            "$expected_config_digest"|"$expected_manifest_digest") ;;
+            *) echo "candidate_loaded_engine_id_not_proven_by_archive:$actual_id" >&2; exit 1 ;;
+          esac
+
           actual_revision="$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' "$image_tag")"
-          test "$actual_id" = "$expected_id"
+          actual_contract="$(docker image inspect --format '{{ index .Config.Labels "io.wandora.candidate" }}' "$image_tag")"
+          actual_user="$(docker image inspect --format '{{.Config.User}}' "$image_tag")"
+          actual_env="$(docker image inspect --format '{{json .Config.Env}}' "$image_tag")"
           test "$actual_revision" = "$expected_revision"
+          test "$actual_contract" = "$expected_contract"
+          test "$actual_user" = 'node'
+          if grep -Eq 'WANDORA_ORGANIZATION_ADAPTER_ENABLED|WANDORA_ORGANIZATION_ADAPTER_SECRET|HMAC|PASSWORD|TOKEN|API_KEY' <<<"$actual_env"; then
+            echo 'candidate_loaded_image_baked_sensitive_or_enable_env' >&2
+            exit 1
+          fi
+
+          python3 "$verifier" --archive "$archive" --manifest "$manifest"
           (cd "$candidate_dir" && sha256sum -c SHA256SUMS)
 
       - name: Upload short-lived private candidate artifact
