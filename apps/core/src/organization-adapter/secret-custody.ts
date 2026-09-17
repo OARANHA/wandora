@@ -4,6 +4,7 @@ import { isAbsolute, join } from 'node:path';
 import { open } from 'node:fs/promises';
 
 const PROVIDER_COMPANY_REF_MAX = 255;
+const SECRET_MIN = 32;
 const SECRET_MAX = 8_192;
 
 export function paperclipOrganizationAdapterSecretFileName(providerCompanyRef: string): string {
@@ -35,7 +36,7 @@ export function createPaperclipOrganizationAdapterFileSecretResolver(deps: {
   return async (providerCompanyRef: string): Promise<string> => {
     const filename = paperclipOrganizationAdapterSecretFileName(providerCompanyRef);
     const secret = (await readSecretFile(join(deps.secretDirectory, filename))).trim();
-    if (!secret || secret.length > SECRET_MAX) {
+    if (secret.length < SECRET_MIN || secret.length > SECRET_MAX) {
       throw new Error('paperclip_organization_adapter_hmac_secret_unavailable');
     }
     return secret;
