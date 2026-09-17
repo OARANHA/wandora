@@ -1,7 +1,7 @@
 # Wandora — Canonical State / Handoff
 
 Last synchronized: **2026-09-17**
-Canonical base verified before this synchronization: `7d3b93ea95fa76d9f9164c05b7191e67b900394a`
+Canonical base verified before this synchronization: `040d96e1140f4a9e2733f97f270e047a0df3beb0`
 
 Authority order: `AGENTS.md` → accepted ADRs → `docs/CAPABILITY_AUTHORITY.md` → `docs/architecture.md` → this file → component README/runbook.
 
@@ -88,8 +88,6 @@ A broad Board API key is not the normal tenant runtime identity.
 
 ## PR #81 — Organization Adapter Service Contract V1 — MERGED, NOT LIVE
 
-Merged main before #82: `72d6c50895e058a97a392b7a8eec583652f9154d`.
-
 PR #81 proved the internal provider-neutral Organization Adapter service with:
 
 - active owner/admin authorization only;
@@ -108,13 +106,9 @@ Migration `20260916_011_organization_adapter_service_contract_v1.sql` is merged 
 
 ## ADR 0040 / PR #82 — Signed Paperclip Private Client V1 — MERGED, NOT LIVE
 
-PR #82 merged as:
+PR #82 merged as `7d3b93ea95fa76d9f9164c05b7191e67b900394a`.
 
-```text
-7d3b93ea95fa76d9f9164c05b7191e67b900394a
-```
-
-Core now has a private Paperclip provider implementation behind the existing `OrganizationAdapterProvider` contract.
+Core has a private Paperclip provider implementation behind the existing `OrganizationAdapterProvider` contract.
 
 Request contract:
 
@@ -126,13 +120,11 @@ resolve HMAC secret by frozen providerCompanyRef
 -> Paperclip plugin webhook
 ```
 
-The client does not accept HMAC material from customer input. A production secret resolver is intentionally **not selected or wired yet**.
-
-Paperclip's webhook returns delivery success, not the native managed-agent UUID. Wandora therefore stores an opaque deterministic `provider_agent_ref` derived from plugin key + frozen provider company + catalog key. The column remains private; it is not a customer contract and need not equal Paperclip's internal UUID.
+The client does not accept HMAC material from customer input. Paperclip webhook delivery success is represented to Wandora through a private opaque deterministic `provider_agent_ref`; native Paperclip agent UUIDs remain provider-private.
 
 Transport failures, non-200 responses, malformed success or invalid correlation are treated as uncertain provider outcomes and reuse the conservative #81 recovery path.
 
-### Combined cross-company boundary — NOW LITERALLY PROVEN
+### Combined cross-company boundary — LITERALLY PROVEN
 
 Against disposable Paperclip using the final request contract:
 
@@ -144,37 +136,118 @@ B managed Ana after denial -> zero
 B secret -> B target       -> HTTP 200, one managed Ana
 ```
 
-This closes the exact valid-Company-A-HMAC -> Company-B-target gate that ADR 0039 intentionally left unclaimed.
-
 The final disposable plugin proof source is preserved under `spikes/paperclip-organization-adapter-private-client-v1/`.
 
-PR #82 final head `e77cfa856d0040cf50e74cbcd755ee6557bfc4ee` passed Core, Web, Messaging Gateway and Platform Admin CI. Core passed the historical verifier, Organization Adapter Service Contract verifier and deterministic runtime/overlay validation.
+## ADR 0041 / PR #84 — Secret Custody + Runtime Wiring V1 — MERGED, NOT LIVE
+
+PR #84 merged as `815c416715f720c22b29b444b0b89ac71e5515d3`.
+
+Sender-side custody now reuses the existing mounted-secret-file pattern instead of environment variables or database-held raw secrets.
+
+For a frozen `providerCompanyRef`, Core derives only:
+
+```text
+paperclip-<sha256(providerCompanyRef)>.hmac
+```
+
+inside an operator-mounted absolute secret directory. Raw company refs never become paths. The default reader opens read-only with `O_NOFOLLOW`, trims surrounding whitespace and rejects missing, empty, oversized or too-short material. V1 requires at least 32 characters of HMAC material.
+
+A disposable runtime factory composes:
+
+```text
+OrganizationAdapterService
+  -> PaperclipOrganizationAdapterProvider
+  -> file-backed per-company secret resolver
+  -> signed private Paperclip webhook
+```
+
+The factory is intentionally not wired into the live Core entrypoint and exposes no customer route.
+
+## PR #85 — Composed Organization Adapter Runtime Proof V1 — MERGED
+
+PR #85 merged as the current canonical base:
+
+```text
+040d96e1140f4a9e2733f97f270e047a0df3beb0
+```
+
+The reproducible verifier composes, in one disposable execution:
+
+```text
+OrganizationAdapterService
+  -> PostgreSQL migrations 010/011
+  -> operation reservation / frozen provider target
+  -> file-backed per-company secret custody
+  -> PaperclipOrganizationAdapterProvider
+  -> exact signed HTTP contract
+```
+
+It proves:
+
+- canonical catalog hire completes once and persists one employee/binding/operation;
+- customer result contains no provider/private fields;
+- Company A request is signed only with Company A custody, not Company B material;
+- an uncertain first provider response freezes Company A;
+- after the mutable organization binding changes, retry still targets/signs the frozen Company A snapshot;
+- the migration-010 inert-state verifier remains isolated from migration 011;
+- global `provider_company_ref` uniqueness remains enforced instead of being weakened for the test.
+
+The composed CI proof deliberately does not install another Paperclip instance. Literal Paperclip handling of the same signed contract, including A-signed/B-target denial, is already proven by #82.
+
+## Runtime observation after #85
+
+Observed on the VPS after the #85 merge:
+
+```text
+wandora-web               wandora/web:team-read-b31db507       healthy
+wandora-core              wandora/core:team-read-b31db507      healthy
+wandora-messaging-gateway wandora/messaging-gateway:origin-fix-94cfb4de healthy
+wandora-paperclip         wandora/paperclip:v2026.831.1        healthy
+```
+
+The live Supabase database still reports all three Organization Adapter private tables from migration 010 as absent. Therefore migrations 010/011 remain literally **not live**.
+
+Disposable/local Paperclip proof containers also exist on the VPS; they are laboratory artifacts and are not production capability activation.
 
 ## What is still NOT live / NOT approved
 
 - migrations 010/011 production application;
 - production Paperclip managed plugin install/config;
-- production per-company HMAC secrets;
-- production secret resolver/custody mechanism on Wandora sender side;
-- Organization Adapter runtime wiring into live Core;
-- customer `Contratar` / `Ativar funcionário` route or UI;
+- production per-company HMAC secret generation/mounting on both sides;
+- live Core Organization Adapter wiring;
+- any customer `Contratar` / `Ativar funcionário` route or UI;
 - arbitrary/custom employee creation;
 - direct `agent-hires` fallback.
 
+## SECOND ADVERSARIAL REVIEW AFTER #85
+
+The tempting next step is to apply migrations 010/011 directly because they are already disposable-CI proven. That is **not** the next action.
+
+Reasons:
+
+1. migration 011 intentionally grants new write capability to `wandora_core_runtime`; applying it is a real least-privilege boundary change even while no route exists;
+2. applying only migration 010 would create a partial production state that does not reduce the remaining plugin/secret/runtime activation uncertainty;
+3. the accepted ADR 0041 explicitly requires production preflight, backup/recovery awareness, exact plugin/config scope, secret permission proof and post-verification before activation;
+4. the current evidence proves components and their composition, but not the complete operator activation/rollback sequence against a production-shaped rehearsal.
+
+Decision: **do not apply either migration yet and do not install the live plugin yet.** First make the activation sequence itself reproducible and falsifiable.
+
 ## NEXT EXECUTABLE SLICE
 
-Do **not** expose customer hiring yet.
+Next: **Organization Adapter Production Activation Rehearsal V1** — no customer hiring and no live production effect.
 
-Next: **Organization Adapter Secret Custody + Runtime Wiring Proof V1**, still non-production-effect by default.
+Required proof:
 
-1. inventory/reuse the existing Wandora secret-custody patterns before introducing anything new;
-2. choose the minimum sender-side per-company secret resolver with no raw secret in Wandora DB/customer payload;
-3. prove company A operation can only resolve/sign with A material and ambiguous retries retain the frozen company target;
-4. wire `PaperclipOrganizationAdapterProvider` into a disposable Core runtime only;
-5. prove the service + real signed provider client end-to-end against disposable DB/Paperclip;
-6. prove no provider refs/secrets/plugin config leak through any customer contract;
-7. define preflight/rollback/post-verification for eventual live migration/plugin/config/secret activation;
-8. only after those gates separately review customer `Contratar/Ativar funcionário` UX and production activation.
+1. create a production-shaped disposable database from the current canonical migration stack/state and prove 010 -> inert verifier -> 011 -> service verifier in the exact intended order;
+2. define and test rollback boundaries for: migration failure before commit, plugin/config failure, missing/wrong secret, Core candidate failure and uncertain provider effect;
+3. produce a secret manifest that contains only deterministic filenames/company refs or hashes/permissions metadata — never raw HMAC material;
+4. prove exact filesystem ownership/mode and `O_NOFOLLOW` behavior expected for the eventual Core secret mount;
+5. pin the exact Paperclip image/plugin source/config contract intended for activation and prove configured-company scope without broad Board API credentials;
+6. prove a Core candidate can include Organization Adapter wiring while remaining unreachable from all customer routes;
+7. define production post-verification queries that prove zero duplicate employees/bindings/operations and no provider/private leakage;
+8. leave migrations 010/011, plugin config, production HMACs, live Core wiring and customer `Contratar` OFF at the end of the rehearsal.
+
+Only after that rehearsal is green should a separate reviewed production activation be considered. Customer `Contratar/Ativar funcionário` remains a later product slice after the technical activation boundary itself is proven live and reversible.
 
 ## Operational safety
 
@@ -185,6 +258,7 @@ Next: **Organization Adapter Secret Custody + Runtime Wiring Proof V1**, still n
 - External side effects fail conservatively.
 - Browser-supplied IDs are selectors, never authorization.
 - Human Send and Gateway outbound remain OFF unless explicitly activated after review.
+- An Organization Adapter proof or candidate must not silently become a customer-visible activation path.
 
 ## Definition of progress
 
