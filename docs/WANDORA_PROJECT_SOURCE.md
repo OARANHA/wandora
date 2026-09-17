@@ -2,7 +2,7 @@
 
 Snapshot date: **2026-09-16**
 Repository: `OARANHA/wandora`
-Canonical `main` at snapshot: `b0d708a2cf1f5969bbda11a6f9100e9ae31e9fa0`
+Canonical base verified before this snapshot: `5c69cac595b7af9bd23a6496fc24a9d356027e29`
 
 > **Purpose:** compact bootstrap for ChatGPT Project Sources and future development sessions. It prevents architectural drift, accidental reinvention and stale workflow assumptions.
 >
@@ -136,10 +136,10 @@ External-effect switches were returned to OFF after the controlled proof.
 Observed on 2026-09-16:
 
 ```text
-Core:      wandora/core:team-read-b31db507              healthy
-Web:       wandora/web:team-read-b31db507               healthy
+Core:      wandora/core:team-read-b31db507               healthy
+Web:       wandora/web:team-read-b31db507                healthy
 Gateway:   wandora/messaging-gateway:origin-fix-94cfb4de healthy
-Paperclip: wandora/paperclip:v2026.831.1                 healthy
+Paperclip: wandora/paperclip:v2026.831.1                  healthy
 
 Human Send: OFF / enable flag absent
 Gateway outbound: OFF / enable flag absent
@@ -152,16 +152,9 @@ Migration `20260916_010_organization_adapter_state_v1.sql` is **merged in Git bu
 
 ## Paperclip boundary — proven
 
-The installed Paperclip already supplies companies/memberships, agents, `agent-hires`, org/control-plane concepts, agent lifecycle/configuration, issues/tasks, assignments/run ownership, approvals, goals/projects/routines and external runtime adapters.
+Paperclip remains authoritative for its organization/control-plane lifecycle. Wandora must not recreate a parallel hierarchy/task/agent-control-plane merely because local tables would be convenient.
 
-Therefore Wandora must not recreate a parallel control plane.
-
-Important findings:
-
-- Paperclip company creation is higher-trust instance-admin work;
-- same-company board/service identity with `agents:create` can hire without instance-admin;
-- board API keys inherit the owning user's memberships/permissions, so a broad multi-company key is not acceptable as the normal tenant adapter credential;
-- the final tenant technical-identity mechanism and literal cross-company denial remain activation gates.
+Historical direct `agent-hires` laboratory evidence remains valid: repeated equal requests can create distinct provider agents. It is no longer the selected V1 provider action for catalog employees.
 
 ## Paperclip -> Wandora -> Mastra bridge — proven in laboratory
 
@@ -176,45 +169,74 @@ Paperclip task/run
 
 The adapter minimizes provider context via allow-list. Wandora never receives Paperclip's JWT master signing secret.
 
-Disposable proof also established:
+## ADR 0038 — Organization Adapter private state — MERGED, INERT
 
-- two isolated Paperclip companies;
-- a disposable Ana agent hired and assigned task `WAN-1`;
-- a real run crossed the Wandora adapter/bridge and updated `WAN-1` to `done`;
-- repeated equal `agent-hires` returned `201` twice with different agent IDs;
-- Paperclip agent metadata preserves non-secret Wandora reconciliation markers.
-
-Thus Paperclip does **not** provide the hire idempotency contract Wandora needs.
-
-## ADR 0038 / Organization Adapter private state — MERGED, INERT
-
-PR #75 merged as:
-
-```text
-main: b0d708a2cf1f5969bbda11a6f9100e9ae31e9fa0
-ADR: docs/decisions/0038-organization-adapter-private-state-v1.md
-migration: infra/stacks/supabase/migrations/20260916_010_organization_adapter_state_v1.sql
-```
-
-The accepted minimum private state is only:
+The accepted minimum private state remains:
 
 - Wandora organization <-> provider company binding;
 - Wandora digital employee <-> provider agent binding;
-- hire external-effect journal for idempotency/reconciliation.
+- operation journal for Wandora idempotency/request hash/recovery/audit.
 
-Paperclip remains authoritative for agent lifecycle, hierarchy/coordination, task/issue lifecycle, assignment and run ownership.
-
-The migration is deliberately inert:
+Migration `20260916_010_organization_adapter_state_v1.sql` remains deliberately inert and not live:
 
 - no `wandora_core_runtime` access;
 - no `authenticated` access;
-- no Core write grant to `digital_employees`;
 - no customer hiring route;
 - no provider credential;
-- no live Paperclip adapter installation;
-- no production application merely because it is merged.
+- no live Paperclip adapter installation.
 
-CI proof on PR #75 included migration 010 first + second application, `ORGANIZATION_ADAPTER_STATE_V1_OK`, existing Core verifiers and 79 passing Core tests.
+## ADR 0039 — Managed Catalog Organization Adapter V1 — MERGED, NOT LIVE
+
+PR #78 merged at:
+
+```text
+5c69cac595b7af9bd23a6496fc24a9d356027e29
+```
+
+The V1 Paperclip technical identity/provider operation is now selected:
+
+```text
+Wandora Organization Adapter
+ -> private signed webhook
+ -> Wandora-owned headless multi-company Paperclip plugin
+ -> company-scoped config + secret_ref
+ -> timestamp/HMAC verification
+ -> Paperclip configured-company host scope
+ -> agents.managed.reconcile(stable catalog agentKey, companyId)
+ -> stable managed Paperclip agent
+```
+
+Minimum plugin capabilities proven:
+
+```text
+webhooks.receive
+secrets.read-ref
+agents.managed
+```
+
+Disposable proof established:
+
+- missing `secrets.read-ref` is denied by the host;
+- plugin config cannot bind another company's secret reference;
+- first reconcile creates the declared managed catalog agent;
+- replay resolves the same provider agent ID rather than duplicating it;
+- a proactive plugin call can reconcile within its configured company;
+- the same call targeting an unconfigured company is denied by the Paperclip host.
+
+Second adversarial review found a critical scope limit: `agents.managed.reconcile()` only supports **manifest-declared plugin-managed agents**. Therefore V1 is intentionally a **catalog employee** model. Arbitrary/custom employees remain outside V1 and there is no fallback to direct `agent-hires` without a newer ADR/proof.
+
+A broad ordinary Board API key is not the normal tenant runtime credential. Plugin install/configuration are trusted operator/provisioning actions; customer browsers never receive Paperclip credentials or native plugin management access.
+
+The exact combined negative case — valid Company A HMAC with Company B as target — has not been falsely claimed as executed. It remains a final disposable verifier before live activation.
+
+Evidence:
+
+```text
+docs/decisions/0039-paperclip-managed-catalog-organization-adapter-v1.md
+docs/infra/paperclip-organization-adapter-managed-plugin-proof-v1-20260916.md
+```
+
+PR #78 passed Core, Web, Messaging Gateway and Platform Admin CI.
 
 ## Abandoned direction — DO NOT REVIVE
 
@@ -222,25 +244,24 @@ The old native `digital_employee_work_assignments` direction was rejected before
 
 Do not create a Wandora-native employee hierarchy/responsibility/task control plane merely because the concepts are convenient locally.
 
-Existing beta `digital_employees`, `work_items`, proposals and approvals remain valid for the proven slice but are not precedent for cloning Paperclip.
-
 ## Next executable slice
 
 Do **not** expose customer `Contratar funcionário` yet.
 
-The next slice is the **Organization Adapter activation contract proof**, still non-customer and non-production-effect by default:
+The next slice is **Organization Adapter Service Contract V1**, still non-customer and non-production-effect by default:
 
-1. define the final least-privilege Paperclip technical identity mechanism;
-2. prove literal Company A credential -> Company B denial using that mechanism;
-3. define the minimum Wandora adapter service/API boundary and minimum DB grants;
-4. prove same idempotency key + same request replay;
+1. choose the exact Core authorization policy for hire/activate;
+2. define the minimum provider-neutral Organization Adapter service/API contract;
+3. prove only the minimum DB grants against a disposable database;
+4. prove same idempotency key + same canonical request returns/reconciles the same Wandora employee/provider binding;
 5. prove same key + changed request conflict;
-6. prove ambiguous-response reconciliation through Paperclip metadata;
-7. prove local-only/provider-only partial-success repair behavior;
-8. prove provider IDs/credentials do not leak through Wandora contracts;
-9. only then review customer `Contratar/Ativar funcionário` UX and activation.
+6. prove provider replay resolves the same managed agent through `managed.reconcile`;
+7. prove network ambiguity plus local-only/provider-only partial-success repair semantics;
+8. prove provider IDs/plugin config/secret refs/credentials never leak through customer contracts;
+9. run the literal valid Company A HMAC -> Company B target negative verifier with the final disposable signed-request harness;
+10. only then review customer `Contratar/Ativar funcionário` UX and a separate live-activation operation.
 
-Migration 010 production application, adapter credentials and runtime activation are separate operational decisions and must not happen implicitly.
+Migration 010 production application, production plugin installation/configuration, provider secrets and runtime activation are separate operational decisions and must not happen implicitly.
 
 ## Platform Admin
 
@@ -287,6 +308,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0036 — capability authority/reuse gate
 - ADR 0037 — Paperclip/Wandora/Mastra execution bridge
 - ADR 0038 — Organization Adapter private state
+- ADR 0039 — Managed Catalog Organization Adapter V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
