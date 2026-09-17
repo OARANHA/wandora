@@ -3,9 +3,14 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 CORE="$ROOT/apps/core"
+VERIFIER="$CORE/scripts/verify-organization-adapter-candidate-archive-v1.py"
 
 if ! command -v docker >/dev/null 2>&1; then
   echo 'organization_adapter_candidate_docker_required' >&2
+  exit 1
+fi
+if ! command -v python3 >/dev/null 2>&1; then
+  echo 'organization_adapter_candidate_python3_required' >&2
   exit 1
 fi
 
@@ -40,7 +45,7 @@ docker build \
   -t "$IMAGE" \
   "$CORE"
 
-IMAGE_ID="$(docker image inspect --format '{{.Id}}' "$IMAGE")"
+RUNNER_IMAGE_ID="$(docker image inspect --format '{{.Id}}' "$IMAGE")"
 IMAGE_USER="$(docker image inspect --format '{{.Config.User}}' "$IMAGE")"
 IMAGE_REVISION="$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' "$IMAGE")"
 IMAGE_CANDIDATE="$(docker image inspect --format '{{ index .Config.Labels "io.wandora.candidate" }}' "$IMAGE")"
@@ -58,6 +63,17 @@ fi
 docker save "$IMAGE" | gzip -n > "$ARCHIVE"
 
 ARCHIVE_SHA="$(sha256sum "$ARCHIVE" | awk '{print $1}')"
+PROVENANCE="$(python3 "$VERIFIER" --archive "$ARCHIVE")"
+VERIFIED_ARCHIVE_SHA="$(awk -F= '$1=="archive_sha256"{print $2}' <<<"$PROVENANCE")"
+OCI_CONFIG_DIGEST="$(awk -F= '$1=="oci_config_digest"{print $2}' <<<"$PROVENANCE")"
+OCI_MANIFEST_DIGEST="$(awk -F= '$1=="oci_manifest_digest"{print $2}' <<<"$PROVENANCE")"
+ARCHIVE_IMAGE_TAG="$(awk -F= '$1=="image_tag"{print substr($0,index($0,"=")+1)}' <<<"$PROVENANCE")"
+
+[ "$VERIFIED_ARCHIVE_SHA" = "$ARCHIVE_SHA" ] || { echo 'organization_adapter_candidate_archive_sha_mismatch' >&2; exit 1; }
+[ "$ARCHIVE_IMAGE_TAG" = "$IMAGE" ] || { echo 'organization_adapter_candidate_archive_tag_mismatch' >&2; exit 1; }
+[ -n "$OCI_CONFIG_DIGEST" ] || { echo 'organization_adapter_candidate_missing_oci_config_digest' >&2; exit 1; }
+[ -n "$OCI_MANIFEST_DIGEST" ] || { echo 'organization_adapter_candidate_missing_oci_manifest_digest' >&2; exit 1; }
+
 DOCKERFILE_SHA="$(sha256sum "$CORE/Dockerfile" | awk '{print $1}')"
 LOCKFILE_SHA="$(sha256sum "$CORE/package-lock.json" | awk '{print $1}')"
 TREE_SHA="$(git -C "$ROOT" rev-parse HEAD^{tree})"
@@ -67,7 +83,9 @@ candidate_contract=organization-adapter-core-v1
 source_sha=$SOURCE_SHA
 source_tree_sha=$TREE_SHA
 image_tag=$IMAGE
-image_id=$IMAGE_ID
+runner_image_id=$RUNNER_IMAGE_ID
+oci_config_digest=$OCI_CONFIG_DIGEST
+oci_manifest_digest=$OCI_MANIFEST_DIGEST
 image_user=$IMAGE_USER
 dockerfile_sha256=$DOCKERFILE_SHA
 package_lock_sha256=$LOCKFILE_SHA
@@ -75,6 +93,7 @@ archive_file=$(basename "$ARCHIVE")
 archive_sha256=$ARCHIVE_SHA
 EOF
 
+python3 "$VERIFIER" --archive "$ARCHIVE" --manifest "$MANIFEST"
 printf '%s  %s\n' "$ARCHIVE_SHA" "$(basename "$ARCHIVE")" > "$OUT_DIR/SHA256SUMS"
 (
   cd "$OUT_DIR"
@@ -84,5 +103,7 @@ printf '%s  %s\n' "$ARCHIVE_SHA" "$(basename "$ARCHIVE")" > "$OUT_DIR/SHA256SUMS
 printf 'ORGANIZATION_ADAPTER_CORE_CANDIDATE_V1_OK\n'
 printf 'candidate_dir=%s\n' "$OUT_DIR"
 printf 'image=%s\n' "$IMAGE"
-printf 'image_id=%s\n' "$IMAGE_ID"
+printf 'runner_image_id=%s\n' "$RUNNER_IMAGE_ID"
+printf 'oci_config_digest=%s\n' "$OCI_CONFIG_DIGEST"
+printf 'oci_manifest_digest=%s\n' "$OCI_MANIFEST_DIGEST"
 printf 'archive_sha256=%s\n' "$ARCHIVE_SHA"
