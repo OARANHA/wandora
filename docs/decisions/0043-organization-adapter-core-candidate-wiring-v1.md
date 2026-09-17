@@ -1,6 +1,6 @@
 # ADR 0043 — Organization Adapter Core Candidate Wiring V1
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-09-17
 - Scope: production-shaped but disabled-by-default Core wiring for the Organization Adapter
 
