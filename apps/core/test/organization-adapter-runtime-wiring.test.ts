@@ -13,7 +13,7 @@ test('runtime wiring constructs the provider-neutral service without enabling a 
       secretDirectory: '/run/secrets/wandora/organization-adapter',
     },
     {
-      readSecretFile: async () => 'synthetic-test-secret',
+      readSecretFile: async () => 's'.repeat(32),
       fetchImpl: async () => new Response(JSON.stringify({ status: 'success', deliveryId: 'proof' }), {
         status: 200,
         headers: { 'content-type': 'application/json' },
