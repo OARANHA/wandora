@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -33,6 +33,11 @@ export type RuntimeHumanSendProposalConfig = {
   gatewaySecret: string;
 };
 
+export type RuntimeOrganizationAdapterConfig = {
+  webhookUrl: string;
+  secretDirectory: string;
+};
+
 export type RuntimeConfig = {
   port: number;
   mode: RuntimeMode;
@@ -41,6 +46,7 @@ export type RuntimeConfig = {
   agentRuntime?: RuntimeAgentConfig;
   humanApi?: RuntimeHumanApiConfig;
   humanSendProposal?: RuntimeHumanSendProposalConfig;
+  organizationAdapter?: RuntimeOrganizationAdapterConfig;
 };
 
 const parsePort = (value: string | undefined, fallback: number, name: string): number => {
@@ -94,6 +100,25 @@ const validateMessagingGatewayOutboundUrl = (value: string): string => {
   return url.toString();
 };
 
+const validateOrganizationAdapterWebhookUrl = (value: string): string => {
+  const url = new URL(value);
+  if (
+    url.protocol !== 'http:'
+    || url.hostname !== 'wandora-paperclip'
+    || url.port !== '3100'
+    || url.pathname !== '/api/plugins/wandora.organization-adapter-v1/webhooks/employee-reconcile'
+    || url.username
+    || url.password
+    || url.search
+    || url.hash
+  ) {
+    throw new Error(
+      'WANDORA_ORGANIZATION_ADAPTER_WEBHOOK_URL must target the private canonical Paperclip plugin route.',
+    );
+  }
+  return url.toString();
+};
+
 export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): Promise<RuntimeConfig> {
   const port = parsePort(env.PORT, 8788, 'PORT');
   const mode = (env.WANDORA_CORE_MODE ?? 'standby').trim();
@@ -113,6 +138,10 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     env.WANDORA_HUMAN_SEND_PROPOSAL_ENABLED,
     'WANDORA_HUMAN_SEND_PROPOSAL_ENABLED',
   );
+  const organizationAdapterEnabled = parseEnabled(
+    env.WANDORA_ORGANIZATION_ADAPTER_ENABLED,
+    'WANDORA_ORGANIZATION_ADAPTER_ENABLED',
+  );
   const agentRuntimeMode = parseAgentRuntimeMode(env.WANDORA_AGENT_RUNTIME_MODE);
 
   if (mode === 'standby') {
@@ -124,6 +153,9 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     }
     if (humanSendProposalEnabled) {
       throw new Error('Human Send Proposal cannot be enabled while Wandora Core is in standby mode.');
+    }
+    if (organizationAdapterEnabled) {
+      throw new Error('Organization Adapter cannot be enabled while Wandora Core is in standby mode.');
     }
     if (agentRuntimeMode !== 'disabled') {
       throw new Error('Agent Runtime cannot be enabled while Wandora Core is in standby mode.');
@@ -190,6 +222,21 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     };
   }
 
+  let organizationAdapter: RuntimeOrganizationAdapterConfig | undefined;
+  if (organizationAdapterEnabled) {
+    const secretDirectory = required(env, 'WANDORA_ORGANIZATION_ADAPTER_SECRET_DIRECTORY');
+    const secretDirectoryStat = await stat(secretDirectory).catch(() => null);
+    if (!secretDirectoryStat?.isDirectory()) {
+      throw new Error('WANDORA_ORGANIZATION_ADAPTER_SECRET_DIRECTORY must be a mounted directory.');
+    }
+    organizationAdapter = {
+      webhookUrl: validateOrganizationAdapterWebhookUrl(
+        required(env, 'WANDORA_ORGANIZATION_ADAPTER_WEBHOOK_URL'),
+      ),
+      secretDirectory,
+    };
+  }
+
   return {
     port,
     mode,
@@ -203,6 +250,7 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     ...(gatewayIngress ? { gatewayIngress } : {}),
     ...(humanApi ? { humanApi } : {}),
     ...(humanSendProposal ? { humanSendProposal } : {}),
+    ...(organizationAdapter ? { organizationAdapter } : {}),
     ...(agentRuntimeMode === 'mastra-deterministic'
       ? { agentRuntime: { mode: 'mastra-deterministic' as const } }
       : {}),
