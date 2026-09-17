@@ -43,7 +43,7 @@ Native consoles — Paperclip UI, Mastra Studio, Evolution Manager, Supabase Stu
 | Platform operation | operator contracts, authorization, audit, coherent cross-tenant controls | Wandora Platform Admin over adapters |
 | Human identity/session | canonical Wandora user/membership semantics and authorization | Supabase Auth supplies identity/session |
 | Wandora durable facts | policy facts, mappings, projections, audit evidence, product state that must survive provider replacement | Supabase PostgreSQL is storage infrastructure |
-| Digital-employee organization/control plane | Wandora-facing employee identity/contract, customer policy and replaceability boundary | Paperclip through Organization Adapter, subject to adapter proof |
+| Digital-employee organization/control plane | Wandora-facing employee identity/contract, customer policy, request idempotency and replaceability boundary | Paperclip through Organization Adapter; managed resources supply provider lifecycle/reconcile/relink/reset |
 | Agent/workflow execution | Wandora Agent Runtime contract, allowed inputs/outputs and policy | Mastra through Agent Runtime Adapter |
 | WhatsApp/messaging transport | provider-neutral connection/send/receive contracts and effect policy | Evolution/Meta/etc through Messaging Gateway |
 | Model inference | model-neutral product/runtime contract and policy | Mistral/Chutes/OpenAI/etc behind provider boundary |
@@ -63,6 +63,8 @@ When a specialist component implements a capability, Wandora may still persist w
 
 This is **not** permission to clone the provider's complete control-plane/runtime domain into PostgreSQL.
 
+For Paperclip specifically, ADR 0039 proves an important distinction: `agents.managed.reconcile()` provides stable-key reconciliation/relink behavior and preserves operator edits, but simultaneous first reconciles can still race and create duplicates. Therefore Wandora's private hire-operation journal is legitimate **request serialization/idempotency state**; it must never expand into a second agent lifecycle.
+
 ## Mandatory question before new domain code
 
 Before adding a material table/entity/service/workflow/state machine, answer:
@@ -77,7 +79,9 @@ Absence from the current Wandora schema is not evidence that Wandora should own 
 
 ### “Contratar Ana”
 
-Customer language and authorization are Wandora-owned. The operation must first determine which employee/control-plane capabilities Paperclip already provides and define the Organization Adapter. Wandora may keep a stable employee ID/mapping/policy projection; it must not automatically grow a second agent-control-plane because a local table is convenient.
+Customer language, tenant authorization, stable Wandora identity and request idempotency are Wandora-owned. Paperclip supplies the managed-agent lifecycle behind the Organization Adapter. The accepted provider path is company-scoped plugin configuration using a Paperclip `secret_ref`, followed by `agents.managed.reconcile(stableAgentKey, companyId)` under a Wandora-owned serialized operation claim.
+
+Wandora may keep its stable employee ID, private provider binding and minimal operation journal. It must not grow a second agent-control-plane, hierarchy, assignment engine or lifecycle because a local table is convenient.
 
 ### “Ana respondeu uma mensagem”
 
@@ -89,4 +93,6 @@ Platform Admin controls Wandora. It exercises Supabase/Paperclip/Mastra/Evolutio
 
 ## Current safety hold
 
-The abandoned unmerged `digital_employee_work_assignments` / migration 010 direction is **not authoritative** and must not be revived without explicitly passing ADR 0036's Capability Reuse Gate after Paperclip adapter analysis.
+The earlier abandoned `digital_employee_work_assignments` / native assignment-control-plane direction is **not authoritative** and must not be revived without explicitly passing ADR 0036's Capability Reuse Gate.
+
+Do not confuse that abandoned direction with the current `20260916_010_organization_adapter_state_v1.sql`. The current migration 010 is accepted by ADR 0038, remains merged-but-not-live, and contains only private provider bindings plus the narrow external-effect/idempotency journal preserved by ADR 0039.
