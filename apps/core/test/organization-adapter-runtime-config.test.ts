@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -26,7 +26,7 @@ test('Organization Adapter requires database mode, pinned private Paperclip rout
   const secretDirectory = join(root, 'organization-adapter');
   try {
     await writeFile(dbSecret, 'synthetic-db-password\n', { mode: 0o600 });
-    await import('node:fs/promises').then(({ mkdir }) => mkdir(secretDirectory, { mode: 0o700 }));
+    await mkdir(secretDirectory, { mode: 0o700 });
 
     const baseEnv: NodeJS.ProcessEnv = {
       WANDORA_CORE_MODE: 'database',
