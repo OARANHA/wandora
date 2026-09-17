@@ -9,9 +9,14 @@ if ! command -v docker >/dev/null 2>&1; then
   exit 1
 fi
 
-SOURCE_SHA="${WANDORA_SOURCE_SHA:-$(git -C "$ROOT" rev-parse HEAD)}"
+ACTUAL_HEAD="$(git -C "$ROOT" rev-parse HEAD)"
+SOURCE_SHA="${WANDORA_SOURCE_SHA:-$ACTUAL_HEAD}"
 if [[ ! "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
   echo 'organization_adapter_candidate_invalid_source_sha' >&2
+  exit 1
+fi
+if [ "$SOURCE_SHA" != "$ACTUAL_HEAD" ]; then
+  echo 'organization_adapter_candidate_source_sha_must_match_checkout_head' >&2
   exit 1
 fi
 
