@@ -1,0 +1,37 @@
+name: Operator Consoles CI
+
+on:
+  pull_request:
+    paths:
+      - 'infra/stacks/operator-consoles/**'
+      - 'infra/stacks/traefik/dynamic/operator-consoles.yml'
+      - 'integrations/mastra/operator-console-v1/**'
+      - 'spikes/mastra-agent-runtime-v1/package*.json'
+      - '.github/workflows/operator-consoles-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'infra/stacks/operator-consoles/**'
+      - 'infra/stacks/traefik/dynamic/operator-consoles.yml'
+      - 'integrations/mastra/operator-console-v1/**'
+      - 'spikes/mastra-agent-runtime-v1/package*.json'
+      - '.github/workflows/operator-consoles-ci.yml'
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Render Compose
+        run: docker compose -f infra/stacks/operator-consoles/compose.yaml config >/tmp/operator-consoles.yaml
+      - name: Validate Paperclip bridge Nginx config
+        run: |
+          docker run --rm \
+            -v "$PWD/infra/stacks/operator-consoles/control-nginx.conf:/etc/nginx/conf.d/default.conf:ro" \
+            nginxinc/nginx-unprivileged:1.29.1-alpine nginx -t
+      - name: Build isolated Mastra operator console
+        run: docker build -f integrations/mastra/operator-console-v1/Dockerfile -t wandora/mastra-operator-console:ci .
+      - name: Verify no forbidden effect wiring
+        run: |
+          ! grep -R -E 'WANDORA_ORGANIZATION_ADAPTER_ENABLED|WANDORA_GATEWAY_OUTBOUND|WANDORA_HUMAN_SEND|MISTRAL_API_KEY|CHUTES|EVOLUTION_API' \
+            integrations/mastra/operator-console-v1 infra/stacks/operator-consoles
