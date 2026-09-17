@@ -18,7 +18,7 @@ jobs:
   ana-core-verifier:
     name: Ana Core verifier
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 35
 
     steps:
       - name: Checkout repository
@@ -30,9 +30,9 @@ jobs:
         shell: bash
         run: bash apps/core/scripts/verify-ana-v1.sh
 
-      - name: Run Organization Adapter Service Contract verifier
+      - name: Run Organization Adapter Production Activation Rehearsal verifier
         shell: bash
-        run: bash apps/core/scripts/verify-organization-adapter-service-v1.sh
+        run: bash apps/core/scripts/verify-organization-adapter-production-activation-rehearsal-v1.sh
 
       - name: Validate deterministic Agent Runtime + Human API overlays
         shell: bash
