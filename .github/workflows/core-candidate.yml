@@ -76,6 +76,16 @@ jobs:
           test "$regression_runner_id" != "$runner_image_id"
           python3 "$verifier" --archive "$archive" --manifest "$regression_manifest"
 
+          forged_portable_manifest="$RUNNER_TEMP/candidate-manifest-forged-portable-digest.txt"
+          cp "$manifest" "$forged_portable_manifest"
+          sed -i 's/^oci_config_digest=.*/oci_config_digest=sha256:0000000000000000000000000000000000000000000000000000000000000000/' "$forged_portable_manifest"
+          forged_config_digest="$(grep '^oci_config_digest=' "$forged_portable_manifest" | cut -d= -f2-)"
+          test "$forged_config_digest" != "$expected_config_digest"
+          if python3 "$verifier" --archive "$archive" --manifest "$forged_portable_manifest"; then
+            echo 'candidate_portable_verifier_accepted_forged_oci_config_digest' >&2
+            exit 1
+          fi
+
           docker image rm -f "$image_tag" >/dev/null
           gunzip -c "$archive" | docker load >/dev/null
 
