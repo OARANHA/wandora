@@ -34,3 +34,16 @@ Expected properties:
 - no model-provider credential is required for the infrastructure health test.
 
 Do not publish port 3100 or expose Paperclip as a customer-facing Wandora API. Product code must reach it through a Wandora-owned Organization Adapter.
+
+
+## Protected operator console
+
+The live authenticated/private Paperclip instance declares:
+
+```text
+PAPERCLIP_PUBLIC_URL=https://control.wandora.com.br
+```
+
+This URL is an operator-only browser origin behind Cloudflare Access and Traefik. Paperclip itself remains private on `wandora-core` and loopback `127.0.0.1:3100`; the control bridge preserves `Host: localhost:3100` for the internal hop.
+
+The public URL is required so Paperclip's browser mutation guard and Better Auth trust the real HTTPS origin and issue secure cookies. Do not replace it with a customer-facing URL and do not weaken Cloudflare SSL from Full (strict).
