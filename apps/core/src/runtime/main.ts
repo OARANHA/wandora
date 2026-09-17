@@ -11,7 +11,8 @@ import { loadRuntimeConfig } from './config.js';
 import { createGatewayIngressHandler } from './gateway-ingress.js';
 import { createHumanSupervisionHandler } from './human-supervision.js';
 import { createRuntimeOrganizationAdapter } from './organization-adapter.js';
-import { createRuntimeServer, type RuntimeReadiness } from './server.js';
+import { createRuntimeReadinessChecker } from './readiness.js';
+import { createRuntimeServer } from './server.js';
 
 const config = await loadRuntimeConfig();
 
@@ -37,40 +38,9 @@ const organizationAdapterService = pool && config.organizationAdapter
   ? createRuntimeOrganizationAdapter(pool, config.organizationAdapter)
   : undefined;
 
-const checkReady = async (): Promise<RuntimeReadiness> => {
-  if (!pool) return { ready: false, reason: 'standby' };
-
-  try {
-    const result = await pool.query<{ current_user: string; organization_scope: string | null }>(
-      `SELECT current_user::text AS current_user,
-              wandora.current_core_organization_id()::text AS organization_scope`,
-    );
-    const row = result.rows[0];
-    if (!row || row.current_user !== 'wandora_core_runtime') {
-      return { ready: false, reason: 'unexpected-database-role' };
-    }
-    if (row.organization_scope !== null) {
-      return { ready: false, reason: 'tenant-scope-leak' };
-    }
-
-    if (organizationAdapterService) {
-      await pool.query(`
-        SELECT 1 FROM wandora_private.control_plane_provider_bindings LIMIT 0;
-        SELECT 1 FROM wandora_private.digital_employee_provider_bindings LIMIT 0;
-        SELECT 1 FROM wandora_private.digital_employee_hire_operations LIMIT 0;
-      `);
-    }
-
-    return { ready: true };
-  } catch {
-    return {
-      ready: false,
-      reason: organizationAdapterService
-        ? 'organization-adapter-database-boundary-unavailable'
-        : 'database-unavailable',
-    };
-  }
-};
+const checkReady = createRuntimeReadinessChecker(pool, {
+  organizationAdapterEnabled: Boolean(organizationAdapterService),
+});
 
 const handleGatewayInbound = pool && config.gatewayIngress
   ? createGatewayIngressHandler({
