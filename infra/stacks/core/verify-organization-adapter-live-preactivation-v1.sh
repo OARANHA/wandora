@@ -45,8 +45,14 @@ paperclip_image="$(docker inspect "$PAPERCLIP_CONTAINER" --format '{{.Config.Ima
 [ "$paperclip_image" = "$EXPECTED_PAPERCLIP_IMAGE" ] || fail "paperclip_image_mismatch:$paperclip_image"
 paperclip_networks="$(docker inspect "$PAPERCLIP_CONTAINER" --format '{{range $name,$cfg := .NetworkSettings.Networks}}{{println $name}}{{end}}')"
 grep -qx 'wandora-core' <<<"$paperclip_networks" || fail 'paperclip_missing_wandora_core_network'
-if [ -n "$(docker port "$PAPERCLIP_CONTAINER" 2>/dev/null)" ]; then
-  fail 'paperclip_has_published_host_port'
+
+# A loopback-only 127.0.0.1:3100 diagnostic binding is an accepted private
+# operator surface. Any wildcard/non-loopback host publication fails closed.
+paperclip_ports="$(docker port "$PAPERCLIP_CONTAINER" 2>/dev/null || true)"
+if [ -n "$paperclip_ports" ]; then
+  while IFS= read -r binding; do
+    [ "$binding" = '3100/tcp -> 127.0.0.1:3100' ] || fail "paperclip_non_loopback_or_unexpected_binding:$binding"
+  done <<<"$paperclip_ports"
 fi
 
 read -r binding_state employee_binding_state operation_state < <(
@@ -69,6 +75,7 @@ fi
 printf 'ORGANIZATION_ADAPTER_LIVE_PREACTIVATION_V1_OK\n'
 printf 'core_image=%s\n' "$(docker inspect "$CORE_CONTAINER" --format '{{.Config.Image}}')"
 printf 'paperclip_image=%s\n' "$paperclip_image"
+printf 'paperclip_host_binding=%s\n' "${paperclip_ports:-none}"
 printf 'migration_010_tables=ABSENT\n'
 printf 'organization_adapter=OFF\n'
 printf 'human_send=OFF\n'
