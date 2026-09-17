@@ -27,6 +27,7 @@ jobs:
       - name: Validate Paperclip bridge Nginx config
         run: |
           docker run --rm \
+            --add-host wandora-paperclip:127.0.0.1 \
             -v "$PWD/infra/stacks/operator-consoles/control-nginx.conf:/etc/nginx/conf.d/default.conf:ro" \
             nginxinc/nginx-unprivileged:1.29.1-alpine nginx -t
       - name: Build isolated Mastra operator console
