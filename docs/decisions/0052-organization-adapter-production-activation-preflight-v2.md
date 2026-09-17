@@ -1,6 +1,6 @@
 # ADR 0052 — Organization Adapter Production Activation Preflight V2
 
-- Status: **DRAFT — observation complete enough to identify blockers; activation NOT authorized**
+- Status: **DRAFT — observation identifies a remaining privileged provider blocker; activation NOT authorized**
 - Date: 2026-09-17
 - Scope: fresh observation/plan-first production preflight after ADR 0050, without applying migrations, installing/configuring the live plugin, generating HMAC custody or recreating Core
 
@@ -12,6 +12,7 @@ Git reconciliation before repeating any prior operation:
 main = 5b0ddff86d9fafc765d2599d7434b2d5411d5da7
 PR #95 = production plugin artifact merged/proven
 PR #96 = continuity checkpoint merged
+PR #97 = operator consoles + this preflight, under review
 ```
 
 Observed live runtime:
@@ -63,6 +64,8 @@ expires_at          = 2026-09-24T19:45:38Z
 
 The accepted recovery backup/restore proof and candidate load from ADR 0049 were not repeated because real-state reconciliation showed they already exist and the candidate remains loaded.
 
+Cloudflare Access for the two operator console hostnames is now independently proven before any origin route: unauthenticated `control.wandora.com.br` and `runtime.wandora.com.br` requests are redirected to Cloudflare Access, and direct public-origin TCP/443 probes to the VPS time out. This clears the Access prerequisite but does not create Paperclip administrative authority.
+
 ### Exact future Core composition — rendered only
 
 The canonical base + database + Organization Adapter overlays were rendered with the already-loaded candidate image and current Core DB secret file path. No `docker compose up` was executed and the future Organization Adapter custody directory was not created.
@@ -84,9 +87,9 @@ Gateway outbound overlay = absent
 rendered_config_sha256 = e393fe295c81e2ece5495b368c018f1f1bcda4175a639b8c07d173384d415274
 ```
 
-## NEW BLOCKER — PAPERCLIP INSTANCE ADMIN
+## REMAINING BLOCKER — PAPERCLIP INSTANCE ADMIN
 
-Live Paperclip `/api/health` currently reports:
+Live Paperclip `/api/health` reports:
 
 ```text
 status = ok
@@ -97,20 +100,20 @@ bootstrapStatus = bootstrap_pending
 bootstrapInviteActive = false
 ```
 
-The exact pinned Paperclip source defines `bootstrap_pending` in authenticated mode as the state where no instance admin role exists.
+The exact pinned Paperclip source defines `bootstrap_pending` in authenticated mode as the state where no instance-admin role exists.
 
 The same pinned source protects `POST /api/plugins/install` with `assertInstanceAdmin(req)` because plugin installation is an instance-wide privileged operation.
 
-Therefore artifact readiness is no longer the blocker, but **live administrative authority to install that artifact is not established**. Silently bootstrapping or granting instance-admin authority would be a new privileged production effect and is outside this preflight.
+Therefore artifact readiness is no longer the blocker, and protected console transport is no longer the blocker. **Legitimate live administrative authority to install the artifact is still not established.** Silently bootstrapping or granting instance-admin authority would be a new privileged production effect and is outside this preflight.
 
 ## GAPS
 
-1. Operator-console Cloudflare Access prerequisite from ADR 0051 is not yet proven.
-2. Paperclip has no established instance admin (`bootstrap_pending`).
-3. The production plugin is canonical but remains uninstalled/unconfigured live.
+1. Complete and validate the protected Paperclip operator-console origin bridge from ADR 0051; Access itself is already proven.
+2. Establish or verify a legitimate Paperclip instance admin through an explicit separately reviewed provider-administration step.
+3. The production Organization Adapter plugin remains uninstalled/unconfigured live.
 4. No production company-scoped `secret_ref` / HMAC custody exists.
 5. Migrations 010/011 remain intentionally absent.
-6. The exact provider company target/configuration must be frozen only after the operator/admin boundary is legitimate.
+6. The exact provider company target/configuration must be frozen only after the provider admin boundary is legitimate.
 
 ## DECISION
 
@@ -118,15 +121,16 @@ Therefore artifact readiness is no longer the blocker, but **live administrative
 
 Do not apply 010/011 early, do not install/configure the plugin through an unbootstrapped provider, do not create HMAC material, and do not recreate the candidate Core.
 
-The correct next prerequisite is to finish the protected Paperclip operator console and deliberately establish/verify the legitimate Paperclip instance-admin operator boundary. That is a provider-administration prerequisite, not permission to activate the Organization Adapter.
+The protected operator-console micro-slice may finish independently because it does not grant Paperclip instance-admin authority or activate the Organization Adapter. After the console is validated, the next provider prerequisite is a deliberate instance-admin bootstrap/verification slice.
 
-After that prerequisite is satisfied, refresh the mutable live observations and continue the activation plan from the exact same fail-closed order rather than repeating already-proven backup/restore/candidate-load work.
+After that prerequisite is satisfied, refresh mutable live observations and continue the activation plan from the same fail-closed order rather than repeating already-proven backup/restore/candidate-load work.
 
 ## SECOND ADVERSARIAL REVIEW
 
 Rejected:
 
 - treating ADR 0050 artifact availability as sufficient authorization to install it;
+- treating Cloudflare Access as equivalent to Paperclip administrative authorization;
 - bootstrapping an instance admin automatically merely to make the preflight green;
 - using a tenant/company board identity as a substitute for instance-admin plugin installation authority;
 - applying migration 010 because it is inert;
@@ -134,13 +138,14 @@ Rejected:
 - creating HMAC custody before the exact company/config/install target is frozen;
 - starting the candidate Core before plugin/config, migrations and custody are separately proven;
 - enabling Human Send or Gateway outbound as part of Organization Adapter work;
-- repeating backup, restore proof or `docker load` because the previous conversation froze.
+- repeating backup, restore proof or `docker load` because a prior conversation froze.
 
 ## VALIDATION / EFFECT AUDIT
 
 At this checkpoint:
 
 ```text
+Cloudflare Access operator gate = proven
 production migrations applied = 0
 production plugin installs = 0
 production plugin configurations = 0
@@ -152,4 +157,4 @@ Gateway outbound activations = 0
 customer hiring routes added = 0
 ```
 
-This draft records evidence only. It must not be merged as an accepted activation authorization.
+This draft records evidence only. It must not be interpreted as activation authorization.
