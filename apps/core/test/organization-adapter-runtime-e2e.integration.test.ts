@@ -59,9 +59,8 @@ async function resetFixture(): Promise<void> {
   );
   await fixturePool.query(
     `INSERT INTO wandora_private.control_plane_provider_bindings
-       (organization_id,provider,provider_company_ref) VALUES
-       ($1,'paperclip',$3),($2,'paperclip',$4)`,
-    [ORG_A, ORG_B, COMPANY_A, COMPANY_B],
+       (organization_id,provider,provider_company_ref) VALUES ($1,'paperclip',$2)`,
+    [ORG_A, COMPANY_A],
   );
 }
 
