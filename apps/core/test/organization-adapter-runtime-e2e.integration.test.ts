@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test, { after, afterEach } from 'node:test';
 import { Pool } from 'pg';
+import { OrganizationAdapterUnavailableError } from '../src/organization-adapter/contracts.js';
 import {
   signPaperclipOrganizationAdapterRequest,
 } from '../src/organization-adapter/paperclip-provider.js';
@@ -175,7 +176,11 @@ test('uncertain retry keeps the frozen Company A target and Company A custody af
       idempotencyKey: 'runtime-e2e-uncertain-a',
     };
 
-    await assert.rejects(service.ensureCatalogEmployee(request), /provider operation is uncertain/i);
+    await assert.rejects(
+      service.ensureCatalogEmployee(request),
+      (error: unknown) => error instanceof OrganizationAdapterUnavailableError
+        && error.code === 'provider-operation-uncertain',
+    );
     await fixturePool.query(
       `UPDATE wandora_private.control_plane_provider_bindings
           SET provider_company_ref=$2
