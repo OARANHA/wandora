@@ -107,10 +107,21 @@ ACTIVATED_VERIFIER="VERIFY_20260914_CORE_RUNTIME_ACTIVATED_V1_LIVE.sql"
 docker cp "$VERIFIERS/$ACTIVATED_VERIFIER" "$DB:/tmp/$ACTIVATED_VERIFIER" >/dev/null
 docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -f "/tmp/$ACTIVATED_VERIFIER"
 
+# This historical harness intentionally stops at migration 010. Keep the new
+# migration-011 Organization Adapter integration test in its dedicated harness,
+# where 010 inertness is proved first and 011 is then applied explicitly.
 docker run --rm --network "$NET" -v "$CORE:/app" -w /app \
   -e DATABASE_URL="postgresql://wandora_core_runtime:${CORE_PASSWORD}@${DB}:5432/${DB_NAME}" \
   -e FIXTURE_DATABASE_URL="postgresql://wandora_fixture_admin_test:${FIXTURE_PASSWORD}@${DB}:5432/${DB_NAME}" \
-  "$NODE_IMAGE" sh -lc 'node -v && npm ci --ignore-scripts >/dev/null && npm run verify'
+  "$NODE_IMAGE" sh -lc '
+    node -v
+    npm ci --ignore-scripts >/dev/null
+    npm run typecheck
+    npm run build
+    BASE_TESTS="$(find test -maxdepth 1 -name "*.test.ts" ! -name "organization-adapter-service.integration.test.ts" -print | sort | tr "\n" " ")"
+    test -n "$BASE_TESTS"
+    node --import tsx --test --test-concurrency=1 $BASE_TESTS
+  '
 
 # The production image must boot privately in standby without any real credential.
 docker build -t "$CORE_IMAGE" "$CORE" >/dev/null
