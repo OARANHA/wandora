@@ -44,11 +44,13 @@ assert_static_activation_contract() {
   grep -Fq 'createPaperclipOrganizationAdapterProvider' "$CORE/src/runtime/organization-adapter.ts"
 
   # Candidate wiring may now be constructed by the Core entrypoint, but only
-  # behind the fail-closed runtime config. It must still have no HTTP/customer
+  # behind fail-closed runtime config/readiness. It must still have no customer
   # route that can invoke the service.
   grep -Fq "import { createRuntimeOrganizationAdapter } from './organization-adapter.js';" "$CORE/src/runtime/main.ts"
+  grep -Fq "import { createRuntimeReadinessChecker } from './readiness.js';" "$CORE/src/runtime/main.ts"
   grep -Fq 'const organizationAdapterService = pool && config.organizationAdapter' "$CORE/src/runtime/main.ts"
   grep -Fq '? createRuntimeOrganizationAdapter(pool, config.organizationAdapter)' "$CORE/src/runtime/main.ts"
+  grep -Fq 'organizationAdapterEnabled: Boolean(organizationAdapterService)' "$CORE/src/runtime/main.ts"
   if grep -Eq 'organization-adapter|catalog-employee|ensureCatalogEmployee' "$CORE/src/runtime/human-supervision.ts"; then
     echo 'organization_adapter_rehearsal_unexpected_customer_route' >&2
     exit 1
@@ -173,7 +175,8 @@ prove_custody_and_candidate_fail_closed() {
     node --import tsx --test --test-concurrency=1 \
       test/organization-adapter-secret-custody.test.ts \
       test/organization-adapter-runtime-wiring.test.ts \
-      test/organization-adapter-runtime-config.test.ts
+      test/organization-adapter-runtime-config.test.ts \
+      test/runtime-readiness.test.ts
 }
 
 assert_static_activation_contract
@@ -183,8 +186,8 @@ assert_static_activation_contract
 # DB/service/custody/signed-client behavior, including uncertain frozen retry.
 bash "$CORE/scripts/verify-organization-adapter-service-v1.sh"
 
-# Make custody, config and candidate-wiring fail-closed evidence explicit
-# inside this rehearsal rather than relying on a separate historical test step.
+# Make custody, config, candidate wiring and readiness fail-closed evidence
+# explicit inside this rehearsal rather than relying on historical test steps.
 prove_custody_and_candidate_fail_closed
 
 # Independently prove that a migration failure stops the activation sequence
