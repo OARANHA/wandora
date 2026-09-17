@@ -1,0 +1,7 @@
+{
+  "paperclipImage": "wandora/paperclip:v2026.831.1",
+  "paperclipSourceCommit": "65ec059bde30d98c92165b24a30a540800dd1f6f",
+  "pluginApiVersion": 1,
+  "pluginSdkVersion": "1.0.0",
+  "nodeEngine": ">=24.11.0"
+}
