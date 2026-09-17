@@ -6,7 +6,7 @@ This stack packages Wandora Core as a private operator-managed service. It is no
 
 The Core container has no published host port.
 
-- `wandora-core` — private application/control network shared with provider-neutral Wandora services such as Messaging Gateway.
+- `wandora-core` — private application/control network shared with provider-neutral Wandora services such as Messaging Gateway and Paperclip.
 - `wandora-data` — internal Docker network used only for the Core-to-PostgreSQL data path.
 - `wandora-edge` — Core is intentionally **not** attached in V1.
 
@@ -55,18 +55,50 @@ In database mode `/readyz` becomes 200 only if the runtime can connect and prove
 
 Raw database errors and credentials are never returned by the readiness endpoint.
 
+## Organization Adapter candidate wiring
+
+`compose.organization-adapter.yaml` is an explicit candidate-only overlay. The base Core stack keeps the Organization Adapter disabled.
+
+The overlay:
+
+- enables `WANDORA_ORGANIZATION_ADAPTER_ENABLED=true`;
+- pins the private Paperclip webhook to `wandora-paperclip:3100`;
+- mounts an operator-controlled per-company HMAC directory read-only at `/run/secrets/wandora/organization-adapter`;
+- never puts raw HMAC material in Git, PostgreSQL or environment variables;
+- does **not** add a customer HTTP route or expose `Contratar/Ativar funcionário`.
+
+Example candidate composition only after migrations 010/011, Paperclip plugin/config and custody material have passed their own reviewed gates:
+
+```bash
+export WANDORA_CORE_DB_PASSWORD_FILE=/opt/wandora/secrets/core-db-password
+export WANDORA_CORE_SECRET_GID="$(id -g)"
+export WANDORA_ORGANIZATION_ADAPTER_SECRET_DIR_HOST=/opt/wandora/secrets/organization-adapter
+
+docker compose \
+  -f infra/stacks/core/compose.yaml \
+  -f infra/stacks/core/compose.database.yaml \
+  -f infra/stacks/core/compose.organization-adapter.yaml \
+  config
+```
+
+This command only renders the candidate composition. Production deployment remains a separately reviewed operation.
+
+When the candidate flag is enabled, readiness additionally probes the three migration-011 private tables using `wandora_core_runtime`. If that least-privilege boundary is missing or inaccessible, `/readyz` fails closed with `organization-adapter-database-boundary-unavailable`. This prevents a candidate from appearing ready before the database contract is activated.
+
+The host custody directory must be operator-controlled. Individual HMAC files use deterministic SHA-256-derived filenames resolved from the frozen provider company reference and are opened without following symlinks by the Core resolver.
+
 ## Current non-goals
 
-Private Runtime V1 does not yet:
+Private Runtime V1 does not by itself:
 
 - expose a public hostname;
-- accept customer traffic;
-- receive normalized Messaging Gateway inbound events;
-- call Mastra or a real model provider;
-- create a Mistral/Chutes/OpenAI credential;
+- create a customer hiring/activation route;
+- install/configure the production Paperclip managed plugin;
+- create production per-company HMAC material;
+- apply migrations 010/011;
 - bypass Core policy/approval boundaries.
 
-Those are subsequent supervised slices after the private service and least-privilege connection are proven.
+Existing supervised Gateway/Mastra/Human API capabilities remain separate reviewed overlays.
 
 ## Verification
 
@@ -79,6 +111,11 @@ Core/Ana integration tests: green
 standby container /healthz: 200
 standby container /readyz: 503
 no published Core host port
+Organization Adapter base flag: absent/OFF
+Organization Adapter candidate overlay: private Paperclip URL + read-only custody mount
+Organization Adapter candidate before migration 011: /readyz = 503
+Organization Adapter boundary after migration 011: verifier green
+no customer Organization Adapter route
 ```
 
-After database activation, the operator proof additionally requires `/readyz = 200` through the real `wandora_core_runtime` credential while PostgreSQL remains non-public.
+After any future production database activation, the operator proof additionally requires `/readyz = 200` through the real `wandora_core_runtime` credential while PostgreSQL remains non-public.
