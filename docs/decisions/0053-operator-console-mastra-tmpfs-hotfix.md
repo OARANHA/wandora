@@ -29,28 +29,47 @@ Gateway outbound = OFF
 
 Therefore no failed Mastra origin was exposed publicly and no Organization Adapter effect occurred.
 
-## DECISION
+The first hotfix candidate preserved the read-only root and added `/app/.mastra` as a 16 MiB tmpfs. The new real-start CI smoke correctly rejected it with `ENOSPC: no space left on device` while Mastra bundled its development environment.
 
-Keep the container root filesystem read-only. Add a narrowly scoped ephemeral tmpfs only at:
+A second adversarial VPS proof used the same image with `--network none`, `--read-only`, dropped capabilities and a temporary 64 MiB `/app/.mastra` tmpfs. The Studio reached HTTP readiness, consumed `19344 KiB` (30% of the 64 MiB mount), and remained responsive after an additional 10-second stability probe:
 
 ```text
-/app/.mastra:rw,noexec,nosuid,size=16m
+READY_AT=10
+/app/.mastra used = 19344 KiB
+64 MiB tmpfs use = 30%
+STABLE_10S_OK
 ```
 
-Do **not** solve the problem by making the root filesystem writable.
+## DECISION
 
-Extend Operator Consoles CI so the built Mastra image must actually start under `--read-only`, `--network none`, dropped capabilities, the existing `/tmp` tmpfs, and the new `/app/.mastra` tmpfs, then answer HTTP on container-local port 4111.
+Keep the container root filesystem read-only. Provide only the narrowly scoped ephemeral tmpfs required by Mastra:
+
+```text
+/app/.mastra:rw,noexec,nosuid,size=64m
+```
+
+64 MiB is selected from measured startup evidence rather than guesswork. Do **not** solve the problem by making the root filesystem writable or by granting a large persistent writable volume.
+
+Extend Operator Consoles CI so the built Mastra image must actually start under `--read-only`, `--network none`, dropped capabilities, the existing `/tmp` tmpfs, and the exact 64 MiB `/app/.mastra` tmpfs, then answer HTTP on container-local port 4111. The smoke also verifies actual `/app/.mastra` usage remains below the configured boundary.
 
 ## SECOND ADVERSARIAL REVIEW
 
 Rejected:
 
 - removing `read_only` from the runtime console;
+- using 256 MiB merely because the broad proof succeeded;
+- retaining 16 MiB after CI proved it insufficient;
 - attaching the console to Core/data networks merely to make startup easier;
 - adding model/provider credentials or external network access to the CI smoke;
 - installing the Traefik router before the corrected container is healthy;
-- restarting the already-failing container repeatedly without changing the proven cause.
+- restarting the already-failing live container repeatedly without changing the proven cause.
+
+The 64 MiB decision survived the second review because measured steady startup consumption was 19344 KiB and the exact 64 MiB isolated proof reached and retained readiness.
+
+## TLS / 526 OBSERVATION
+
+While the router remains intentionally absent, local SNI probes show Traefik presents `TRAEFIK DEFAULT CERT` for `control.wandora.com.br` and `runtime.wandora.com.br`, while already-routed `app.wandora.com.br` and `status.wandora.com.br` present valid Let's Encrypt certificates. With Cloudflare Full (strict), the operator hostnames therefore return 526 until the reviewed routers are installed. Do not weaken Cloudflare SSL mode to hide this pre-promotion state.
 
 ## VALIDATION GATE
 
-Promotion may resume only after the hotfix CI is green and the fix is merged to `main`. Then the live Compose must be replaced with the exact merged bytes, the stopped runtime container recreated, both operator services proven healthy, and only then may the separately versioned Traefik router be installed.
+Promotion may resume only after the updated hotfix CI is green and the fix is merged to `main`. Then the live Compose must be replaced with the exact merged bytes, the stopped runtime container recreated, both operator services proven healthy, and only then may the separately versioned Traefik router be installed. After router installation, verify origin certificates for both SNI names and confirm Cloudflare Access still intercepts both external hostnames before declaring the console slice complete.
