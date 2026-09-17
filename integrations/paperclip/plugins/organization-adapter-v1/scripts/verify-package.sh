@@ -1,0 +1,108 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+PAPERCLIP_ROOT="${1:?usage: verify-package.sh /path/to/pinned/paperclip}"
+PAPERCLIP_ROOT="$(cd "$PAPERCLIP_ROOT" && pwd)"
+
+EXPECTED_COMMIT="$(node -e "const c=require('$ROOT/compatibility.json'); process.stdout.write(c.paperclipSourceCommit)")"
+ACTUAL_COMMIT="$(git -C "$PAPERCLIP_ROOT" rev-parse HEAD)"
+if [[ "$ACTUAL_COMMIT" != "$EXPECTED_COMMIT" ]]; then
+  echo "Paperclip source mismatch: expected $EXPECTED_COMMIT, got $ACTUAL_COMMIT" >&2
+  exit 1
+fi
+
+TSC="$PAPERCLIP_ROOT/node_modules/.bin/tsc"
+ESBUILD="$PAPERCLIP_ROOT/node_modules/.bin/esbuild"
+SDK_DTS="$PAPERCLIP_ROOT/packages/plugins/sdk/dist/index.d.ts"
+SDK_JS="$PAPERCLIP_ROOT/packages/plugins/sdk/dist/index.js"
+for required in "$TSC" "$ESBUILD" "$SDK_DTS" "$SDK_JS"; do
+  [[ -e "$required" ]] || { echo "missing Paperclip build dependency: $required" >&2; exit 1; }
+done
+
+NODE_TYPES_PACKAGE="$(find "$PAPERCLIP_ROOT/node_modules/.pnpm" -path '*/@types/node/package.json' -print -quit)"
+[[ -n "$NODE_TYPES_PACKAGE" ]] || { echo 'Paperclip @types/node is missing' >&2; exit 1; }
+TYPE_ROOT="$(dirname "$(dirname "$NODE_TYPES_PACKAGE")")"
+
+VERIFY_DIR="$ROOT/.verify"
+rm -rf "$ROOT/dist" "$ROOT/.test-build" "$ROOT/artifacts" "$VERIFY_DIR"
+mkdir -p "$ROOT/dist" "$ROOT/.test-build" "$ROOT/artifacts" "$VERIFY_DIR"
+
+cat > "$VERIFY_DIR/tsconfig.json" <<JSON
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": false,
+    "paths": {
+      "@paperclipai/plugin-sdk": ["$SDK_DTS"]
+    },
+    "typeRoots": ["$TYPE_ROOT"],
+    "types": ["node"]
+  },
+  "include": ["$ROOT/src/**/*.ts"]
+}
+JSON
+
+"$TSC" -p "$VERIFY_DIR/tsconfig.json"
+"$ESBUILD" "$ROOT/src/manifest.ts" --bundle --platform=node --format=esm --target=node24 \
+  --outfile="$ROOT/dist/manifest.js" --alias:@paperclipai/plugin-sdk="$SDK_JS"
+"$ESBUILD" "$ROOT/src/worker.ts" --bundle --platform=node --format=esm --target=node24 \
+  --outfile="$ROOT/dist/worker.js" --alias:@paperclipai/plugin-sdk="$SDK_JS"
+"$ESBUILD" "$ROOT/src/contract.ts" --bundle --platform=node --format=esm --target=node24 \
+  --outfile="$ROOT/.test-build/contract.mjs"
+
+node --test "$ROOT/test/contract.test.mjs"
+node "$ROOT/scripts/verify-artifact.mjs"
+node --check "$ROOT/dist/manifest.js"
+node --check "$ROOT/dist/worker.js"
+
+TSX="$(find "$PAPERCLIP_ROOT/node_modules/.pnpm" -path '*/tsx/dist/cli.mjs' -print -quit)"
+[[ -n "$TSX" ]] || { echo 'Paperclip tsx runtime is missing' >&2; exit 1; }
+PAPERCLIP_ROOT="$PAPERCLIP_ROOT" node "$TSX" "$ROOT/scripts/validate-paperclip.ts"
+
+mkdir -p "$VERIFY_DIR/pack1" "$VERIFY_DIR/pack2"
+(
+  cd "$ROOT"
+  npm pack --ignore-scripts --pack-destination "$VERIFY_DIR/pack1" >/dev/null
+  npm pack --ignore-scripts --pack-destination "$VERIFY_DIR/pack2" >/dev/null
+)
+PACK1="$(find "$VERIFY_DIR/pack1" -maxdepth 1 -name '*.tgz' -print -quit)"
+PACK2="$(find "$VERIFY_DIR/pack2" -maxdepth 1 -name '*.tgz' -print -quit)"
+HASH1="$(sha256sum "$PACK1" | cut -d' ' -f1)"
+HASH2="$(sha256sum "$PACK2" | cut -d' ' -f1)"
+[[ "$HASH1" == "$HASH2" ]] || { echo 'npm pack output is not reproducible' >&2; exit 1; }
+
+cat > "$VERIFY_DIR/expected-contents.txt" <<'EOF'
+package/README.md
+package/compatibility.json
+package/dist/manifest.js
+package/dist/worker.js
+package/package.json
+EOF
+tar -tzf "$PACK2" | sort > "$VERIFY_DIR/actual-contents.txt"
+cmp "$VERIFY_DIR/expected-contents.txt" "$VERIFY_DIR/actual-contents.txt"
+
+mkdir -p "$VERIFY_DIR/extracted"
+tar -xzf "$PACK2" -C "$VERIFY_DIR/extracted"
+if grep -RInE 'wandora_mastra_spike|127\.0\.0\.1:3140|company-test-only|synthetic-test-only|-----BEGIN (RSA |OPENSSH |EC )?PRIVATE KEY-----|service_role|x-wandora-paperclip-run-token' "$VERIFY_DIR/extracted/package"; then
+  echo 'forbidden laboratory/credential material found in installable artifact' >&2
+  exit 1
+fi
+
+cp "$PACK2" "$ROOT/artifacts/"
+printf '%s  %s\n' "$HASH2" "$(basename "$PACK2")" > "$ROOT/artifacts/package-sha256.txt"
+cat > "$ROOT/artifacts/provenance.txt" <<EOF
+wandora_source_sha=${WANDORA_SOURCE_SHA:-unversioned}
+paperclip_source_commit=$EXPECTED_COMMIT
+paperclip_image=wandora/paperclip:v2026.831.1
+plugin_package=$(basename "$PACK2")
+plugin_package_sha256=$HASH2
+EOF
+
+printf 'WANDORA_ORGANIZATION_ADAPTER_PLUGIN_PACKAGE_V1_OK\n'
+printf 'package_sha256=%s\n' "$HASH2"

@@ -1,0 +1,19 @@
+{
+  "name": "paperclip-plugin-wandora-organization-adapter",
+  "version": "0.1.0",
+  "description": "Wandora headless Paperclip plugin for company-scoped catalog employee reconciliation.",
+  "type": "module",
+  "private": false,
+  "engines": {
+    "node": ">=24.11.0"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "compatibility.json"
+  ],
+  "paperclipPlugin": {
+    "manifest": "./dist/manifest.js",
+    "worker": "./dist/worker.js"
+  }
+}

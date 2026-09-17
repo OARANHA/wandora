@@ -1,0 +1,67 @@
+name: Organization Adapter Plugin CI
+
+on:
+  pull_request:
+    paths:
+      - 'integrations/paperclip/plugins/organization-adapter-v1/**'
+      - '.github/workflows/organization-adapter-plugin-ci.yml'
+      - 'docs/decisions/0050-organization-adapter-managed-plugin-production-artifact-v1.md'
+      - 'docs/CANONICAL_STATE.md'
+  push:
+    branches: [main]
+    paths:
+      - 'integrations/paperclip/plugins/organization-adapter-v1/**'
+      - '.github/workflows/organization-adapter-plugin-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout Wandora
+        uses: actions/checkout@v4
+
+      - name: Checkout pinned Paperclip source
+        uses: actions/checkout@v4
+        with:
+          repository: paperclipai/paperclip
+          ref: 65ec059bde30d98c92165b24a30a540800dd1f6f
+          path: .paperclip
+
+      - name: Set up Node 24.21.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.21.0
+
+      - name: Set up pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.4 --activate
+          pnpm --version
+
+      - name: Install pinned Paperclip dependencies
+        working-directory: .paperclip
+        run: pnpm install --frozen-lockfile
+
+      - name: Build pinned Paperclip plugin SDK
+        working-directory: .paperclip
+        run: pnpm --filter @paperclipai/plugin-sdk build
+
+      - name: Typecheck, test, validate and package
+        env:
+          WANDORA_SOURCE_SHA: ${{ github.sha }}
+        run: |
+          chmod +x integrations/paperclip/plugins/organization-adapter-v1/scripts/verify-package.sh
+          integrations/paperclip/plugins/organization-adapter-v1/scripts/verify-package.sh "$GITHUB_WORKSPACE/.paperclip"
+
+      - name: Upload private installable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: organization-adapter-plugin-${{ github.sha }}
+          path: integrations/paperclip/plugins/organization-adapter-v1/artifacts/*
+          if-no-files-found: error
+          retention-days: 7
