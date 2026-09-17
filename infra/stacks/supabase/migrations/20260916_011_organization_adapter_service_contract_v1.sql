@@ -1,22 +1,24 @@
 BEGIN;
 
 ALTER TABLE wandora_private.digital_employee_hire_operations
-  ADD COLUMN IF NOT EXISTS catalog_key text;
+  ADD COLUMN IF NOT EXISTS catalog_key text,
+  ADD COLUMN IF NOT EXISTS provider_company_ref text;
 
 DO $$
 BEGIN
   IF EXISTS (
     SELECT 1
       FROM wandora_private.digital_employee_hire_operations
-     WHERE catalog_key IS NULL
+     WHERE catalog_key IS NULL OR provider_company_ref IS NULL
   ) THEN
-    RAISE EXCEPTION 'organization_adapter_catalog_key_backfill_required';
+    RAISE EXCEPTION 'organization_adapter_operation_context_backfill_required';
   END IF;
 END
 $$;
 
 ALTER TABLE wandora_private.digital_employee_hire_operations
-  ALTER COLUMN catalog_key SET NOT NULL;
+  ALTER COLUMN catalog_key SET NOT NULL,
+  ALTER COLUMN provider_company_ref SET NOT NULL;
 
 DO $$
 BEGIN
@@ -29,6 +31,17 @@ BEGIN
     ALTER TABLE wandora_private.digital_employee_hire_operations
       ADD CONSTRAINT digital_employee_hire_operations_catalog_key_check
       CHECK (catalog_key ~ '^[a-z0-9][a-z0-9._-]{2,63}$');
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+      FROM pg_constraint
+     WHERE conrelid = 'wandora_private.digital_employee_hire_operations'::regclass
+       AND conname = 'digital_employee_hire_operations_provider_company_ref_check'
+  ) THEN
+    ALTER TABLE wandora_private.digital_employee_hire_operations
+      ADD CONSTRAINT digital_employee_hire_operations_provider_company_ref_check
+      CHECK (length(trim(provider_company_ref)) BETWEEN 1 AND 255);
   END IF;
 END
 $$;
@@ -48,7 +61,7 @@ GRANT INSERT (organization_id, employee_id, provider, provider_agent_ref)
 
 GRANT INSERT (
   organization_id, idempotency_key, request_hash, employee_id,
-  provider, catalog_key, status
+  provider, catalog_key, provider_company_ref, status
 ) ON wandora_private.digital_employee_hire_operations TO wandora_core_runtime;
 
 GRANT UPDATE (status, provider_agent_ref, completed_at)
@@ -150,5 +163,7 @@ $$;
 
 COMMENT ON COLUMN wandora_private.digital_employee_hire_operations.catalog_key IS
   'Stable Wandora-owned catalog employee key. One managed catalog resource is reserved per organization/provider/key.';
+COMMENT ON COLUMN wandora_private.digital_employee_hire_operations.provider_company_ref IS
+  'Frozen provider company reference used by this operation so ambiguous retries cannot drift to a newer organization binding.';
 
 COMMIT;
