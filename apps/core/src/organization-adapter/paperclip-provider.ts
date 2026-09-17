@@ -99,14 +99,12 @@ export function createPaperclipOrganizationAdapterProvider(deps: {
         throw new PaperclipOrganizationAdapterUncertainError('Paperclip returned an invalid success payload.');
       }
 
-      if (
-        typeof payload !== 'object'
-        || payload === null
-        || Array.isArray(payload)
-        || (payload as Record<string, unknown>).status !== 'success'
-        || typeof (payload as Record<string, unknown>).deliveryId !== 'string'
-        || !(payload as Record<string, string>).deliveryId.trim()
-      ) {
+      if (typeof payload !== 'object' || payload === null || Array.isArray(payload)) {
+        throw new PaperclipOrganizationAdapterUncertainError('Paperclip success correlation is invalid.');
+      }
+      const record = payload as Record<string, unknown>;
+      const deliveryId = record.deliveryId;
+      if (record.status !== 'success' || typeof deliveryId !== 'string' || !deliveryId.trim()) {
         throw new PaperclipOrganizationAdapterUncertainError('Paperclip success correlation is invalid.');
       }
 
