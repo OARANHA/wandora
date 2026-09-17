@@ -50,6 +50,14 @@ test('Organization Adapter requires database mode, pinned private Paperclip rout
     await assert.rejects(
       loadRuntimeConfig({
         ...baseEnv,
+        WANDORA_ORGANIZATION_ADAPTER_SECRET_DIRECTORY: 'relative/organization-adapter',
+      }),
+      /absolute mounted directory/,
+    );
+
+    await assert.rejects(
+      loadRuntimeConfig({
+        ...baseEnv,
         WANDORA_ORGANIZATION_ADAPTER_SECRET_DIRECTORY: join(root, 'missing'),
       }),
       /must be a mounted directory/,
