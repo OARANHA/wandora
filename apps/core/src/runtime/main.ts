@@ -10,6 +10,7 @@ import { HumanSendProposalService } from '../supervision/human-send-proposal.js'
 import { loadRuntimeConfig } from './config.js';
 import { createGatewayIngressHandler } from './gateway-ingress.js';
 import { createHumanSupervisionHandler } from './human-supervision.js';
+import { createRuntimeOrganizationAdapter } from './organization-adapter.js';
 import { createRuntimeServer, type RuntimeReadiness } from './server.js';
 
 const config = await loadRuntimeConfig();
@@ -30,6 +31,10 @@ const pool = config.mode === 'database' && config.database
 
 const agentRuntime = config.agentRuntime?.mode === 'mastra-deterministic'
   ? new MastraDeterministicAgentRuntime()
+  : undefined;
+
+const organizationAdapterService = pool && config.organizationAdapter
+  ? createRuntimeOrganizationAdapter(pool, config.organizationAdapter)
   : undefined;
 
 const checkReady = async (): Promise<RuntimeReadiness> => {
@@ -117,6 +122,7 @@ server.listen(config.port, '0.0.0.0', () => {
     gatewayIngress: Boolean(handleGatewayInbound),
     humanApi: Boolean(handleHumanSupervision),
     humanSendProposal: Boolean(humanSendProposalService),
+    organizationAdapter: Boolean(organizationAdapterService),
     agentRuntime: config.agentRuntime?.mode ?? 'disabled',
   }));
 });
