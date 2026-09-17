@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 CORE="$ROOT/apps/core"
 MIGRATIONS="$ROOT/infra/stacks/supabase/migrations"
+CORE_STACK="$ROOT/infra/stacks/core"
 PAPERCLIP_STACK="$ROOT/infra/stacks/paperclip/compose.yaml"
 PLUGIN_MANIFEST="$ROOT/spikes/paperclip-organization-adapter-private-client-v1/manifest.js"
 PLUGIN_WORKER="$ROOT/spikes/paperclip-organization-adapter-private-client-v1/worker.js"
@@ -42,14 +43,27 @@ assert_static_activation_contract() {
   grep -Fq 'createPaperclipOrganizationAdapterFileSecretResolver' "$CORE/src/runtime/organization-adapter.ts"
   grep -Fq 'createPaperclipOrganizationAdapterProvider' "$CORE/src/runtime/organization-adapter.ts"
 
-  # Rehearsal/candidate wiring exists as a private factory, but production main
-  # must still be unable to instantiate or expose it through customer routes.
-  if grep -Fq 'createRuntimeOrganizationAdapter' "$CORE/src/runtime/main.ts"; then
-    echo 'organization_adapter_rehearsal_unexpected_live_entrypoint_wiring' >&2
-    exit 1
-  fi
+  # Candidate wiring may now be constructed by the Core entrypoint, but only
+  # behind the fail-closed runtime config. It must still have no HTTP/customer
+  # route that can invoke the service.
+  grep -Fq "import { createRuntimeOrganizationAdapter } from './organization-adapter.js';" "$CORE/src/runtime/main.ts"
+  grep -Fq 'const organizationAdapterService = pool && config.organizationAdapter' "$CORE/src/runtime/main.ts"
+  grep -Fq '? createRuntimeOrganizationAdapter(pool, config.organizationAdapter)' "$CORE/src/runtime/main.ts"
   if grep -Eq 'organization-adapter|catalog-employee|ensureCatalogEmployee' "$CORE/src/runtime/human-supervision.ts"; then
     echo 'organization_adapter_rehearsal_unexpected_customer_route' >&2
+    exit 1
+  fi
+
+  test -f "$CORE_STACK/compose.organization-adapter.yaml"
+  grep -Fq 'WANDORA_ORGANIZATION_ADAPTER_ENABLED: "true"' "$CORE_STACK/compose.organization-adapter.yaml"
+  grep -Fq 'WANDORA_ORGANIZATION_ADAPTER_WEBHOOK_URL: "http://wandora-paperclip:3100/api/plugins/wandora.organization-adapter-v1/webhooks/employee-reconcile"' "$CORE_STACK/compose.organization-adapter.yaml"
+  grep -Fq 'WANDORA_ORGANIZATION_ADAPTER_SECRET_DIRECTORY: "/run/secrets/wandora/organization-adapter"' "$CORE_STACK/compose.organization-adapter.yaml"
+  grep -Fq ':/run/secrets/wandora/organization-adapter:ro"' "$CORE_STACK/compose.organization-adapter.yaml"
+
+  # Base runtime remains disabled unless the candidate overlay is explicitly
+  # selected; no Organization Adapter env belongs in the base stack.
+  if grep -Fq 'WANDORA_ORGANIZATION_ADAPTER_' "$CORE_STACK/compose.yaml"; then
+    echo 'organization_adapter_rehearsal_base_stack_must_remain_disabled' >&2
     exit 1
   fi
 }
@@ -158,7 +172,8 @@ prove_custody_and_candidate_fail_closed() {
   docker run --rm -v "$CORE:/app" -w /app "$NODE_IMAGE" \
     node --import tsx --test --test-concurrency=1 \
       test/organization-adapter-secret-custody.test.ts \
-      test/organization-adapter-runtime-wiring.test.ts
+      test/organization-adapter-runtime-wiring.test.ts \
+      test/organization-adapter-runtime-config.test.ts
 }
 
 assert_static_activation_contract
@@ -168,7 +183,7 @@ assert_static_activation_contract
 # DB/service/custody/signed-client behavior, including uncertain frozen retry.
 bash "$CORE/scripts/verify-organization-adapter-service-v1.sh"
 
-# Make the secret-resolution and candidate-wiring fail-closed evidence explicit
+# Make custody, config and candidate-wiring fail-closed evidence explicit
 # inside this rehearsal rather than relying on a separate historical test step.
 prove_custody_and_candidate_fail_closed
 
