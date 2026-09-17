@@ -8,6 +8,7 @@ PAPERCLIP_STACK="$ROOT/infra/stacks/paperclip/compose.yaml"
 PLUGIN_MANIFEST="$ROOT/spikes/paperclip-organization-adapter-private-client-v1/manifest.js"
 PLUGIN_WORKER="$ROOT/spikes/paperclip-organization-adapter-private-client-v1/worker.js"
 PG_IMAGE="${POSTGRES_IMAGE:-supabase/postgres:17.6.1.136}"
+NODE_IMAGE="${NODE_IMAGE:-node:22.23.2-bookworm-slim@sha256:83f487e0a63425e5b4d146fb5e5be574bcbe1b7b843d3ebafdd95eaf7767a7e5}"
 SUFFIX="$$"
 NET="wandora-org-adapter-activation-rehearsal-net-$SUFFIX"
 DB="wandora-org-adapter-activation-rehearsal-db-$SUFFIX"
@@ -153,12 +154,23 @@ prove_migration_failure_rolls_back() {
   docker exec "$DB" dropdb -U supabase_admin "$FAIL_DB"
 }
 
+prove_custody_and_candidate_fail_closed() {
+  docker run --rm -v "$CORE:/app" -w /app "$NODE_IMAGE" \
+    node --import tsx --test --test-concurrency=1 \
+      test/organization-adapter-secret-custody.test.ts \
+      test/organization-adapter-runtime-wiring.test.ts
+}
+
 assert_static_activation_contract
 
 # Reuse the already accepted composed verifier for the success path. It proves
 # baseline -> migration 010 inert verifier -> migration 011 service verifier ->
 # DB/service/custody/signed-client behavior, including uncertain frozen retry.
 bash "$CORE/scripts/verify-organization-adapter-service-v1.sh"
+
+# Make the secret-resolution and candidate-wiring fail-closed evidence explicit
+# inside this rehearsal rather than relying on a separate historical test step.
+prove_custody_and_candidate_fail_closed
 
 # Independently prove that a migration failure stops the activation sequence
 # without leaving a partial 010 state. No production database is touched.
