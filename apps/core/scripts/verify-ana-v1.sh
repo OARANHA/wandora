@@ -41,7 +41,6 @@ for _ in $(seq 1 60); do
 done
 sleep 8
 
-# Model the Supabase roles and pg_net schema branch used by production.
 docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -c \
   "DO \$\$ BEGIN
      CREATE ROLE authenticated NOLOGIN;
@@ -67,8 +66,6 @@ for migration in \
   docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -f "/tmp/$migration" >/dev/null
 done
 
-# Migrations 008-010 are intentionally idempotent. Prove second application
-# before running their behavior/invariant verifiers.
 for migration in \
   20260916_008_private_tenant_provisioning_v1.sql \
   20260916_009_platform_provisioner_role_v1.sql \
@@ -94,8 +91,6 @@ for verifier in \
   docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -f "/tmp/$verifier"
 done
 
-# Only the disposable harness enables the canonical runtime login. No production
-# credential is created by the migration itself. Fixture administration remains separate.
 docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -c \
   "ALTER ROLE wandora_core_runtime CONNECTION LIMIT 4 PASSWORD '${CORE_PASSWORD}';
    CREATE ROLE wandora_fixture_admin_test LOGIN BYPASSRLS PASSWORD '${FIXTURE_PASSWORD}';
@@ -107,9 +102,9 @@ ACTIVATED_VERIFIER="VERIFY_20260914_CORE_RUNTIME_ACTIVATED_V1_LIVE.sql"
 docker cp "$VERIFIERS/$ACTIVATED_VERIFIER" "$DB:/tmp/$ACTIVATED_VERIFIER" >/dev/null
 docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -f "/tmp/$ACTIVATED_VERIFIER"
 
-# This historical harness intentionally stops at migration 010. Keep the new
-# migration-011 Organization Adapter integration test in its dedicated harness,
-# where 010 inertness is proved first and 011 is then applied explicitly.
+# This historical harness intentionally stops at migration 010. Keep all
+# migration-011 Organization Adapter integration tests in the dedicated
+# verifier, where 010 inertness is proved first and 011 is applied explicitly.
 docker run --rm --network "$NET" -v "$CORE:/app" -w /app \
   -e DATABASE_URL="postgresql://wandora_core_runtime:${CORE_PASSWORD}@${DB}:5432/${DB_NAME}" \
   -e FIXTURE_DATABASE_URL="postgresql://wandora_fixture_admin_test:${FIXTURE_PASSWORD}@${DB}:5432/${DB_NAME}" \
@@ -118,28 +113,26 @@ docker run --rm --network "$NET" -v "$CORE:/app" -w /app \
     npm ci --ignore-scripts >/dev/null
     npm run typecheck
     npm run build
-    BASE_TESTS="$(find test -maxdepth 1 -name "*.test.ts" ! -name "organization-adapter-service.integration.test.ts" -print | sort | tr "\n" " ")"
+    BASE_TESTS="$(find test -maxdepth 1 -name "*.test.ts" \
+      ! -name "organization-adapter-service.integration.test.ts" \
+      ! -name "organization-adapter-runtime-e2e.integration.test.ts" \
+      -print | sort | tr "\n" " ")"
     test -n "$BASE_TESTS"
     node --import tsx --test --test-concurrency=1 $BASE_TESTS
   '
 
-# The production image must boot privately in standby without any real credential.
 docker build -t "$CORE_IMAGE" "$CORE" >/dev/null
 docker run -d --name "$CORE_SMOKE" --network none \
   -e WANDORA_CORE_MODE=standby -e PORT=8788 "$CORE_IMAGE" >/dev/null
 for _ in $(seq 1 30); do
   if docker exec "$CORE_SMOKE" node -e \
-    "fetch('http://127.0.0.1:8788/healthz').then(r=>process.exit(r.status===200?0:1)).catch(()=>process.exit(1))"; then
-    break
-  fi
+    "fetch('http://127.0.0.1:8788/healthz').then(r=>process.exit(r.status===200?0:1)).catch(()=>process.exit(1))"; then break; fi
   sleep 1
 done
 docker exec "$CORE_SMOKE" node -e \
   "fetch('http://127.0.0.1:8788/readyz').then(r=>process.exit(r.status===503?0:1)).catch(()=>process.exit(1))"
 test -z "$(docker port "$CORE_SMOKE")"
 
-# Database mode must also prove that the non-root Node process can read a
-# group-owned secret without widening it to world-readable permissions.
 printf '%s\n' "$CORE_PASSWORD" > "$TMP_SECRET"
 printf '%s\n' 'synthetic-core-outbound-secret-0123456789abcdef0123456789' > "$TMP_OUTBOUND_SECRET"
 chmod 0640 "$TMP_SECRET" "$TMP_OUTBOUND_SECRET"
@@ -152,13 +145,10 @@ docker run -d --name "$CORE_DB_SMOKE" --network "$NET" \
   -e WANDORA_CORE_DB_NAME="$DB_NAME" \
   -e WANDORA_CORE_DB_USER=wandora_core_runtime \
   -e WANDORA_CORE_DB_PASSWORD_FILE=/run/secrets/wandora_core_db_password \
-  -e PORT=8788 \
-  "$CORE_IMAGE" >/dev/null
+  -e PORT=8788 "$CORE_IMAGE" >/dev/null
 for _ in $(seq 1 30); do
   if docker exec "$CORE_DB_SMOKE" node -e \
-    "fetch('http://127.0.0.1:8788/readyz').then(r=>process.exit(r.status===200?0:1)).catch(()=>process.exit(1))"; then
-    break
-  fi
+    "fetch('http://127.0.0.1:8788/readyz').then(r=>process.exit(r.status===200?0:1)).catch(()=>process.exit(1))"; then break; fi
   sleep 1
 done
 docker exec "$CORE_DB_SMOKE" node -e \
@@ -167,7 +157,6 @@ docker exec "$CORE_DB_SMOKE" node -e \
   "fetch('http://127.0.0.1:8788/readyz').then(r=>process.exit(r.status===200?0:1)).catch(()=>process.exit(1))"
 test -z "$(docker port "$CORE_DB_SMOKE")"
 
-# Base, database and opt-in Human Send Proposal Compose shapes must remain valid.
 docker compose -f "$ROOT/infra/stacks/core/compose.yaml" config >/dev/null
 WANDORA_CORE_DB_PASSWORD_FILE="$TMP_SECRET" WANDORA_CORE_SECRET_GID="$(id -g)" docker compose \
   -f "$ROOT/infra/stacks/core/compose.yaml" \
