@@ -18,8 +18,9 @@ services:
       HOST: "0.0.0.0"
       PAPERCLIP_HOME: "/paperclip"
       PAPERCLIP_DEPLOYMENT_MODE: "authenticated"
-      PAPERCLIP_DEPLOYMENT_EXPOSURE: "private"
-      PAPERCLIP_PUBLIC_URL: "http://localhost:3100"
+      PAPERCLIP_DEPLOYMENT_EXPOSURE: "public"
+      PAPERCLIP_PUBLIC_URL: "https://paperclip.wandora.com.br"
+      PAPERCLIP_AUTH_DISABLE_SIGN_UP: "true"
       PAPERCLIP_TELEMETRY_DISABLED: "1"
       DO_NOT_TRACK: "1"
       BETTER_AUTH_SECRET: "${BETTER_AUTH_SECRET:?required}"
@@ -29,6 +30,7 @@ services:
       - paperclip-data:/paperclip
     networks:
       - wandora-core
+      - wandora-edge
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3100/api/health"]
       interval: 30s
@@ -42,4 +44,6 @@ volumes:
 
 networks:
   wandora-core:
+    external: true
+  wandora-edge:
     external: true
