@@ -1,7 +1,7 @@
 # Wandora — Canonical State / Handoff
 
 Last synchronized: **2026-09-17**
-Canonical `main` verified before this synchronization: `7afeaf384816e4bdbe2e2fe51a9e8aba4eab89af`
+Canonical `main` verified before this synchronization: `7c7e7706c5ec59f9f732ff15bf7fd6939f1e7569`
 
 Authority order: `AGENTS.md` → accepted ADRs → `docs/CAPABILITY_AUTHORITY.md` → `docs/architecture.md` → this file → component README/runbook.
 
@@ -142,8 +142,6 @@ No production mutation was performed by this rehearsal.
 
 ## ADR 0043 / PR #88 — Core Candidate Wiring V1 — MERGED, NOT LIVE
 
-PR #88 merged as canonical `main@7afeaf384816e4bdbe2e2fe51a9e8aba4eab89af`.
-
 The base Core remains Organization Adapter OFF. A separate candidate-only Compose overlay may enable the already-proven private service with these fail-closed constraints:
 
 - database mode only;
@@ -153,22 +151,88 @@ The base Core remains Organization Adapter OFF. A separate candidate-only Compos
 - readiness additionally requires the migration-011 private DB boundary;
 - enabling the adapter before migration 011 yields `/readyz=503`, not a false-green candidate.
 
-All four PR checks for #88 were green: Core, Web, Messaging Gateway and Platform Admin.
+## ADR 0044 / PR #90 — Core Candidate Artifact + Pre-Activation Boundary V1 — MERGED
 
-## REAL LIVE observation after #88
+PR #90 merged as canonical `main@7c7e7706c5ec59f9f732ff15bf7fd6939f1e7569`.
 
-Verified directly on the Wandora VPS on 2026-09-17:
+It adds a clean-checkout candidate builder and a private GitHub Actions artifact path with exact source provenance. The builder:
+
+- requires declared source SHA to equal the actual checkout `HEAD`;
+- builds only `apps/core`;
+- labels the image with the exact Git revision and Wandora candidate contract;
+- verifies `USER node` and rejects Organization Adapter enable/secret material baked into image environment;
+- writes a Docker archive, provenance manifest and SHA-256 checksum;
+- removes/reloads the archive in CI and rechecks image ID + revision;
+- publishes the result as a private 7-day artifact, not a public registry image.
+
+The PR artifact proved the mechanism against the synthetic PR merge ref. The post-merge `main` run then produced the actual canonical candidate:
 
 ```text
-wandora-web               wandora/web:team-read-b31db507                 healthy
-wandora-core              wandora/core:team-read-b31db507                healthy
-wandora-messaging-gateway wandora/messaging-gateway:origin-fix-94cfb4de  healthy
-wandora-paperclip         wandora/paperclip:v2026.831.1                  healthy
+source_sha       = 7c7e7706c5ec59f9f732ff15bf7fd6939f1e7569
+image_id         = sha256:ea91dfa41b728ed0ee03965ae76c52b95d3a726c5fd655917532aa5e9a284895
+archive_sha256   = 2164ecabeeef0d085e8c16ac842e251913235345249fbb7f2e4381a2e8c44a57
+artifact_zip_sha = 1661fc806db899fb904cfa6ec1c8e94ea231e50e052c58beeb2c63f9458ff783
 ```
 
-Live Core remains on `wandora-core` + `wandora-data`, has no published port and has no `WANDORA_ORGANIZATION_ADAPTER_ENABLED=true` environment entry.
+GitHub artifact ID: `10485487921`, private, retention 7 days from 2026-09-17.
 
-A direct production DB check returned:
+## ADR 0045 — Core Candidate Host Staging V1 — PROVEN, NOT LOADED
+
+The exact post-merge artifact was transferred to the VPS through the authorized connector's short-lived signed artifact URL. No Git credential, SSH key or registry credential was introduced.
+
+Canonical host staging path:
+
+```text
+/home/wandora-admin/.local/share/wandora/core-candidates/
+  7c7e7706c5ec59f9f732ff15bf7fd6939f1e7569/
+```
+
+Host verification proved:
+
+```text
+CORE_CANDIDATE_HOST_STAGING_V1_OK
+source_sha = 7c7e7706c5ec59f9f732ff15bf7fd6939f1e7569
+image_id = sha256:ea91dfa41b728ed0ee03965ae76c52b95d3a726c5fd655917532aa5e9a284895
+zip_sha256 = 1661fc806db899fb904cfa6ec1c8e94ea231e50e052c58beeb2c63f9458ff783
+archive_sha256 = 2164ecabeeef0d085e8c16ac842e251913235345249fbb7f2e4381a2e8c44a57
+```
+
+The first `/opt/wandora/artifacts` attempt failed before any download because the operator lacked write permission. Sudo was not bypassed. The user-owned staging path was used instead. The ZIP downloaded once, passed its digest, and after `unzip` was found absent the same validated file was reused with traversal-checked Python `zipfile` extraction; no package installation was needed.
+
+The candidate Docker archive is staged but has **not** been loaded into the host Docker image store and no container has been created from it.
+
+## ADR 0046 — Provider-Neutral Operator Console Hostnames V1 — ACCEPTED, DNS NOT ACTIVATED
+
+Recovered prior project context explicitly supports:
+
+```text
+admin.wandora.com.br -> Wandora Platform Admin
+```
+
+No exact earlier provider-neutral Paperclip/Mastra hostname pair was recoverable. The accepted naming from ADR 0046 is therefore a new current decision, not a reconstructed historical claim:
+
+```text
+admin.wandora.com.br   -> first-party Wandora Platform Admin cockpit
+control.wandora.com.br -> protected organization/control-plane native console bridge
+runtime.wandora.com.br -> protected agent-runtime/studio native console bridge
+```
+
+`control` and `runtime` are capability names, not provider names. They survive Paperclip/Mastra replacement.
+
+No DNS record or ingress change has been made by this decision. `runtime` must remain reserved until a separately validated standalone Mastra Studio/operator service actually exists. Native consoles remain optional engineering/diagnostic surfaces behind strong access control; they never replace Platform Admin or customer `app.wandora.com.br`.
+
+## REAL LIVE observation after #90 + host staging
+
+Reverified directly on the Wandora VPS on 2026-09-17:
+
+```text
+wandora-core      wandora/core:team-read-b31db507
+wandora-paperclip wandora/paperclip:v2026.831.1
+```
+
+Live Core still has no `WANDORA_ORGANIZATION_ADAPTER_ENABLED=true` environment entry.
+
+Direct production DB check still returns:
 
 ```text
 control_plane_provider_bindings       ABSENT
@@ -176,54 +240,69 @@ digital_employee_provider_bindings    ABSENT
 digital_employee_hire_operations      ABSENT
 ```
 
-Therefore migrations 010/011 remain literally **not live**.
+Organization Adapter HMAC custody remains absent.
 
-The VPS currently has no Organization Adapter HMAC custody directory and no Core image built from the post-#88 candidate source. Existing `wandora/core:*` images stop at earlier product slices. This is important: do not widen DB privileges merely because the candidate code is merged in Git.
+The Paperclip operator service has only the historical loopback diagnostic binding:
+
+```text
+3100/tcp -> 127.0.0.1:3100
+```
+
+The read-only live pre-activation verifier explicitly allows only this exact loopback binding and fails wildcard/non-loopback/unexpected publication.
 
 ## What is still NOT live / NOT approved
 
 - migrations 010/011 production application;
 - production Paperclip managed plugin install/config;
 - production per-company HMAC generation/mounting;
-- post-#88 Core candidate image on the VPS;
+- candidate Docker image loaded into the production host image store;
 - live Core Organization Adapter enablement;
 - customer `Contratar` / `Ativar funcionário` route or UI;
 - arbitrary/custom employee creation;
 - direct `agent-hires` fallback;
-- Human Send or Gateway outbound activation as part of this work.
+- Human Send or Gateway outbound activation as part of this work;
+- `control.wandora.com.br` or `runtime.wandora.com.br` DNS/ingress activation.
 
-## SECOND ADVERSARIAL REVIEW AFTER #88
+## SECOND ADVERSARIAL REVIEW AFTER #90 / ADR 0045
 
-Tempting option: apply migrations 010/011 now because the activation rehearsal and candidate code are green.
+Tempting option: apply migrations 010/011 now because the exact candidate artifact exists and is staged on the host.
 
 Rejected.
 
-Reason: the live host does not yet possess the post-#88 candidate image or HMAC custody path. Applying migration 011 first would widen `wandora_core_runtime` privileges while the executable candidate that consumes them is still absent. This recreates the idle-privilege ordering ADR 0043 explicitly rejected.
+The artifact is present, but the actual production Docker engine has not yet loaded and independently inspected it. Widening DB privilege before proving the host can ingest the exact candidate would still invert the desired activation order.
 
-Tempting option: install the production Paperclip plugin/HMACs first.
+Tempting option: start a candidate container immediately from the staged archive.
 
-Rejected for the same ordering reason. It would create live provider capability before the exact Core candidate artifact is locally identified and preflighted.
+Rejected. `docker load` + offline image inspection is a smaller reversible gate that can prove identity/user/labels/config without creating a process, attaching a network, mounting a secret or touching the database.
+
+Tempting option: activate `control`/`runtime` hostnames while doing this infrastructure work.
+
+Rejected. Operator-console ingress is independent of Organization Adapter activation and should not enlarge the blast radius of this slice.
 
 ## NEXT EXECUTABLE SLICE
 
-Next: **Organization Adapter Core Candidate Build + Live Preflight V1** — read-only with respect to Wandora business/database/provider state.
+Next: **Organization Adapter Core Candidate Host Load + Offline Inspection V1** — no running container and no business/database/provider effect.
 
 Required proof:
 
-1. produce an identifiable Core candidate artifact from canonical `main@7afeaf384816e4bdbe2e2fe51a9e8aba4eab89af`;
-2. prove its image/source identity before any deployment;
-3. render the exact base + database + Organization Adapter overlay without exposing raw secrets;
-4. verify the candidate keeps no public host port and only the reviewed private networks/mounts;
-5. verify current live prerequisites remain deliberately absent: migration-010 tables, production plugin config and HMAC custody;
-6. define the exact activation order so candidate availability precedes DB privilege widening;
-7. define rollback ordering: disable candidate entry path first, then provider/plugin/custody cleanup, and only then consider DB privilege/schema rollback;
-8. leave production migrations, plugin config, HMACs, live Core and customer hiring unchanged at the end of this slice.
+1. recompute the staged Docker archive SHA-256 before load;
+2. `docker load` the exact verified archive only;
+3. prove loaded image ID equals `sha256:ea91dfa41b728ed0ee03965ae76c52b95d3a726c5fd655917532aa5e9a284895`;
+4. prove OCI revision label equals canonical `main@7c7e7706c5ec59f9f732ff15bf7fd6939f1e7569`;
+5. prove candidate contract label equals `organization-adapter-core-v1`;
+6. prove image runs as non-root `node` by configuration;
+7. prove no Organization Adapter enable flag, HMAC material or provider credential is baked into image env;
+8. prove no new container was created and the live `wandora-core` container/image did not change;
+9. re-run the read-only live pre-activation state after load;
+10. leave migrations 010/011, plugin config, production HMACs, live Core and customer hiring unchanged.
 
-Only after this candidate/preflight gate is green should a separate **Production Technical Activation** decision be considered. Customer `Contratar/Ativar funcionário` remains a later slice even after technical activation.
+Only after this host-load gate is green should a separately reviewed **Production Technical Activation** decision be considered.
 
 ## Operator UI / native consoles
 
-The normal operator contract is Wandora Platform Admin, not provider-branded public hostnames. Native Paperclip/Mastra/Evolution/Supabase/Portainer consoles remain protected engineering/diagnostic surfaces and do not become customer product contracts.
+The normal operator contract is Wandora Platform Admin at `admin.wandora.com.br`, not provider-branded hostnames. `control.wandora.com.br` and `runtime.wandora.com.br` are reserved provider-neutral engineering bridges and require their own protected ingress review before activation.
+
+Native Paperclip/Mastra/Evolution/Supabase/Portainer consoles remain protected engineering/diagnostic surfaces and do not become customer product contracts.
 
 ## Operational safety
 
@@ -235,6 +314,7 @@ The normal operator contract is Wandora Platform Admin, not provider-branded pub
 - Browser-supplied IDs are selectors, never authorization.
 - Human Send and Gateway outbound remain OFF unless explicitly activated after review.
 - An Organization Adapter proof/candidate must not silently become a customer-visible activation path.
+- A candidate archive being staged or loaded does not mean the candidate runtime is active.
 
 ## Definition of progress
 
