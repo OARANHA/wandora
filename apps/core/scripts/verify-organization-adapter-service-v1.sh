@@ -87,6 +87,7 @@ docker run --rm --network "$NET" -v "$CORE:/app" -w /app \
   -e DATABASE_URL="postgresql://wandora_core_runtime:${CORE_PASSWORD}@${DB}:5432/${DB_NAME}" \
   -e FIXTURE_DATABASE_URL="postgresql://wandora_fixture_admin_test:${FIXTURE_PASSWORD}@${DB}:5432/${DB_NAME}" \
   "$NODE_IMAGE" sh -lc \
-  'npm ci --ignore-scripts >/dev/null && npm run typecheck && node --import tsx --test --test-concurrency=1 test/organization-adapter-service.integration.test.ts'
+  'npm ci --ignore-scripts >/dev/null && npm run typecheck && node --import tsx --test --test-concurrency=1 test/organization-adapter-service.integration.test.ts test/organization-adapter-runtime-e2e.integration.test.ts'
 
 echo "ORGANIZATION_ADAPTER_SERVICE_CONTRACT_V1_VERIFY_OK"
+echo "ORGANIZATION_ADAPTER_RUNTIME_E2E_V1_VERIFY_OK"
