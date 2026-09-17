@@ -52,9 +52,23 @@ const checkReady = async (): Promise<RuntimeReadiness> => {
     if (row.organization_scope !== null) {
       return { ready: false, reason: 'tenant-scope-leak' };
     }
+
+    if (organizationAdapterService) {
+      await pool.query(`
+        SELECT 1 FROM wandora_private.control_plane_provider_bindings LIMIT 0;
+        SELECT 1 FROM wandora_private.digital_employee_provider_bindings LIMIT 0;
+        SELECT 1 FROM wandora_private.digital_employee_hire_operations LIMIT 0;
+      `);
+    }
+
     return { ready: true };
   } catch {
-    return { ready: false, reason: 'database-unavailable' };
+    return {
+      ready: false,
+      reason: organizationAdapterService
+        ? 'organization-adapter-database-boundary-unavailable'
+        : 'database-unavailable',
+    };
   }
 };
 
