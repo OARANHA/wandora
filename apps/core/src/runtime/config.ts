@@ -1,4 +1,5 @@
 import { readFile, stat } from 'node:fs/promises';
+import { isAbsolute } from 'node:path';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -225,6 +226,9 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
   let organizationAdapter: RuntimeOrganizationAdapterConfig | undefined;
   if (organizationAdapterEnabled) {
     const secretDirectory = required(env, 'WANDORA_ORGANIZATION_ADAPTER_SECRET_DIRECTORY');
+    if (!isAbsolute(secretDirectory)) {
+      throw new Error('WANDORA_ORGANIZATION_ADAPTER_SECRET_DIRECTORY must be an absolute mounted directory.');
+    }
     const secretDirectoryStat = await stat(secretDirectory).catch(() => null);
     if (!secretDirectoryStat?.isDirectory()) {
       throw new Error('WANDORA_ORGANIZATION_ADAPTER_SECRET_DIRECTORY must be a mounted directory.');
