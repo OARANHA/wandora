@@ -94,6 +94,24 @@ export class OrganizationAdapterService {
     }
   }
 
+  private assertOperationContext(
+    operation: OperationRow,
+    expected: Pick<OperationRow, 'request_hash' | 'employee_id' | 'provider' | 'catalog_key' | 'provider_company_ref'>,
+  ): void {
+    if (
+      operation.request_hash !== expected.request_hash
+      || operation.employee_id !== expected.employee_id
+      || operation.provider !== expected.provider
+      || operation.catalog_key !== expected.catalog_key
+      || operation.provider_company_ref !== expected.provider_company_ref
+    ) {
+      throw new OrganizationAdapterConflictError(
+        'state-inconsistent',
+        'Reserved organization-adapter operation changed unexpectedly.',
+      );
+    }
+  }
+
   private async reserveOperation(args: {
     organizationId: string;
     actorUserId: string;
@@ -114,6 +132,12 @@ export class OrganizationAdapterService {
       );
       const keyed = byKey.rows[0];
       if (keyed) {
+        if (keyed.provider !== this.provider.provider) {
+          throw new OrganizationAdapterConflictError(
+            'state-inconsistent',
+            'The idempotency key belongs to a different provider operation.',
+          );
+        }
         if (keyed.request_hash !== args.requestHash || keyed.catalog_key !== args.definition.key) {
           throw new OrganizationAdapterConflictError(
             'idempotency-conflict',
@@ -209,6 +233,7 @@ export class OrganizationAdapterService {
       if (!current) {
         throw new OrganizationAdapterConflictError('state-inconsistent', 'Reserved operation disappeared.');
       }
+      this.assertOperationContext(current, operation);
       return current;
     });
   }
@@ -226,51 +251,77 @@ export class OrganizationAdapterService {
     });
   }
 
+  private async loadOperation(organizationId: string, idempotencyKey: string): Promise<OperationRow | undefined> {
+    return this.scopedWrite(organizationId, async (client) => {
+      const result = await client.query<OperationRow>(
+        `SELECT idempotency_key, request_hash, employee_id::text, provider, catalog_key,
+                provider_company_ref, status::text AS status, provider_agent_ref
+           FROM wandora_private.digital_employee_hire_operations
+          WHERE organization_id = $1 AND idempotency_key = $2`,
+        [organizationId, idempotencyKey],
+      );
+      return result.rows[0];
+    });
+  }
+
+  private async readCompletedResult(
+    client: PoolClient,
+    organizationId: string,
+    operation: OperationRow,
+    definition: CatalogEmployeeDefinition,
+  ): Promise<CatalogEmployeeResult> {
+    if (operation.provider !== this.provider.provider) {
+      throw new OrganizationAdapterConflictError('state-inconsistent', 'Completed operation provider is inconsistent.');
+    }
+    const result = await client.query<EmployeeRow>(
+      `SELECT de.id::text AS employee_id,
+              de.display_name AS employee_name,
+              de.role::text AS employee_role,
+              de.status::text AS employee_status,
+              de.autonomy_mode::text AS employee_autonomy,
+              depb.provider_agent_ref
+         FROM wandora.digital_employees de
+         JOIN wandora_private.digital_employee_provider_bindings depb
+           ON depb.organization_id = de.organization_id
+          AND depb.employee_id = de.id
+          AND depb.provider = $3
+        WHERE de.organization_id = $1 AND de.id = $2`,
+      [organizationId, operation.employee_id, this.provider.provider],
+    );
+    const row = result.rows[0];
+    if (
+      !row
+      || operation.status !== 'completed'
+      || !operation.provider_agent_ref
+      || row.provider_agent_ref !== operation.provider_agent_ref
+      || row.employee_name !== definition.displayName
+      || row.employee_role !== definition.role
+      || row.employee_status !== 'active'
+      || row.employee_autonomy !== definition.autonomy
+    ) {
+      throw new OrganizationAdapterConflictError(
+        'state-inconsistent',
+        'Completed organization-adapter state is inconsistent.',
+      );
+    }
+    return {
+      id: row.employee_id,
+      name: row.employee_name,
+      role: row.employee_role,
+      status: 'active',
+      autonomy: row.employee_autonomy,
+    };
+  }
+
   private async completedResult(
     organizationId: string,
     operation: OperationRow,
     definition: CatalogEmployeeDefinition,
   ): Promise<CatalogEmployeeResult> {
-    return this.scopedWrite(organizationId, async (client) => {
-      const result = await client.query<EmployeeRow>(
-        `SELECT de.id::text AS employee_id,
-                de.display_name AS employee_name,
-                de.role::text AS employee_role,
-                de.status::text AS employee_status,
-                de.autonomy_mode::text AS employee_autonomy,
-                depb.provider_agent_ref
-           FROM wandora.digital_employees de
-           JOIN wandora_private.digital_employee_provider_bindings depb
-             ON depb.organization_id = de.organization_id
-            AND depb.employee_id = de.id
-            AND depb.provider = $3
-          WHERE de.organization_id = $1 AND de.id = $2`,
-        [organizationId, operation.employee_id, this.provider.provider],
-      );
-      const row = result.rows[0];
-      if (
-        !row
-        || operation.status !== 'completed'
-        || !operation.provider_agent_ref
-        || row.provider_agent_ref !== operation.provider_agent_ref
-        || row.employee_name !== definition.displayName
-        || row.employee_role !== definition.role
-        || row.employee_status !== 'active'
-        || row.employee_autonomy !== definition.autonomy
-      ) {
-        throw new OrganizationAdapterConflictError(
-          'state-inconsistent',
-          'Completed organization-adapter state is inconsistent.',
-        );
-      }
-      return {
-        id: row.employee_id,
-        name: row.employee_name,
-        role: row.employee_role,
-        status: 'active',
-        autonomy: row.employee_autonomy,
-      };
-    });
+    return this.scopedWrite(
+      organizationId,
+      (client) => this.readCompletedResult(client, organizationId, operation, definition),
+    );
   }
 
   private async finalize(args: {
@@ -289,28 +340,25 @@ export class OrganizationAdapterService {
         [args.organizationId, args.operation.idempotency_key],
       );
       const current = locked.rows[0];
-      if (!current || current.request_hash !== args.operation.request_hash || current.catalog_key !== args.definition.key) {
-        throw new OrganizationAdapterConflictError('state-inconsistent', 'Reserved operation changed unexpectedly.');
+      if (!current) {
+        throw new OrganizationAdapterConflictError('state-inconsistent', 'Reserved operation disappeared.');
       }
+      this.assertOperationContext(current, args.operation);
       if (current.status === 'completed') {
-        return this.completedResult(args.organizationId, current, args.definition);
+        return this.readCompletedResult(client, args.organizationId, current, args.definition);
       }
 
-      const existingProviderRef = await client.query<{ organization_id: string; employee_id: string }>(
-        `SELECT organization_id::text, employee_id::text
+      const existingProviderRef = await client.query<{ employee_id: string }>(
+        `SELECT employee_id::text
            FROM wandora_private.digital_employee_provider_bindings
           WHERE provider = $1 AND provider_agent_ref = $2`,
         [this.provider.provider, args.providerAgentRef],
       );
       const providerRefBinding = existingProviderRef.rows[0];
-      if (
-        providerRefBinding
-        && (providerRefBinding.organization_id !== args.organizationId
-          || providerRefBinding.employee_id !== current.employee_id)
-      ) {
+      if (providerRefBinding && providerRefBinding.employee_id !== current.employee_id) {
         throw new OrganizationAdapterConflictError(
           'state-inconsistent',
-          'Provider agent is already bound to a different Wandora employee.',
+          'Provider agent is already bound to a different Wandora employee in this tenant scope.',
         );
       }
 
@@ -389,6 +437,23 @@ export class OrganizationAdapterService {
     });
   }
 
+  private async recoverCompletedResult(args: {
+    organizationId: string;
+    idempotencyKey: string;
+    definition: CatalogEmployeeDefinition;
+    providerAgentRef: string;
+  }): Promise<CatalogEmployeeResult | undefined> {
+    const persisted = await this.loadOperation(args.organizationId, args.idempotencyKey);
+    if (
+      !persisted
+      || persisted.status !== 'completed'
+      || persisted.provider_agent_ref !== args.providerAgentRef
+    ) {
+      return undefined;
+    }
+    return this.completedResult(args.organizationId, persisted, args.definition);
+  }
+
   async ensureCatalogEmployee(args: {
     organizationId: string;
     actorUserId: string;
@@ -430,7 +495,10 @@ export class OrganizationAdapterService {
         providerCompanyRef: operation.provider_company_ref,
         catalogKey: definition.key,
       });
-      providerAgentRef = reconciled.providerAgentRef;
+      providerAgentRef = reconciled.providerAgentRef.trim();
+      if (!providerAgentRef || providerAgentRef.length > 255) {
+        throw new Error('organization_adapter_invalid_provider_agent_ref');
+      }
     } catch {
       await this.markUncertain(args.organizationId, operation.idempotency_key);
       throw new OrganizationAdapterUnavailableError(
@@ -447,21 +515,20 @@ export class OrganizationAdapterService {
         providerAgentRef,
       });
     } catch (error) {
+      const recovered = await this.recoverCompletedResult({
+        organizationId: args.organizationId,
+        idempotencyKey: operation.idempotency_key,
+        definition,
+        providerAgentRef,
+      }).catch(() => undefined);
+      if (recovered) return recovered;
+
+      await this.markUncertain(args.organizationId, operation.idempotency_key);
       if (error instanceof OrganizationAdapterConflictError) throw error;
-      try {
-        const completed = await this.completedResult(
-          args.organizationId,
-          { ...operation, status: 'completed', provider_agent_ref: providerAgentRef },
-          definition,
-        );
-        return completed;
-      } catch {
-        await this.markUncertain(args.organizationId, operation.idempotency_key);
-        throw new OrganizationAdapterUnavailableError(
-          'provider-operation-uncertain',
-          'Provider reconciliation succeeded but local finalization is uncertain.',
-        );
-      }
+      throw new OrganizationAdapterUnavailableError(
+        'provider-operation-uncertain',
+        'Provider reconciliation succeeded but local finalization is uncertain.',
+      );
     }
   }
 }
