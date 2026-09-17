@@ -40,12 +40,13 @@ jobs:
         shell: bash
         env:
           WANDORA_SOURCE_SHA: ${{ github.sha }}
+          WANDORA_CANDIDATE_OUT_DIR: ${{ github.workspace }}/candidate-artifacts/core-${{ github.sha }}
         run: bash apps/core/scripts/build-organization-adapter-candidate-v1.sh
 
       - name: Re-load archive and re-check provenance
         shell: bash
         run: |
-          candidate_dir="$(find .candidate -mindepth 1 -maxdepth 1 -type d -name 'core-*' -print -quit)"
+          candidate_dir="$(find candidate-artifacts -mindepth 1 -maxdepth 1 -type d -name 'core-*' -print -quit)"
           test -n "$candidate_dir"
           archive="$(find "$candidate_dir" -maxdepth 1 -type f -name '*.tar.gz' -print -quit)"
           test -n "$archive"
@@ -64,7 +65,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: core-organization-adapter-candidate-${{ github.sha }}
-          path: .candidate/core-*/
+          path: candidate-artifacts/core-*/
           if-no-files-found: error
           retention-days: 7
           compression-level: 0
