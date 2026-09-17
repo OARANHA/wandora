@@ -17,7 +17,15 @@ import {
 
 export type RuntimeReadiness =
   | { ready: true }
-  | { ready: false; reason: 'standby' | 'database-unavailable' | 'unexpected-database-role' | 'tenant-scope-leak' };
+  | {
+      ready: false;
+      reason:
+        | 'standby'
+        | 'database-unavailable'
+        | 'unexpected-database-role'
+        | 'tenant-scope-leak'
+        | 'organization-adapter-database-boundary-unavailable';
+    };
 
 export type RuntimeServerDeps = {
   mode: RuntimeMode;

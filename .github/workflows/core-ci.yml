@@ -34,7 +34,7 @@ jobs:
         shell: bash
         run: bash apps/core/scripts/verify-organization-adapter-production-activation-rehearsal-v1.sh
 
-      - name: Validate deterministic Agent Runtime + Human API overlays
+      - name: Validate deterministic Agent Runtime + Human API + Organization Adapter overlays
         shell: bash
         env:
           WANDORA_CORE_DB_PASSWORD_FILE: /tmp/ci-core-db-secret
@@ -42,6 +42,7 @@ jobs:
           WANDORA_GATEWAY_CORE_INGRESS_SECRET_FILE: /tmp/ci-gateway-core-secret
           WANDORA_CORE_GATEWAY_OUTBOUND_SECRET_FILE: /tmp/ci-core-outbound-secret
           WANDORA_HUMAN_SEND_PROPOSAL_CONNECTION_ID: 22222222-2222-2222-2222-222222222222
+          WANDORA_ORGANIZATION_ADAPTER_SECRET_DIR_HOST: /tmp/ci-organization-adapter-secrets
         run: |
           effective="$(docker compose \
             -f infra/stacks/core/compose.yaml \
@@ -50,6 +51,7 @@ jobs:
             -f infra/stacks/core/compose.agent-runtime-deterministic.yaml \
             -f infra/stacks/core/compose.human-api.yaml \
             -f infra/stacks/core/compose.human-send-proposal.yaml \
+            -f infra/stacks/core/compose.organization-adapter.yaml \
             config)"
           printf '%s\n' "$effective" >/dev/null
           grep -q 'WANDORA_HUMAN_API_ENABLED: "true"' <<<"$effective"
@@ -60,4 +62,10 @@ jobs:
           grep -q 'WANDORA_HUMAN_SEND_PROPOSAL_CONNECTION_ID: 22222222-2222-2222-2222-222222222222' <<<"$effective"
           grep -q 'WANDORA_MESSAGING_GATEWAY_OUTBOUND_URL: http://wandora-messaging-gateway:8787/internal/v1/core/outbound/text' <<<"$effective"
           grep -q 'WANDORA_CORE_OUTBOUND_SECRET_FILE: /run/secrets/core_outbound_hmac' <<<"$effective"
+          grep -q 'WANDORA_ORGANIZATION_ADAPTER_ENABLED: "true"' <<<"$effective"
+          grep -q 'WANDORA_ORGANIZATION_ADAPTER_WEBHOOK_URL: http://wandora-paperclip:3100/api/plugins/wandora.organization-adapter-v1/webhooks/employee-reconcile' <<<"$effective"
+          grep -q 'WANDORA_ORGANIZATION_ADAPTER_SECRET_DIRECTORY: /run/secrets/wandora/organization-adapter' <<<"$effective"
+          grep -q 'source: /tmp/ci-organization-adapter-secrets' <<<"$effective"
+          grep -q 'target: /run/secrets/wandora/organization-adapter' <<<"$effective"
+          grep -q 'read_only: true' <<<"$effective"
           ! grep -q 'WANDORA_HUMAN_AUTH_' <<<"$effective"

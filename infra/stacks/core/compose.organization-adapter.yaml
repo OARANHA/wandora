@@ -1,0 +1,8 @@
+services:
+  core:
+    environment:
+      WANDORA_ORGANIZATION_ADAPTER_ENABLED: "true"
+      WANDORA_ORGANIZATION_ADAPTER_WEBHOOK_URL: "http://wandora-paperclip:3100/api/plugins/wandora.organization-adapter-v1/webhooks/employee-reconcile"
+      WANDORA_ORGANIZATION_ADAPTER_SECRET_DIRECTORY: "/run/secrets/wandora/organization-adapter"
+    volumes:
+      - "${WANDORA_ORGANIZATION_ADAPTER_SECRET_DIR_HOST:?required}:/run/secrets/wandora/organization-adapter:ro"

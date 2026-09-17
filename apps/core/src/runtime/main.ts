@@ -10,7 +10,9 @@ import { HumanSendProposalService } from '../supervision/human-send-proposal.js'
 import { loadRuntimeConfig } from './config.js';
 import { createGatewayIngressHandler } from './gateway-ingress.js';
 import { createHumanSupervisionHandler } from './human-supervision.js';
-import { createRuntimeServer, type RuntimeReadiness } from './server.js';
+import { createRuntimeOrganizationAdapter } from './organization-adapter.js';
+import { createRuntimeReadinessChecker } from './readiness.js';
+import { createRuntimeServer } from './server.js';
 
 const config = await loadRuntimeConfig();
 
@@ -32,26 +34,13 @@ const agentRuntime = config.agentRuntime?.mode === 'mastra-deterministic'
   ? new MastraDeterministicAgentRuntime()
   : undefined;
 
-const checkReady = async (): Promise<RuntimeReadiness> => {
-  if (!pool) return { ready: false, reason: 'standby' };
+const organizationAdapterService = pool && config.organizationAdapter
+  ? createRuntimeOrganizationAdapter(pool, config.organizationAdapter)
+  : undefined;
 
-  try {
-    const result = await pool.query<{ current_user: string; organization_scope: string | null }>(
-      `SELECT current_user::text AS current_user,
-              wandora.current_core_organization_id()::text AS organization_scope`,
-    );
-    const row = result.rows[0];
-    if (!row || row.current_user !== 'wandora_core_runtime') {
-      return { ready: false, reason: 'unexpected-database-role' };
-    }
-    if (row.organization_scope !== null) {
-      return { ready: false, reason: 'tenant-scope-leak' };
-    }
-    return { ready: true };
-  } catch {
-    return { ready: false, reason: 'database-unavailable' };
-  }
-};
+const checkReady = createRuntimeReadinessChecker(pool, {
+  organizationAdapterEnabled: Boolean(organizationAdapterService),
+});
 
 const handleGatewayInbound = pool && config.gatewayIngress
   ? createGatewayIngressHandler({
@@ -117,6 +106,7 @@ server.listen(config.port, '0.0.0.0', () => {
     gatewayIngress: Boolean(handleGatewayInbound),
     humanApi: Boolean(handleHumanSupervision),
     humanSendProposal: Boolean(humanSendProposalService),
+    organizationAdapter: Boolean(organizationAdapterService),
     agentRuntime: config.agentRuntime?.mode ?? 'disabled',
   }));
 });
