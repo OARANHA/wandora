@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-09-17
-- Scope: stage and verify the exact post-merge Core candidate archive on the Wandora VPS without loading or running it
+- Scope: stage and verify the exact post-merge Core candidate archive on the Wandora VPS without running it
 
 ## Context
 
@@ -20,17 +20,19 @@ The artifact is staged under the operator account, outside `/opt/wandora` runtim
 /home/wandora-admin/.local/share/wandora/core-candidates/<source_sha>/
 ```
 
-Staging is not deployment. It must not run `docker load`, create/recreate a container, alter Compose, install a plugin, create HMAC material or apply migrations.
+Staging is not deployment. It must not create/recreate a container, alter Compose, install a plugin, create HMAC material or apply migrations.
 
 The staged artifact is accepted only when all of the following match:
 
 1. GitHub artifact ZIP SHA-256;
 2. manifest `source_sha` equals canonical `main`;
-3. manifest `image_id` equals the CI-produced candidate image ID;
+3. manifest archive identity/provenance fields match the CI-produced candidate metadata;
 4. manifest `archive_sha256` equals the locally recomputed Docker archive SHA-256;
 5. bundled `SHA256SUMS` passes on the host;
 6. ZIP extraction rejects absolute paths and `..` traversal components;
 7. staged files are private to the operator account.
+
+ADR 0047 later clarified that the historical manifest field named `image_id` is a runner-local diagnostic/config digest and must not be treated as a portable cross-engine `.Id` equality contract.
 
 ## Proven result
 
@@ -40,10 +42,10 @@ Canonical source:
 main = 7c7e7706c5ec59f9f732ff15bf7fd6939f1e7569
 ```
 
-CI candidate:
+CI candidate/staged archive:
 
 ```text
-image_id = sha256:ea91dfa41b728ed0ee03965ae76c52b95d3a726c5fd655917532aa5e9a284895
+historical runner_image_id/config_digest = sha256:ea91dfa41b728ed0ee03965ae76c52b95d3a726c5fd655917532aa5e9a284895
 archive_sha256 = 2164ecabeeef0d085e8c16ac842e251913235345249fbb7f2e4381a2e8c44a57
 artifact_zip_sha256 = 1661fc806db899fb904cfa6ec1c8e94ea231e50e052c58beeb2c63f9458ff783
 ```
@@ -54,7 +56,7 @@ Host proof returned:
 CORE_CANDIDATE_HOST_STAGING_V1_OK
 ```
 
-The exact source SHA, image ID and both artifact/archive hashes matched.
+The exact source SHA and both artifact/archive hashes matched. The archive was accepted as the exact CI-produced bytes.
 
 ## Failure/recovery evidence
 
@@ -78,19 +80,18 @@ Rejected. The live VPS remains a runtime host, not a development checkout. Rebui
 
 Rejected. Staging is not runtime and does not justify privilege escalation or asking the operator to expose a sudo password.
 
-### Load the image immediately after staging
+### Treat Docker `.Id` as the portable artifact identity
 
-Rejected as part of this ADR. `docker load` is reversible and non-running, but it changes the production host image store and is therefore a separate reviewed operation.
+Rejected by the later evidence recorded in ADR 0047. The saved OCI archive has distinct config and manifest digests, and different Docker image stores may expose different one through `.Id`.
 
 ## Exit criteria
 
-ADR 0045 is satisfied because the exact post-merge artifact is now present and hash-verified on the VPS while:
+ADR 0045 is satisfied because the exact post-merge artifact is present and hash-verified on the VPS while:
 
 - live Core remains unchanged;
 - Organization Adapter remains OFF;
 - migrations 010/011 remain absent;
 - production Paperclip plugin/HMAC activation remains absent;
-- no candidate image has yet been loaded into Docker;
 - no customer route or external effect was activated.
 
-Next candidate-host action, if approved by the normal decision/adversarial-review discipline: load the verified archive into Docker, inspect identity/config without starting a container, and prove no running service changes.
+A subsequent separately reviewed `docker load` was attempted after this staging gate and produced the cross-engine digest evidence captured in ADR 0047. It did not start or recreate any container.
