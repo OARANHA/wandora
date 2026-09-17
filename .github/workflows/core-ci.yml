@@ -41,7 +41,7 @@ jobs:
           WANDORA_CORE_SECRET_GID: "1000"
           WANDORA_GATEWAY_CORE_INGRESS_SECRET_FILE: /tmp/ci-gateway-core-secret
           WANDORA_CORE_GATEWAY_OUTBOUND_SECRET_FILE: /tmp/ci-core-outbound-secret
-          WANDORA_HUMAN_SEND_PROPOSAL_CONNECTION_ID: 22222222-2222-2222-8222-222222222222
+          WANDORA_HUMAN_SEND_PROPOSAL_CONNECTION_ID: 22222222-2222-2222-2222-222222222222
         run: |
           effective="$(docker compose \
             -f infra/stacks/core/compose.yaml \
@@ -57,7 +57,7 @@ jobs:
           grep -q 'WANDORA_AUTH_ISSUER: https://supabase.wandora.com.br/auth/v1' <<<"$effective"
           grep -q 'WANDORA_AUTH_AUDIENCE: authenticated' <<<"$effective"
           grep -q 'WANDORA_HUMAN_SEND_PROPOSAL_ENABLED: "true"' <<<"$effective"
-          grep -q 'WANDORA_HUMAN_SEND_PROPOSAL_CONNECTION_ID: 22222222-2222-2222-8222-222222222222' <<<"$effective"
+          grep -q 'WANDORA_HUMAN_SEND_PROPOSAL_CONNECTION_ID: 22222222-2222-2222-2222-222222222222' <<<"$effective"
           grep -q 'WANDORA_MESSAGING_GATEWAY_OUTBOUND_URL: http://wandora-messaging-gateway:8787/internal/v1/core/outbound/text' <<<"$effective"
           grep -q 'WANDORA_CORE_OUTBOUND_SECRET_FILE: /run/secrets/core_outbound_hmac' <<<"$effective"
           ! grep -q 'WANDORA_HUMAN_AUTH_' <<<"$effective"
