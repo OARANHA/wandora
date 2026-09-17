@@ -1,0 +1,70 @@
+name: Core Candidate Artifact
+
+on:
+  pull_request:
+    paths:
+      - 'apps/core/**'
+      - 'infra/stacks/core/**'
+      - '.github/workflows/core-candidate.yml'
+      - 'docs/decisions/0044-organization-adapter-core-candidate-artifact-v1.md'
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/core/**'
+      - 'infra/stacks/core/**'
+      - '.github/workflows/core-candidate.yml'
+      - 'docs/decisions/0044-organization-adapter-core-candidate-artifact-v1.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: core-candidate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-candidate:
+    name: Build traceable Core candidate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build candidate archive and provenance manifest
+        shell: bash
+        env:
+          WANDORA_SOURCE_SHA: ${{ github.sha }}
+        run: bash apps/core/scripts/build-organization-adapter-candidate-v1.sh
+
+      - name: Re-load archive and re-check provenance
+        shell: bash
+        run: |
+          candidate_dir="$(find .candidate -mindepth 1 -maxdepth 1 -type d -name 'core-*' -print -quit)"
+          test -n "$candidate_dir"
+          archive="$(find "$candidate_dir" -maxdepth 1 -type f -name '*.tar.gz' -print -quit)"
+          test -n "$archive"
+          image_tag="$(awk -F= '$1=="image_tag"{print substr($0,index($0,"=")+1)}' "$candidate_dir/candidate-manifest.txt")"
+          expected_id="$(awk -F= '$1=="image_id"{print substr($0,index($0,"=")+1)}' "$candidate_dir/candidate-manifest.txt")"
+          expected_revision="$(awk -F= '$1=="source_sha"{print $2}' "$candidate_dir/candidate-manifest.txt")"
+          docker image rm -f "$image_tag" >/dev/null
+          gunzip -c "$archive" | docker load >/dev/null
+          actual_id="$(docker image inspect --format '{{.Id}}' "$image_tag")"
+          actual_revision="$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' "$image_tag")"
+          test "$actual_id" = "$expected_id"
+          test "$actual_revision" = "$expected_revision"
+          (cd "$candidate_dir" && sha256sum -c SHA256SUMS)
+
+      - name: Upload short-lived private candidate artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: core-organization-adapter-candidate-${{ github.sha }}
+          path: .candidate/core-*/
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
