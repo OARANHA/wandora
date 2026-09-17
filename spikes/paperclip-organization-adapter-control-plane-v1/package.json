@@ -1,0 +1,14 @@
+{
+  "name": "@wandora/paperclip-control-plane-proof-secretref",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Disposable secret-ref proof of Wandora -> Paperclip company-scoped reconciliation.",
+  "paperclipPlugin": {
+    "manifest": "./dist/manifest.js",
+    "worker": "./dist/worker.js"
+  },
+  "dependencies": {
+    "@paperclipai/plugin-sdk": "file:/app/packages/plugins/sdk"
+  }
+}
