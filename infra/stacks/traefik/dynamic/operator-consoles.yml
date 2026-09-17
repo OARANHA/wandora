@@ -1,0 +1,46 @@
+http:
+  routers:
+    wandora-control:
+      rule: "Host(`control.wandora.com.br`)"
+      entryPoints:
+        - websecure
+      service: wandora-control-bridge
+      middlewares:
+        - wandora-operator-console-security
+        - wandora-operator-console-rate-limit
+      tls:
+        certResolver: letsencrypt
+
+    wandora-runtime:
+      rule: "Host(`runtime.wandora.com.br`)"
+      entryPoints:
+        - websecure
+      service: wandora-runtime-console
+      middlewares:
+        - wandora-operator-console-security
+        - wandora-operator-console-rate-limit
+      tls:
+        certResolver: letsencrypt
+
+  middlewares:
+    wandora-operator-console-security:
+      headers:
+        contentTypeNosniff: true
+        frameDeny: true
+        referrerPolicy: "no-referrer"
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+    wandora-operator-console-rate-limit:
+      rateLimit:
+        average: 30
+        burst: 60
+
+  services:
+    wandora-control-bridge:
+      loadBalancer:
+        servers:
+          - url: "http://wandora-control-bridge:8080"
+    wandora-runtime-console:
+      loadBalancer:
+        servers:
+          - url: "http://wandora-runtime-console:4111"
