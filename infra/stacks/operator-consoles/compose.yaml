@@ -40,6 +40,7 @@ services:
       - ALL
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=64m
+      - /app/.mastra:rw,noexec,nosuid,size=64m
     environment:
       HOME: /tmp/home
       MASTRA_TELEMETRY_DISABLED: "true"
