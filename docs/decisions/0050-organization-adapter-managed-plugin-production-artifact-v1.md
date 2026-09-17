@@ -1,6 +1,6 @@
 # ADR 0050 — Organization Adapter Managed Plugin Production Artifact V1
 
-- Status: Accepted implementation decision, pending merge/CI proof
+- Status: **Accepted and proven in canonical `main`; NOT installed/configured live**
 - Date: 2026-09-17
 - Scope: promote the proven Paperclip managed-plugin contract out of disposable `spikes/` into a reproducible production-installable artifact without installing or configuring it in production
 
@@ -75,7 +75,7 @@ Paperclip host configured-company scope and managed-agent semantics remain indep
 
 `.github/workflows/organization-adapter-plugin-ci.yml` checks out the exact Paperclip source commit and uses Node `24.21.0` plus pnpm `9.15.4`.
 
-The package verifier must prove:
+The package verifier proves:
 
 1. strict TypeScript against the pinned Paperclip SDK declarations;
 2. worker/manifest bundling against the pinned SDK runtime;
@@ -92,7 +92,7 @@ The GitHub artifact is retained for seven days and is not published to a public 
 
 ## Laboratory evidence before PR
 
-A disposable build against the exact installed Paperclip image already proved strict typecheck, bundle generation, contract tests, Wandora artifact validation and native Paperclip manifest validation.
+A disposable build against the exact installed Paperclip image proved strict typecheck, bundle generation, contract tests, Wandora artifact validation and native Paperclip manifest validation.
 
 Two consecutive local `npm pack` executions produced the same SHA-256:
 
@@ -100,7 +100,41 @@ Two consecutive local `npm pack` executions produced the same SHA-256:
 2677c1dfea38541b75bc1417c5ce70d523e524e05028bdda6f25c5c7fb4b8376
 ```
 
-That laboratory hash is evidence only. The authoritative promotable artifact is the artifact reproduced by GitHub CI from the canonical merged source revision.
+That laboratory hash is historical evidence only. It was superseded by the canonical CI-built source after the final hardening changes.
+
+## Canonical merge and post-merge proof
+
+PR #95 was squash-merged into:
+
+```text
+main = f60715d042da4bbe4ac9068ea29dae2c986006bd
+```
+
+The PR head passed all five relevant workflows, including the dedicated Organization Adapter Plugin CI and the Core Production Activation Rehearsal.
+
+The post-merge `main` Organization Adapter Plugin CI then rebuilt the artifact from a clean checkout:
+
+```text
+workflow_run        = 35266676646
+artifact_id         = 10516662930
+artifact_name       = organization-adapter-plugin-f60715d042da4bbe4ac9068ea29dae2c986006bd
+artifact_zip_sha256 = 121358ee9f09b910eae82d6a72e15ed8ed6285bd6fe8ab311232fca2928abfa4
+package             = paperclip-plugin-wandora-organization-adapter-0.1.0.tgz
+package_sha256      = a4811f1d1f8521aeaf3930979ce12784f9b55e52390e24ead85300250d383e36
+paperclip_source    = 65ec059bde30d98c92165b24a30a540800dd1f6f
+```
+
+The installable package contains exactly:
+
+```text
+package/README.md
+package/compatibility.json
+package/dist/manifest.js
+package/dist/worker.js
+package/package.json
+```
+
+No production installation/configuration was performed by this proof.
 
 ## Second adversarial review
 
@@ -124,7 +158,7 @@ Rejected. Organization Adapter plugin promotion and Paperclip → Wandora execut
 
 Rejected. Public registry publication is unnecessary for the current private deployment gate and would widen the supply-chain/release surface without product value.
 
-### Install/configure live Paperclip as part of this PR
+### Install/configure live Paperclip as part of this slice
 
 Rejected. This slice exists specifically to close the missing artifact gate before returning to a fresh production preflight.
 
@@ -145,6 +179,6 @@ This ADR does **not** authorize or perform:
 
 ## Next gate
 
-After this package is merged and the post-merge `main` artifact is reproduced with recorded provenance, return to a **fresh Organization Adapter Production Activation Preflight**.
+The production-artifact blocker from ADR 0049 is cleared. The next executable slice is a **fresh Organization Adapter Production Activation Preflight**.
 
-That preflight must re-verify real runtime state and the exact installable artifact before any production migration, Paperclip configuration, HMAC creation or Core activation is allowed.
+That preflight must re-verify real runtime state and the exact post-merge installable artifact before any production migration, Paperclip configuration, HMAC creation or Core activation is allowed. It must not repeat already-proven backup/restore or candidate-load operations merely because a chat or tool session was interrupted.
