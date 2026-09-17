@@ -72,7 +72,8 @@ jobs:
           regression_manifest="$RUNNER_TEMP/candidate-manifest-runner-id-regression.txt"
           cp "$manifest" "$regression_manifest"
           sed -i 's/^runner_image_id=.*/runner_image_id=sha256:0000000000000000000000000000000000000000000000000000000000000000/' "$regression_manifest"
-          test "$(awk -F= '$1==\"runner_image_id\"{print substr($0,index($0,\"=\")+1)}' "$regression_manifest")" != "$runner_image_id"
+          regression_runner_id="$(grep '^runner_image_id=' "$regression_manifest" | cut -d= -f2-)"
+          test "$regression_runner_id" != "$runner_image_id"
           python3 "$verifier" --archive "$archive" --manifest "$regression_manifest"
 
           docker image rm -f "$image_tag" >/dev/null
