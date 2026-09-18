@@ -719,11 +719,30 @@ The same reviewed Core image was recreated with only the canonical hire overlay.
 
 The live projection for all active tenants is still closed to new hire: two completed-hire tenants return `already-hired`; `Empresa Exemplo` returns `unavailable`; none returns `available=true`.
 
+## First Tenant Eligibility Rollout Preflight — COMPLETE / NO CURRENT TARGET
+
+ADR 0085 revalidated all active tenants with the global customer-hire gate already ON and eligibility still empty.
+
+```text
+Internal Supervised Proof -> completed ana-commercial-v1 / already-hired
+Customer Hire Canary      -> completed ana-commercial-v1 / already-hired
+Empresa Exemplo           -> matching legacy Ana + no Paperclip control binding / unavailable
+
+eligibility rows = 0
+unfinished hire operations = 0
+Human Send = OFF
+Gateway outbound = OFF
+```
+
+The two Paperclip-bound companies remain correctly wired with company-scoped `secret_ref` config, healthy Organization Adapter plugin and protected Core HMAC custody. The dedicated eligibility operator remains NOLOGIN and setter-only.
+
+No current tenant qualifies for a first new catalog rollout, so no eligibility was enabled. ADR 0085 freezes the future target-specific setter/rollback and requires the first rollout to fail closed unless exactly one reviewed organization+catalog pair becomes enabled.
+
 ## Next executable slice
 
-Next: **Customer Digital-Employee Hire — First Tenant Eligibility Rollout Preflight V1.**
+Next: **Customer Digital-Employee Hire — Clean Tenant Rollout Candidate Preparation Preflight V1.**
 
-Preflight only: select one clean tenant or prove that none of the existing tenants qualifies, validate control-plane/Paperclip wiring and collision state, freeze the dedicated `wandora_customer_hire_operator` setter transaction and rollback, and do not enable eligibility yet.
+Preflight only: identify a real clean customer target or freeze the separately reviewed employee-free tenant preparation path. Do not provision, wire or enable a tenant merely as part of the preflight.
 
 ## Platform Admin
 
@@ -793,6 +812,11 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0078 — Customer Hire Canary Private Candidate Core Hire Execution V1
 - ADR 0079 — Customer Digital-Employee Hire Public Rollout Preflight V1
 - ADR 0080 — Customer Digital-Employee Hire Tenant Eligibility Contract Implementation V1
+- ADR 0081 — Customer Digital-Employee Hire Production Activation Preflight V2
+- ADR 0082 — Customer Digital-Employee Hire Dormant Production Foundation Activation V1
+- ADR 0083 — Customer Digital-Employee Hire Global Runtime Gate Activation Preflight V1
+- ADR 0084 — Customer Digital-Employee Hire Global Runtime Gate Activation Execution V1
+- ADR 0085 — Customer Digital-Employee Hire First Tenant Eligibility Rollout Preflight V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
