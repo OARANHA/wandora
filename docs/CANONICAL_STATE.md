@@ -1268,13 +1268,54 @@ Live GoTrue has SMTP configured, public signup disabled and the Wandora app orig
 
 No `/recover` or admin generate-link call was made. No invite/recovery e-mail or token was generated, no Auth user or tenant was created, no Web/Core/Auth deploy occurred, no provider wiring changed and no eligibility was enabled.
 
+## Customer Owner Interrupted Invite Recovery Contract Implementation V1 — IMPLEMENTED / NOT LIVE
+
+ADR 0089 + PR #137 implement the provider-native recovery contract selected by ADR 0088.
+
+Web now has a public `/recover-access` journey. Without staged recovery state it submits a neutral provider-native `POST /auth/v1/recover` request using only the existing publishable browser key and `redirect_to=https://app.wandora.com.br/recover-access`. With a valid recovery callback it accepts only exact `sb + type=recovery + bearer + access/refresh + unexpired expires_at`, stores that state separately under `wandora.auth.recovery.v1`, removes provider credentials from the URL before React renders and reuses the hardened ADR 0087 password finalizer.
+
+The adversarial review found and fixed an important dispatcher collision: the pre-existing invite handler would otherwise strip a valid recovery fragment before the recovery handler saw it. Invite now explicitly defers recovery callbacks and recovery explicitly defers invite callbacks; unsupported provider flows still fail closed.
+
+Invite and recovery both finish through:
+
+```text
+authenticated GET /auth/v1/user
+-> authenticated PUT /auth/v1/user
+-> password grant with the chosen password
+-> only then normal Wandora session + /api/v1/me
+```
+
+The recovery request completion UI is account-enumeration neutral. No Auth admin/service credential, Core recovery proxy, Wandora recovery-token table or `localStorage` recovery persistence was added.
+
+The GitHub-hosted Web/Core/Platform Admin/Gateway workflows for the implementation head again failed before runner assignment with `steps=null`; they are not classified green. The accepted infrastructure exception was independently reproduced against the exact Web branch with the real pinned Dockerfile and a synthetic publishable key:
+
+```text
+TypeScript strict = green
+WANDORA_WEB_OWNER_INVITE_ACCEPTANCE_V1_OK
+WANDORA_WEB_FIRST_PASSWORD_CONTRACT_V1_OK
+WANDORA_WEB_OWNER_INTERRUPTED_INVITE_RECOVERY_V1_OK
+WANDORA_WEB_SHARED_PASSWORD_FINALIZATION_V1_OK
+WANDORA_WEB_DIGITAL_EMPLOYEE_HIRE_BRIDGE_V1_OK
+WANDORA_WEB_CUSTOMER_HIRE_BROWSER_IDEMPOTENCY_V1_OK
+WANDORA_WEB_CUSTOMER_HIRE_TENANT_AVAILABILITY_V1_OK
+Vite production build = green
+
+isolated route smoke:
+/healthz = 200
+/recover-access = 200
+/accept-invite = 200
+/api/v1/not-reviewed = 404
+```
+
+The implementation remains **not deployed**. No real invite/recovery was requested or generated, no Auth user/tenant/provider state was created and eligibility remains unchanged. ADR 0088's anti-abuse gate remains mandatory because live CAPTCHA is still disabled.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Owner Interrupted Invite Recovery Contract Implementation V1.**
+Next: **Customer Owner Invite + Recovery Production Activation Preflight V1.**
 
-Code/CI only. Implement the dedicated request/callback/reset Web flow, strict `type=recovery` staging and shared password-finalization verifier.
+No-effect preflight only. Verify provider-native CAPTCHA and/or compatible edge abuse protection, redirect/origin configuration, exact Web candidate provenance, rollback and post-deploy checks before any activation execution is authorized.
 
-Do not deploy, send a real recovery/invite, create a real customer Auth user, provision a tenant, create provider wiring or enable eligibility during that implementation slice.
+Do not deploy, send a real recovery/invite, provision a tenant, create provider wiring or enable eligibility during that preflight.
 
 ## Operational safety
 
