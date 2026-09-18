@@ -87,6 +87,13 @@ export function LoginPage() {
                 {submitting || status === 'loading' ? <LoaderCircle className="size-[18px] animate-spin" /> : <ArrowRight className="size-[18px]" />}
                 Entrar
               </button>
+              <button
+                type="button"
+                onClick={() => void navigate({ to: '/recover-access' })}
+                className="w-full text-center text-sm font-semibold text-slate-500 hover:text-slate-800"
+              >
+                Esqueci minha senha
+              </button>
             </form>
 
             <p className="m-0 mt-6 text-center text-xs leading-5 text-slate-400">Sem cadastro público. Novas empresas são liberadas pela Wandora durante o beta.</p>
