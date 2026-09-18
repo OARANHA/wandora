@@ -140,7 +140,7 @@ WANDORA_WEB_DIGITAL_EMPLOYEE_HIRE_BRIDGE_V1_OK
 WANDORA_WEB_CUSTOMER_HIRE_BROWSER_IDEMPOTENCY_V1_OK
 WANDORA_WEB_CUSTOMER_HIRE_TENANT_AVAILABILITY_V1_OK
 Vite production build = green
-proof image manifest list = sha256:919ecdb4073434ef53a36d329ab51bf48c489f7388fe34904f8e444a090769dc
+proof image manifest list = sha256:d2c9990c44d7fe7ffc6ec8c32f127f54b8b8e0552105cc17ab846bfc59f492f3
 ```
 
 Disposable route smoke with an isolated echo Core:
@@ -150,10 +150,35 @@ Disposable route smoke with an isolated echo Core:
 /recover-access = 200
 /accept-invite = 200
 /api/v1/not-reviewed = 404
-WANDORA_OWNER_RECOVERY_ROUTE_SMOKE_OK
+WANDORA_OWNER_RECOVERY_FINAL_ROUTE_SMOKE_OK
 ```
 
 The proof Web/Core containers and proof Docker network were removed after the smoke.
+
+A final read-only production revalidation after the proof confirmed:
+
+```text
+live Core = wandora/core:organization-adapter-candidate-af542864d267 / healthy
+live Web  = wandora/web:candidate-af542864d267 / healthy
+Customer Digital-Employee Hire = ON
+Human Send = OFF
+Gateway outbound = OFF
+
+Auth users = 1
+users with recovery_token = 0
+users with recovery_sent_at = 0
+eligibility rows = 0
+enabled eligibility rows = 0
+unfinished hire operations = 0
+proof containers/networks remaining = 0
+```
+
+A final adversarial test also proves the callback dispatcher separation in both directions:
+
+```text
+invite handler defers type=recovery without touching URL/history
+recovery handler defers type=invite without touching URL/history
+```
 
 ## Explicit non-effects
 
