@@ -7,7 +7,7 @@ function assert(condition, message) {
 
 const nginx = await readFile(new URL('../nginx.conf', import.meta.url), 'utf8');
 const digitalEmployeesLocation =
-  /location ~ "\^\/api\/v1\/organizations\/\[0-9A-Fa-f\][\s\S]*?\/digital-employees\$" \{([\s\S]*?)\n  \}/
+  /location ~ "\\^\\/api\\/v1\\/organizations\\/\\[0-9A-Fa-f\\][\\s\\S]*?\\/digital-employees\\$" \\{([\\s\\S]*?)\\n  \\}/
     .exec(nginx)?.[1];
 
 if (!digitalEmployeesLocation) {
@@ -28,8 +28,16 @@ if (!nginx.includes('location /api/ {\n    return 404;\n  }')) {
 
 console.log('WANDORA_WEB_DIGITAL_EMPLOYEE_HIRE_BRIDGE_V1_OK');
 
-const startPage = await readFile(new URL('../src/pages/StartPage.tsx', import.meta.url), 'utf8');
+const [startPage, teamPage] = await Promise.all([
+  readFile(new URL('../src/pages/StartPage.tsx', import.meta.url), 'utf8'),
+  readFile(new URL('../src/pages/TeamPage.tsx', import.meta.url), 'utf8'),
+]);
+
 const requiredStartPageFragments = [
+  "queryKey: ['digital-employees', activeOrganization?.id]",
+  'availabilityQuery.data?.hire',
+  "hire.state === 'reconciliation-required'",
+  'peekHireOperation(activeOrganization.id)',
   'resolveHireOperation(activeOrganization.id, hireOperationRef.current)',
   "'Idempotency-Key': operation.idempotencyKey",
   'body: JSON.stringify({ catalogKey: HIRE_CATALOG_KEY })',
@@ -38,13 +46,26 @@ const requiredStartPageFragments = [
   "queryKey: ['digital-employees', organizationId]",
   'activeOrganizationIdRef.current === organizationId',
   'retryOrganizationMismatch',
-  'disabled={!canHire || mutation.isPending || retryOrganizationMismatch}',
+  '!actionEnabled',
   'operation.organizationId',
 ];
 
 for (const fragment of requiredStartPageFragments) {
   if (!startPage.includes(fragment)) {
     throw new Error(`customer_hire_browser_contract_missing:${fragment}`);
+  }
+}
+
+const requiredTeamPageFragments = [
+  "queryKey: ['digital-employees', activeOrganization?.id]",
+  "hire?.available || hire?.state === 'reconciliation-required'",
+  'showHireAction',
+  "hire?.state === 'reconciliation-required' ? 'Revisar contratação' : 'Contratar Ana'",
+];
+
+for (const fragment of requiredTeamPageFragments) {
+  if (!teamPage.includes(fragment)) {
+    throw new Error(`customer_hire_team_gate_missing:${fragment}`);
   }
 }
 
@@ -75,6 +96,7 @@ const {
   HIRE_CATALOG_KEY,
   HireError,
   clearHireOperation,
+  peekHireOperation,
   resolveHireOperation,
 } = helper;
 
@@ -117,6 +139,11 @@ const storage = createMemoryStorage();
 const uuidA = '11111111-1111-4111-8111-111111111111';
 const uuidB = '22222222-2222-4222-9222-222222222222';
 
+assert(
+  peekHireOperation('org-empty', { storage }) === null,
+  'customer_hire_peek_empty_must_not_create_operation',
+);
+
 let uuidCalls = 0;
 const opA = resolveHireOperation('org-a', null, {
   storage,
@@ -131,6 +158,10 @@ assert(
   storage.getItem(opA.storageKey) === uuidA,
   'customer_hire_first_key_not_persisted',
 );
+
+const peekedA = peekHireOperation('org-a', { storage });
+assert(peekedA?.idempotencyKey === uuidA, 'customer_hire_peek_did_not_recover_key');
+assert(peekedA?.organizationId === 'org-a', 'customer_hire_peek_changed_tenant');
 
 const inaccessibleStorage = {
   getItem() { throw new Error('must-not-read'); },
@@ -172,6 +203,19 @@ assert(
 );
 
 expectHireError(
+  () => peekHireOperation('org-peek-fail', {
+    storage: {
+      getItem() { throw new Error('blocked'); },
+      setItem() {},
+      removeItem() {},
+    },
+  }),
+  'idempotency-storage-unavailable',
+  'customer_hire_peek_storage_failure',
+  'org-peek-fail',
+);
+
+expectHireError(
   () => resolveHireOperation('org-read-fail', null, {
     storage: {
       getItem() { throw new Error('blocked'); },
@@ -204,10 +248,7 @@ const invalidStorageKey =
   `wandora:customer-hire:idempotency:v1:org-invalid:${HIRE_CATALOG_KEY}`;
 invalidStorage.setItem(invalidStorageKey, 'not-a-valid-operation-key');
 expectHireError(
-  () => resolveHireOperation('org-invalid', null, {
-    storage: invalidStorage,
-    randomUUID: () => uuidA,
-  }),
+  () => peekHireOperation('org-invalid', { storage: invalidStorage }),
   'idempotency-storage-invalid',
   'customer_hire_invalid_stored_key',
   'org-invalid',
@@ -226,6 +267,10 @@ expectHireError(
 clearHireOperation(opA, storage);
 assert(storage.getItem(opA.storageKey) === null, 'customer_hire_success_key_not_cleared');
 assert(
+  peekHireOperation('org-a', { storage }) === null,
+  'customer_hire_cleared_key_still_peekable',
+);
+assert(
   storage.getItem(opB.storageKey) === uuidB,
   'customer_hire_success_clear_crossed_tenant_boundary',
 );
@@ -237,3 +282,4 @@ clearHireOperation(opB, {
 });
 
 console.log('WANDORA_WEB_CUSTOMER_HIRE_BROWSER_IDEMPOTENCY_V1_OK');
+console.log('WANDORA_WEB_CUSTOMER_HIRE_TENANT_AVAILABILITY_V1_OK');
