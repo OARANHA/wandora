@@ -282,27 +282,21 @@ The temporary candidate smoke container was removed after validation. ADR 0060 t
 
 Post-promotion replay through the live Core returned the same existing Ana employee ID. Paperclip remains at one company, one paused Ana and one managed resource.
 
-## Live cross-company isolation preflight
+## Live cross-company isolation — closed
 
-ADR 0061 accepts the minimum reversible live A/B proof plan.
+ADR 0062 records the completed live gate against the production Paperclip/plugin/HMAC composition.
 
-Current production has only the internal Paperclip company; `Empresa Exemplo` remains deliberately unbound. The existing disposable final-contract proof already establishes A-secret -> B-target denial. The remaining gap is live evidence against the production Paperclip/plugin/custody composition.
+The proof used one ephemeral provider-only B company, never `Empresa Exemplo`. Paperclip rejected an A-owned secret_ref in B's plugin config with its canonical cross-company error, and the private webhook targeting B while signed with A's HMAC returned `invalid_wandora_signature`. B remained at zero agents/managed resources.
 
-The selected execution fixture is one ephemeral provider-only company:
+The B fixture was deleted through the official provider API. A's existing config was then re-saved unchanged to recompute the plugin worker's configured-company scope to A-only. Final readback shows one live Paperclip company, the original A secret_ref/Ana/managed resource intact, no B residue and no Wandora DB delta.
 
-```text
-Wandora Cross-Company Isolation Proof B
-```
-
-It receives no Wandora organization/provider binding and is not customer state. The execution must configure B with a B-owned secret_ref, prove cross-company secret-ref rejection, prove A-HMAC -> B-target denial with zero B resources, remove B through the official Paperclip API, then re-save A's existing plugin config unchanged so the worker recomputes its configured-company scope to A-only. Final verification must show no B provider/Wandora residue and the same A secret_ref/resource state.
-
-A positive B reconcile is intentionally excluded.
+Human Send and Gateway outbound remain OFF. `Empresa Exemplo` remains unprovisioned in Paperclip.
 
 ## Next executable slice
 
-Next: **Organization Adapter Live Cross-Company Isolation Execution V1**.
+Next: **Customer Digital-Employee Lifecycle Contract Preflight V1** — no customer effect.
 
-Run fresh REAL NOW first. Keep `Empresa Exemplo` unprovisioned, customer hire/activate absent, Human Send OFF and Gateway outbound OFF. If B cleanup fails, stop and document the residual fixture; never repair provider state with direct SQL.
+Define `Contratar` versus `Ativar`, decide the legitimate customer provider-company bootstrap boundary, reuse the Organization Adapter's existing idempotency/reconciliation contract, and freeze authorization/tenant/effect gates before enabling any customer surface. Do not provision `Empresa Exemplo` merely to begin the preflight.
 
 ## Platform Admin
 
