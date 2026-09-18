@@ -620,11 +620,42 @@ Core Candidate Artifact 35342325793 = success
 
 Production is unchanged: migration 013 is absent; no eligibility state is live; normal Customer Hire, Human Send and Gateway outbound remain OFF. CI candidate artifacts were not promoted.
 
+## Customer Digital-Employee Hire Production Activation Preflight V2 — COMPLETE / NO EFFECT
+
+ADR 0081 revalidated current `main`, production DB/runtime, final PR #128 artifacts and all active organizations without applying migration 013 or changing runtime effects.
+
+Key frozen facts:
+
+```text
+main = e438518bb52be8119883c4350295dac58cd70ef2
+main tree = 1438f0b4c33a7dda4d7ec8de94755f4e5f93122e
+reviewed PR merge-ref tree = same exact tree
+migration 013 live objects = absent
+Customer Hire / Human Send / Gateway outbound = OFF
+active tenants selected for new catalog eligibility = 0
+```
+
+The reviewed Core/Web candidate artifacts from the final #128 validation are current-main tree-equivalent and are selected for the later dormant foundation execution.
+
+Frozen production order:
+
+```text
+migration 013
+-> read-only zero-row/authority postverify
+-> Core
+-> Core validation
+-> Web
+-> Web validation
+-> stop with global hire OFF and zero eligibility rows
+```
+
+Eligibility changes use the dedicated NOLOGIN `wandora_customer_hire_operator` only through a protected local transactional `SET LOCAL ROLE` path; no new general-purpose login is authorized.
+
 ## Next executable slice
 
-Next: **Customer Digital-Employee Hire — Production Activation Preflight V2.**
+Next: **Customer Digital-Employee Hire — Dormant Production Foundation Activation V1.**
 
-Preflight only. Revalidate `main` + live runtime/DB, select exact post-merge candidates, prove migration 013 is still absent, freeze migration/deploy/rollback order with global hire OFF, define zero-eligibility post-migration checks and least-privilege operator execution, and inspect each prospective tenant before any future eligibility/global-gate effect.
+Apply migration 013 and promote Core/Web only in a separately reviewed execution slice, with zero eligibility rows and the global customer-hire gate remaining OFF. Tenant eligibility and global-gate activation remain later independent effects.
 
 ## Platform Admin
 
