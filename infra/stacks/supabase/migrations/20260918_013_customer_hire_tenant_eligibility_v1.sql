@@ -113,7 +113,7 @@ BEGIN
     v_catalog_key,
     p_enabled
   )
-  ON CONFLICT (organization_id, catalog_key)
+  ON CONFLICT ON CONSTRAINT digital_employee_catalog_hire_eligibility_pkey
   DO UPDATE SET enabled = EXCLUDED.enabled;
 
   RETURN QUERY
