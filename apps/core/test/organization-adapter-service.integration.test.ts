@@ -231,6 +231,31 @@ test('ambiguous provider success is repaired with the frozen company snapshot an
   assert.match(final.rows[0]?.provider_agent_ref ?? '', /^managed:paperclip-company-a:/);
 });
 
+test('matching legacy employee fails closed before journal reservation or provider effect', async () => {
+  await resetFixture();
+  await fixturePool.query(
+    `INSERT INTO wandora.digital_employees
+       (id,organization_id,display_name,role,status,autonomy_mode)
+     VALUES ($1,$2,'Ana','commercial-assistant','active','supervised')`,
+    ['54000000-0000-4000-8000-0000000000a1', ORG_A],
+  );
+
+  const provider = new MemoryPaperclipProvider();
+  const service = makeService(provider);
+  await assert.rejects(
+    service.ensureCatalogEmployee({
+      organizationId: ORG_A, actorUserId: USER, catalogKey: 'ana-commercial-v1', idempotencyKey: 'legacy-collision',
+    }),
+    (error: unknown) => error instanceof OrganizationAdapterConflictError && error.code === 'catalog-conflict',
+  );
+
+  assert.equal(provider.calls.length, 0);
+  const operations = await fixturePool.query(
+    `SELECT count(*)::int AS count FROM wandora_private.digital_employee_hire_operations`,
+  );
+  assert.equal(operations.rows[0]?.count, 0);
+});
+
 test('unknown catalog key fails before durable or provider effects', async () => {
   await resetFixture();
   const provider = new MemoryPaperclipProvider();
