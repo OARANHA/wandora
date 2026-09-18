@@ -94,7 +94,10 @@ export class HumanDigitalEmployeesReadService {
       state: 'unavailable',
     });
 
-    if (role !== 'owner' && role !== 'admin') {
+    if (
+      !this.catalogHireRuntimeEnabled
+      || (role !== 'owner' && role !== 'admin')
+    ) {
       return unavailable();
     }
 
@@ -114,10 +117,6 @@ export class HumanDigitalEmployeesReadService {
         available: false,
         state: 'already-hired',
       };
-    }
-
-    if (!this.catalogHireRuntimeEnabled) {
-      return unavailable();
     }
 
     if (operationStatus) {
