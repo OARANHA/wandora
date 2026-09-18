@@ -120,6 +120,7 @@ docker run --rm --network "$NET" -v "$CORE:/app" -w /app \
     BASE_TESTS="$(find test -maxdepth 1 -name "*.test.ts" \
       ! -name "organization-adapter-service.integration.test.ts" \
       ! -name "organization-adapter-runtime-e2e.integration.test.ts" \
+      ! -name "customer-hire-tenant-eligibility.integration.test.ts" \
       -print | sort | tr "\n" " ")"
     test -n "$BASE_TESTS"
     node --import tsx --test --test-concurrency=1 $BASE_TESTS

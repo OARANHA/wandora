@@ -44,6 +44,7 @@ export class OrganizationAdapterConflictError extends Error {
 
 export type OrganizationAdapterUnavailableCode =
   | 'catalog-employee-unknown'
+  | 'catalog-hire-not-eligible'
   | 'provider-not-configured'
   | 'provider-operation-uncertain';
 

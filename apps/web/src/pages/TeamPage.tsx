@@ -11,7 +11,16 @@ type DigitalEmployee = {
   autonomy: 'supervised';
 };
 
-type DigitalEmployeesResponse = { items: DigitalEmployee[] };
+type HireAvailability = {
+  catalogKey: 'ana-commercial-v1';
+  available: boolean;
+  state: 'available' | 'already-hired' | 'reconciliation-required' | 'unavailable';
+};
+
+type DigitalEmployeesResponse = {
+  items: DigitalEmployee[];
+  hire: HireAvailability;
+};
 
 const roleLabel: Record<DigitalEmployee['role'], string> = {
   'commercial-assistant': 'Assistente Comercial Digital',
@@ -61,6 +70,12 @@ export function TeamPage() {
     );
   }
 
+  const canManage = activeOrganization.role === 'owner' || activeOrganization.role === 'admin';
+  const hire = query.data?.hire;
+  const showHireAction = Boolean(
+    canManage && (hire?.available || hire?.state === 'reconciliation-required'),
+  );
+
   return (
     <div className="space-y-6">
       <PageHeader />
@@ -89,24 +104,42 @@ export function TeamPage() {
           </span>
           <h3 className="m-0 mt-4 text-base font-semibold text-slate-900">Nenhum funcionário digital nesta empresa</h3>
           <p className="m-0 mt-2 text-sm text-slate-500">
-            Quando a empresa tiver funcionários digitais contratados, eles aparecerão aqui.
+            {hire?.state === 'reconciliation-required'
+              ? 'Existe uma contratação em verificação. A Wandora só permitirá retomá-la pela operação original.'
+              : hire?.state === 'unavailable'
+                ? 'A contratação ainda não está liberada para esta empresa.'
+                : 'Quando a empresa tiver funcionários digitais contratados, eles aparecerão aqui.'}
           </p>
-          {activeOrganization.role === 'owner' || activeOrganization.role === 'admin' ? (
+          {showHireAction ? (
             <button
               type="button"
               onClick={() => void navigate({ to: '/start' })}
               className="mt-5 inline-flex h-10 items-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-500"
             >
-              <Plus className="size-4" /> Contratar Ana
+              <Plus className="size-4" />
+              {hire?.state === 'reconciliation-required' ? 'Revisar contratação' : 'Contratar Ana'}
             </button>
           ) : null}
         </div>
       ) : (
-        <div className="grid gap-5 xl:grid-cols-2">
-          {query.data.items.map((employee) => (
-            <EmployeeCard key={employee.id} employee={employee} />
-          ))}
-        </div>
+        <>
+          {showHireAction && hire?.state === 'available' ? (
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => void navigate({ to: '/start' })}
+                className="inline-flex h-10 items-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-500"
+              >
+                <Plus className="size-4" /> Contratar Ana
+              </button>
+            </div>
+          ) : null}
+          <div className="grid gap-5 xl:grid-cols-2">
+            {query.data.items.map((employee) => (
+              <EmployeeCard key={employee.id} employee={employee} />
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

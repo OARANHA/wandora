@@ -1,5 +1,5 @@
-import { useRef } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { type ReactNode, useRef } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import {
   AlertTriangle,
@@ -14,6 +14,7 @@ import {
   HIRE_CATALOG_KEY,
   HireError,
   clearHireOperation,
+  peekHireOperation,
   resolveHireOperation,
   type HireOperationRef,
 } from '../customerHireOperation';
@@ -26,7 +27,16 @@ type HiredEmployee = {
   autonomy: 'supervised';
 };
 
-type HireResponse = { employee: HiredEmployee };
+type HireAvailability = {
+  catalogKey: typeof HIRE_CATALOG_KEY;
+  available: boolean;
+  state: 'available' | 'already-hired' | 'reconciliation-required' | 'unavailable';
+};
+
+type DigitalEmployeesResponse = {
+  items: HiredEmployee[];
+  hire: HireAvailability;
+};
 
 export function StartPage() {
   const { activeOrganization, context, authFetch } = useAuth();
@@ -36,14 +46,81 @@ export function StartPage() {
   const activeOrganizationIdRef = useRef<string | null>(null);
   activeOrganizationIdRef.current = activeOrganization?.id ?? null;
 
+  const availabilityQuery = useQuery({
+    queryKey: ['digital-employees', activeOrganization?.id],
+    enabled: Boolean(activeOrganization),
+    queryFn: async () => {
+      const response = await authFetch(
+        `/api/v1/organizations/${activeOrganization!.id}/digital-employees`,
+      );
+      if (response.status === 403) throw new Error('Seu acesso a esta empresa não está ativo.');
+      if (!response.ok) throw new Error('Não foi possível verificar a contratação para esta empresa.');
+      return await response.json() as DigitalEmployeesResponse;
+    },
+  });
+
   const mutation = useMutation({
     mutationFn: async () => {
-      if (!activeOrganization) throw new HireError('organization-required', 'Escolha uma empresa antes de contratar.');
+      if (!activeOrganization) {
+        throw new HireError('organization-required', 'Escolha uma empresa antes de contratar.');
+      }
       if (activeOrganization.role !== 'owner' && activeOrganization.role !== 'admin') {
-        throw new HireError('forbidden', 'Somente owner ou admin pode contratar um funcionário digital.');
+        throw new HireError(
+          'forbidden',
+          'Somente owner ou admin pode contratar um funcionário digital.',
+          false,
+          activeOrganization.id,
+        );
       }
 
-      const operation = resolveHireOperation(activeOrganization.id, hireOperationRef.current);
+      if (availabilityQuery.isError) {
+        throw new HireError(
+          'hire-availability-unavailable',
+          'A Wandora não conseguiu confirmar a disponibilidade da contratação.',
+          false,
+          activeOrganization.id,
+        );
+      }
+
+      const hire = availabilityQuery.data?.hire;
+      if (!hire || hire.catalogKey !== HIRE_CATALOG_KEY) {
+        throw new HireError(
+          'hire-availability-unavailable',
+          'A Wandora ainda não conseguiu confirmar se a contratação está disponível.',
+          false,
+          activeOrganization.id,
+        );
+      }
+
+      let operation: HireOperationRef;
+      if (hire.state === 'reconciliation-required') {
+        const current = hireOperationRef.current;
+        const persisted = current?.organizationId === activeOrganization.id
+          ? current
+          : peekHireOperation(activeOrganization.id);
+        if (!persisted) {
+          throw new HireError(
+            'reconciliation-session-missing',
+            'Existe uma contratação em verificação, mas esta sessão não possui a chave original para retomá-la com segurança.',
+            false,
+            activeOrganization.id,
+          );
+        }
+        operation = persisted;
+      } else {
+        if (!hire.available || hire.state !== 'available') {
+          throw new HireError(
+            hire.state === 'already-hired' ? 'already-hired' : 'hire-not-available',
+            hire.state === 'already-hired'
+              ? 'Ana já faz parte da equipe desta empresa.'
+              : 'A contratação de Ana ainda não está disponível para esta empresa.',
+            false,
+            activeOrganization.id,
+          );
+        }
+        operation = resolveHireOperation(activeOrganization.id, hireOperationRef.current);
+      }
+
       hireOperationRef.current = operation;
       const response = await authFetch(
         `/api/v1/organizations/${activeOrganization.id}/digital-employees`,
@@ -82,18 +159,10 @@ export function StartPage() {
           operation.organizationId,
         );
       }
-      if (response.status === 404 && code === 'not-found') {
-        throw new HireError(
-          code,
-          'A contratação ainda não está habilitada para esta empresa.',
-          false,
-          operation.organizationId,
-        );
-      }
       if (response.status === 404) {
         throw new HireError(
           code,
-          'Este funcionário ainda não está disponível para contratação.',
+          'Este funcionário ainda não está disponível para contratação nesta empresa.',
           false,
           operation.organizationId,
         );
@@ -135,6 +204,13 @@ export function StartPage() {
         await navigate({ to: '/team' });
       }
     },
+    onError: async (error) => {
+      if (error instanceof HireError && error.retrySameKey && error.organizationId) {
+        await queryClient.invalidateQueries({
+          queryKey: ['digital-employees', error.organizationId],
+        });
+      }
+    },
   });
 
   if (!activeOrganization) {
@@ -161,7 +237,8 @@ export function StartPage() {
     );
   }
 
-  const canHire = activeOrganization.role === 'owner' || activeOrganization.role === 'admin';
+  const canHireRole = activeOrganization.role === 'owner' || activeOrganization.role === 'admin';
+  const hire = availabilityQuery.data?.hire;
   const error = mutation.error instanceof HireError ? mutation.error : null;
   const errorOrganization = error?.organizationId
     ? context?.organizations.find((organization) => organization.id === error.organizationId) ?? null
@@ -171,6 +248,36 @@ export function StartPage() {
       && error.organizationId
       && error.organizationId !== activeOrganization.id,
   );
+
+  let persistedReconciliation: HireOperationRef | null = null;
+  let reconciliationStorageError: HireError | null = null;
+  if (hire?.state === 'reconciliation-required') {
+    try {
+      persistedReconciliation = hireOperationRef.current?.organizationId === activeOrganization.id
+        ? hireOperationRef.current
+        : peekHireOperation(activeOrganization.id);
+    } catch (storageError) {
+      reconciliationStorageError = storageError instanceof HireError
+        ? storageError
+        : new HireError(
+          'idempotency-storage-unavailable',
+          'A contratação em verificação não pode ser retomada nesta sessão.',
+          false,
+          activeOrganization.id,
+        );
+    }
+  }
+
+  const canStartNew = Boolean(canHireRole && hire?.available && hire.state === 'available');
+  const canResume = Boolean(
+    canHireRole
+      && hire?.state === 'reconciliation-required'
+      && persistedReconciliation
+      && !reconciliationStorageError,
+  );
+  const actionEnabled = canStartNew || canResume;
+  const availabilityPending = availabilityQuery.isLoading || !availabilityQuery.data;
+  const availabilityFailed = availabilityQuery.isError;
 
   return (
     <div className="space-y-6">
@@ -209,10 +316,40 @@ export function StartPage() {
             </div>
           </div>
 
-          {!canHire ? (
-            <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+          {!canHireRole ? (
+            <Notice>
               Somente owner ou admin pode contratar um funcionário digital para <strong>{activeOrganization.name}</strong>.
-            </div>
+            </Notice>
+          ) : null}
+
+          {availabilityQuery.isError ? (
+            <Notice>
+              Não foi possível confirmar a disponibilidade da contratação. Nenhuma operação será iniciada até a consulta ser concluída com segurança.
+            </Notice>
+          ) : null}
+
+          {hire?.state === 'unavailable' && canHireRole ? (
+            <Notice>
+              A contratação de Ana ainda não está liberada para <strong>{activeOrganization.name}</strong>.
+            </Notice>
+          ) : null}
+
+          {hire?.state === 'already-hired' ? (
+            <Notice>
+              Ana já faz parte da equipe desta empresa. A contratação não será repetida.
+            </Notice>
+          ) : null}
+
+          {hire?.state === 'reconciliation-required' ? (
+            <Notice>
+              {persistedReconciliation && !reconciliationStorageError
+                ? 'Existe uma contratação em verificação nesta sessão. O botão abaixo retomará exatamente a mesma operação.'
+                : 'Existe uma contratação em verificação, mas esta sessão não possui a chave original. Nenhuma nova operação será criada.'}
+            </Notice>
+          ) : null}
+
+          {reconciliationStorageError ? (
+            <Notice>{reconciliationStorageError.message}</Notice>
           ) : null}
 
           {error ? (
@@ -232,15 +369,29 @@ export function StartPage() {
             <button
               type="button"
               onClick={() => mutation.mutate()}
-              disabled={!canHire || mutation.isPending || retryOrganizationMismatch}
+              disabled={
+                availabilityPending
+                || availabilityFailed
+                || !actionEnabled
+                || mutation.isPending
+                || retryOrganizationMismatch
+              }
               className="inline-flex h-11 items-center gap-2 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-300"
             >
-              {mutation.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
+              {mutation.isPending || availabilityQuery.isLoading
+                ? <LoaderCircle className="size-4 animate-spin" />
+                : <CheckCircle2 className="size-4" />}
               {mutation.isPending
                 ? 'Contratando Ana…'
-                : retryOrganizationMismatch
-                  ? 'Selecione a empresa da tentativa'
-                  : 'Contratar Ana'}
+                : availabilityQuery.isLoading
+                  ? 'Verificando disponibilidade…'
+                  : retryOrganizationMismatch
+                    ? 'Selecione a empresa da tentativa'
+                    : canResume
+                      ? 'Retomar contratação'
+                      : hire?.state === 'already-hired'
+                        ? 'Ana já está na equipe'
+                        : 'Contratar Ana'}
             </button>
             <button
               type="button"
@@ -274,6 +425,14 @@ export function StartPage() {
           </div>
         </aside>
       </section>
+    </div>
+  );
+}
+
+function Notice({ children }: { children: ReactNode }) {
+  return (
+    <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+      {children}
     </div>
   );
 }

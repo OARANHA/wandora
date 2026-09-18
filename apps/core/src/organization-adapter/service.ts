@@ -163,7 +163,31 @@ export class OrganizationAdapterService {
             'The catalog employee is already reserved with a different canonical definition.',
           );
         }
+        if (
+          catalogOperation.status !== 'completed'
+          && catalogOperation.idempotency_key !== args.idempotencyKey
+        ) {
+          throw new OrganizationAdapterConflictError(
+            'idempotency-conflict',
+            'An unfinished catalog hire must be retried with its original idempotency key.',
+          );
+        }
         return catalogOperation;
+      }
+
+      const eligibility = await client.query<{ enabled: boolean }>(
+        `SELECT enabled
+           FROM wandora_private.digital_employee_catalog_hire_eligibility
+          WHERE organization_id = $1
+            AND catalog_key = $2
+          LIMIT 1`,
+        [args.organizationId, args.definition.key],
+      );
+      if (eligibility.rows[0]?.enabled !== true) {
+        throw new OrganizationAdapterUnavailableError(
+          'catalog-hire-not-eligible',
+          'Catalog hire is not enabled for this organization.',
+        );
       }
 
       const legacyCollision = await client.query<{ employee_id: string }>(

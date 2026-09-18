@@ -40,6 +40,7 @@ const organizationAdapterService = pool && config.organizationAdapter
 
 const checkReady = createRuntimeReadinessChecker(pool, {
   organizationAdapterEnabled: Boolean(organizationAdapterService),
+  customerHireEnabled: Boolean(config.humanDigitalEmployeeHire),
 });
 
 const handleGatewayInbound = pool && config.gatewayIngress
@@ -69,7 +70,11 @@ const humanReadService = pool && humanVerifier
   : undefined;
 
 const humanDigitalEmployeesReadService = pool && humanReadService
-  ? new HumanDigitalEmployeesReadService(pool, humanReadService)
+  ? new HumanDigitalEmployeesReadService(
+      pool,
+      humanReadService,
+      Boolean(config.humanDigitalEmployeeHire && organizationAdapterService),
+    )
   : undefined;
 
 const humanSendProposalService = pool && humanVerifier && config.humanSendProposal
