@@ -440,18 +440,43 @@ fixture checkpoint = absent
 
 The cross-company isolation gate is therefore **CLOSED**. No durable B provider state remains.
 
+## Customer Digital-Employee Lifecycle Contract Preflight V1 — COMPLETE, NO CUSTOMER EFFECT
+
+ADR 0063 defines the customer lifecycle boundary without enabling any customer mutation.
+
+Accepted semantics:
+
+```text
+Contratar = materialize one supported catalog employee, stable/idempotent, paused + supervised
+Ativar    = separate future execution permission; unavailable until production execution bridge + least-privilege resume contract are proven
+```
+
+No new lifecycle table is approved. Existing `wandora.digital_employees.status = paused|active` plus the existing Organization Adapter binding/hire journal are sufficient for V1 hire.
+
+The existing Organization Adapter service already owns owner/admin authorization, tenant scope, idempotency, provider reconciliation and private binding. Customer first-time hire must change its local finalization from `active` to `paused`; completed hire replay must return the actual canonical `paused|active` state.
+
+Paperclip independently confirms managed agents are provisioned paused and “require explicit activation.” Its plugin SDK exposes company-scoped `agents.resume`, but the live Wandora plugin does not request that capability and the Paperclip -> Wandora/Mastra execution bridge remains laboratory-only. Therefore customer activation remains blocked.
+
+Provider company creation is lazy at first hire in product semantics, but must **not** be hidden inline inside the customer POST yet. Paperclip company creation is an instance-admin effect with no Wandora idempotency contract. The first `Empresa Exemplo` canary will therefore use a separately reviewed operator bootstrap prerequisite; general self-service requires a later bootstrap-automation contract.
+
+The current public placeholder `/start` is not production-safe. Real V1 must be authenticated/tenant-bound, use the selected canonical organization, expose only `Ana / ana-commercial-v1`, remove fake company/WhatsApp/knowledge effects, explicitly confirm `Contratar Ana`, and redirect to canonical `Equipe`. No `Ativar` control is rendered yet.
+
+Customer hire also requires its own disabled-by-default runtime gate. Organization Adapter ON does not imply customer hire ON.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Digital-Employee Lifecycle Contract Preflight V1** — observation/plan-first.
+Next: **Customer Hire Contract Implementation V1 — code/CI only, runtime gate OFF.**
 
-1. fresh REAL NOW and authority review;
-2. classify the current customer `/start` and hire/activate surfaces as REAL/PARTIAL/PLACEHOLDER/ABSENT;
-3. define the customer semantics of `Contratar` vs `Ativar`;
-4. decide when a customer Paperclip company is legitimately bootstrapped;
-5. reuse the existing Organization Adapter idempotency/reconciliation contracts rather than creating a parallel lifecycle;
-6. freeze owner/admin authorization, tenant isolation, ambiguous-effect handling and the initial paused/supervised state;
-7. determine whether production Paperclip -> Wandora/Mastra execution-adapter readiness is a prerequisite for `Ativar`;
-8. do **not** create `Empresa Exemplo` in Paperclip or expose/enable a customer action during the preflight.
+1. first-time Organization Adapter finalization becomes `paused`;
+2. completed hire replay accepts/returns actual `paused|active`;
+3. add exact owner/admin POST `/api/v1/organizations/:organizationId/digital-employees` with stable `Idempotency-Key`;
+4. keep provider refs/config/secrets out of responses;
+5. add a separate disabled-by-default customer-hire runtime gate;
+6. make `/start` authenticated + tenant-bound and Ana-only;
+7. remove fake company, WhatsApp and knowledge writes from the real hire path;
+8. update `Equipe` paused presentation for “contratada/aguardando ativação” semantics;
+9. prove member/cross-tenant/malformed/idempotency/conflict/unavailable cases;
+10. do not provision `Empresa Exemplo`, touch live Paperclip, enable customer hire/activation, Human Send or Gateway outbound.
 
 ## Operational safety
 

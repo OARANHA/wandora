@@ -292,11 +292,28 @@ The B fixture was deleted through the official provider API. A's existing config
 
 Human Send and Gateway outbound remain OFF. `Empresa Exemplo` remains unprovisioned in Paperclip.
 
+## Customer digital-employee lifecycle preflight
+
+ADR 0063 separates hire from activation.
+
+```text
+Contratar = idempotent catalog materialization -> Wandora employee paused + supervised
+Ativar    = separate future provider/runtime effect
+```
+
+The existing Organization Adapter journal/bindings are reused; no new lifecycle table is introduced. First-time customer hire will finalize `paused`, while hire replay may return the same employee as `paused` or `active` if a later activation has occurred.
+
+Paperclip managed agents are natively provisioned paused and require explicit activation. Paperclip offers company-scoped `agents.resume`, but the live Wandora plugin does not request it and the execution bridge remains laboratory-only, so customer activation remains unavailable.
+
+Provider company creation is lazy at first hire but is not yet safe to hide inside the customer request. The first customer-like canary will use a separately reviewed provider bootstrap prerequisite; general self-service requires higher-trust bootstrap automation.
+
+The current `/start` prototype is not a production contract. V1 must be authenticated/tenant-bound, use the selected organization, expose only real catalog Ana, perform only `Contratar`, and remove fake company/WhatsApp/knowledge effects.
+
 ## Next executable slice
 
-Next: **Customer Digital-Employee Lifecycle Contract Preflight V1** — no customer effect.
+Next: **Customer Hire Contract Implementation V1 — code/CI only, runtime gate OFF.**
 
-Define `Contratar` versus `Ativar`, decide the legitimate customer provider-company bootstrap boundary, reuse the Organization Adapter's existing idempotency/reconciliation contract, and freeze authorization/tenant/effect gates before enabling any customer surface. Do not provision `Empresa Exemplo` merely to begin the preflight.
+Implement the paused-first POST + protected minimal `/start` path and tests. Do not provision `Empresa Exemplo`, mutate live Paperclip, enable the customer-hire gate, expose `Ativar`, or enable Human Send/Gateway outbound.
 
 ## Platform Admin
 
