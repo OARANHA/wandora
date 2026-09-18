@@ -767,11 +767,21 @@ Web CI proved the invite acceptance, first-password, existing customer-hire brow
 
 An explicit operational gap remains: if the browser session is lost after one-time invite verification but before the password is defined, the customer cannot know GoTrue's random temporary password. A Supabase Auth recovery contract must be reviewed before real customer invitation.
 
+## Customer Owner Interrupted Invite Recovery — PREFLIGHT COMPLETE / NO EFFECT
+
+ADR 0088 selects the minimum recovery contract against exact GoTrue v2.196.0. Normal customer recovery will reuse public provider-native `POST /recover`, a dedicated Wandora `/recover-access` Web flow, strict `type=recovery` browser-session staging and the existing ADR 0087 authenticated password-update + password-grant reconciliation.
+
+Recovery tokens/session issuance remain Supabase Auth state. No Wandora recovery table, generic Core recovery proxy or browser Auth-admin credential is justified. `/admin/generate_link type=recovery` remains privileged operator-only emergency/diagnostic capability.
+
+A second interruption after consuming a recovery link is not terminal: the exact provider contract can issue a later recovery token again, subject to rate/frequency limits. Live CAPTCHA is currently disabled, so anti-abuse review is an explicit activation gate before any real customer recovery.
+
+The preflight generated no invite/recovery, changed no Auth user, performed no deploy/provisioning/provider wiring and kept eligibility at zero.
+
 ## Next executable slice
 
-Next: **Customer Owner Interrupted Invite Recovery Contract Preflight V1.**
+Next: **Customer Owner Interrupted Invite Recovery Contract Implementation V1.**
 
-Preflight only. Reuse Supabase Auth recovery/generate-link semantics; do not send a real recovery, create a customer Auth user, deploy Web, provision a tenant, create provider wiring or enable eligibility.
+Code/CI only. Implement the dedicated recovery request/callback/reset browser flow and executable verifier. Do not deploy, send a real invite/recovery, create a customer Auth user, provision a tenant, create provider wiring or enable eligibility.
 
 ## Platform Admin
 

@@ -70,6 +70,8 @@ The browser signs in directly against the stable Supabase Auth endpoint using on
 
 A valid Auth session is not itself Wandora authorization. Web sends the Bearer token to Core, which resolves the external `sub` to a canonical Wandora user and authorizes active organization membership.
 
+ADR 0088 selects the interrupted-invite recovery direction, but it is **not implemented or live yet**. The future customer recovery UX will use provider-native Supabase Auth `POST /recover` with the publishable browser key, return to a dedicated Wandora recovery route, strictly stage only an unexpired `type=recovery` provider session, erase URL credentials before render and reuse the hardened authenticated password-update + password-grant reconciliation from ADR 0087. Recovery tokens remain Supabase Auth state; no Core recovery proxy/table or Auth-admin browser credential is part of the design. Before the first real recovery request, live anti-abuse controls must be reviewed because provider CAPTCHA is currently disabled.
+
 ### Multi-organization selection
 
 ADR 0024 is live.
