@@ -173,10 +173,13 @@ GoTrue /verify
   -> erase fragment before React render
   -> show first-password form
   -> refresh provider session first if near expiry
+  -> GET /auth/v1/user with publishable key + invite Bearer to resolve the authenticated e-mail
   -> PUT /auth/v1/user with publishable key + invite Bearer
-  -> only after password success:
+  -> password grant with that same e-mail + user-chosen password
+       (normal post-onboarding session + reconciliation proof)
+  -> only after password-grant success:
        clear invite staging
-       promote session into normal Wandora browser session
+       promote the password-grant session into normal Wandora browser session
        bootstrap /api/v1/me
   -> linked owner enters normal app
   -> valid but unlinked owner remains existing fail-closed "unlinked" state
@@ -258,6 +261,33 @@ No `service_role`, JWT signing material, admin Auth token or privileged Core cre
 
 Provider rejection remains authoritative for password strength. Wandora does not invent a competing password policy.
 
+## AMBIGUOUS PASSWORD-WRITE RECONCILIATION
+
+A later adversarial pass found one additional failure mode: `PUT /user` may commit the password update while the browser loses the HTTP response. Blindly repeating that write can then receive a provider `same_password` rejection even though the intended password is already active.
+
+The hardened browser contract therefore resolves the authenticated invited user's e-mail through read-only `GET /auth/v1/user` before the write and always proves the chosen password through the normal password grant afterwards.
+
+This gives one deterministic reconciliation rule:
+
+```text
+PUT /user response success
+  -> password grant must succeed
+
+PUT /user response ambiguous/provider-error
+  -> password grant succeeds
+       => treat password write as completed and continue
+  -> password grant fails
+       => keep invite staging and fail closed for retry/recovery
+
+PUT /user returns 400/422
+  -> password grant succeeds
+       => reconcile a previously completed/same-password write
+  -> password grant fails
+       => preserve provider password rejection
+```
+
+The normal Wandora session is the password-grant session, not the temporary invite session. This also makes “normal password login works after password definition” an executed part of the browser flow rather than only a future assumption.
+
 ## SECOND ADVERSARIAL REVIEW
 
 Rejected or hardened alternatives:
@@ -276,6 +306,7 @@ Rejected or hardened alternatives:
 12. **Provision a customer tenant while implementing the page** — rejected.
 13. **Enable tenant eligibility, employee activation or outbound** — rejected.
 14. **Ignore interrupted invite recovery** — rejected as a production-readiness claim; see the explicit residual gap below.
+15. **Treat a lost `PUT /user` response as a simple failed write** — rejected; the write can have committed. The hardened flow reconciles with the invited user's own normal password grant before clearing staging or promoting a session.
 
 ## EXPLICIT RESIDUAL GAP — INTERRUPTED INVITE
 
@@ -313,11 +344,13 @@ The recovery capability must reuse Supabase Auth recovery semantics rather than 
 9. invalid provider fragment clears stale staged state;
 10. SITE_URL-root valid invite is canonicalized to `/accept-invite`;
 11. unsupported Supabase flow at root is cleared;
-12. password transport source is `PUT /auth/v1/user`;
-13. browser Auth source/page contain no `service_role`;
-14. invite staging runs before `createRoot(...)`;
-15. staging is cleared only after password-update success;
-16. normal session promotion happens only after staging clear/password success.
+12. invite identity is read through authenticated `GET /auth/v1/user`;
+13. password transport source is `PUT /auth/v1/user`;
+14. the chosen password is proven through normal password grant after the update attempt;
+15. browser Auth source/page contain no `service_role`;
+16. invite staging runs before `createRoot(...)`;
+17. staging is cleared only after password reconciliation succeeds;
+18. normal session promotion uses the reconciled password-grant session only after staging clear.
 
 The verifier runs in every Web production build before the existing bridge verifier.
 
@@ -354,6 +387,8 @@ steps = []
 They failed again with the same runnerless shape when selectively retried. No code in those components changed, and no step-level regression evidence exists.
 
 The final PR head must still receive fresh CI after canonical documentation is added.
+
+A subsequent adversarial review hardened password-write ambiguity with `GET /user` identity readback plus password-grant reconciliation. That hardening changes Web code/verifier only and must receive fresh Web CI before merge. Runnerless Actions failures are not treated as test failures; they require runner/job evidence before retry.
 
 ## EFFECT BOUNDARY
 
