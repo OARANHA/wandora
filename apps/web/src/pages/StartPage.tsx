@@ -33,6 +33,8 @@ export function StartPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const hireOperationRef = useRef<HireOperationRef | null>(null);
+  const activeOrganizationIdRef = useRef<string | null>(null);
+  activeOrganizationIdRef.current = activeOrganization?.id ?? null;
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -59,7 +61,12 @@ export function StartPage() {
       if (response.ok) {
         const employee = payload?.employee as HiredEmployee | undefined;
         if (!employee?.id || employee.name !== 'Ana') {
-          throw new HireError('invalid-response', 'A Wandora retornou uma resposta de contratação inválida.');
+          throw new HireError(
+            'invalid-response',
+            'A Wandora retornou uma resposta de contratação inválida.',
+            false,
+            operation.organizationId,
+          );
         }
         clearHireOperation(operation);
         hireOperationRef.current = null;
@@ -68,32 +75,65 @@ export function StartPage() {
 
       const code = typeof payload?.error === 'string' ? payload.error : 'unexpected';
       if (response.status === 403) {
-        throw new HireError(code, 'Seu perfil não pode contratar funcionários nesta empresa.');
+        throw new HireError(
+          code,
+          'Seu perfil não pode contratar funcionários nesta empresa.',
+          false,
+          operation.organizationId,
+        );
       }
       if (response.status === 404 && code === 'not-found') {
-        throw new HireError(code, 'A contratação ainda não está habilitada para esta empresa.');
+        throw new HireError(
+          code,
+          'A contratação ainda não está habilitada para esta empresa.',
+          false,
+          operation.organizationId,
+        );
       }
       if (response.status === 404) {
-        throw new HireError(code, 'Este funcionário ainda não está disponível para contratação.');
+        throw new HireError(
+          code,
+          'Este funcionário ainda não está disponível para contratação.',
+          false,
+          operation.organizationId,
+        );
       }
       if (response.status === 503) {
-        throw new HireError(code, 'A contratação ainda não está preparada para esta empresa.');
+        throw new HireError(
+          code,
+          'A contratação ainda não está preparada para esta empresa.',
+          false,
+          operation.organizationId,
+        );
       }
       if (response.status === 409 && code === 'employee-hiring-uncertain') {
         throw new HireError(
           code,
           'A confirmação da contratação ficou inconclusiva. Tente novamente: a Wandora reutilizará a mesma operação com segurança.',
           true,
+          operation.organizationId,
         );
       }
       if (response.status === 409) {
-        throw new HireError(code, 'A contratação entrou em conflito com uma operação já existente.');
+        throw new HireError(
+          code,
+          'A contratação entrou em conflito com uma operação já existente.',
+          false,
+          operation.organizationId,
+        );
       }
-      throw new HireError(code, 'Não foi possível concluir a contratação agora.');
+      throw new HireError(
+        code,
+        'Não foi possível concluir a contratação agora.',
+        false,
+        operation.organizationId,
+      );
     },
     onSuccess: async ({ organizationId }) => {
       await queryClient.invalidateQueries({ queryKey: ['digital-employees', organizationId] });
-      await navigate({ to: '/team' });
+      if (activeOrganizationIdRef.current === organizationId) {
+        await navigate({ to: '/team' });
+      }
     },
   });
 
@@ -123,6 +163,14 @@ export function StartPage() {
 
   const canHire = activeOrganization.role === 'owner' || activeOrganization.role === 'admin';
   const error = mutation.error instanceof HireError ? mutation.error : null;
+  const errorOrganization = error?.organizationId
+    ? context?.organizations.find((organization) => organization.id === error.organizationId) ?? null
+    : null;
+  const retryOrganizationMismatch = Boolean(
+    error?.retrySameKey
+      && error.organizationId
+      && error.organizationId !== activeOrganization.id,
+  );
 
   return (
     <div className="space-y-6">
@@ -172,7 +220,9 @@ export function StartPage() {
               <strong>Não foi possível concluir.</strong> {error.message}
               {error.retrySameKey ? (
                 <div className="mt-2 text-xs text-rose-700">
-                  O botão abaixo reutiliza a mesma chave da tentativa anterior.
+                  {retryOrganizationMismatch
+                    ? `A tentativa inconclusiva pertence a ${errorOrganization?.name ?? 'outra empresa'}. Selecione essa empresa para repetir a mesma operação com segurança.`
+                    : 'O botão abaixo reutiliza a mesma chave da tentativa anterior.'}
                 </div>
               ) : null}
             </div>
@@ -182,11 +232,15 @@ export function StartPage() {
             <button
               type="button"
               onClick={() => mutation.mutate()}
-              disabled={!canHire || mutation.isPending}
+              disabled={!canHire || mutation.isPending || retryOrganizationMismatch}
               className="inline-flex h-11 items-center gap-2 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-300"
             >
               {mutation.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
-              {mutation.isPending ? 'Contratando Ana…' : 'Contratar Ana'}
+              {mutation.isPending
+                ? 'Contratando Ana…'
+                : retryOrganizationMismatch
+                  ? 'Selecione a empresa da tentativa'
+                  : 'Contratar Ana'}
             </button>
             <button
               type="button"
