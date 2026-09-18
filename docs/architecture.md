@@ -473,7 +473,7 @@ ADR 0079 selected an additional Wandora-owned organization+catalog eligibility f
 2. preserve Human Session, explicit multi-organization selection, `Equipe`, `Trabalho` and `Conversas` authorization boundaries;
 3. finish the existing customer-facing product by converting remaining PARTIAL/PLACEHOLDER surfaces through the correct Wandora contracts;
 4. ADR 0084 makes the Customer Digital-Employee Hire global runtime gate live on the same reviewed Core image while eligibility remains zero and no tenant is newly available;
-5. ADR 0091 closes the recovery edge anti-abuse design; next obtain/use the separate one-zone WAF credential, snapshot the current rate-limit entry point, create only the reviewed 6/10s recovery rule if the Free slot is empty, and validate it with OPTIONS-only burst traffic before any owner-access Web deployment or real recovery request;
+5. ADR 0093 completes the Cloudflare recovery edge activation: the exact `/auth/v1/recover` 6/10s/IP rule is live and OPTIONS-only validated; next promote only the already-proven owner-access Web candidate under ADR 0090's image-only rollback contract, without issuing a real invite/recovery in the same deployment slice;
 6. keep Human Send and Gateway outbound OFF by default after the successful controlled Confirmation V2 and hire-canary proofs;
 7. preserve exactly-once durable attempt semantics and never retry historical `uncertain` attempts blindly; incomplete customer hire may resume only through its original idempotency key;
 8. keep stronger commercial commitments on the existing approval boundary;
