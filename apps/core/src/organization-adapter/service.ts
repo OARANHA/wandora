@@ -174,8 +174,7 @@ export class OrganizationAdapterService {
             AND role = $3
             AND autonomy_mode = $4
           ORDER BY id
-          LIMIT 1
-          FOR UPDATE`,
+          LIMIT 1`,
         [
           args.organizationId,
           args.definition.displayName,
