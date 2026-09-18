@@ -62,6 +62,19 @@ assert(
 );
 assert(inviteTouched === false, 'invite_handler_must_not_erase_recovery_fragment');
 
+let recoveryTouched = false;
+const inviteHash = validHash.replace('type=recovery', 'type=invite');
+assert(
+  stageRecoveryRedirectFromCurrentLocation({
+    location: { pathname: '/', search: '', hash: inviteHash },
+    history: { replaceState() { recoveryTouched = true; } },
+    storage,
+    nowSeconds: now,
+  }) === false,
+  'recovery_handler_must_defer_invite_flow',
+);
+assert(recoveryTouched === false, 'recovery_handler_must_not_erase_invite_fragment');
+
 let replacedUrl = null;
 assert(
   stageRecoveryRedirectFromCurrentLocation({
@@ -148,6 +161,7 @@ assert(!pageSource.includes('service_role'), 'service_role_must_not_enter_recove
 assert(routerSource.includes("path: '/recover-access'"), 'public_recovery_route_missing');
 assert(providerSource.includes('completePasswordSetup'), 'shared_password_setup_bootstrap_missing');
 assert(inviteSource.includes("fragment.get('type') === 'recovery'"), 'invite_handler_recovery_deferral_missing');
+assert((await readFile(new URL('../src/recoveryAccess.ts', import.meta.url), 'utf8')).includes("fragment.get('type') === 'invite'"), 'recovery_handler_invite_deferral_missing');
 assert(pageSource.includes('Se existir uma conta liberada para esse e-mail'), 'neutral_recovery_completion_copy_missing');
 assert(pageSource.includes('finalizeAuthenticatedUserPassword'), 'recovery_shared_password_finalizer_missing');
 assert(packageSource.includes('verify-recovery-access.mjs'), 'recovery_verifier_missing_from_build');
