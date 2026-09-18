@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle, Bot, LoaderCircle, ShieldCheck } from 'lucide-react';
+import { useNavigate } from '@tanstack/react-router';
+import { AlertTriangle, Bot, LoaderCircle, Plus, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../AuthProvider';
 
 type DigitalEmployee = {
@@ -22,6 +23,7 @@ const autonomyLabel: Record<DigitalEmployee['autonomy'], string> = {
 
 export function TeamPage() {
   const { activeOrganization, context, authFetch } = useAuth();
+  const navigate = useNavigate();
   const query = useQuery({
     queryKey: ['digital-employees', activeOrganization?.id],
     enabled: Boolean(activeOrganization),
@@ -89,6 +91,15 @@ export function TeamPage() {
           <p className="m-0 mt-2 text-sm text-slate-500">
             Quando a empresa tiver funcionários digitais contratados, eles aparecerão aqui.
           </p>
+          {activeOrganization.role === 'owner' || activeOrganization.role === 'admin' ? (
+            <button
+              type="button"
+              onClick={() => void navigate({ to: '/start' })}
+              className="mt-5 inline-flex h-10 items-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-500"
+            >
+              <Plus className="size-4" /> Contratar Ana
+            </button>
+          ) : null}
         </div>
       ) : (
         <div className="grid gap-5 xl:grid-cols-2">
@@ -141,7 +152,7 @@ function EmployeeCard({ employee }: { employee: DigitalEmployee }) {
               active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'
             }`}>
               <span className={`size-2 rounded-full ${active ? 'bg-emerald-400' : 'bg-slate-400'}`} />
-              {active ? 'Ativo' : 'Pausado'}
+              {active ? 'Ativo' : 'Contratada · aguardando ativação'}
             </span>
           </div>
 
