@@ -2,12 +2,14 @@
 
 Last synchronized: **2026-09-17**
 
-Canonical Git state at this checkpoint:
+Canonical Git base reverified before this closure:
 
 ```text
-main = f60715d042da4bbe4ac9068ea29dae2c986006bd
-PR   = #95 merged
+main = e42f29967892c626c1ca790ee41ec0ceabc251ed
+PR #100 = merged
 ```
+
+Newer documentation in ADRs 0056–0057 records the bounded Paperclip provider-company bootstrap and closes Production Activation Preflight V2. Mutable Git/runtime state must still be reverified before execution.
 
 Authority order: `AGENTS.md` → accepted ADRs → `docs/CAPABILITY_AUTHORITY.md` → `docs/architecture.md` → this file → component README/runbook.
 
@@ -238,6 +240,57 @@ The dedicated CI proved strict typecheck, 5/5 signed-ingress tests, bundled SDK 
 
 **The artifact blocker is cleared. Production activation is still NOT authorized.**
 
+## Operator Consoles + Paperclip Provider Prerequisites — LIVE, BOUNDED
+
+ADRs 0051–0057 supersede older console/admin preflight notes.
+
+Current proven operator surfaces:
+
+```text
+control.wandora.com.br -> Cloudflare Access -> Traefik -> control bridge -> private Paperclip
+runtime.wandora.com.br -> Cloudflare Access -> Traefik -> isolated Mastra Studio
+```
+
+Origin TLS is valid and direct public-origin TCP/443 bypass was denied in the external probe.
+
+Paperclip provider administration:
+
+```text
+bootstrapStatus = ready
+instance admin = established through explicit operator claim
+provider companies = 1
+provider company = Wandora Internal Supervised Proof
+providerCompanyRef = 815d499e-4231-4e6b-b7fc-67f0ba22a595
+owner/active membership = 1
+agents in canary company = 0
+plugin registry entries = 0
+```
+
+The provider company maps only to the canonical internal Wandora supervised-proof organization. `Empresa Exemplo` deliberately has no Paperclip company yet.
+
+No production Organization Adapter HMAC exists and migrations 010/011 remain absent.
+
+## Production Activation Preflight V2 — COMPLETE, NO ACTIVATION
+
+ADR 0057 closes the observation/plan preflight.
+
+Revalidated evidence includes:
+
+```text
+backup sha256 = baa73742dfc6ef90f2cb4ff500d72da317f8d7c91a4db7e0c45b0a1fbcc7fe77
+candidate = loaded, running count 0
+live Core = wandora/core:team-read-b31db507, healthy
+Organization Adapter = OFF
+Human Send = OFF
+Gateway outbound = OFF
+plugin artifact = available, unexpired
+wandora.organization-adapter-v1 installed count = 0
+```
+
+The full future migration -> operator binding -> canonical plugin artifact -> per-company HMAC/secret_ref -> company config -> candidate Core -> internal canary order is frozen in ADR 0057.
+
+**Preflight completion is not activation authorization.**
+
 ## Exact future migration boundary
 
 A later activation may proceed only after a fresh preflight. If that preflight explicitly authorizes execution, database order remains fixed:
@@ -274,7 +327,7 @@ It was not referenced by live Paperclip at the ADR 0049 preflight and is **not**
 - direct `agent-hires` fallback;
 - Paperclip → Wandora/Mastra execution-adapter production promotion;
 - Human Send or Gateway outbound activation as part of Organization Adapter work;
-- `control.wandora.com.br` or `runtime.wandora.com.br` DNS/ingress activation.
+- second/customer Paperclip provider-company provisioning before the internal canary is proven.
 
 ## Second adversarial review after artifact promotion
 
@@ -290,21 +343,11 @@ Rejected shortcuts:
 
 ## NEXT EXECUTABLE SLICE
 
-Next: **Organization Adapter Production Activation Preflight V2** — observation/plan-first.
+Preflight V2 is complete. The next possible slice is **Organization Adapter Production Activation Execution V1**, but it remains a separate production-effect decision.
 
-Required outcome before any live effect:
+Before any execution, re-run REAL NOW and second adversarial review against ADR 0057. The frozen order starts with migrations 010/011 + verifiers, then an operator-only control-plane binding for the internal canary organization, canonical plugin artifact verification/install, per-company HMAC custody + Paperclip `secret_ref` config, candidate Core activation with customer hiring still absent, and one internal canary.
 
-1. re-fetch canonical `main` and confirm no newer conflicting PR/ADR;
-2. re-verify live Core/Paperclip images, health, networks and effect switches;
-3. re-verify migrations 010/011 are still absent and Organization Adapter remains OFF;
-4. re-verify production plugin/config/HMAC custody state instead of assuming ADR 0049 is still current;
-5. verify the exact post-merge plugin artifact/provenance above remains available or restage it through the canonical CI artifact path;
-6. render/inspect the exact future plugin install + company configuration + custody + Core candidate composition without applying it;
-7. freeze rollback and stop conditions around the exact current state;
-8. perform a second adversarial review;
-9. only then decide whether a separate activation execution is authorized.
-
-A preflight is not activation. Do not apply migrations, install/configure the live plugin, generate production HMACs or recreate Core merely to complete the preflight.
+Do **not** create `Empresa Exemplo` in Paperclip, enable customer `Contratar/Ativar`, Human Send or Gateway outbound merely to continue from this checkpoint.
 
 ## Operational safety
 

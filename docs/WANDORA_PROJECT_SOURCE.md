@@ -1,8 +1,8 @@
 # Wandora — Project Source / Continuity Bootstrap
 
-Snapshot date: **2026-09-16**
+Snapshot date: **2026-09-17**
 Repository: `OARANHA/wandora`
-Canonical base verified before this snapshot: `5c69cac595b7af9bd23a6496fc24a9d356027e29`
+Canonical base verified before this closure: `e42f29967892c626c1ca790ee41ec0ceabc251ed`
 
 > **Purpose:** compact bootstrap for ChatGPT Project Sources and future development sessions. It prevents architectural drift, accidental reinvention and stale workflow assumptions.
 >
@@ -133,13 +133,23 @@ External-effect switches were returned to OFF after the controlled proof.
 
 ## Live snapshot — reverify before relying on it
 
-Observed on 2026-09-16:
+Observed/reverified through 2026-09-17:
 
 ```text
 Core:      wandora/core:team-read-b31db507               healthy
 Web:       wandora/web:team-read-b31db507                healthy
 Gateway:   wandora/messaging-gateway:origin-fix-94cfb4de healthy
-Paperclip: wandora/paperclip:v2026.831.1                  healthy
+Paperclip: wandora/paperclip:v2026.831.1                  healthy/private
+Paperclip bootstrapStatus: ready
+
+control.wandora.com.br -> protected Paperclip operator console
+runtime.wandora.com.br -> protected isolated Mastra Studio
+Cloudflare Access: required/proven for both
+
+Paperclip companies = 1
+Paperclip canary company = Wandora Internal Supervised Proof
+Paperclip canary agents = 0
+Paperclip plugin registry entries = 0
 
 Human Send: OFF / enable flag absent
 Gateway outbound: OFF / enable flag absent
@@ -148,7 +158,7 @@ digital_employees = 2
 active_employees = 2
 ```
 
-Migration `20260916_010_organization_adapter_state_v1.sql` is **merged in Git but not applied live** at this snapshot.
+Migrations `20260916_010_organization_adapter_state_v1.sql` and `20260916_011_organization_adapter_service_contract_v1.sql` remain **merged in Git but not applied live** at this snapshot. No Organization Adapter production HMAC exists and the candidate Core remains loaded but not running.
 
 ## Paperclip boundary — proven
 
@@ -227,7 +237,7 @@ Second adversarial review found a critical scope limit: `agents.managed.reconcil
 
 A broad ordinary Board API key is not the normal tenant runtime credential. Plugin install/configuration are trusted operator/provisioning actions; customer browsers never receive Paperclip credentials or native plugin management access.
 
-The exact combined negative case — valid Company A HMAC with Company B as target — has not been falsely claimed as executed. It remains a final disposable verifier before live activation.
+The exact combined negative case — valid Company A HMAC with Company B as target — was later executed successfully in the disposable final request-contract proof recorded by ADR 0040. A separate live cross-company gate remains required before customer-facing activation if the activation ADR still calls for it.
 
 Evidence:
 
@@ -248,20 +258,31 @@ Do not create a Wandora-native employee hierarchy/responsibility/task control pl
 
 Do **not** expose customer `Contratar funcionário` yet.
 
-The next slice is **Organization Adapter Service Contract V1**, still non-customer and non-production-effect by default:
+Production Activation Preflight V2 is complete in ADR 0057. The legitimate Paperclip instance-admin exists and one provider company is frozen for the internal canary:
 
-1. choose the exact Core authorization policy for hire/activate;
-2. define the minimum provider-neutral Organization Adapter service/API contract;
-3. prove only the minimum DB grants against a disposable database;
-4. prove same idempotency key + same canonical request returns/reconciles the same Wandora employee/provider binding;
-5. prove same key + changed request conflict;
-6. prove provider replay resolves the same managed agent through `managed.reconcile`;
-7. prove network ambiguity plus local-only/provider-only partial-success repair semantics;
-8. prove provider IDs/plugin config/secret refs/credentials never leak through customer contracts;
-9. run the literal valid Company A HMAC -> Company B target negative verifier with the final disposable signed-request harness;
-10. only then review customer `Contratar/Ativar funcionário` UX and a separate live-activation operation.
+```text
+Wandora organization = Wandora Internal Supervised Proof
+Paperclip company     = Wandora Internal Supervised Proof
+providerCompanyRef    = 815d499e-4231-4e6b-b7fc-67f0ba22a595
+Paperclip agents      = 0
+```
 
-Migration 010 production application, production plugin installation/configuration, provider secrets and runtime activation are separate operational decisions and must not happen implicitly.
+The next possible slice is a separate **Organization Adapter Production Activation Execution V1**. It is a real production-effect decision and is **not executed or implicitly authorized** by the preflight.
+
+Frozen high-level order:
+
+1. fresh REAL NOW + second adversarial review;
+2. migration 010 + verifier;
+3. migration 011 + verifier;
+4. operator-only Wandora organization -> Paperclip company binding, fail-closed on conflict;
+5. verify/materialize the canonical CI plugin artifact;
+6. install only `wandora.organization-adapter-v1@0.1.0`;
+7. generate one per-company HMAC exactly once and establish Core/Paperclip custody;
+8. configure only the internal canary company with its own `secret_ref`;
+9. re-render/promote the candidate Core with Organization Adapter enabled, customer hire route still absent, Human Send OFF and Gateway outbound OFF;
+10. run one internal canary and validate stable managed Ana/replay before any second/customer company.
+
+`Empresa Exemplo` deliberately has no Paperclip provider company yet. Do not create it merely to continue context recovery.
 
 ## Platform Admin
 
@@ -269,7 +290,7 @@ Platform Admin remains a separate Wandora operator trust plane and is not the cu
 
 ## Security invariants
 
-- browser never talks directly to Paperclip, Mastra, Evolution or privileged DB/admin APIs;
+- customer/product browsers never talk directly to Paperclip, Mastra, Evolution or privileged DB/admin APIs; protected operator consoles are a separate operator-only surface;
 - provider IDs/contracts never become customer-facing Wandora contracts;
 - no production credential merely because a role/table/adapter exists;
 - outbound remains OFF unless deliberately activated by a separate reviewed step;
@@ -309,6 +330,8 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0037 — Paperclip/Wandora/Mastra execution bridge
 - ADR 0038 — Organization Adapter private state
 - ADR 0039 — Managed Catalog Organization Adapter V1
+- ADR 0056 — Paperclip Provider Company Bootstrap V1
+- ADR 0057 — Organization Adapter Production Activation Preflight V2 Closure
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
