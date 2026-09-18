@@ -109,20 +109,24 @@ All active tenants were re-read after ADR 0082:
 wandora-internal-supervised-proof
   hire operation = ana-commercial-v1:completed
   eligibility = none
-  Ana count = 1
+  digital-employee state = non-empty proof state
   Paperclip control binding = 1
 
 empresa-exemplo
   hire operation = none
   eligibility = none
-  Ana count = 1
+  digital-employee state = one legacy active supervised Ana
   Paperclip control binding = 0
 
 wandora-customer-hire-canary
   hire operation = ana-commercial-v1:completed
   eligibility = none
-  Ana count = 1
+  digital-employee state = one paused supervised Ana
   Paperclip control binding = 1
+
+global hire-operation state
+  completed = 2
+  unfinished (planned/creating/uncertain) = 0
 ```
 
 Therefore global gate ON with the current database state cannot create a new `available` catalog hire:
@@ -131,7 +135,46 @@ Therefore global gate ON with the current database state cannot create a new `av
 - Customer Hire Canary resolves through completed-operation semantics to `already-hired`;
 - Empresa Exemplo has no eligibility row and therefore remains `unavailable` before legacy/provider readiness could authorize anything.
 
-There are no hidden enabled rows waiting behind the global switch.
+There are no hidden enabled rows waiting behind the global switch, and there is no unfinished operation that could legitimately project `reconciliation-required` ahead of the eligibility check.
+
+That second invariant matters: existing unfinished operations are intentionally checked before eligibility so the original idempotency key can safely reconcile an ambiguous prior attempt. Future global-gate activation therefore requires **both**:
+
+```text
+eligibility rows = 0
+unfinished hire operations = 0
+```
+
+## PROVEN EVIDENCE — EXECUTABLE ZERO-ELIGIBILITY CONTRACT PROOF
+
+The fail-closed behavior was executed outside production using the **same Core image currently live**:
+
+```text
+wandora/core:organization-adapter-candidate-af542864d267
+```
+
+The disposable database was derived from the accepted pre-migration production backup plus the exact canonical migration 013. A synthetic active organization was given an owner membership and one Paperclip control-plane binding so that missing eligibility — rather than missing provider wiring — was the decisive gate.
+
+No eligibility row, employee, hire operation or employee-provider binding existed for the synthetic organization.
+
+The proof invoked the compiled Core read + hire services with the runtime-hire path enabled only inside the disposable harness. It did **not** set the production Core environment flag or recreate any live container.
+
+Result:
+
+```text
+GET_HIRE_STATE=unavailable
+GET_AVAILABLE=false
+POST_STATUS=404
+POST_ERROR=employee-not-available
+PROVIDER_CALLS=0
+SYNTHETIC_COUNTS={"eligibility":0,"operations":0,"employees":0,"employee_bindings":0,"control_bindings":1}
+ZERO_ELIGIBILITY_FAIL_CLOSED_PROOF_OK=true
+```
+
+This proves a brand-new hire stops before journal reservation and before the Organization Adapter provider call when the global runtime path exists but tenant/catalog eligibility does not.
+
+Two earlier disposable harness attempts were rejected rather than treated as evidence: one exposed missing schema-level `USAGE` in the scoped restore harness because pre-created namespaces prevented those ACLs from being restored, and one hit the official PostgreSQL image's temporary startup phase. Production was read-only checked to establish its actual namespace/function privileges; only the disposable harness was corrected. Neither failure changed production.
+
+The proof database/network were removed afterwards.
 
 ## BASELINE LIVE ROUTE PROOF
 
@@ -211,23 +254,26 @@ A separate **Global Runtime Gate Activation Execution V1** may proceed only in t
 
 ```text
 1. revalidate current main + open PRs
-2. revalidate Core/Web health and zero eligibility rows
-3. revalidate Customer Hire/Human Send/Gateway outbound switches
-4. copy the exact canonical overlay into /opt/wandora/stacks/core/
-5. verify overlay Git blob = cf188f4e22651f318984f10a17aba3dee05ad2ea
-6. render OFF and ON compositions again
-7. require the same one-line environment delta
-8. retain the OFF render as rollback composition
-9. recreate Core using the same image + existing six overlays + hire overlay
-10. require healthy + ready
-11. require startup humanDigitalEmployeeHire=true
-12. require eligibility rows still exactly 0
-13. require durable employee/binding/hire counts unchanged
-14. run a no-auth syntactically valid POST probe:
+2. revalidate Core/Web health and require eligibility rows exactly 0
+3. require unfinished hire operations exactly 0; every existing hire operation must be completed
+4. revalidate Customer Hire/Human Send/Gateway outbound switches
+5. copy the exact canonical overlay into /opt/wandora/stacks/core/
+6. verify overlay Git blob = cf188f4e22651f318984f10a17aba3dee05ad2ea
+7. render OFF and ON compositions again
+8. require the same one-line environment delta
+9. retain the OFF render as rollback composition
+10. recreate Core using the same image + existing six overlays + hire overlay
+11. require healthy + ready
+12. require startup humanDigitalEmployeeHire=true
+13. require eligibility rows still exactly 0
+14. require unfinished hire operations still exactly 0
+15. require durable employee/binding/hire counts unchanged
+16. run a no-auth syntactically valid POST probe:
       expected transition from gate-OFF 404 to gate-ON 401
       no provider effect is possible before authentication
-15. validate Web/Core health
-16. STOP — do not enable any tenant eligibility
+17. validate customer read projection: no active organization may expose available=true
+18. validate Web/Core health
+19. STOP — do not enable any tenant eligibility
 ```
 
 Human Send and Gateway outbound overlays remain absent.
@@ -256,6 +302,7 @@ Abort before recreation if:
 - current main contains unexpected product/runtime changes;
 - migration 013 is missing or authority drift is detected;
 - any eligibility row exists unexpectedly;
+- any hire operation is `planned`, `creating` or `uncertain`;
 - Core/Web is unhealthy;
 - current Core image differs unexpectedly;
 - Human Send or Gateway outbound is ON;
@@ -268,6 +315,8 @@ After recreation, rollback immediately if:
 - Core is not healthy/ready;
 - startup does not report `humanDigitalEmployeeHire=true`;
 - eligibility rows become nonzero;
+- any unfinished hire operation appears;
+- any active organization projects `available=true`;
 - durable employee/provider state changes;
 - unrelated capabilities disappear or appear;
 - no-auth route behavior is inconsistent with the reviewed contract.
@@ -291,7 +340,7 @@ This preflight did **not**:
 
 **Global Runtime Gate Activation Preflight V1 is green.**
 
-The next bounded effect is a Core-only recreation with the same reviewed image plus one canonical environment overlay, while eligibility remains exactly zero.
+The next bounded effect is a Core-only recreation with the same reviewed image plus one canonical environment overlay, while eligibility remains exactly zero **and unfinished hire operations remain exactly zero**. Completed operations may project `already-hired`, and the no-auth POST boundary is expected to move from structural 404 to authentication 401, but no active organization may become newly `available`.
 
 ## NEXT EXECUTABLE SLICE
 
@@ -304,6 +353,7 @@ It must stop with:
 ```text
 global Customer Hire = ON
 eligibility rows = 0
+unfinished hire operations = 0
 new tenant availability = 0
 Human Send = OFF
 Gateway outbound = OFF
