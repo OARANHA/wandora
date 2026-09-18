@@ -462,11 +462,25 @@ Gateway outbound = OFF
 
 No provider-create replay was executed.
 
+## Customer Hire Canary Organization Adapter Wiring Preflight — COMPLETE / BLOCKED
+
+ADR 0073 freezes the exact canary wiring sequence without mutating production:
+
+```text
+Wandora organization = 918d4c7e-fccb-41f0-aba7-04105a9b4ec0
+Paperclip company     = e7422a00-1474-49d5-ac32-34594520015e
+future HMAC filename  = paperclip-0cbf21f19c002ca9207c67e5cdec8180641431eacdf601629b683de2a363bbd2.hmac
+```
+
+Future order is: operator-owned control-plane binding → protected Core custody file → company-owned Paperclip `local_encrypted` secret → company-scoped plugin config last → independent validation. Ambiguous secret/config effects require readback reconciliation and never blind retry.
+
+The second adversarial review found the current Paperclip disaster-recovery gap: automatic database backups and `master.key` live on the same Docker volume, but both are required to restore `local_encrypted` values. No out-of-volume master-key recovery copy was found, so canary secret creation is blocked.
+
 ## Next executable slice
 
-Next: **Customer Hire Canary — Organization Adapter Custody + Config + Binding Preflight V1.**
+Next: **Paperclip Local-Encrypted Secret Recovery Snapshot Preflight V1.**
 
-Freeze the exact provider pair, deterministic HMAC custody reference, Paperclip secret/config contract, private Wandora binding path and cross-system recovery ordering before any additional mutation.
+Freeze an out-of-volume database + `master.key` recovery pair and a disposable restore/secret-resolution proof before any additional Organization Adapter wiring effect.
 
 ## Platform Admin
 
@@ -528,6 +542,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0070 — Customer Hire Canary Employee-Free Tenant Provisioning Execution V1
 - ADR 0071 — Customer Hire Canary Paperclip Provider Company Bootstrap Preflight V1
 - ADR 0072 — Customer Hire Canary Paperclip Provider Company Bootstrap Execution V1
+- ADR 0073 — Customer Hire Canary Organization Adapter Custody + Config + Binding Preflight V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
