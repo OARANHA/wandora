@@ -36,6 +36,10 @@ const requiredStartPageFragments = [
   'clearHireOperation(operation)',
   'hireOperationRef.current = null',
   "queryKey: ['digital-employees', organizationId]",
+  'activeOrganizationIdRef.current === organizationId',
+  'retryOrganizationMismatch',
+  'disabled={!canHire || mutation.isPending || retryOrganizationMismatch}',
+  'operation.organizationId',
 ];
 
 for (const fragment of requiredStartPageFragments) {
@@ -92,7 +96,7 @@ function createMemoryStorage() {
   };
 }
 
-function expectHireError(fn, expectedCode, label) {
+function expectHireError(fn, expectedCode, label, expectedOrganizationId = null) {
   let thrown = null;
   try {
     fn();
@@ -101,6 +105,12 @@ function expectHireError(fn, expectedCode, label) {
   }
   assert(thrown instanceof HireError, `${label}:expected_hire_error`);
   assert(thrown.code === expectedCode, `${label}:unexpected_code:${thrown?.code}`);
+  if (expectedOrganizationId !== null) {
+    assert(
+      thrown.organizationId === expectedOrganizationId,
+      `${label}:unexpected_organization:${thrown?.organizationId}`,
+    );
+  }
 }
 
 const storage = createMemoryStorage();
@@ -172,6 +182,7 @@ expectHireError(
   }),
   'idempotency-storage-unavailable',
   'customer_hire_storage_read_failure',
+  'org-read-fail',
 );
 
 expectHireError(
@@ -185,6 +196,7 @@ expectHireError(
   }),
   'idempotency-storage-unavailable',
   'customer_hire_storage_write_failure',
+  'org-write-fail',
 );
 
 const invalidStorage = createMemoryStorage();
@@ -198,6 +210,7 @@ expectHireError(
   }),
   'idempotency-storage-invalid',
   'customer_hire_invalid_stored_key',
+  'org-invalid',
 );
 
 expectHireError(
@@ -207,6 +220,7 @@ expectHireError(
   }),
   'idempotency-generation-invalid',
   'customer_hire_invalid_generated_key',
+  'org-generator-invalid',
 );
 
 clearHireOperation(opA, storage);
