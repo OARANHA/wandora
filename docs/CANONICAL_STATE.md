@@ -747,13 +747,35 @@ The second adversarial review found a recovery blocker: live Paperclip database 
 
 Therefore no second production `local_encrypted` HMAC is created yet.
 
+## Paperclip Local-Encrypted Secret Recovery Snapshot Preflight V1 — COMPLETE / NO SNAPSHOT YET
+
+ADR 0074 freezes the recovery gate required before creating another production `local_encrypted` secret.
+
+Current facts:
+
+```text
+Paperclip image = wandora/paperclip:v2026.831.1
+Paperclip commit = 65ec059bde30d98c92165b24a30a540800dd1f6f
+embedded PostgreSQL = 18
+local_encrypted = healthy
+live master.key mode = 0600
+```
+
+The accepted V1 recovery pair will live outside the Docker volume under a unique operator-owned mode-0700 directory in `/home/wandora-admin/backups/`, containing a fresh official Paperclip logical backup, byte-identical `master.key`, SHA256SUMS and a non-secret recovery manifest; artifact files are mode 0600.
+
+The disposable proof reuses the exact pinned Paperclip image/runtime and `runDatabaseRestore()`, restores into fresh PG18 state with no public port/live volume, decrypts the existing internal Organization Adapter HMAC via `localEncryptedProvider.resolveVersion()`, and records only boolean/hash-match evidence. A deliberately wrong disposable key must fail decryption.
+
+This V1 is same-host but out-of-Docker-volume recovery; it does not claim to solve total VPS/off-site disaster recovery.
+
+No recovery snapshot was created in this preflight and no customer-hire wiring state changed.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Paperclip Local-Encrypted Secret Recovery Snapshot Preflight V1.**
+Next: **Paperclip Local-Encrypted Secret Recovery Snapshot Execution V1.**
 
-Freeze the supported fresh database-backup path, protected out-of-volume paired `master.key` snapshot, hash/mode evidence, disposable restore/secret-resolution proof and cleanup procedure.
+Create one fresh official database backup, pair it out-of-volume with the exact current master key, hash-gate the copies, execute the disposable PG18 positive-decryption/hash-match + wrong-key rejection proof, retain only the protected recovery pair and remove disposable proof state.
 
-Do not create the canary HMAC, Paperclip secret/config, Wandora provider binding, employee/hire operation, activation, Human Send or Gateway outbound in that preflight.
+Do not create the canary HMAC, Paperclip secret/config, Wandora provider binding, employee/hire operation, activation, Human Send or Gateway outbound in that execution slice.
 
 ## Operational safety
 

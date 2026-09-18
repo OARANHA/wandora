@@ -104,6 +104,7 @@ The following are current decisions unless superseded by a newer accepted ADR:
 - ADR 0071 freezes the first customer-hire canary Paperclip company bootstrap: exact one-shot instance-admin request, provider non-idempotency/partial-effect semantics, stop-on-ambiguity reconciliation and no coupling to custody/binding/hire.
 - ADR 0072 makes the clean customer-hire canary Paperclip company live through the official one-shot instance-admin path; the company has zero agents and no Organization Adapter secret/config/Wandora binding yet.
 - ADR 0073 freezes the customer-hire canary Organization Adapter binding/custody/config sequence and its ambiguity recovery; execution is blocked until Paperclip `local_encrypted` has an out-of-volume database + `master.key` recovery snapshot/proof.
+- ADR 0074 freezes the Paperclip `local_encrypted` recovery snapshot: fresh official logical backup + exact `master.key` copied out of the Docker volume, hash-gated and proven by disposable PG18 restore/decryption plus wrong-key rejection before any new encrypted secret.
 - Security gate #22 is cleared. The affected shared Supabase JWT compatibility material and shared PostgreSQL password were rotated with validated backups, old-credential invalidation, full service-health proof and production-safe verifier reruns.
 - Official WhatsApp providers remain a production option behind the same gateway.
 - Model vendors are replaceable infrastructure behind a provider boundary. Do not request or hard-code a provider credential until a real provider call is materially required.
