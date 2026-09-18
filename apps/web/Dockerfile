@@ -4,6 +4,8 @@ WORKDIR /app
 COPY package.json ./
 RUN npm install --ignore-scripts --no-audit --no-fund
 COPY tsconfig.json tsconfig.app.json tsconfig.node.json vite.config.ts index.html ./
+COPY nginx.conf ./nginx.conf
+COPY scripts ./scripts
 COPY src ./src
 ARG VITE_SUPABASE_PUBLISHABLE_KEY
 ENV VITE_SUPABASE_PUBLISHABLE_KEY=${VITE_SUPABASE_PUBLISHABLE_KEY}
