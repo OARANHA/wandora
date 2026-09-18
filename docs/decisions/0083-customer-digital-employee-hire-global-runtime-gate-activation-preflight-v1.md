@@ -323,7 +323,7 @@ After recreation, rollback immediately if:
 
 ## EXECUTION PERFORMED BY THIS PREFLIGHT
 
-Read-only/config-render work only.
+Production work was read-only/config-render only. The only writes performed by the proof were isolated disposable PostgreSQL/harness fixtures that were removed after validation; they never targeted production.
 
 This preflight did **not**:
 
