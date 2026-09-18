@@ -44,7 +44,7 @@ jobs:
             --label wandora.candidate="wandora-web-reviewed-bridge-v1" \
             -t "$WEB_IMAGE" apps/web
           docker run -d --rm --name wandora-core --network wandora-core "$CORE_NODE" \
-            node --input-type=module -e "import {createServer} from 'node:http'; createServer((req,res)=>{res.setHeader('content-type','application/json'); res.end(JSON.stringify({path:req.url,method:req.method,auth:req.headers.authorization??'',cookie:req.headers.cookie??''}));}).listen(8788,'0.0.0.0')" >/dev/null
+            node --input-type=module -e "import {createServer} from 'node:http'; createServer(async(req,res)=>{let body=''; for await (const chunk of req) body+=chunk; res.setHeader('content-type','application/json'); res.end(JSON.stringify({path:req.url,method:req.method,auth:req.headers.authorization??'',cookie:req.headers.cookie??'',idempotency:req.headers['idempotency-key']??'',body}));}).listen(8788,'0.0.0.0')" >/dev/null
           docker run -d --rm --name wandora-web-ci --network wandora-core \
             -p 127.0.0.1:18089:8080 "$WEB_IMAGE" >/dev/null
           for _ in $(seq 1 30); do
@@ -86,6 +86,23 @@ jobs:
           assert data['cookie'] == '', data
           assert data['method'] == 'GET', data
           assert data['path'] == '/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/digital-employees', data
+          PY
+          HIRE_RESPONSE="$(curl -fsS -X POST \
+            -H 'Authorization: Bearer ci-token' \
+            -H 'Cookie: browser-session=must-not-cross' \
+            -H 'Idempotency-Key: ci-hire-key' \
+            -H 'Content-Type: application/json' \
+            --data '{"catalogKey":"ana-commercial-v1"}' \
+            http://127.0.0.1:18089/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/digital-employees)"
+          python3 - "$HIRE_RESPONSE" <<'PY'
+          import json, sys
+          data = json.loads(sys.argv[1])
+          assert data['auth'] == 'Bearer ci-token', data
+          assert data['cookie'] == '', data
+          assert data['method'] == 'POST', data
+          assert data['path'] == '/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/digital-employees', data
+          assert data['idempotency'] == 'ci-hire-key', data
+          assert json.loads(data['body']) == {'catalogKey': 'ana-commercial-v1'}, data
           PY
           SEND_PATH='/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/work/60000000-0000-0000-0000-0000000000a1/proposals/70000000-0000-0000-0000-0000000000a1/send'
           SEND_RESPONSE="$(curl -fsS -X POST \
