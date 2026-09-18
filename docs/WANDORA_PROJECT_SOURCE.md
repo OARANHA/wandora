@@ -808,11 +808,33 @@ Activation remains blocked by the anti-abuse gate: GoTrue CAPTCHA is off and the
 
 No Web/Auth/Core deployment, invite/recovery, tenant/provider wiring or eligibility effect occurred.
 
+## Customer Owner Recovery Edge Anti-Abuse Control Preflight — COMPLETE
+
+ADR 0091 resolves the anti-abuse design against the actual Cloudflare zone.
+
+```text
+Cloudflare plan = Free Website
+selected rule = exact /auth/v1/recover path
+rate = 6 requests / 10 seconds / IP
+mitigation = block 10 seconds
+phase = http_ratelimit
+```
+
+Free-plan constraints matter: one rate-limiting rule, Path matching, IP counting, 10-second window/mitigation, and no Method field. Therefore OPTIONS and POST are intentionally counted together; the threshold allows several rapid human retries while cutting machine-speed bursts.
+
+The existing DNS token remains DNS-only and cannot read the rate-limit ruleset (403). It must not be widened. Future execution requires a separate one-zone WAF credential that first snapshots the current ruleset and proves the Free single-rule slot is available.
+
+A direct-origin attempt from independent `28server` timed out before connection, correcting the earlier over-interpretation of local loopback routing. Exact UFW rules are still not readable without interactive sudo, so future execution rechecks the external direct-origin negative rather than assuming a specific firewall implementation.
+
+The future edge-rule validation can use OPTIONS-only burst traffic and therefore does not need a real recovery POST or e-mail.
+
+No Cloudflare rule, Auth setting, Web runtime, tenant/provider state or eligibility changed in this preflight.
+
 ## Next executable slice
 
-Next: **Customer Owner Recovery Edge Anti-Abuse Control Preflight V1.**
+Next: **Customer Owner Recovery Edge Anti-Abuse Credential + Activation Execution V1.**
 
-No-effect preflight only. Obtain Rulesets-authorized Cloudflare visibility (or prove a provider-native CAPTCHA alternative), freeze the narrowest compatible recovery abuse-control rule and rollback, and do not deploy owner-access Web or issue a real recovery/invite yet.
+Use a dedicated zone-scoped WAF token, snapshot/read the existing `http_ratelimit` entry point, stop if the Free slot is occupied, otherwise create only the reviewed rule and validate with OPTIONS only. Keep owner-access Web undeployed and do not issue a real invite/recovery in the same slice.
 
 ## Platform Admin
 
@@ -892,6 +914,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0088 — Customer Owner Interrupted Invite Recovery Contract Preflight V1
 - ADR 0089 — Customer Owner Interrupted Invite Recovery Contract Implementation V1
 - ADR 0090 — Customer Owner Invite + Recovery Production Activation Preflight V1
+- ADR 0091 — Customer Owner Recovery Edge Anti-Abuse Control Preflight V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
