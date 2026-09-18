@@ -37,39 +37,16 @@ RETURNS TABLE (
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = pg_catalog, wandora, wandora_private, pg_temp
-AS $
+AS $$
 DECLARE
   v_catalog_key text := lower(trim(p_catalog_key));
 BEGIN
-  IF v_catalog_key !~ '^[a-z0-9][a-z0-9._-]{2,63}DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1
-      FROM pg_policies
-     WHERE schemaname = 'wandora_private'
-       AND tablename = 'digital_employee_catalog_hire_eligibility'
-       AND policyname = 'digital_employee_catalog_hire_eligibility_core_runtime_read'
-  ) THEN
-    CREATE POLICY digital_employee_catalog_hire_eligibility_core_runtime_read
-      ON wandora_private.digital_employee_catalog_hire_eligibility
-      FOR SELECT TO wandora_core_runtime
-      USING (organization_id = wandora.current_core_organization_id());
-  END IF;
-END
-$$;
-
-COMMENT ON TABLE wandora_private.digital_employee_catalog_hire_eligibility IS
-  'Private Wandora-owned product policy controlling whether a tenant may start a new catalog digital-employee hire. Provider-neutral and operator-owned.';
-COMMENT ON FUNCTION wandora_private.set_digital_employee_catalog_hire_eligibility(uuid, text, boolean) IS
-  'Operator-only provider-neutral enable/disable boundary for one organization and Wandora catalog key; Core receives read authority only.';
-COMMENT ON COLUMN wandora_private.digital_employee_catalog_hire_eligibility.catalog_key IS
-  'Stable Wandora-owned catalog key; no provider identifier or provider configuration belongs here.';
-COMMENT ON COLUMN wandora_private.digital_employee_catalog_hire_eligibility.enabled IS
-  'When true, a new catalog hire may be started subject to runtime gate, authorization and all remaining safety checks. Existing reserved operations remain independently replayable.';
-
-COMMIT;
- THEN
+  IF v_catalog_key IS NULL OR v_catalog_key !~ '^[a-z0-9][a-z0-9._-]{2,63}$' THEN
     RAISE EXCEPTION 'customer_hire_eligibility_invalid_catalog_key' USING ERRCODE = 'P0001';
+  END IF;
+
+  IF p_enabled IS NULL THEN
+    RAISE EXCEPTION 'customer_hire_eligibility_enabled_required' USING ERRCODE = 'P0001';
   END IF;
 
   IF NOT EXISTS (
@@ -108,7 +85,7 @@ COMMIT;
    WHERE e.organization_id = p_organization_id
      AND e.catalog_key = v_catalog_key;
 END;
-$;
+$$;
 
 REVOKE ALL ON FUNCTION wandora_private.set_digital_employee_catalog_hire_eligibility(
   uuid, text, boolean
@@ -137,6 +114,8 @@ $$;
 
 COMMENT ON TABLE wandora_private.digital_employee_catalog_hire_eligibility IS
   'Private Wandora-owned product policy controlling whether a tenant may start a new catalog digital-employee hire. Provider-neutral and operator-owned.';
+COMMENT ON FUNCTION wandora_private.set_digital_employee_catalog_hire_eligibility(uuid, text, boolean) IS
+  'Operator-only provider-neutral enable/disable boundary for one organization and Wandora catalog key; Core receives read authority only.';
 COMMENT ON COLUMN wandora_private.digital_employee_catalog_hire_eligibility.catalog_key IS
   'Stable Wandora-owned catalog key; no provider identifier or provider configuration belongs here.';
 COMMENT ON COLUMN wandora_private.digital_employee_catalog_hire_eligibility.enabled IS
