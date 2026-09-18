@@ -461,21 +461,24 @@ future Ativar
   -> not yet available
 ```
 
-Migration 012 is now live under ADR 0068 as a dormant, least-privilege employee-free provisioning capability. No V2 provisioning request has been executed yet. The first live customer-hire canary still requires a separately reviewed employee-free tenant provisioning effect, followed later by separate Paperclip bootstrap/binding and a private production-connected candidate Core for the paused-first hire while the normal live Core keeps the runtime-wide customer-hire gate OFF. Human Send and Gateway outbound remain separate disabled effects.
+Migration 012 is live under ADR 0068 as a dormant, least-privilege employee-free provisioning capability. The first customer-like canary tenant was then provisioned, received separately reviewed Paperclip company/bootstrap/binding custody, and completed the ADR 0078 private-candidate hire through the real Human API + Organization Adapter path. Its Ana remains paused and supervised; same-key and different-key/same-catalog replay remained deduplicated.
+
+ADR 0079 selected an additional Wandora-owned organization+catalog eligibility fact because the Core hire gate is process-wide while tenant readiness differs. ADR 0080 implements that contract in code/CI, including the dedicated NOLOGIN hire-operator capability, Core enforcement/read projection and Web gating. Migration 013 is **not live**, no production eligibility state has been enabled, and normal live Customer Digital-Employee Hire remains OFF. Human Send and Gateway outbound remain separate disabled effects.
 
 ## Near-term execution sequence
 
 1. keep canonical documentation synchronized with the live state;
 2. preserve Human Session, explicit multi-organization selection, `Equipe`, `Trabalho` and `Conversas` authorization boundaries;
 3. finish the existing customer-facing product by converting remaining PARTIAL/PLACEHOLDER surfaces through the correct Wandora contracts;
-4. preflight and execute exactly one employee-free customer-hire canary tenant through live Provisioning V2; only afterward bootstrap its Paperclip company/binding and prove the paused-first hire through a private candidate Core;
-5. keep Human Send and Gateway outbound OFF by default after the successful controlled Confirmation V2 proof;
-6. preserve exactly-once durable attempt semantics and never retry historical `uncertain` attempts blindly;
-7. keep stronger commercial commitments on the existing approval boundary;
-8. expose only exact reviewed Web action routes and preserve generic `/api/` + all `/internal/` closure;
-9. keep Platform Admin as a separate trust plane over Wandora adapters rather than a generic infrastructure dashboard or provider reimplementation;
-10. add customer onboarding, password recovery/OAuth and broader customer lifecycle flows around the proven authorization/adapters when selected;
-11. add a real model provider only when materially useful and only with a newly issued credential.
+4. run Customer Digital-Employee Hire Production Activation Preflight V2 before any migration/deploy/eligibility effect: revalidate live state, select exact post-merge artifacts, freeze migration/deploy/rollback order and prove the global hire gate remains OFF;
+5. if a later execution slice is authorized, apply migration 013 with zero eligibility rows first, validate fail-closed behavior, then promote reviewed Core/Web candidates independently; tenant eligibility and the process-wide hire gate remain separately reviewed effects;
+6. keep Human Send and Gateway outbound OFF by default after the successful controlled Confirmation V2 and hire-canary proofs;
+7. preserve exactly-once durable attempt semantics and never retry historical `uncertain` attempts blindly; incomplete customer hire may resume only through its original idempotency key;
+8. keep stronger commercial commitments on the existing approval boundary;
+9. expose only exact reviewed Web action routes and preserve generic `/api/` + all `/internal/` closure;
+10. keep Platform Admin as a separate trust plane over Wandora adapters rather than a generic infrastructure dashboard or provider reimplementation;
+11. add customer onboarding, password recovery/OAuth and broader customer lifecycle flows around the proven authorization/adapters when selected;
+12. add a real model provider only when materially useful and only with a newly issued credential.
 
 ## Non-goals for the current phase
 
