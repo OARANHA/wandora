@@ -76,6 +76,15 @@ SERVICE_VERIFIER="VERIFY_20260916_ORGANIZATION_ADAPTER_SERVICE_CONTRACT_V1.sql"
 docker cp "$VERIFIERS/$SERVICE_VERIFIER" "$DB:/tmp/$SERVICE_VERIFIER" >/dev/null
 docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -f "/tmp/$SERVICE_VERIFIER"
 
+ELIGIBILITY_MIGRATION="20260918_013_customer_hire_tenant_eligibility_v1.sql"
+docker cp "$MIGRATIONS/$ELIGIBILITY_MIGRATION" "$DB:/tmp/$ELIGIBILITY_MIGRATION" >/dev/null
+docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -f "/tmp/$ELIGIBILITY_MIGRATION" >/dev/null
+docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -f "/tmp/$ELIGIBILITY_MIGRATION" >/dev/null
+
+ELIGIBILITY_VERIFIER="VERIFY_20260918_CUSTOMER_HIRE_TENANT_ELIGIBILITY_V1.sql"
+docker cp "$VERIFIERS/$ELIGIBILITY_VERIFIER" "$DB:/tmp/$ELIGIBILITY_VERIFIER" >/dev/null
+docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -f "/tmp/$ELIGIBILITY_VERIFIER"
+
 docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -c \
   "ALTER ROLE wandora_core_runtime CONNECTION LIMIT 4 PASSWORD '${CORE_PASSWORD}';
    CREATE ROLE wandora_fixture_admin_test LOGIN BYPASSRLS PASSWORD '${FIXTURE_PASSWORD}';
@@ -91,3 +100,4 @@ docker run --rm --network "$NET" -v "$CORE:/app" -w /app \
 
 echo "ORGANIZATION_ADAPTER_SERVICE_CONTRACT_V1_VERIFY_OK"
 echo "ORGANIZATION_ADAPTER_RUNTIME_E2E_V1_VERIFY_OK"
+echo "CUSTOMER_HIRE_TENANT_ELIGIBILITY_V1_VERIFY_OK"
