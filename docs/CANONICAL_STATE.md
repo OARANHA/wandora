@@ -602,11 +602,45 @@ The canonical live-safe verifier returned `PRIVATE_TENANT_PROVISIONING_V2_LIVE_O
 
 V2 is therefore a **live but dormant** operator capability. No tenant has yet been created through it.
 
+## Customer Hire Canary — Employee-Free Tenant Provisioning Preflight V1 — COMPLETE, NO CANARY CREATED
+
+ADR 0069 freezes the exact first V2 canary request and least-privilege execution path.
+
+Current frozen request:
+
+```text
+request_key               = customer-hire-canary:tenant-v2:v1
+organization_slug         = wandora-customer-hire-canary
+organization_display_name = Wandora Customer Hire Canary
+owner_user_id             = e1000000-0000-4000-8000-000000000001
+owner subject             = runtime-resolved only; SHA-256 frozen in ADR 0069
+```
+
+The production execution path creates no reusable platform password:
+
+```text
+private supabase_admin maintenance session
+  -> resolve/hash-gate existing owner identity
+  -> BEGIN
+  -> SET LOCAL ROLE wandora_platform_provisioner
+  -> provision_beta_organization_v2(...)
+  -> COMMIT
+  -> independent post-verification
+```
+
+The role-switch proof is green: the effective platform role can execute V2 and still cannot directly read the private provisioning ledger.
+
+No redundant V2 rehearsal was run because ADR 0066/PR #111 already proves exact replay, changed-payload conflict, same-slug conflict, owner reuse and least privilege; ADRs 0067–0068 prove the exact current migration shape through disposable production restore and live application.
+
+Production remains unchanged after this preflight: 2 organizations, 0 provisioning requests, canary absent, Customer Digital-Employee Hire OFF, Human Send OFF and Gateway outbound OFF.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Hire Canary — Employee-Free Tenant Provisioning Preflight V1.**
+Next: **Customer Hire Canary — Employee-Free Tenant Provisioning Execution V1.**
 
-Freeze the exact execution identity/path, request key and postconditions for creating the single `Wandora Customer Hire Canary` organization with zero employees. Keep Paperclip company/bootstrap, provider binding, customer hire, activation and outbound outside that preflight/provisioning effect.
+Create exactly one `Wandora Customer Hire Canary` organization through V2, require reuse of the frozen canonical owner, verify zero canary employees and exactly one V2 provisioning row, then stop.
+
+Keep Paperclip company/bootstrap, provider custody/config/binding, customer hire, activation, Human Send and Gateway outbound outside this execution slice.
 
 ## Operational safety
 
