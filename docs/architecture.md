@@ -421,6 +421,8 @@ The two `uncertain` rows are historical evidence and must not be blindly retried
 
 Empresa Exemplo remains non-sending and has no need to become the provider-bound proof tenant.
 
+The Organization Adapter live cross-company isolation gate is now closed by ADR 0062. A temporary provider-only company B was configured with its own secret_ref; Paperclip rejected A's secret_ref for B, and a B-target webhook signed with A's HMAC failed `invalid_wandora_signature` while creating zero B resources. The temporary company/config/secret were removed through provider APIs, A's existing config was re-saved unchanged to restore the worker scope to A-only, and final readback returned to one Paperclip company with no Wandora DB delta. This proof does not make customer hiring/activation live.
+
 ## Model provider status
 
 Deterministic Mastra mode requires no model credential. The previously Git-exposed Mistral token is compromised and must never be reused. Request a fresh token only when the first real model call is materially required. Chutes remains deferred.
