@@ -190,11 +190,14 @@ test('uncertain retry keeps the frozen Company A target and Company A custody af
     await fixturePool.query(
       `UPDATE wandora_private.control_plane_provider_bindings
           SET provider_company_ref=$2
-        WHERE organization_id=$1 AND provider='paperclip';
-       UPDATE wandora_private.digital_employee_catalog_hire_eligibility
+        WHERE organization_id=$1 AND provider='paperclip'`,
+      [ORG_A, COMPANY_B],
+    );
+    await fixturePool.query(
+      `UPDATE wandora_private.digital_employee_catalog_hire_eligibility
           SET enabled=false
-        WHERE organization_id=$1 AND catalog_key=$3`,
-      [ORG_A, COMPANY_B, CATALOG_KEY],
+        WHERE organization_id=$1 AND catalog_key=$2`,
+      [ORG_A, CATALOG_KEY],
     );
 
     const repaired = await service.ensureCatalogEmployee(request);
