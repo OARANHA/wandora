@@ -876,11 +876,30 @@ Independent direct-origin TCP remained unreachable after the edge change.
 
 Owner-access Web remains undeployed; live Web is still `wandora/web:candidate-af542864d267`.
 
+## Customer Owner Invite + Recovery Web Production Activation — COMPLETE
+
+ADR 0094 records the production Web promotion.
+
+```text
+live Web = wandora/web:owner-access-candidate-5f135e90
+id = sha256:7921ad23cd626efc9f6fc619f70fc98a5d62e862958d6534edc488e6afc21ba5
+health = healthy
+restarts = 0
+```
+
+Only the Web image selector changed and only `wandora-web` was recreated.
+
+Public routes are live (`/login`, `/accept-invite`, `/recover-access` = 200) while unauthenticated `/api/v1/me` remains 401. Auth signup remains disabled, recovery counters remain zero, eligibility remains zero, and Human Send/Gateway outbound remain OFF.
+
+The recovery edge guard remains reachable normally after mitigation and direct-origin TCP remains unreachable externally.
+
+No real invite/recovery has been sent.
+
 ## Next executable slice
 
-Next: **Customer Owner Invite + Recovery Web Production Activation Execution V1.**
+Next: **Customer Owner First Real Access End-to-End Validation Preflight V1.**
 
-Promote only `wandora/web:owner-access-candidate-5f135e90` using ADR 0090's image-only activation and rollback contract. Keep real invite/recovery as a separate later effect.
+No-effect preflight only: select the exact first controlled proof context and freeze the permitted external effects before any invitation or recovery is sent.
 
 ## Platform Admin
 
@@ -963,6 +982,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0091 — Customer Owner Recovery Edge Anti-Abuse Control Preflight V1
 - ADR 0092 — Customer Owner Recovery Edge Anti-Abuse Credential + Activation Execution V1 Pre-Mutation Credential Gate
 - ADR 0093 — Customer Owner Recovery Edge Anti-Abuse Credential + Activation Execution V1
+- ADR 0094 — Customer Owner Invite + Recovery Web Production Activation Execution V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 

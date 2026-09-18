@@ -1475,11 +1475,58 @@ Live Web remains `wandora/web:candidate-af542864d267`.
 
 No invite/recovery, tenant/provider state, eligibility, Human Send or Gateway outbound effect occurred.
 
+## Customer Owner Invite + Recovery Web Production Activation Execution V1 — COMPLETE
+
+ADR 0094 closes the owner-access Web production promotion.
+
+Source provenance remained exact: no `apps/web/` file changed between the proven candidate source base and current main.
+
+Production now runs:
+
+```text
+WANDORA_WEB_IMAGE=wandora/web:owner-access-candidate-5f135e90
+image id = sha256:7921ad23cd626efc9f6fc619f70fc98a5d62e862958d6534edc488e6afc21ba5
+wandora-web = healthy
+restarts = 0
+```
+
+Only `wandora-web` was recreated. Core/Auth/Gateway/Cloudflare configuration were not changed in this deployment transaction.
+
+External validation:
+
+```text
+/login = 200
+/accept-invite = 200
+/recover-access = 200
+/api/v1/me unauthenticated = 401
+recovery OPTIONS = 200
+direct-origin TCP:443 = timeout / unreachable
+```
+
+Post-deploy safety state:
+
+```text
+Auth signup disabled = true
+Customer Digital-Employee Hire = ON
+Human Send = OFF
+Gateway outbound = OFF
+Auth users = 1
+recovery_token rows = 0
+recovery_sent rows = 0
+eligibility rows = 0
+enabled eligibility rows = 0
+unfinished hire operations = 0
+```
+
+Rollback is image-only to `wandora/web:candidate-af542864d267`.
+
+No real invite/recovery was generated or sent.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Owner Invite + Recovery Web Production Activation Execution V1.**
+Next: **Customer Owner First Real Access End-to-End Validation Preflight V1.**
 
-Promote only the already-proven owner-access Web candidate under ADR 0090's frozen image-only activation/rollback contract. Do not issue a real invite or recovery in that deployment slice.
+No-effect preflight only. Select the exact test owner/tenant context, verify provider e-mail/redirect state, freeze the first controlled real-flow scope and rollback/recovery expectations, and do not send an invite or recovery during the preflight.
 
 ## Operational safety
 
