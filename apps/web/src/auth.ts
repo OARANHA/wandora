@@ -18,7 +18,7 @@ type TokenResponse = {
 };
 
 export class AuthClientError extends Error {
-  constructor(readonly code: 'configuration' | 'invalid-credentials' | 'session-expired' | 'provider-error', message: string) {
+  constructor(readonly code: 'configuration' | 'invalid-credentials' | 'session-expired' | 'password-rejected' | 'provider-error', message: string) {
     super(message);
     this.name = 'AuthClientError';
   }
@@ -72,6 +72,35 @@ export function refreshBrowserSession(session: BrowserAuthSession): Promise<Brow
 
 export function sessionNeedsRefresh(session: BrowserAuthSession): boolean {
   return session.expiresAt <= Math.floor(Date.now() / 1000) + REFRESH_SKEW_SECONDS;
+}
+
+
+export async function updateInvitedUserPassword(session: BrowserAuthSession, password: string): Promise<void> {
+  let response: Response;
+  try {
+    response = await fetch(`${SUPABASE_AUTH_ORIGIN}/auth/v1/user`, {
+      method: 'PUT',
+      headers: {
+        apikey: requirePublishableKey(),
+        Authorization: `Bearer ${session.accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ password }),
+    });
+  } catch {
+    throw new AuthClientError('provider-error', 'Não foi possível atualizar sua senha agora.');
+  }
+
+  if (response.ok) return;
+
+  if (response.status === 401) {
+    throw new AuthClientError('session-expired', 'Seu convite expirou. Solicite um novo acesso à Wandora.');
+  }
+  if (response.status === 400 || response.status === 422) {
+    throw new AuthClientError('password-rejected', 'A senha não atende aos requisitos de segurança do acesso.');
+  }
+
+  throw new AuthClientError('provider-error', 'Não foi possível atualizar sua senha agora.');
 }
 
 export function loadBrowserSession(): BrowserAuthSession | null {
