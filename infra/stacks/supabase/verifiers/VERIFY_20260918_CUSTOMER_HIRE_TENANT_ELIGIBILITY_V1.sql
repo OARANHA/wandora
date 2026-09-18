@@ -4,6 +4,21 @@ DO $$
 BEGIN
   IF NOT EXISTS (
     SELECT 1
+      FROM pg_roles
+     WHERE rolname = 'wandora_customer_hire_operator'
+       AND NOT rolcanlogin
+       AND NOT rolsuper
+       AND NOT rolcreatedb
+       AND NOT rolcreaterole
+       AND NOT rolinherit
+       AND NOT rolreplication
+       AND NOT rolbypassrls
+  ) THEN
+    RAISE EXCEPTION 'customer_hire_operator_role_invalid';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
       FROM information_schema.columns
      WHERE table_schema = 'wandora_private'
        AND table_name = 'digital_employee_catalog_hire_eligibility'
@@ -96,6 +111,30 @@ BEGIN
   END IF;
 
   IF has_table_privilege(
+       'wandora_customer_hire_operator',
+       'wandora_private.digital_employee_catalog_hire_eligibility',
+       'SELECT'
+     )
+     OR has_table_privilege(
+       'wandora_customer_hire_operator',
+       'wandora_private.digital_employee_catalog_hire_eligibility',
+       'INSERT'
+     )
+     OR has_table_privilege(
+       'wandora_customer_hire_operator',
+       'wandora_private.digital_employee_catalog_hire_eligibility',
+       'UPDATE'
+     )
+     OR has_table_privilege(
+       'wandora_customer_hire_operator',
+       'wandora_private.digital_employee_catalog_hire_eligibility',
+       'DELETE'
+     )
+  THEN
+    RAISE EXCEPTION 'customer_hire_operator_direct_table_authority_leak';
+  END IF;
+
+  IF has_table_privilege(
        'wandora_platform_provisioner',
        'wandora_private.digital_employee_catalog_hire_eligibility',
        'SELECT'
@@ -120,12 +159,17 @@ BEGIN
   END IF;
 
   IF NOT has_function_privilege(
-       'wandora_platform_provisioner',
+       'wandora_customer_hire_operator',
        'wandora_private.set_digital_employee_catalog_hire_eligibility(uuid,text,boolean)',
        'EXECUTE'
      )
      OR has_function_privilege(
        'wandora_core_runtime',
+       'wandora_private.set_digital_employee_catalog_hire_eligibility(uuid,text,boolean)',
+       'EXECUTE'
+     )
+     OR has_function_privilege(
+       'wandora_platform_provisioner',
        'wandora_private.set_digital_employee_catalog_hire_eligibility(uuid,text,boolean)',
        'EXECUTE'
      )
@@ -162,7 +206,7 @@ VALUES
   ('61111111-1111-4111-8111-111111111101', 'hire-eligibility-a', 'Hire Eligibility A'),
   ('61111111-1111-4111-8111-111111111102', 'hire-eligibility-b', 'Hire Eligibility B');
 
-SET LOCAL ROLE wandora_platform_provisioner;
+SET LOCAL ROLE wandora_customer_hire_operator;
 
 SELECT *
 FROM wandora_private.set_digital_employee_catalog_hire_eligibility(
@@ -187,7 +231,7 @@ BEGIN
 END
 $$;
 
-SET LOCAL ROLE wandora_platform_provisioner;
+SET LOCAL ROLE wandora_customer_hire_operator;
 
 SELECT *
 FROM wandora_private.set_digital_employee_catalog_hire_eligibility(
@@ -259,7 +303,7 @@ UPDATE wandora.organizations
    SET status = 'suspended'
  WHERE id = '61111111-1111-4111-8111-111111111102';
 
-SET LOCAL ROLE wandora_platform_provisioner;
+SET LOCAL ROLE wandora_customer_hire_operator;
 
 DO $$
 BEGIN
