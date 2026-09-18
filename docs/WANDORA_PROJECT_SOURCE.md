@@ -736,7 +736,7 @@ Gateway outbound = OFF
 
 The two Paperclip-bound companies remain correctly wired with company-scoped `secret_ref` config, healthy Organization Adapter plugin and protected Core HMAC custody. The dedicated eligibility operator remains NOLOGIN and setter-only.
 
-No current tenant qualifies for a first new catalog rollout, so no eligibility was enabled. ADR 0085 freezes the future target-specific setter/rollback and requires the first rollout to fail closed unless exactly one reviewed organization+catalog pair becomes enabled.
+No current tenant qualifies for a first new catalog rollout, so no eligibility was enabled. ADR 0085 freezes the future target-specific setter/rollback and requires the first rollout to fail closed unless exactly one reviewed organization+catalog pair becomes enabled. The frozen first-rollout transaction is serialized with an EXCLUSIVE table lock; a disposable two-session race proved a second concurrent target is rejected before setter execution, and rollback restores zero enabled rows. The local operator session uses the existing protected `supabase_admin` boundary and narrows to the NOLOGIN hire-operator role only for the setter.
 
 ## Next executable slice
 
