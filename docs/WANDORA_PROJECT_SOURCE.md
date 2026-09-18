@@ -294,7 +294,7 @@ The selected execution fixture is one ephemeral provider-only company:
 Wandora Cross-Company Isolation Proof B
 ```
 
-It receives no Wandora organization/provider binding and is not customer state. The execution must configure B with a B-owned secret_ref, prove cross-company secret-ref rejection, prove A-HMAC -> B-target denial with zero B resources, then remove B through the official Paperclip API and verify no provider/Wandora residue.
+It receives no Wandora organization/provider binding and is not customer state. The execution must configure B with a B-owned secret_ref, prove cross-company secret-ref rejection, prove A-HMAC -> B-target denial with zero B resources, remove B through the official Paperclip API, then re-save A's existing plugin config unchanged so the worker recomputes its configured-company scope to A-only. Final verification must show no B provider/Wandora residue and the same A secret_ref/resource state.
 
 A positive B reconcile is intentionally excluded.
 
