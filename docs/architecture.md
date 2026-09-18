@@ -473,7 +473,7 @@ ADR 0079 selected an additional Wandora-owned organization+catalog eligibility f
 2. preserve Human Session, explicit multi-organization selection, `Equipe`, `Trabalho` and `Conversas` authorization boundaries;
 3. finish the existing customer-facing product by converting remaining PARTIAL/PLACEHOLDER surfaces through the correct Wandora contracts;
 4. ADR 0084 makes the Customer Digital-Employee Hire global runtime gate live on the same reviewed Core image while eligibility remains zero and no tenant is newly available;
-5. ADR 0094 completes the owner invite + recovery Web production activation on the exact reviewed image; the recovery edge guard remains live, no real invite/recovery has been issued, and the next step is a no-effect preflight for the first controlled end-to-end owner access proof;
+5. ADR 0095 closes the first real owner-access preflight without effect: Web + recovery edge are ready, but live Auth still targets unresolved development/default SMTP `supabase-mail:2500` and no genuine new customer owner/organization target exists; transactional e-mail delivery must be proven before any real invite;
 6. keep Human Send and Gateway outbound OFF by default after the successful controlled Confirmation V2 and hire-canary proofs;
 7. preserve exactly-once durable attempt semantics and never retry historical `uncertain` attempts blindly; incomplete customer hire may resume only through its original idempotency key;
 8. keep stronger commercial commitments on the existing approval boundary;
