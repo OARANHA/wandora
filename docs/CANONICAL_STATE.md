@@ -1203,13 +1203,48 @@ ADR 0086 selects invite-only beta onboarding and rejects creating another synthe
 
 No Auth user, invite, tenant, Paperclip company, provider binding, eligibility, employee or outbound effect was created by this preflight.
 
+## Customer Owner Invite Acceptance + First Password Contract Implementation V1 — IMPLEMENTED / CODE+CI ONLY
+
+ADR 0087 implements the normal invite-first-password browser contract against the exact live Auth family `supabase/gotrue:v2.196.0`.
+
+The provider contract was proven from the pinned upstream source:
+
+```text
+admin invite verification = implicit flow
+successful invite redirect = URL fragment with access/refresh + type=invite + sb marker
+invited user without password = provider-generated temporary password
+first-password update = authenticated PUT /auth/v1/user
+```
+
+Web now has a public `/accept-invite` route. A valid provider-issued invite session is staged separately under `wandora.auth.invite.v1`, the credential fragment is removed before React renders, and a SITE_URL-root invite fallback is canonicalized to the dedicated route. Unsupported Supabase Auth fragments fail closed.
+
+The invited user's password is sent directly to Supabase Auth with the public publishable key plus that user's Bearer session. No Auth admin/service credential enters Web or normal Core. The staged invite session is not promoted to the normal `wandora.auth.session.v1` session until password update succeeds; tenant authorization still comes from the existing `/api/v1/me` bootstrap.
+
+Web CI #291 / run 35392357787 proved:
+
+```text
+WANDORA_WEB_OWNER_INVITE_ACCEPTANCE_V1_OK
+WANDORA_WEB_FIRST_PASSWORD_CONTRACT_V1_OK
+WANDORA_WEB_CUSTOMER_HIRE_BROWSER_IDEMPOTENCY_V1_OK
+WANDORA_WEB_CUSTOMER_HIRE_TENANT_AVAILABILITY_V1_OK
+WANDORA_WEB_HUMAN_API_BRIDGE_V1_OK
+```
+
+The implementation is **not deployed**. The live Web remains `wandora/web:candidate-af542864d267`. No real invite, Auth user, customer tenant, Paperclip state or eligibility was created.
+
+### Explicit residual gap
+
+Invite verification consumes the one-time token and GoTrue assigns a random temporary password. Invite session material intentionally remains browser-session scoped. If the user closes the browser/tab after verification but before defining the password, the staged session is lost and the user does not know the temporary password.
+
+Therefore the normal first-access path is implemented, but a real customer invitation is not yet operationally recoverable. Recovery must reuse Supabase Auth recovery semantics rather than inventing Wandora credential state.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Owner Invite Acceptance + First Password Contract Implementation V1.**
+Next: **Customer Owner Interrupted Invite Recovery Contract Preflight V1.**
 
-Code/CI only. Inspect the exact live GoTrue v2.196.0 invite redirect/session contract, implement the browser first-access flow, preserve public signup OFF and keep all admin/service credentials out of Web and normal Core.
+Preflight only. Inspect exact GoTrue v2.196.0 recovery/generate-link behavior and select the minimum fail-closed recovery path for an invite that was verified but interrupted before password definition.
 
-Do not send a real invite, create a customer Auth user, provision a tenant, create provider state or enable eligibility during that implementation slice.
+Do not send a real recovery email/link, create a real customer Auth user, deploy the new Web, provision a tenant, create provider wiring or enable eligibility during that preflight.
 
 ## Operational safety
 

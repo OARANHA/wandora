@@ -4,7 +4,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from '@tanstack/react-router';
 import { AuthProvider } from './AuthProvider';
 import { router } from './router';
+import { stageInviteRedirectFromCurrentLocation } from './inviteAcceptance';
 import './index.css';
+
+stageInviteRedirectFromCurrentLocation();
 
 const queryClient = new QueryClient({
   defaultOptions: {

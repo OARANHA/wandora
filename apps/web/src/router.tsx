@@ -5,6 +5,7 @@ import { CompanyPage } from './pages/CompanyPage';
 import { ConversationsPage } from './pages/ConversationsPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { LoginPage } from './pages/LoginPage';
+import { InviteAcceptancePage } from './pages/InviteAcceptancePage';
 import { TeamPage } from './pages/TeamPage';
 import { WorkPage } from './pages/WorkPage';
 import { StartPage } from './pages/StartPage';
@@ -59,6 +60,13 @@ const loginRoute = createRoute({
   component: LoginPage,
 });
 
+
+const inviteAcceptanceRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/accept-invite',
+  component: InviteAcceptancePage,
+});
+
 const startRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/start',
@@ -76,6 +84,7 @@ const routeTree = rootRoute.addChildren([
     startRoute,
   ]),
   loginRoute,
+  inviteAcceptanceRoute,
 ]);
 
 export const router = createRouter({ routeTree });
