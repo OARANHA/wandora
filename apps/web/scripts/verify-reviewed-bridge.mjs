@@ -7,7 +7,7 @@ function assert(condition, message) {
 
 const nginx = await readFile(new URL('../nginx.conf', import.meta.url), 'utf8');
 const digitalEmployeesLocation =
-  /location ~ "\\^\\/api\\/v1\\/organizations\\/\\[0-9A-Fa-f\\][\\s\\S]*?\\/digital-employees\\$" \\{([\\s\\S]*?)\\n  \\}/
+  /location ~ "\^\/api\/v1\/organizations\/\[0-9A-Fa-f\][\s\S]*?\/digital-employees\$" \{([\s\S]*?)\n  \}/
     .exec(nginx)?.[1];
 
 if (!digitalEmployeesLocation) {
