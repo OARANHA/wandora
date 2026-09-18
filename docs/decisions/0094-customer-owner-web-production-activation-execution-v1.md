@@ -242,6 +242,20 @@ then recreate only `wandora-web`, require healthy/restarts 0, and repeat the sam
 
 Do not roll back the independently validated Cloudflare recovery anti-abuse rule merely because the Web image is rolled back.
 
+## GITHUB ACTIONS INFRASTRUCTURE EXCEPTION
+
+PR #142 triggered the five normal repository workflows. Each job ended before runner execution with `steps=null` and `logs_url=null`:
+
+```text
+Core CI #390 / run 35406278866
+Web CI #327 / run 35406278838
+Platform Admin CI #252 / run 35406278895
+Messaging Gateway CI #359 / run 35406278822
+Organization Adapter Plugin CI #72 / run 35406278854
+```
+
+These checks are not classified green and are not treated as code/test failures because no workflow step executed. The PR is documentation-only; the production Web activation was independently validated against the live runtime and external routes as recorded above.
+
 ## RESULT
 
 **Customer Owner Invite + Recovery Web Production Activation Execution V1 is complete and validated.**
