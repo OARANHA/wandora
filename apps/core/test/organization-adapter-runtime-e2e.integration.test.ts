@@ -139,6 +139,7 @@ test('service + DB + custody + signed client completes one canonical catalog hir
 
     assert.deepEqual(Object.keys(result).sort(), ['autonomy', 'id', 'name', 'role', 'status']);
     assert.equal(result.name, 'Ana');
+    assert.equal(result.status, 'paused');
     assert.equal(provider.calls.length, 1);
     assert.deepEqual(JSON.parse(provider.calls[0]!.rawBody), { companyId: COMPANY_A, catalogKey: CATALOG_KEY });
 

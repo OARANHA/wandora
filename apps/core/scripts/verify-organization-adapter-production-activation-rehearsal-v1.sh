@@ -43,29 +43,39 @@ assert_static_activation_contract() {
   grep -Fq 'createPaperclipOrganizationAdapterFileSecretResolver' "$CORE/src/runtime/organization-adapter.ts"
   grep -Fq 'createPaperclipOrganizationAdapterProvider' "$CORE/src/runtime/organization-adapter.ts"
 
-  # Candidate wiring may now be constructed by the Core entrypoint, but only
-  # behind fail-closed runtime config/readiness. It must still have no customer
-  # route that can invoke the service.
+  # Organization Adapter wiring may be live while the customer hire route remains
+  # structurally closed. The route is allowed in the binary only behind its own
+  # explicit disabled-by-default runtime gate.
   grep -Fq "import { createRuntimeOrganizationAdapter } from './organization-adapter.js';" "$CORE/src/runtime/main.ts"
   grep -Fq "import { createRuntimeReadinessChecker } from './readiness.js';" "$CORE/src/runtime/main.ts"
   grep -Fq 'const organizationAdapterService = pool && config.organizationAdapter' "$CORE/src/runtime/main.ts"
   grep -Fq '? createRuntimeOrganizationAdapter(pool, config.organizationAdapter)' "$CORE/src/runtime/main.ts"
   grep -Fq 'organizationAdapterEnabled: Boolean(organizationAdapterService)' "$CORE/src/runtime/main.ts"
-  if grep -Eq 'organization-adapter|catalog-employee|ensureCatalogEmployee' "$CORE/src/runtime/human-supervision.ts"; then
-    echo 'organization_adapter_rehearsal_unexpected_customer_route' >&2
-    exit 1
-  fi
+  grep -Fq 'WANDORA_HUMAN_DIGITAL_EMPLOYEE_HIRE_ENABLED' "$CORE/src/runtime/config.ts"
+  grep -Fq 'digitalEmployeeHireService?: OrganizationAdapterService' "$CORE/src/runtime/human-supervision.ts"
+  grep -Fq 'if (!digitalEmployeeHireService)' "$CORE/src/runtime/human-supervision.ts"
+  grep -Fq 'humanDigitalEmployeeHireService' "$CORE/src/runtime/main.ts"
 
   test -f "$CORE_STACK/compose.organization-adapter.yaml"
   grep -Fq 'WANDORA_ORGANIZATION_ADAPTER_ENABLED: "true"' "$CORE_STACK/compose.organization-adapter.yaml"
   grep -Fq 'WANDORA_ORGANIZATION_ADAPTER_WEBHOOK_URL: "http://wandora-paperclip:3100/api/plugins/wandora.organization-adapter-v1/webhooks/employee-reconcile"' "$CORE_STACK/compose.organization-adapter.yaml"
   grep -Fq 'WANDORA_ORGANIZATION_ADAPTER_SECRET_DIRECTORY: "/run/secrets/wandora/organization-adapter"' "$CORE_STACK/compose.organization-adapter.yaml"
   grep -Fq ':/run/secrets/wandora/organization-adapter:ro"' "$CORE_STACK/compose.organization-adapter.yaml"
+  if grep -Fq 'WANDORA_HUMAN_DIGITAL_EMPLOYEE_HIRE_ENABLED' "$CORE_STACK/compose.organization-adapter.yaml"; then
+    echo 'organization_adapter_rehearsal_must_not_enable_customer_hire' >&2
+    exit 1
+  fi
+  test -f "$CORE_STACK/compose.human-digital-employee-hire.yaml"
+  grep -Fq 'WANDORA_HUMAN_DIGITAL_EMPLOYEE_HIRE_ENABLED: "true"' "$CORE_STACK/compose.human-digital-employee-hire.yaml"
 
   # Base runtime remains disabled unless the candidate overlay is explicitly
   # selected; no Organization Adapter env belongs in the base stack.
   if grep -Fq 'WANDORA_ORGANIZATION_ADAPTER_' "$CORE_STACK/compose.yaml"; then
     echo 'organization_adapter_rehearsal_base_stack_must_remain_disabled' >&2
+    exit 1
+  fi
+  if grep -Fq 'WANDORA_HUMAN_DIGITAL_EMPLOYEE_HIRE_ENABLED' "$CORE_STACK/compose.yaml"; then
+    echo 'organization_adapter_rehearsal_base_stack_must_not_enable_customer_hire' >&2
     exit 1
   fi
 }

@@ -104,7 +104,7 @@ test('owner gets one canonical employee across same-key and new-key replays with
     organizationId: ORG_A, actorUserId: USER, catalogKey: 'ana-commercial-v1', idempotencyKey: 'hire-ana-2',
   });
 
-  assert.deepEqual(first, { id: EMPLOYEE, name: 'Ana', role: 'commercial-assistant', status: 'active', autonomy: 'supervised' });
+  assert.deepEqual(first, { id: EMPLOYEE, name: 'Ana', role: 'commercial-assistant', status: 'paused', autonomy: 'supervised' });
   assert.deepEqual(replay, first);
   assert.deepEqual(resourceReplay, first);
   assert.equal(provider.calls.length, 1);
@@ -117,6 +117,28 @@ test('owner gets one canonical employee across same-key and new-key replays with
        (SELECT count(*)::int FROM wandora_private.digital_employee_hire_operations) AS operations`,
   );
   assert.deepEqual(counts.rows[0], { employees: 1, bindings: 1, operations: 1 });
+});
+
+test('completed hire replay returns the same employee with its later canonical active status without another provider call', async () => {
+  await resetFixture();
+  const provider = new MemoryPaperclipProvider();
+  const service = makeService(provider);
+
+  const hired = await service.ensureCatalogEmployee({
+    organizationId: ORG_A, actorUserId: USER, catalogKey: 'ana-commercial-v1', idempotencyKey: 'hire-then-activate',
+  });
+  assert.equal(hired.status, 'paused');
+
+  await fixturePool.query(
+    `UPDATE wandora.digital_employees SET status='active' WHERE organization_id=$1 AND id=$2`,
+    [ORG_A, EMPLOYEE],
+  );
+
+  const replay = await service.ensureCatalogEmployee({
+    organizationId: ORG_A, actorUserId: USER, catalogKey: 'ana-commercial-v1', idempotencyKey: 'hire-then-activate',
+  });
+  assert.deepEqual(replay, { ...hired, status: 'active' });
+  assert.equal(provider.calls.length, 1);
 });
 
 test('same idempotency key with a changed canonical request fails before another provider call', async () => {
@@ -207,6 +229,31 @@ test('ambiguous provider success is repaired with the frozen company snapshot an
   assert.equal(final.rows[0]?.status, 'completed');
   assert.equal(final.rows[0]?.completed, true);
   assert.match(final.rows[0]?.provider_agent_ref ?? '', /^managed:paperclip-company-a:/);
+});
+
+test('matching legacy employee fails closed before journal reservation or provider effect', async () => {
+  await resetFixture();
+  await fixturePool.query(
+    `INSERT INTO wandora.digital_employees
+       (id,organization_id,display_name,role,status,autonomy_mode)
+     VALUES ($1,$2,'Ana','commercial-assistant','active','supervised')`,
+    ['54000000-0000-4000-8000-0000000000a1', ORG_A],
+  );
+
+  const provider = new MemoryPaperclipProvider();
+  const service = makeService(provider);
+  await assert.rejects(
+    service.ensureCatalogEmployee({
+      organizationId: ORG_A, actorUserId: USER, catalogKey: 'ana-commercial-v1', idempotencyKey: 'legacy-collision',
+    }),
+    (error: unknown) => error instanceof OrganizationAdapterConflictError && error.code === 'catalog-conflict',
+  );
+
+  assert.equal(provider.calls.length, 0);
+  const operations = await fixturePool.query(
+    `SELECT count(*)::int AS count FROM wandora_private.digital_employee_hire_operations`,
+  );
+  assert.equal(operations.rows[0]?.count, 0);
 });
 
 test('unknown catalog key fails before durable or provider effects', async () => {

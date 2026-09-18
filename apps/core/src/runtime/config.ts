@@ -39,6 +39,10 @@ export type RuntimeOrganizationAdapterConfig = {
   secretDirectory: string;
 };
 
+export type RuntimeHumanDigitalEmployeeHireConfig = {
+  enabled: true;
+};
+
 export type RuntimeConfig = {
   port: number;
   mode: RuntimeMode;
@@ -48,6 +52,7 @@ export type RuntimeConfig = {
   humanApi?: RuntimeHumanApiConfig;
   humanSendProposal?: RuntimeHumanSendProposalConfig;
   organizationAdapter?: RuntimeOrganizationAdapterConfig;
+  humanDigitalEmployeeHire?: RuntimeHumanDigitalEmployeeHireConfig;
 };
 
 const parsePort = (value: string | undefined, fallback: number, name: string): number => {
@@ -143,6 +148,10 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     env.WANDORA_ORGANIZATION_ADAPTER_ENABLED,
     'WANDORA_ORGANIZATION_ADAPTER_ENABLED',
   );
+  const humanDigitalEmployeeHireEnabled = parseEnabled(
+    env.WANDORA_HUMAN_DIGITAL_EMPLOYEE_HIRE_ENABLED,
+    'WANDORA_HUMAN_DIGITAL_EMPLOYEE_HIRE_ENABLED',
+  );
   const agentRuntimeMode = parseAgentRuntimeMode(env.WANDORA_AGENT_RUNTIME_MODE);
 
   if (mode === 'standby') {
@@ -158,6 +167,9 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     if (organizationAdapterEnabled) {
       throw new Error('Organization Adapter cannot be enabled while Wandora Core is in standby mode.');
     }
+    if (humanDigitalEmployeeHireEnabled) {
+      throw new Error('Human Digital Employee Hire cannot be enabled while Wandora Core is in standby mode.');
+    }
     if (agentRuntimeMode !== 'disabled') {
       throw new Error('Agent Runtime cannot be enabled while Wandora Core is in standby mode.');
     }
@@ -169,6 +181,12 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
   }
   if (humanSendProposalEnabled && !humanApiEnabled) {
     throw new Error('Human Send Proposal requires the Human API to be enabled.');
+  }
+  if (humanDigitalEmployeeHireEnabled && !humanApiEnabled) {
+    throw new Error('Human Digital Employee Hire requires the Human API to be enabled.');
+  }
+  if (humanDigitalEmployeeHireEnabled && !organizationAdapterEnabled) {
+    throw new Error('Human Digital Employee Hire requires the Organization Adapter to be enabled.');
   }
 
   const user = (env.WANDORA_CORE_DB_USER ?? 'wandora_core_runtime').trim();
@@ -255,6 +273,9 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     ...(humanApi ? { humanApi } : {}),
     ...(humanSendProposal ? { humanSendProposal } : {}),
     ...(organizationAdapter ? { organizationAdapter } : {}),
+    ...(humanDigitalEmployeeHireEnabled
+      ? { humanDigitalEmployeeHire: { enabled: true as const } }
+      : {}),
     ...(agentRuntimeMode === 'mastra-deterministic'
       ? { agentRuntime: { mode: 'mastra-deterministic' as const } }
       : {}),

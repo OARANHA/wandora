@@ -1,4 +1,9 @@
 import { HumanAuthError } from '../human-auth/es256-jwks.js';
+import {
+  OrganizationAdapterConflictError,
+  OrganizationAdapterUnavailableError,
+} from '../organization-adapter/contracts.js';
+import type { OrganizationAdapterService } from '../organization-adapter/service.js';
 import type { HumanDigitalEmployeesReadService } from '../supervision/human-digital-employees-read.js';
 import {
   HumanAccessError,
@@ -19,11 +24,13 @@ const DIGITAL_EMPLOYEES_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/digital-e
 const CONVERSATIONS_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/conversations$/;
 const CONVERSATION_DETAIL_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/conversations\/([^/]+)$/;
 const SESSION_PATH = '/api/v1/me';
+const CATALOG_KEY_RE = /^[a-z0-9][a-z0-9._-]{2,63}$/;
 
 export type HumanSupervisionRequest = {
   method: string | undefined;
   pathname: string;
   authorization: string | undefined;
+  idempotencyKey?: string | undefined;
   rawBody?: string | undefined;
 };
 
@@ -49,6 +56,28 @@ export function isHumanSendProposalPath(pathname: string): boolean {
   );
 }
 
+export function isHumanDigitalEmployeeHirePath(pathname: string): boolean {
+  const match = DIGITAL_EMPLOYEES_PATH_RE.exec(pathname);
+  return Boolean(match?.[1] && UUID_RE.test(match[1]));
+}
+
+function parseCatalogHireRequest(rawBody: string | undefined): { catalogKey: string } | undefined {
+  if (!rawBody || rawBody.length > 1_024) return undefined;
+  try {
+    const parsed = JSON.parse(rawBody) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return undefined;
+    const record = parsed as Record<string, unknown>;
+    if (
+      Object.keys(record).length !== 1
+      || typeof record.catalogKey !== 'string'
+      || !CATALOG_KEY_RE.test(record.catalogKey)
+    ) return undefined;
+    return { catalogKey: record.catalogKey };
+  } catch {
+    return undefined;
+  }
+}
+
 function parseConfirmationVersion(rawBody: string | undefined): string | undefined {
   if (!rawBody || rawBody.length > 1_024) return undefined;
   try {
@@ -66,6 +95,7 @@ export function createHumanSupervisionHandler(
   service: HumanSupervisionReadService,
   sendProposalService?: HumanSendProposalService,
   digitalEmployeesService?: HumanDigitalEmployeesReadService,
+  digitalEmployeeHireService?: OrganizationAdapterService,
 ) {
   return async (request: HumanSupervisionRequest): Promise<HumanSupervisionResponse> => {
     try {
@@ -104,6 +134,45 @@ export function createHumanSupervisionHandler(
           confirmationVersion,
         });
         return { status: 200, body: result };
+      }
+
+      const digitalEmployeesMatch = DIGITAL_EMPLOYEES_PATH_RE.exec(request.pathname);
+      const digitalEmployeesOrganizationId = digitalEmployeesMatch?.[1];
+      if (digitalEmployeesOrganizationId) {
+        if (!UUID_RE.test(digitalEmployeesOrganizationId)) {
+          return { status: 404, body: { error: 'not-found' } };
+        }
+
+        if (request.method === 'POST') {
+          if (!digitalEmployeeHireService) {
+            return { status: 404, body: { error: 'not-found' } };
+          }
+          const idempotencyKey = request.idempotencyKey?.trim();
+          const hireRequest = parseCatalogHireRequest(request.rawBody);
+          if (!idempotencyKey || idempotencyKey.length > 255 || !hireRequest) {
+            return { status: 400, body: { error: 'invalid-hire-request' } };
+          }
+          const session = await service.getSessionContext(request.authorization);
+          const employee = await digitalEmployeeHireService.ensureCatalogEmployee({
+            organizationId: digitalEmployeesOrganizationId,
+            actorUserId: session.user.id,
+            catalogKey: hireRequest.catalogKey,
+            idempotencyKey,
+          });
+          return { status: 200, body: { employee } };
+        }
+
+        if (request.method !== 'GET') {
+          return { status: 405, body: { error: 'method-not-allowed' } };
+        }
+        if (!digitalEmployeesService) {
+          return { status: 404, body: { error: 'not-found' } };
+        }
+        const items = await digitalEmployeesService.listDigitalEmployees(
+          request.authorization,
+          digitalEmployeesOrganizationId,
+        );
+        return { status: 200, body: { items } };
       }
 
       if (request.method !== 'GET') {
@@ -147,22 +216,6 @@ export function createHumanSupervisionHandler(
         return { status: 200, body: { items: decoratedItems } };
       }
 
-      const digitalEmployeesMatch = DIGITAL_EMPLOYEES_PATH_RE.exec(request.pathname);
-      const digitalEmployeesOrganizationId = digitalEmployeesMatch?.[1];
-      if (digitalEmployeesOrganizationId) {
-        if (!digitalEmployeesService) {
-          return { status: 404, body: { error: 'not-found' } };
-        }
-        if (!UUID_RE.test(digitalEmployeesOrganizationId)) {
-          return { status: 404, body: { error: 'not-found' } };
-        }
-        const items = await digitalEmployeesService.listDigitalEmployees(
-          request.authorization,
-          digitalEmployeesOrganizationId,
-        );
-        return { status: 200, body: { items } };
-      }
-
       const conversationsMatch = CONVERSATIONS_PATH_RE.exec(request.pathname);
       const conversationsOrganizationId = conversationsMatch?.[1];
       if (conversationsOrganizationId) {
@@ -201,6 +254,21 @@ export function createHumanSupervisionHandler(
       }
       if (error instanceof HumanNotFoundError) {
         return { status: 404, body: { error: 'not-found' } };
+      }
+      if (error instanceof OrganizationAdapterConflictError) {
+        return { status: 409, body: { error: error.code } };
+      }
+      if (error instanceof OrganizationAdapterUnavailableError) {
+        if (error.code === 'catalog-employee-unknown') {
+          return { status: 404, body: { error: 'employee-not-available' } };
+        }
+        if (error.code === 'provider-not-configured') {
+          return { status: 503, body: { error: 'employee-hiring-unavailable' } };
+        }
+        return {
+          status: 409,
+          body: { error: 'employee-hiring-uncertain', retry: 'same-idempotency-key' },
+        };
       }
       if (error instanceof HumanSendProposalConflictError) {
         return { status: 409, body: { error: error.code } };

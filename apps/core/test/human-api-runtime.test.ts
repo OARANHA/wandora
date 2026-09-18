@@ -18,7 +18,12 @@ async function withServer(fn: (baseUrl: string) => Promise<void>): Promise<void>
       body: request.authorization === 'Bearer fixture'
         ? request.pathname === '/api/v1/me'
           ? { user: { id: 'user-1', name: 'Gestor' }, organizations: [] }
-          : { items: [{ path: request.pathname }] }
+          : { items: [{
+              path: request.pathname,
+              method: request.method,
+              idempotencyKey: request.idempotencyKey ?? '',
+              rawBody: request.rawBody ?? '',
+            }] }
         : { error: 'unauthorized' },
     }),
   });
@@ -91,6 +96,30 @@ test('Runtime forwards only reviewed Human API namespaces to human handler', asy
     assert.equal(allowed.status, 200);
     const body = await allowed.json() as { items: Array<{ path: string }> };
     assert.equal(body.items[0]?.path, `/api/v1/organizations/${ORG}/work/attention-required`);
+
+    const hireBody = JSON.stringify({ catalogKey: 'ana-commercial-v1' });
+    const hire = await fetch(
+      `${baseUrl}/api/v1/organizations/${ORG}/digital-employees`,
+      {
+        method: 'POST',
+        headers: {
+          authorization: 'Bearer fixture',
+          'content-type': 'application/json',
+          'idempotency-key': 'hire-runtime-boundary',
+        },
+        body: hireBody,
+      },
+    );
+    assert.equal(hire.status, 200);
+    const hireResponse = await hire.json() as {
+      items: Array<{ path: string; method: string; idempotencyKey: string; rawBody: string }>;
+    };
+    assert.deepEqual(hireResponse.items[0], {
+      path: `/api/v1/organizations/${ORG}/digital-employees`,
+      method: 'POST',
+      idempotencyKey: 'hire-runtime-boundary',
+      rawBody: hireBody,
+    });
 
     const missingToken = await fetch(`${baseUrl}/api/v1/organizations/${ORG}/work/attention-required`);
     assert.equal(missingToken.status, 401);

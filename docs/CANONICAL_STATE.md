@@ -463,20 +463,23 @@ The current public placeholder `/start` is not production-safe. Real V1 must be 
 
 Customer hire also requires its own disabled-by-default runtime gate. Organization Adapter ON does not imply customer hire ON.
 
+## Customer Hire Contract Implementation V1 — COMPLETE, GATE OFF
+
+ADR 0064 closes the code/CI implementation slice.
+
+The customer POST and authenticated Ana-only `/start` experience now exist in code behind a dedicated disabled-by-default runtime gate. First-time hire finalizes `paused + supervised`; hire replay returns the same employee with its current canonical `paused|active` state. The exact Web bridge forwards Authorization + Idempotency-Key and keeps the generic API boundary closed.
+
+Second adversarial review found an existing legacy Ana in `Empresa Exemplo` that is active/supervised but has no Paperclip provider binding and no proven catalog identity. Therefore automatic adoption by matching name/role is rejected. The adapter now fails closed with `catalog-conflict` before journal/provider effect when such a legacy collision exists.
+
+`Empresa Exemplo` is **not eligible for a naive first-hire canary**. ADR 0064 supersedes that future-canary assumption from ADR 0063.
+
+No production deployment or customer effect was authorized by this implementation slice. Customer Digital-Employee Hire remains OFF; Human Send and Gateway outbound remain OFF; customer activation remains unavailable.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Hire Contract Implementation V1 — code/CI only, runtime gate OFF.**
+Next: **Customer Hire Canary Selection + Legacy Employee Reconciliation Preflight V1.**
 
-1. first-time Organization Adapter finalization becomes `paused`;
-2. completed hire replay accepts/returns actual `paused|active`;
-3. add exact owner/admin POST `/api/v1/organizations/:organizationId/digital-employees` with stable `Idempotency-Key`;
-4. keep provider refs/config/secrets out of responses;
-5. add a separate disabled-by-default customer-hire runtime gate;
-6. make `/start` authenticated + tenant-bound and Ana-only;
-7. remove fake company, WhatsApp and knowledge writes from the real hire path;
-8. update `Equipe` paused presentation for “contratada/aguardando ativação” semantics;
-9. prove member/cross-tenant/malformed/idempotency/conflict/unavailable cases;
-10. do not provision `Empresa Exemplo`, touch live Paperclip, enable customer hire/activation, Human Send or Gateway outbound.
+Choose with proven evidence between a clean customer-like canary with no legacy employee collision and an explicit operator-reviewed legacy reconciliation/adoption contract. Do not provision or auto-adopt `Empresa Exemplo`, enable customer hire, expose `Ativar`, or enable outbound effects during that preflight.
 
 ## Operational safety
 

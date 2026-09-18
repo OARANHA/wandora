@@ -26,7 +26,7 @@ export type CatalogEmployeeResult = {
   id: string;
   name: string;
   role: 'commercial-assistant';
-  status: 'active';
+  status: 'active' | 'paused';
   autonomy: 'supervised';
 };
 

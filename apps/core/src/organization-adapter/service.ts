@@ -166,6 +166,29 @@ export class OrganizationAdapterService {
         return catalogOperation;
       }
 
+      const legacyCollision = await client.query<{ employee_id: string }>(
+        `SELECT id::text AS employee_id
+           FROM wandora.digital_employees
+          WHERE organization_id = $1
+            AND display_name = $2
+            AND role = $3
+            AND autonomy_mode = $4
+          ORDER BY id
+          LIMIT 1`,
+        [
+          args.organizationId,
+          args.definition.displayName,
+          args.definition.role,
+          args.definition.autonomy,
+        ],
+      );
+      if (legacyCollision.rows[0]) {
+        throw new OrganizationAdapterConflictError(
+          'catalog-conflict',
+          'A matching legacy digital employee exists and requires explicit operator reconciliation before catalog hire.',
+        );
+      }
+
       const binding = await client.query<{ provider_company_ref: string }>(
         `SELECT provider_company_ref
            FROM wandora_private.control_plane_provider_bindings
@@ -296,7 +319,7 @@ export class OrganizationAdapterService {
       || row.provider_agent_ref !== operation.provider_agent_ref
       || row.employee_name !== definition.displayName
       || row.employee_role !== definition.role
-      || row.employee_status !== 'active'
+      || (row.employee_status !== 'active' && row.employee_status !== 'paused')
       || row.employee_autonomy !== definition.autonomy
     ) {
       throw new OrganizationAdapterConflictError(
@@ -308,7 +331,7 @@ export class OrganizationAdapterService {
       id: row.employee_id,
       name: row.employee_name,
       role: row.employee_role,
-      status: 'active',
+      status: row.employee_status,
       autonomy: row.employee_autonomy,
     };
   }
@@ -365,7 +388,7 @@ export class OrganizationAdapterService {
       await client.query(
         `INSERT INTO wandora.digital_employees
            (id, organization_id, display_name, role, status, autonomy_mode)
-         VALUES ($1, $2, $3, $4, 'active', $5)
+         VALUES ($1, $2, $3, $4, 'paused', $5)
          ON CONFLICT (id) DO NOTHING`,
         [
           current.employee_id,
@@ -392,7 +415,7 @@ export class OrganizationAdapterService {
         !employeeRow
         || employeeRow.display_name !== args.definition.displayName
         || employeeRow.role !== args.definition.role
-        || employeeRow.status !== 'active'
+        || employeeRow.status !== 'paused'
         || employeeRow.autonomy_mode !== args.definition.autonomy
       ) {
         throw new OrganizationAdapterConflictError('state-inconsistent', 'Reserved employee state is inconsistent.');
@@ -431,7 +454,7 @@ export class OrganizationAdapterService {
         id: current.employee_id,
         name: args.definition.displayName,
         role: args.definition.role,
-        status: 'active',
+        status: employeeRow.status,
         autonomy: args.definition.autonomy,
       };
     });

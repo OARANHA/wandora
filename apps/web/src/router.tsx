@@ -60,7 +60,7 @@ const loginRoute = createRoute({
 });
 
 const startRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: '/start',
   component: StartPage,
 });
@@ -73,9 +73,9 @@ const routeTree = rootRoute.addChildren([
     conversationsRoute,
     approvalsRoute,
     companyRoute,
+    startRoute,
   ]),
   loginRoute,
-  startRoute,
 ]);
 
 export const router = createRouter({ routeTree });
