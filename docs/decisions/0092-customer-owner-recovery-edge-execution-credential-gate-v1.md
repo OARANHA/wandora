@@ -182,6 +182,20 @@ REAL NOW
 
 Do not deploy owner-access Web in this same slice.
 
+## GITHUB ACTIONS INFRASTRUCTURE EXCEPTION
+
+PR #140 triggered the five normal workflows. All failed before runner execution with `steps=null` and `logs_url=null`:
+
+```text
+Core CI #384 / run 35401631624
+Web CI #321 / run 35401632060
+Platform Admin CI #246 / run 35401631870
+Messaging Gateway CI #353 / run 35401631729
+Organization Adapter Plugin CI #68 / run 35401631663
+```
+
+These are not classified green and are not code/test failures because no workflow step ran. The branch remains documentation-only and no production mutation occurred.
+
 ## DECISION RESULT
 
 **Customer Owner Recovery Edge Anti-Abuse Credential + Activation Execution V1 is blocked before mutation by an explicit credential-issuance/custody gate.**
