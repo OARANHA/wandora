@@ -527,37 +527,41 @@ Gateway outbound = OFF
 
 Independent hash-only validation proves the Core HMAC file and Paperclip encrypted secret version represent the same plaintext without revealing it.
 
-## Customer Hire Canary Private Candidate Hire Preflight — COMPLETE / RECONCILED
+## Customer Hire Canary Private Candidate Hire Execution — GREEN
 
-ADR 0077 prefers the later PR #111 candidate already cryptographically verified and staged on the host:
+ADR 0078 makes the first clean customer-like hire real and verified:
 
 ```text
-image = wandora/core:organization-adapter-candidate-f8e553072c36
-artifact id = 10535228149
-runtime/compose difference vs current main = none
-candidate running = false
-public ingress = none
+Wandora Ana id = 3e689529-a9a2-4d70-8ce1-17aa3aed6f8f
+role = commercial-assistant
+status = paused
+autonomy = supervised
+
+Wandora employees / employee bindings / hire ops = 1 / 1 / 1
+primary hire operation = completed
+Paperclip managed Ana count = 1
+Paperclip Ana = paused / wandora_mastra
 ```
 
-The older PR #109 candidate was rechecked and is not invalid; it is simply not selected because the later artifact is equally current-equivalent and already staged.
+The proof used the later PR #111 candidate artifact on private networks only and a real normal Supabase owner browser session. Candidate `/me` returned 200 for the canonical owner. The first hire returned 200, and same-key plus different-key/same-catalog replay both returned the same employee with no duplicate Wandora or Paperclip state and no provider/secret leakage in the customer response.
 
-The live hire proof requires a **real normal Supabase owner browser session**. Privileged/service-role impersonation and refresh-token harvesting are rejected. The candidate may be started and proven ready autonomously, but no hire is sent until that real bearer passes candidate `GET /api/v1/me`.
+Cleanup completed:
 
 ```text
-primary idempotency key = customer-hire-canary:ana-commercial-v1:v1
-catalog = ana-commercial-v1
-expected Wandora result = Ana paused + supervised
-expected Paperclip result = managed Ana paused
-normal live Core hire gate = OFF
+candidate running = false / container absent
+ephemeral browser-session material = removed
+normal live Core Customer Digital-Employee Hire = OFF
 Human Send = OFF
 Gateway outbound = OFF
 ```
 
+The successful Ana remains paused. `Ativar` is still a separate future effect.
+
 ## Next executable slice
 
-Next: **Customer Hire Canary — Private Candidate Core Hire Execution V1.**
+Next: **Customer Digital-Employee Hire — Public Rollout Preflight V1.**
 
-Start/prove the private candidate. If a real owner bearer is available through the approved non-chat ephemeral channel, execute the one-shot hire and replay proofs; otherwise stop after readiness without substituting privileged auth.
+Observation/plan-first: prove the current normal Core/Web rollout boundary, all-tenant runtime gate implications, legacy/catalog collision behavior, public authorization/idempotency, paused-first UX and rollback before enabling customer hire publicly. Do not activate Ana or enable outbound in that preflight.
 
 ## Platform Admin
 
