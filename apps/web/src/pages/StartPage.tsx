@@ -73,6 +73,15 @@ export function StartPage() {
         );
       }
 
+      if (availabilityQuery.isError) {
+        throw new HireError(
+          'hire-availability-unavailable',
+          'A Wandora não conseguiu confirmar a disponibilidade da contratação.',
+          false,
+          activeOrganization.id,
+        );
+      }
+
       const hire = availabilityQuery.data?.hire;
       if (!hire || hire.catalogKey !== HIRE_CATALOG_KEY) {
         throw new HireError(
@@ -268,6 +277,7 @@ export function StartPage() {
   );
   const actionEnabled = canStartNew || canResume;
   const availabilityPending = availabilityQuery.isLoading || !availabilityQuery.data;
+  const availabilityFailed = availabilityQuery.isError;
 
   return (
     <div className="space-y-6">
@@ -361,6 +371,7 @@ export function StartPage() {
               onClick={() => mutation.mutate()}
               disabled={
                 availabilityPending
+                || availabilityFailed
                 || !actionEnabled
                 || mutation.isPending
                 || retryOrganizationMismatch
