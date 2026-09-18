@@ -5,9 +5,11 @@ import { RouterProvider } from '@tanstack/react-router';
 import { AuthProvider } from './AuthProvider';
 import { router } from './router';
 import { stageInviteRedirectFromCurrentLocation } from './inviteAcceptance';
+import { stageRecoveryRedirectFromCurrentLocation } from './recoveryAccess';
 import './index.css';
 
 stageInviteRedirectFromCurrentLocation();
+stageRecoveryRedirectFromCurrentLocation();
 
 const queryClient = new QueryClient({
   defaultOptions: {
