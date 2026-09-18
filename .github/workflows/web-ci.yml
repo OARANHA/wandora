@@ -30,7 +30,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          WEB_IMAGE="wandora/web:ci-${GITHUB_RUN_ID}"
+          WEB_IMAGE="wandora/web:candidate-${GITHUB_SHA:0:12}"
           CORE_NODE="node:22.23.2-bookworm-slim@sha256:83f487e0a63425e5b4d146fb5e5be574bcbe1b7b843d3ebafdd95eaf7767a7e5"
           cleanup() {
             docker rm -f wandora-web-ci wandora-core >/dev/null 2>&1 || true
@@ -39,9 +39,12 @@ jobs:
           trap cleanup EXIT
           docker network create wandora-core >/dev/null
           docker network create wandora-edge >/dev/null
-          docker build -t "$WEB_IMAGE" apps/web
+          docker build \
+            --label org.opencontainers.image.revision="$GITHUB_SHA" \
+            --label wandora.candidate="wandora-web-reviewed-bridge-v1" \
+            -t "$WEB_IMAGE" apps/web
           docker run -d --rm --name wandora-core --network wandora-core "$CORE_NODE" \
-            node --input-type=module -e "import {createServer} from 'node:http'; createServer((req,res)=>{res.setHeader('content-type','application/json'); res.end(JSON.stringify({path:req.url,method:req.method,auth:req.headers.authorization??'',cookie:req.headers.cookie??''}));}).listen(8788,'0.0.0.0')" >/dev/null
+            node --input-type=module -e "import {createServer} from 'node:http'; createServer(async(req,res)=>{let body=''; for await (const chunk of req) body+=chunk; res.setHeader('content-type','application/json'); res.end(JSON.stringify({path:req.url,method:req.method,auth:req.headers.authorization??'',cookie:req.headers.cookie??'',idempotency:req.headers['idempotency-key']??'',body}));}).listen(8788,'0.0.0.0')" >/dev/null
           docker run -d --rm --name wandora-web-ci --network wandora-core \
             -p 127.0.0.1:18089:8080 "$WEB_IMAGE" >/dev/null
           for _ in $(seq 1 30); do
@@ -83,6 +86,23 @@ jobs:
           assert data['cookie'] == '', data
           assert data['method'] == 'GET', data
           assert data['path'] == '/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/digital-employees', data
+          PY
+          HIRE_RESPONSE="$(curl -fsS -X POST \
+            -H 'Authorization: Bearer ci-token' \
+            -H 'Cookie: browser-session=must-not-cross' \
+            -H 'Idempotency-Key: ci-hire-key' \
+            -H 'Content-Type: application/json' \
+            --data '{"catalogKey":"ana-commercial-v1"}' \
+            http://127.0.0.1:18089/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/digital-employees)"
+          python3 - "$HIRE_RESPONSE" <<'PY'
+          import json, sys
+          data = json.loads(sys.argv[1])
+          assert data['auth'] == 'Bearer ci-token', data
+          assert data['cookie'] == '', data
+          assert data['method'] == 'POST', data
+          assert data['path'] == '/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/digital-employees', data
+          assert data['idempotency'] == 'ci-hire-key', data
+          assert json.loads(data['body']) == {'catalogKey': 'ana-commercial-v1'}, data
           PY
           SEND_PATH='/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/work/60000000-0000-0000-0000-0000000000a1/proposals/70000000-0000-0000-0000-0000000000a1/send'
           SEND_RESPONSE="$(curl -fsS -X POST \
@@ -131,4 +151,31 @@ jobs:
           test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:18089/internal/v1/core/outbound/text)" = "404"
           WANDORA_WEB_IMAGE="$WEB_IMAGE" docker compose -f infra/stacks/web/compose.yaml config --format json | \
             python3 -c 'import json,sys; s=json.load(sys.stdin)["services"]["web"]; assert set(s["networks"])=={"wandora-edge","wandora-core"}; assert not s.get("ports")'
+
+          mkdir -p apps/web/artifacts
+          WEB_IMAGE_ID="$(docker image inspect "$WEB_IMAGE" --format '{{.Id}}')"
+          SOURCE_TREE_SHA="$(git rev-parse 'HEAD^{tree}')"
+          docker save "$WEB_IMAGE" -o apps/web/artifacts/web-image.tar
+          ARCHIVE_SHA256="$(sha256sum apps/web/artifacts/web-image.tar | awk '{print $1}')"
+          cat > apps/web/artifacts/manifest.txt <<EOF
+          candidate_contract=wandora-web-reviewed-bridge-v1
+          source_sha=$GITHUB_SHA
+          source_tree_sha=$SOURCE_TREE_SHA
+          image_tag=$WEB_IMAGE
+          image_id=$WEB_IMAGE_ID
+          archive_sha256=$ARCHIVE_SHA256
+          EOF
+          (
+            cd apps/web/artifacts
+            sha256sum web-image.tar manifest.txt > SHA256SUMS
+            sha256sum -c SHA256SUMS
+          )
           echo "WANDORA_WEB_HUMAN_API_BRIDGE_V1_OK"
+
+      - name: Upload reviewed Web candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-candidate-${{ github.sha }}
+          path: apps/web/artifacts/*
+          if-no-files-found: error
+          retention-days: 7

@@ -10,6 +10,13 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '../AuthProvider';
+import {
+  HIRE_CATALOG_KEY,
+  HireError,
+  clearHireOperation,
+  resolveHireOperation,
+  type HireOperationRef,
+} from '../customerHireOperation';
 
 type HiredEmployee = {
   id: string;
@@ -21,18 +28,13 @@ type HiredEmployee = {
 
 type HireResponse = { employee: HiredEmployee };
 
-class HireError extends Error {
-  constructor(readonly code: string, message: string, readonly retrySameKey = false) {
-    super(message);
-    this.name = 'HireError';
-  }
-}
-
 export function StartPage() {
   const { activeOrganization, context, authFetch } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const idempotencyKeyRef = useRef<string | null>(null);
+  const hireOperationRef = useRef<HireOperationRef | null>(null);
+  const activeOrganizationIdRef = useRef<string | null>(null);
+  activeOrganizationIdRef.current = activeOrganization?.id ?? null;
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -41,17 +43,17 @@ export function StartPage() {
         throw new HireError('forbidden', 'Somente owner ou admin pode contratar um funcionário digital.');
       }
 
-      const idempotencyKey = idempotencyKeyRef.current ?? crypto.randomUUID();
-      idempotencyKeyRef.current = idempotencyKey;
+      const operation = resolveHireOperation(activeOrganization.id, hireOperationRef.current);
+      hireOperationRef.current = operation;
       const response = await authFetch(
         `/api/v1/organizations/${activeOrganization.id}/digital-employees`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Idempotency-Key': idempotencyKey,
+            'Idempotency-Key': operation.idempotencyKey,
           },
-          body: JSON.stringify({ catalogKey: 'ana-commercial-v1' }),
+          body: JSON.stringify({ catalogKey: HIRE_CATALOG_KEY }),
         },
       );
 
@@ -59,41 +61,79 @@ export function StartPage() {
       if (response.ok) {
         const employee = payload?.employee as HiredEmployee | undefined;
         if (!employee?.id || employee.name !== 'Ana') {
-          throw new HireError('invalid-response', 'A Wandora retornou uma resposta de contratação inválida.');
+          throw new HireError(
+            'invalid-response',
+            'A Wandora retornou uma resposta de contratação inválida.',
+            false,
+            operation.organizationId,
+          );
         }
-        return employee;
+        clearHireOperation(operation);
+        hireOperationRef.current = null;
+        return { employee, organizationId: operation.organizationId };
       }
 
       const code = typeof payload?.error === 'string' ? payload.error : 'unexpected';
       if (response.status === 403) {
-        throw new HireError(code, 'Seu perfil não pode contratar funcionários nesta empresa.');
+        throw new HireError(
+          code,
+          'Seu perfil não pode contratar funcionários nesta empresa.',
+          false,
+          operation.organizationId,
+        );
       }
       if (response.status === 404 && code === 'not-found') {
-        throw new HireError(code, 'A contratação ainda não está habilitada para esta empresa.');
+        throw new HireError(
+          code,
+          'A contratação ainda não está habilitada para esta empresa.',
+          false,
+          operation.organizationId,
+        );
       }
       if (response.status === 404) {
-        throw new HireError(code, 'Este funcionário ainda não está disponível para contratação.');
+        throw new HireError(
+          code,
+          'Este funcionário ainda não está disponível para contratação.',
+          false,
+          operation.organizationId,
+        );
       }
       if (response.status === 503) {
-        throw new HireError(code, 'A contratação ainda não está preparada para esta empresa.');
+        throw new HireError(
+          code,
+          'A contratação ainda não está preparada para esta empresa.',
+          false,
+          operation.organizationId,
+        );
       }
       if (response.status === 409 && code === 'employee-hiring-uncertain') {
         throw new HireError(
           code,
           'A confirmação da contratação ficou inconclusiva. Tente novamente: a Wandora reutilizará a mesma operação com segurança.',
           true,
+          operation.organizationId,
         );
       }
       if (response.status === 409) {
-        throw new HireError(code, 'A contratação entrou em conflito com uma operação já existente.');
+        throw new HireError(
+          code,
+          'A contratação entrou em conflito com uma operação já existente.',
+          false,
+          operation.organizationId,
+        );
       }
-      throw new HireError(code, 'Não foi possível concluir a contratação agora.');
+      throw new HireError(
+        code,
+        'Não foi possível concluir a contratação agora.',
+        false,
+        operation.organizationId,
+      );
     },
-    onSuccess: async () => {
-      if (activeOrganization) {
-        await queryClient.invalidateQueries({ queryKey: ['digital-employees', activeOrganization.id] });
+    onSuccess: async ({ organizationId }) => {
+      await queryClient.invalidateQueries({ queryKey: ['digital-employees', organizationId] });
+      if (activeOrganizationIdRef.current === organizationId) {
+        await navigate({ to: '/team' });
       }
-      await navigate({ to: '/team' });
     },
   });
 
@@ -123,6 +163,14 @@ export function StartPage() {
 
   const canHire = activeOrganization.role === 'owner' || activeOrganization.role === 'admin';
   const error = mutation.error instanceof HireError ? mutation.error : null;
+  const errorOrganization = error?.organizationId
+    ? context?.organizations.find((organization) => organization.id === error.organizationId) ?? null
+    : null;
+  const retryOrganizationMismatch = Boolean(
+    error?.retrySameKey
+      && error.organizationId
+      && error.organizationId !== activeOrganization.id,
+  );
 
   return (
     <div className="space-y-6">
@@ -172,7 +220,9 @@ export function StartPage() {
               <strong>Não foi possível concluir.</strong> {error.message}
               {error.retrySameKey ? (
                 <div className="mt-2 text-xs text-rose-700">
-                  O botão abaixo reutiliza a mesma chave da tentativa anterior.
+                  {retryOrganizationMismatch
+                    ? `A tentativa inconclusiva pertence a ${errorOrganization?.name ?? 'outra empresa'}. Selecione essa empresa para repetir a mesma operação com segurança.`
+                    : 'O botão abaixo reutiliza a mesma chave da tentativa anterior.'}
                 </div>
               ) : null}
             </div>
@@ -182,11 +232,15 @@ export function StartPage() {
             <button
               type="button"
               onClick={() => mutation.mutate()}
-              disabled={!canHire || mutation.isPending}
+              disabled={!canHire || mutation.isPending || retryOrganizationMismatch}
               className="inline-flex h-11 items-center gap-2 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-300"
             >
               {mutation.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
-              {mutation.isPending ? 'Contratando Ana…' : 'Contratar Ana'}
+              {mutation.isPending
+                ? 'Contratando Ana…'
+                : retryOrganizationMismatch
+                  ? 'Selecione a empresa da tentativa'
+                  : 'Contratar Ana'}
             </button>
             <button
               type="button"
