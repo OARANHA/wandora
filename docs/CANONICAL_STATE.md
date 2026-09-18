@@ -319,7 +319,6 @@ It was not referenced by live Paperclip at the ADR 0049 preflight and is **not**
 
 ## What remains explicitly NOT live / NOT approved
 
-- live Core Organization Adapter enablement;
 - customer `Contratar` / `Ativar funcionário` route or UI;
 - arbitrary/custom employee creation;
 - direct `agent-hires` fallback;
@@ -363,33 +362,40 @@ same-key replay = same Wandora employee id
 
 The first provider call failed closed with HTTP 403 because the Paperclip private hostname guard did not allow its Docker service hostname. PR #103 added only `PAPERCLIP_ALLOWED_HOSTNAMES=wandora-paperclip`, preserved the guard, and promoted the exact merged Compose. The existing `uncertain` operation was then retried with the same idempotency key and completed successfully.
 
-Post-canary runtime:
+Post-promotion runtime:
 
 ```text
-live Core = wandora/core:team-read-b31db507, healthy
-live Core Organization Adapter = OFF
+live Core = wandora/core:organization-adapter-candidate-068d30a49d9b
+live Core image id = sha256:f0ffa18271172e6e6e77f778f7b2f4f5302a84901909663525b8f665ad9f0c1e
+live Core Organization Adapter = ON
+live Core healthz/readyz = 200/200
+Gateway ingress = ON
+Human API = ON
+deterministic Agent Runtime = ON
 Human Send = OFF
 Gateway outbound = OFF
 
-candidate smoke container = absent
-candidate image = loaded + provenance-matched
 Paperclip = healthy/private/authenticated
+Paperclip plugin = ready
+Paperclip companies = 1
+Paperclip Ana / managed resources = 1 / 1
 Empresa Exemplo Paperclip company = absent
 customer Contratar/Ativar = absent
 ```
 
+ADR 0060 proves that no Core or Core-stack source changed after the candidate source revision, the promotion render had no residual delta beyond the candidate image + Organization Adapter config/mount, rollback was prepared before replacement, and a same-key replay through the live Core returned the existing Ana without duplication.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Organization Adapter Live Core Promotion V1**.
+Next: **Organization Adapter Live Cross-Company Isolation Preflight V1** — observation/plan-first.
 
-1. fresh REAL NOW against current `main`, Core, Paperclip and effect switches;
-2. render the exact candidate image with database + Gateway ingress + deterministic Agent Runtime + Human API + Organization Adapter overlays;
-3. keep Human Send and Gateway outbound absent;
-4. perform the second adversarial review of replacement/rollback and current traffic impact;
-5. promote only the provenance-matched candidate if the render still matches the proven contract;
-6. validate live Core health/readiness and current customer read/ingress paths;
-7. keep customer hiring/activation absent;
-8. stop before second/customer Paperclip company provisioning and the live cross-company isolation gate.
+1. fresh REAL NOW against current `main`, live Core, Paperclip and effect switches;
+2. re-read ADRs 0039/0040/0057/0059/0060 and the accepted disposable A-secret -> B-target denial proof;
+3. determine the minimum live topology required to satisfy the remaining cross-company isolation gate;
+4. do **not** create `Empresa Exemplo` in Paperclip merely to begin the preflight;
+5. freeze the exact second-company/bootstrap/config/custody sequence only if the live gate truly requires it;
+6. perform a second adversarial review of whether the disposable proof plus current host scoping already satisfies part of the requirement;
+7. execute no customer-facing `Contratar/Ativar`, Human Send or Gateway outbound effect during the preflight.
 
 ## Operational safety
 
