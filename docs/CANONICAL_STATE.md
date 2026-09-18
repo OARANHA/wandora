@@ -769,13 +769,46 @@ This V1 is same-host but out-of-Docker-volume recovery; it does not claim to sol
 
 No recovery snapshot was created in this preflight and no customer-hire wiring state changed.
 
+## Paperclip Local-Encrypted Secret Recovery Snapshot Execution V1 — GREEN
+
+ADR 0075 records the completed recovery execution.
+
+Retained protected snapshot:
+
+```text
+/home/wandora-admin/backups/paperclip-local-encrypted-20260918T090456Z/
+  paperclip-db.sql.gz
+  master.key
+  SHA256SUMS
+  RECOVERY_MANIFEST.txt
+```
+
+Custody is `0700` on the directory and `0600` on artifacts. The fresh manual Paperclip backup and master key are byte-hash matched to their live sources.
+
+Disposable proof:
+
+```text
+RESTORE_OK=true
+LOCAL_ENCRYPTED_DECRYPT_OK=true
+HMAC_HASH_MATCH=true
+WRONG_KEY_DECRYPT_REJECTED=true
+```
+
+The restore target was the exact Paperclip embedded PostgreSQL 18 runtime. A local PostgreSQL 17.6 `psql` closure was used only as the dump client because the production Paperclip image does not bundle `psql`; no network, live provider volume or public port was used. Proof-only harness/image/state were removed.
+
+Post-proof live validation is green: Paperclip/Core remained running with zero restarts, Organization Adapter is ready/healthy and `local_encrypted` remains `ok`.
+
+The customer-hire canary remains at zero secrets/config/agents/binding/employees/hire operations.
+
+The recovery blocker from ADR 0073 is therefore cleared. This snapshot is same-host/out-of-Docker-volume recovery only; off-host/VPS-loss recovery remains a separate infrastructure concern.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Paperclip Local-Encrypted Secret Recovery Snapshot Execution V1.**
+Next: **Customer Hire Canary — Organization Adapter Custody + Config + Binding Execution V1.**
 
-Create one fresh official database backup, pair it out-of-volume with the exact current master key, hash-gate the copies, execute the disposable PG18 positive-decryption/hash-match + wrong-key rejection proof, retain only the protected recovery pair and remove disposable proof state.
+Execute ADR 0073 exactly: operator-owned Wandora binding → deterministic protected Core HMAC custody → one Paperclip company-owned `local_encrypted` secret → company-scoped Organization Adapter config last → independent validation.
 
-Do not create the canary HMAC, Paperclip secret/config, Wandora provider binding, employee/hire operation, activation, Human Send or Gateway outbound in that execution slice.
+Keep zero digital employees/hire operations and leave Customer Digital-Employee Hire, Human Send and Gateway outbound OFF.
 
 ## Operational safety
 
