@@ -335,13 +335,27 @@ Gateway outbound = OFF
 Core / Web / Auth / Paperclip / Gateway = healthy
 ```
 
-The final branch/PR validation must prove:
+The branch diff against the reviewed base proves:
 
 1. only ADR/canonical documentation changed;
 2. no application code, migration, runtime manifest or secret changed;
 3. production still has zero recovery state and zero eligibility;
 4. no real recovery/invite was emitted;
 5. the next slice remains code/CI-only.
+
+PR #136 initially triggered the normal repository workflows. All five jobs failed before runner assignment with no executable steps/logs:
+
+```text
+Core CI #365 / run 35396657879                      steps=null
+Web CI #302 / run 35396657936                       steps=null
+Platform Admin CI #227 / run 35396657938            steps=null
+Messaging Gateway CI #334 / run 35396657902         steps=null
+Organization Adapter Plugin CI #57 / run 35396658016 steps=null
+```
+
+Selective fresh retries of Web CI and Messaging Gateway CI reproduced the same runnerless shape: `steps=null`, `logs_url=null`, no code step executed.
+
+This is the same GitHub Actions infrastructure condition already distinguished from test failure in ADR 0087. Because this PR changes documentation only and the application tree is byte-identical to the already reviewed `main`, these runnerless jobs are not evidence of an application regression. Merge is allowed only after a final comparison still proves documentation-only scope, the branch is not behind `main`, there are no unresolved review threads and production remains untouched.
 
 ## DECISION RESULT
 
