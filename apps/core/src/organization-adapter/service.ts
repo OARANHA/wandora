@@ -166,6 +166,30 @@ export class OrganizationAdapterService {
         return catalogOperation;
       }
 
+      const legacyCollision = await client.query<{ employee_id: string }>(
+        `SELECT id::text AS employee_id
+           FROM wandora.digital_employees
+          WHERE organization_id = $1
+            AND display_name = $2
+            AND role = $3
+            AND autonomy_mode = $4
+          ORDER BY id
+          LIMIT 1
+          FOR UPDATE`,
+        [
+          args.organizationId,
+          args.definition.displayName,
+          args.definition.role,
+          args.definition.autonomy,
+        ],
+      );
+      if (legacyCollision.rows[0]) {
+        throw new OrganizationAdapterConflictError(
+          'catalog-conflict',
+          'A matching legacy digital employee exists and requires explicit operator reconciliation before catalog hire.',
+        );
+      }
+
       const binding = await client.query<{ provider_company_ref: string }>(
         `SELECT provider_company_ref
            FROM wandora_private.control_plane_provider_bindings
