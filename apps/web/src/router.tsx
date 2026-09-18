@@ -6,6 +6,7 @@ import { ConversationsPage } from './pages/ConversationsPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { LoginPage } from './pages/LoginPage';
 import { InviteAcceptancePage } from './pages/InviteAcceptancePage';
+import { RecoveryAccessPage } from './pages/RecoveryAccessPage';
 import { TeamPage } from './pages/TeamPage';
 import { WorkPage } from './pages/WorkPage';
 import { StartPage } from './pages/StartPage';
@@ -67,6 +68,12 @@ const inviteAcceptanceRoute = createRoute({
   component: InviteAcceptancePage,
 });
 
+const recoveryAccessRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/recover-access',
+  component: RecoveryAccessPage,
+});
+
 const startRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/start',
@@ -85,6 +92,7 @@ const routeTree = rootRoute.addChildren([
   ]),
   loginRoute,
   inviteAcceptanceRoute,
+  recoveryAccessRoute,
 ]);
 
 export const router = createRouter({ routeTree });
