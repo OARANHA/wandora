@@ -830,62 +830,59 @@ Execution order matched ADR 0073: operator binding → HMAC custody → encrypte
 
 The canary still has zero digital employees, zero digital-employee provider bindings and zero hire operations. Organization Adapter remains ON while Customer Digital-Employee Hire, Human Send and Gateway outbound remain OFF.
 
-## Customer Hire Canary — Private Candidate Core Hire Preflight V1 — COMPLETE / NO HIRE
+## Customer Hire Canary — Private Candidate Core Hire Execution V1 — GREEN
 
-ADR 0077 is reconciled after recovering the concurrent PR #122.
+ADR 0078 records the first clean customer-like production hire through the real Human API + Organization Adapter contract.
 
-Preferred candidate:
+Proven result:
 
 ```text
-image = wandora/core:organization-adapter-candidate-f8e553072c36
-source merge-ref = f8e553072c36b229b3fced2f4a7e9378e67d7aa4
-artifact id = 10535228149
-artifact ZIP digest = sha256:5f08d2a61cb576a0b1b48d8e8bdd67beab973c19417150021e174c081f46cd91
-loaded image id = sha256:20f97179251549e4dc93a3cb426ff90c35641ef36216e336f2afb3532501e36d
+Wandora Customer Hire Canary
+  digital employees = 1
+  employee-provider bindings = 1
+  hire operations = 1
+
+Ana
+  id = 3e689529-a9a2-4d70-8ce1-17aa3aed6f8f
+  role = commercial-assistant
+  status = paused
+  autonomy = supervised
+
+hire operation
+  key = customer-hire-canary:ana-commercial-v1:v1
+  catalog = ana-commercial-v1
+  status = completed
+
+Paperclip canary agents = 1
+Paperclip Ana = paused / wandora_mastra
 ```
 
-The PR #109 artifact is not considered invalid; direct recovery inspection showed it also contains the final hire runtime. The PR #111 artifact is preferred because it is later, has no Core runtime/compose difference from current main, and is already verified/staged on the host without being started.
+A real normal Supabase browser session for the existing owner passed candidate `GET /api/v1/me`; no service-role/admin impersonation was used. The first POST returned 200. Same-key replay and different-key/same-catalog replay both returned the same employee and independent readback remained exactly 1 employee / 1 provider binding / 1 hire operation / 1 Paperclip agent.
 
-The future candidate remains private-only:
+Customer response leakage checks remained negative for provider/secret fields.
+
+Cleanup is complete:
 
 ```text
-published ports = none
-wandora-edge = absent
-networks = wandora-core + wandora-data
-read-only rootfs = true
-cap_drop = ALL
-no-new-privileges = true
-supplementary secret group = 987
+private hire candidate container = absent
+ephemeral browser-session file = absent
+temporary bearer helper = absent
+candidate image = staged only / not running
 
-Human API = ON
-Organization Adapter = ON
-Customer Digital-Employee Hire = ON only in candidate
-Gateway ingress = OFF
-Agent Runtime = disabled
+normal live Core Customer Digital-Employee Hire = OFF
 Human Send = OFF
+Gateway outbound = OFF
 ```
 
-Human-session authority is stricter than the superseded draft from PR #123: the live proof must use a **real normal Supabase browser session for the existing canary owner**. Service-role/admin impersonation, generated admin JWTs and consumption of an existing refresh token are rejected. If no bearer can be transferred through the approved non-chat ephemeral channel, execution stops after candidate readiness rather than weakening the boundary.
-
-Frozen primary request:
-
-```text
-POST /api/v1/organizations/918d4c7e-fccb-41f0-aba7-04105a9b4ec0/digital-employees
-Idempotency-Key: customer-hire-canary:ana-commercial-v1:v1
-body: {"catalogKey":"ana-commercial-v1"}
-```
-
-Expected first result is exactly one Wandora Ana `paused + supervised`, one employee-provider binding, one completed hire operation and one paused Paperclip managed Ana. Same-key replay and alternate-key/same-catalog replay must return the same employee without duplication.
-
-The candidate image is staged but not running. No hire was executed in the preflight.
+The successful hire remains deliberately paused. `Contratar` is still separate from future `Ativar`.
 
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Hire Canary — Private Candidate Core Hire Execution V1.**
+Next: **Customer Digital-Employee Hire — Public Rollout Preflight V1.**
 
-Start the frozen no-ingress candidate, prove readiness/no-public-ingress and the normal live Core hire gate OFF. Then validate a real normal owner session via `/api/v1/me`. Only after that may the frozen hire POST be dispatched exactly once, followed by durable/provider reconciliation and the two replay proofs.
+Observation/plan-first only. Revalidate current Core/Web provenance and public `/start` + `Equipe` behavior, runtime-wide gate scope across all active organizations, legacy/catalog collision behavior, owner/admin isolation, stable browser idempotency behavior, paused-first UX, rollback-to-OFF semantics and continued separation from activation/Agent Runtime/Human Send/Gateway outbound.
 
-If a real owner browser bearer is not available through the approved non-chat ephemeral path, stop after candidate readiness and request only that operator action. Do not substitute privileged authentication, activate Ana, enable Human Send or enable Gateway outbound.
+Do not enable the normal live Core customer-hire gate, activate Ana, enable Human Send or enable Gateway outbound during that preflight.
 
 ## Operational safety
 
