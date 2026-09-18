@@ -1349,11 +1349,48 @@ No edge rule, Auth config, Web runtime or production service was changed.
 
 The activation/rollback plan is frozen: after anti-abuse is separately proven, promote only the Web image; rollback restores `wandora/web:candidate-af542864d267`. Post-deploy checks must preserve Hire ON, eligibility 0, unfinished hires 0, Human Send OFF, Gateway outbound OFF, Auth signup disabled, and zero recovery-token/sent state until a separately authorized real recovery test.
 
+## Customer Owner Recovery Edge Anti-Abuse Control Preflight V1 — COMPLETE / CREDENTIAL GATE
+
+ADR 0091 closes the no-effect edge anti-abuse design against the real Cloudflare zone.
+
+Read-only zone evidence:
+
+```text
+zone = wandora.com.br
+status = active
+plan = Free Website
+```
+
+The Free plan provides one zone-level rate-limiting rule, Path matching, IP counting, a 10-second counting window and 10-second mitigation. Method is not available in the Free rule expression, so the selected recovery guard intentionally counts both browser OPTIONS and POST traffic.
+
+Selected V1 rule:
+
+```text
+ref = wandora_owner_recovery_burst_guard_v1
+phase = http_ratelimit
+path = /auth/v1/recover
+action = block
+characteristics = cf.colo.id + ip.src
+requests = 6
+period = 10 seconds
+mitigation = 10 seconds
+```
+
+The threshold accounts for one browser recovery attempt potentially consuming both an OPTIONS preflight and POST. It is combined with GoTrue's existing provider-side recovery/OTP and SMTP frequency controls.
+
+The current Traefik DNS token remains intentionally insufficient for WAF: it can read the zone but receives 403 reading the `http_ratelimit` entry point. Only the DNS token is evident on the VPS. ADR 0091 rejects widening that credential; future execution requires a separate zone-scoped WAF token.
+
+ADR 0090's local-origin evidence was refined: a loopback Traefik route does not prove public bypass. A new direct-origin attempt from the independent authorized `28server` timed out before TCP/TLS establishment, while the normal Cloudflare hostname remains reachable. Exact UFW rules remain unreadable without interactive sudo, so the execution contract must reprove the external direct-origin negative rather than claiming a fully enumerated firewall allow-list.
+
+The future activation proof is effect-free with respect to Auth: after creating the edge rule in its own later slice, validate the limiter using only repeated OPTIONS requests. No `POST /recover` is needed. Because Cloudflare rate limiting can have short enforcement delay and per-data-center counters, validation requires a bounded burst to trigger, not an exact request ordinal.
+
+No Cloudflare rule, Auth config, Web runtime, tenant/provider state or eligibility changed during this preflight.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Owner Recovery Edge Anti-Abuse Control Preflight V1.**
+Next: **Customer Owner Recovery Edge Anti-Abuse Credential + Activation Execution V1.**
 
-No-effect preflight only. Inspect actual Cloudflare rules/capability with Rulesets-authorized access (or prove a provider-native CAPTCHA alternative), freeze the narrowest compatible anti-abuse control and rollback, and do not deploy Web or issue a real invite/recovery during that preflight.
+Create/use a separate least-privilege, one-zone WAF credential, first read/snapshot the current `http_ratelimit` entry point and prove the Free-plan slot is available, then create only the reviewed recovery rule and validate with OPTIONS only. Do not deploy owner-access Web or issue a real recovery/invite in that execution slice.
 
 ## Operational safety
 
