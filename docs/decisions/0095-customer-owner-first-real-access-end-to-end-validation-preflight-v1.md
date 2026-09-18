@@ -270,6 +270,20 @@ No Auth user, tenant, Paperclip company, provider binding, employee, eligibility
 
 No Web/Core/Auth/Gateway/Cloudflare runtime configuration changed.
 
+## GITHUB ACTIONS INFRASTRUCTURE EXCEPTION
+
+PR #143 initial documentation head triggered the five normal repository workflows:
+
+```text
+Core CI #393 / run 35407220238
+Web CI #330 / run 35407220258
+Platform Admin CI #255 / run 35407220240
+Messaging Gateway CI #362 / run 35407220248
+Organization Adapter Plugin CI #74 / run 35407220290
+```
+
+Every job completed with `steps=null` before runner execution. These checks are not classified green and are not treated as code/test failures. The PR changes documentation only; the runtime/edge/database evidence in this ADR was collected independently and no production mutation occurred.
+
 ## RESULT
 
 **Customer Owner First Real Access End-to-End Validation Preflight V1 is complete but blocked before execution.**
