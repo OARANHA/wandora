@@ -702,11 +702,28 @@ A disposable executable proof used the same live Core image with a production-de
 
 The rollout order is frozen as global gate first with zero eligibility **and zero unfinished operations**, validate no new tenant availability, then stop. Tenant eligibility remains a later scoped effect.
 
+## Customer Digital-Employee Hire Global Runtime Gate — LIVE / ZERO TENANT ELIGIBILITY
+
+ADR 0084 executed the one-overlay Core activation selected by ADR 0083.
+
+```text
+Core image = wandora/core:organization-adapter-candidate-af542864d267
+Customer Hire = ON
+eligibility rows = 0
+unfinished hire operations = 0
+Human Send = OFF
+Gateway outbound = OFF
+```
+
+The same reviewed Core image was recreated with only the canonical hire overlay. Core is healthy/ready with zero restarts. No durable employee/binding/hire count changed.
+
+The live projection for all active tenants is still closed to new hire: two completed-hire tenants return `already-hired`; `Empresa Exemplo` returns `unavailable`; none returns `available=true`.
+
 ## Next executable slice
 
-Next: **Customer Digital-Employee Hire — Global Runtime Gate Activation Execution V1.**
+Next: **Customer Digital-Employee Hire — First Tenant Eligibility Rollout Preflight V1.**
 
-Recreate only Core with the same image plus the exact reviewed hire overlay, validate healthy/ready + zero eligibility rows + zero unfinished hire operations + no new tenant availability/no durable state delta, then stop before any tenant eligibility.
+Preflight only: select one clean tenant or prove that none of the existing tenants qualifies, validate control-plane/Paperclip wiring and collision state, freeze the dedicated `wandora_customer_hire_operator` setter transaction and rollback, and do not enable eligibility yet.
 
 ## Platform Admin
 
