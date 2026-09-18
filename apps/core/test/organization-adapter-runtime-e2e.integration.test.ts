@@ -62,6 +62,12 @@ async function resetFixture(): Promise<void> {
        (organization_id,provider,provider_company_ref) VALUES ($1,'paperclip',$2)`,
     [ORG_A, COMPANY_A],
   );
+  await fixturePool.query(
+    `INSERT INTO wandora_private.digital_employee_catalog_hire_eligibility
+       (organization_id,catalog_key,enabled)
+     VALUES ($1,$2,true)`,
+    [ORG_A, CATALOG_KEY],
+  );
 }
 
 type SignedRequest = {
@@ -184,8 +190,11 @@ test('uncertain retry keeps the frozen Company A target and Company A custody af
     await fixturePool.query(
       `UPDATE wandora_private.control_plane_provider_bindings
           SET provider_company_ref=$2
-        WHERE organization_id=$1 AND provider='paperclip'`,
-      [ORG_A, COMPANY_B],
+        WHERE organization_id=$1 AND provider='paperclip';
+       UPDATE wandora_private.digital_employee_catalog_hire_eligibility
+          SET enabled=false
+        WHERE organization_id=$1 AND catalog_key=$3`,
+      [ORG_A, COMPANY_B, CATALOG_KEY],
     );
 
     const repaired = await service.ensureCatalogEmployee(request);
