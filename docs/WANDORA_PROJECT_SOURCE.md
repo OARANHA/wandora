@@ -527,11 +527,28 @@ Gateway outbound = OFF
 
 Independent hash-only validation proves the Core HMAC file and Paperclip encrypted secret version represent the same plaintext without revealing it.
 
+## Customer Hire Canary Private Candidate Hire Preflight — COMPLETE
+
+ADR 0077 freezes the first live hire proof without sending the hire.
+
+```text
+candidate image = wandora/core:organization-adapter-candidate-f8e553072c36
+candidate runtime = current-equivalent, provenance verified
+public ingress = none
+normal live Core hire gate = OFF
+frozen key = customer-hire-canary:ana-commercial-v1:v1
+catalog = ana-commercial-v1
+human auth = real normal Supabase owner session only
+expected result = Ana paused + supervised
+```
+
+The candidate image is staged but not running. The preflight explicitly rejects service-role/admin impersonation, new-key retry after ambiguity and treating hire as activation.
+
 ## Next executable slice
 
-Next: **Customer Hire Canary — Private Candidate Core Hire Preflight V1.**
+Next: **Customer Hire Canary — Private Candidate Core Hire Execution V1.**
 
-Freeze the private production-connected candidate, reviewed source/image provenance, authorized human-session POST, stable idempotency/replay contract, paused-first expected results, non-leakage checks and teardown before executing the first customer-like hire.
+Start the private candidate, validate readiness and a real owner session, execute the frozen hire once, prove replay/no-duplicate + paused provider/local state, then remove the candidate while public hire/outbound stay OFF.
 
 ## Platform Admin
 
@@ -597,6 +614,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0074 — Paperclip Local-Encrypted Secret Recovery Snapshot Preflight V1
 - ADR 0075 — Paperclip Local-Encrypted Secret Recovery Snapshot Execution V1
 - ADR 0076 — Customer Hire Canary Organization Adapter Custody + Config + Binding Execution V1
+- ADR 0077 — Customer Hire Canary Private Candidate Core Hire Preflight V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
