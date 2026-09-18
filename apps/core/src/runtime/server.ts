@@ -10,6 +10,7 @@ import type {
   GatewayIngressResponse,
 } from './gateway-ingress.js';
 import {
+  isHumanDigitalEmployeeHirePath,
   isHumanSendProposalPath,
   type HumanSupervisionRequest,
   type HumanSupervisionResponse,
@@ -103,13 +104,14 @@ export function createRuntimeServer(deps: RuntimeServerDeps): Server {
         return;
       }
       try {
-        const rawBody = request.method === 'POST' && isHumanSendProposalPath(url.pathname)
-          ? await readBody(request, 2_048)
-          : undefined;
+        const humanPostBody = request.method === 'POST'
+          && (isHumanSendProposalPath(url.pathname) || isHumanDigitalEmployeeHirePath(url.pathname));
+        const rawBody = humanPostBody ? await readBody(request, 2_048) : undefined;
         const result = await deps.handleHumanSupervision({
           method: request.method,
           pathname: url.pathname,
           authorization: header(request, 'authorization'),
+          idempotencyKey: header(request, 'idempotency-key'),
           rawBody,
         });
         writeJson(response, result.status, result.body);
