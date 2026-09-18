@@ -331,11 +331,29 @@ Therefore `Empresa Exemplo` must not be used as a naive first-hire canary. The e
 
 Production remains unchanged: Customer Digital-Employee Hire OFF, Human Send OFF, Gateway outbound OFF, customer activation unavailable.
 
+## Customer Hire Canary Selection + Legacy Reconciliation Preflight V1 — COMPLETE
+
+ADR 0065 selects a fresh internal customer-like organization with **zero digital employees** as the first paused-first hire canary. Legacy `Empresa Exemplo` adoption is deferred because there is no durable evidence proving its existing active Ana is catalog identity `ana-commercial-v1`.
+
+The current ADR 0030 tenant provisioner cannot create that canary cleanly because it always creates one active supervised commercial-assistant employee. Passing a different name would only leave an unrelated extra employee, so the accepted direction is a versioned employee-free **Tenant Provisioning V2**, not direct SQL and not a new organization subsystem.
+
+The future canary identity is:
+
+```text
+Wandora Customer Hire Canary
+slug = wandora-customer-hire-canary
+pre-hire digital employees = 0
+```
+
+The first actual hire effect must run through a private production-connected candidate Core with Customer Digital-Employee Hire ON while the normal live Core remains OFF. This keeps the runtime-wide gate from becoming a public multi-tenant rollout merely to prove one canary.
+
+Live state remains unchanged: organizations = 2, new canary absent, `Empresa Exemplo` unbound, Customer Digital-Employee Hire OFF, Human Send OFF, Gateway outbound OFF.
+
 ## Next executable slice
 
-Next: **Customer Hire Canary Selection + Legacy Employee Reconciliation Preflight V1.**
+Next: **Private Tenant Provisioning V2 — Employee-Free Contract Implementation V1, code/CI only.**
 
-Select either a clean customer-like canary or a separately proven legacy reconciliation/adoption contract. Do not provision/auto-adopt `Empresa Exemplo`, enable customer hire/activation, or enable outbound effects merely to complete the preflight.
+Add the employee-free versioned private provisioner and least-privilege verifier/grant contract. Keep V1 intact. Do not apply the migration live, create the canary tenant or Paperclip company, enable customer hire/activation, deploy #109, or enable outbound effects in that slice.
 
 ## Platform Admin
 
