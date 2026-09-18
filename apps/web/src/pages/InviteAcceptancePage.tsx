@@ -5,7 +5,7 @@ import {
   AuthClientError,
   refreshBrowserSession,
   sessionNeedsRefresh,
-  finalizeInvitedUserPassword,
+  finalizeAuthenticatedUserPassword,
   type BrowserAuthSession,
 } from '../auth';
 import {
@@ -17,7 +17,7 @@ import { useAuth } from '../AuthProvider';
 
 export function InviteAcceptancePage() {
   const navigate = useNavigate();
-  const { completeInvitation } = useAuth();
+  const { completePasswordSetup } = useAuth();
   const [inviteSession, setInviteSession] = useState<BrowserAuthSession | null>(() => loadStagedInviteSession());
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
@@ -50,9 +50,9 @@ export function InviteAcceptancePage() {
         setInviteSession(session);
       }
 
-      const completedSession = await finalizeInvitedUserPassword(session, password);
+      const completedSession = await finalizeAuthenticatedUserPassword(session, password);
       clearStagedInviteSession();
-      await completeInvitation(completedSession);
+      await completePasswordSetup(completedSession);
       await navigate({ to: '/work', replace: true });
     } catch (error) {
       if (error instanceof AuthClientError) {
@@ -80,13 +80,22 @@ export function InviteAcceptancePage() {
           <p className="m-0 mt-3 text-sm leading-6 text-slate-500">
             O link pode ter expirado, já ter sido utilizado ou ter sido aberto em outra sessão do navegador.
           </p>
-          <button
-            type="button"
-            onClick={() => void navigate({ to: '/login', replace: true })}
-            className="mt-6 inline-flex h-11 items-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white"
-          >
-            Ir para o login <ArrowRight className="size-4" />
-          </button>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => void navigate({ to: '/recover-access', replace: true })}
+              className="inline-flex h-11 items-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white"
+            >
+              Recuperar acesso <ArrowRight className="size-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => void navigate({ to: '/login', replace: true })}
+              className="inline-flex h-11 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700"
+            >
+              Ir para o login
+            </button>
+          </div>
         </div>
       </div>
     );
