@@ -54,8 +54,29 @@ CREATE TRIGGER digital_employee_catalog_hire_eligibility_set_updated_at
 ALTER TABLE wandora_private.digital_employee_catalog_hire_eligibility ENABLE ROW LEVEL SECURITY;
 
 REVOKE ALL ON wandora_private.digital_employee_catalog_hire_eligibility
-  FROM PUBLIC, anon, authenticated, service_role, supabase_functions_admin,
-       wandora_core_runtime, wandora_platform_provisioner, wandora_customer_hire_operator;
+  FROM PUBLIC, wandora_core_runtime, wandora_platform_provisioner,
+       wandora_customer_hire_operator;
+
+DO $
+DECLARE
+  v_role text;
+BEGIN
+  FOREACH v_role IN ARRAY ARRAY[
+    'anon',
+    'authenticated',
+    'service_role',
+    'supabase_functions_admin'
+  ]
+  LOOP
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = v_role) THEN
+      EXECUTE format(
+        'REVOKE ALL ON wandora_private.digital_employee_catalog_hire_eligibility FROM %I',
+        v_role
+      );
+    END IF;
+  END LOOP;
+END
+$;
 
 GRANT SELECT ON wandora_private.digital_employee_catalog_hire_eligibility
   TO wandora_core_runtime;
@@ -126,8 +147,29 @@ $$;
 
 REVOKE ALL ON FUNCTION wandora_private.set_digital_employee_catalog_hire_eligibility(
   uuid, text, boolean
-) FROM PUBLIC, anon, authenticated, service_role, supabase_functions_admin,
-       wandora_core_runtime, wandora_platform_provisioner, wandora_customer_hire_operator;
+) FROM PUBLIC, wandora_core_runtime, wandora_platform_provisioner,
+       wandora_customer_hire_operator;
+
+DO $
+DECLARE
+  v_role text;
+BEGIN
+  FOREACH v_role IN ARRAY ARRAY[
+    'anon',
+    'authenticated',
+    'service_role',
+    'supabase_functions_admin'
+  ]
+  LOOP
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = v_role) THEN
+      EXECUTE format(
+        'REVOKE ALL ON FUNCTION wandora_private.set_digital_employee_catalog_hire_eligibility(uuid,text,boolean) FROM %I',
+        v_role
+      );
+    END IF;
+  END LOOP;
+END
+$;
 
 GRANT EXECUTE ON FUNCTION wandora_private.set_digital_employee_catalog_hire_eligibility(
   uuid, text, boolean
