@@ -410,7 +410,7 @@ ADR 0040's exact disposable `A secret -> B target` denial remains valid. The liv
 
 The accepted minimum topology is an **ephemeral provider-only company B**, `Wandora Cross-Company Isolation Proof B`. It must never receive a Wandora organization/provider binding and must not be `Empresa Exemplo`.
 
-Paperclip source inspection proved official company deletion is transactional for child state and plugin config/managed-resource/company-settings company FKs are `ON DELETE CASCADE`. Therefore cleanup through the authenticated provider API is part of the same future execution slice; direct SQL cleanup is forbidden.
+Paperclip source inspection proved official company deletion is transactional for child state and plugin config/managed-resource/company-settings company FKs are `ON DELETE CASCADE`. A second source review found that plugin config writes explicitly refresh the worker's configured-company set, while company deletion does not. Therefore cleanup is: official B delete **plus an unchanged re-save of A's existing plugin config** to recompute runtime scope to A-only. Direct SQL cleanup is forbidden.
 
 The future negative proof will configure B with its own company secret, then require both:
 
@@ -430,8 +430,9 @@ Next: **Organization Adapter Live Cross-Company Isolation Execution V1**.
 5. prove A-HMAC -> B-target signature denial with zero B managed resources;
 6. delete B through the authenticated Paperclip API;
 7. prove no B company/config/secret/agent/managed-resource residue and no Wandora DB delta;
-8. prove A remains unchanged;
-9. keep customer `Contratar/Ativar`, Human Send and Gateway outbound absent/off.
+8. re-save A's exact existing config JSON unchanged to refresh the worker configured-company set to A-only;
+9. prove A retains the same secret_ref and existing Ana/managed resource;
+10. keep customer `Contratar/Ativar`, Human Send and Gateway outbound absent/off.
 
 If cleanup fails, stop and preserve/document the fixture. Do not direct-SQL cleanup.
 
