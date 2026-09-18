@@ -391,11 +391,26 @@ tenant provisioning requests = 0
 
 Existing business/provider state remained unchanged at 2 organizations, 3 digital employees, 1 control-plane binding, 1 employee binding and 1 completed catalog hire. The future customer-hire canary remains absent. Customer Digital-Employee Hire, Human Send and Gateway outbound remain OFF.
 
+## Customer Hire Canary Tenant Provisioning Preflight — COMPLETE
+
+ADR 0069 freezes the first employee-free production canary request without creating it.
+
+```text
+request_key = customer-hire-canary:tenant-v2:v1
+slug        = wandora-customer-hire-canary
+name        = Wandora Customer Hire Canary
+owner       = existing canonical Wandora owner, provider subject runtime-resolved/hash-gated
+```
+
+The accepted execution path keeps `wandora_platform_provisioner` passwordless with `CONNECTION LIMIT 0`: a local private `supabase_admin` maintenance session resolves the existing owner identity, then uses `SET LOCAL ROLE wandora_platform_provisioner` for the V2 call. The role-switch proof is green and the platform role still has no direct private-ledger read.
+
+Production is unchanged after preflight: canary absent, provisioning ledger empty, Customer Digital-Employee Hire OFF, Human Send OFF and Gateway outbound OFF.
+
 ## Next executable slice
 
-Next: **Customer Hire Canary — Employee-Free Tenant Provisioning Preflight V1.**
+Next: **Customer Hire Canary — Employee-Free Tenant Provisioning Execution V1.**
 
-Select/freeze the exact least-privilege execution path and request identity for creating one `Wandora Customer Hire Canary` organization with zero employees. Stop before Paperclip company/bootstrap, provider binding, hire, activation or outbound effects.
+Create exactly one V2 canary organization with the frozen request and zero employees, verify the V2 idempotency row and owner reuse, then stop before any Paperclip/provider/hire/activation/outbound effect.
 
 ## Platform Admin
 
@@ -453,6 +468,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0066 — Private Tenant Provisioning V2 Employee-Free Contract Implementation V1
 - ADR 0067 — Private Tenant Provisioning V2 Production Migration Preflight V1
 - ADR 0068 — Private Tenant Provisioning V2 Production Migration Execution V1
+- ADR 0069 — Customer Hire Canary Employee-Free Tenant Provisioning Preflight V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
