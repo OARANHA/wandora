@@ -49,7 +49,7 @@ assert(
   'invite_fragment_without_supabase_marker_must_fail',
 );
 assert(
-  parseInviteRedirectFragment(validHash.replace('type=invite', 'type=recovery'), now) === null,
+  parseInviteRedirectFragment(validHash.replace('type=invite', 'type=magiclink'), now) === null,
   'non_invite_fragment_must_fail',
 );
 assert(
@@ -175,7 +175,7 @@ for (const fragment of [
 
 assert(!authSource.includes('service_role'), 'service_role_must_not_enter_browser_auth');
 assert(!pageSource.includes('service_role'), 'service_role_must_not_enter_invite_page');
-assert(providerSource.includes('completeInvitation'), 'auth_provider_invite_promotion_missing');
+assert(providerSource.includes('completePasswordSetup'), 'auth_provider_invite_promotion_missing');
 assert(routerSource.includes("path: '/accept-invite'"), 'public_invite_route_missing');
 
 const stageIndex = mainSource.indexOf('stageInviteRedirectFromCurrentLocation();');
@@ -184,17 +184,17 @@ assert(stageIndex >= 0, 'invite_fragment_staging_missing_from_main');
 assert(stageIndex < renderIndex, 'invite_fragment_must_be_staged_before_react_render');
 
 const finalizeIndex = pageSource.indexOf(
-  'const completedSession = await finalizeInvitedUserPassword(session, password);',
+  'const completedSession = await finalizeAuthenticatedUserPassword(session, password);',
 );
 const clearIndex = pageSource.indexOf('clearStagedInviteSession();', finalizeIndex);
-const promoteIndex = pageSource.indexOf('await completeInvitation(completedSession);');
+const promoteIndex = pageSource.indexOf('await completePasswordSetup(completedSession);');
 assert(finalizeIndex >= 0, 'invite_password_finalize_missing');
 assert(clearIndex > finalizeIndex, 'invite_staging_cleared_before_password_reconciliation');
 assert(promoteIndex > clearIndex, 'invite_session_promoted_before_password_reconciliation');
 assert(
   authSource.indexOf('return await signInWithPassword(email, password);')
-    > authSource.indexOf('await updateInvitedUserPassword(session, password);'),
-  'invite_password_grant_reconciliation_must_follow_update_attempt',
+    > authSource.indexOf('await updateAuthenticatedUserPassword(session, password);'),
+  'shared_password_grant_reconciliation_must_follow_update_attempt',
 );
 
 console.log('WANDORA_WEB_OWNER_INVITE_ACCEPTANCE_V1_OK');
