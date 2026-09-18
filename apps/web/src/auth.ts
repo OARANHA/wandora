@@ -75,6 +75,39 @@ export function sessionNeedsRefresh(session: BrowserAuthSession): boolean {
 }
 
 
+type AuthenticatedUserResponse = {
+  email?: string | null;
+};
+
+async function readAuthenticatedUserEmail(session: BrowserAuthSession): Promise<string> {
+  let response: Response;
+  try {
+    response = await fetch(`${SUPABASE_AUTH_ORIGIN}/auth/v1/user`, {
+      method: 'GET',
+      headers: {
+        apikey: requirePublishableKey(),
+        Authorization: `Bearer ${session.accessToken}`,
+      },
+    });
+  } catch {
+    throw new AuthClientError('provider-error', 'Não foi possível validar seu convite agora.');
+  }
+
+  if (response.status === 401) {
+    throw new AuthClientError('session-expired', 'Seu convite expirou. Solicite um novo acesso à Wandora.');
+  }
+  if (!response.ok) {
+    throw new AuthClientError('provider-error', 'Não foi possível validar seu convite agora.');
+  }
+
+  const payload = await response.json() as AuthenticatedUserResponse;
+  const email = payload.email?.trim() ?? '';
+  if (!email) {
+    throw new AuthClientError('provider-error', 'A identidade do convite não possui um e-mail válido.');
+  }
+  return email;
+}
+
 export async function updateInvitedUserPassword(session: BrowserAuthSession, password: string): Promise<void> {
   let response: Response;
   try {
@@ -101,6 +134,46 @@ export async function updateInvitedUserPassword(session: BrowserAuthSession, pas
   }
 
   throw new AuthClientError('provider-error', 'Não foi possível atualizar sua senha agora.');
+}
+
+export async function finalizeInvitedUserPassword(
+  session: BrowserAuthSession,
+  password: string,
+): Promise<BrowserAuthSession> {
+  const email = await readAuthenticatedUserEmail(session);
+  let updateError: AuthClientError | null = null;
+
+  try {
+    await updateInvitedUserPassword(session, password);
+  } catch (error) {
+    if (error instanceof AuthClientError && error.code === 'session-expired') {
+      throw error;
+    }
+    updateError = error instanceof AuthClientError
+      ? error
+      : new AuthClientError('provider-error', 'Não foi possível atualizar sua senha agora.');
+  }
+
+  try {
+    // This password grant is both the normal post-onboarding session and the
+    // reconciliation proof for an ambiguous PUT /user response. If the update
+    // committed but its response was lost, the new credential still proves it.
+    return await signInWithPassword(email, password);
+  } catch {
+    if (updateError?.code === 'password-rejected') {
+      throw updateError;
+    }
+    if (updateError) {
+      throw new AuthClientError(
+        'provider-error',
+        'Não foi possível confirmar se sua senha foi atualizada. Tente novamente.',
+      );
+    }
+    throw new AuthClientError(
+      'provider-error',
+      'Sua senha foi atualizada, mas não foi possível abrir uma nova sessão. Tente novamente.',
+    );
+  }
 }
 
 export function loadBrowserSession(): BrowserAuthSession | null {
