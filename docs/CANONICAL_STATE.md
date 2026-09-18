@@ -1041,13 +1041,68 @@ tenant_provisioning_requests = 1
 
 No tenant eligibility, hire, employee activation, Paperclip mutation or outbound effect occurred.
 
+## Customer Digital-Employee Hire — Global Runtime Gate Activation Preflight V1 — COMPLETE / OFF
+
+ADR 0083 closes the process-wide gate preflight without recreating Core.
+
+Current production remains:
+
+```text
+Core = wandora/core:organization-adapter-candidate-af542864d267
+Web  = wandora/web:candidate-af542864d267
+Core/Web = healthy
+
+migration 013 = LIVE
+eligibility rows = 0
+enabled eligibility rows = 0
+
+Customer Digital-Employee Hire = OFF
+Human Send = OFF
+Gateway outbound = OFF
+```
+
+The canonical gate overlay is only:
+
+```text
+WANDORA_HUMAN_DIGITAL_EMPLOYEE_HIRE_ENABLED=true
+```
+
+Its Git blob is `cf188f4e22651f318984f10a17aba3dee05ad2ea`. The file is not yet present in the live Core stack directory; a byte-identical copy exists only under the isolated preflight directory.
+
+Rendered OFF vs ON Core composition differs by exactly that one environment variable:
+
+```text
+OFF render SHA-256 = 8f76c8dd872974de738109b2c0555e87dbbb9433782a5bcbf4ddec2c0e5e9408
+ON  render SHA-256 = c3744b7c7319d8eed3bd6254d5cb6384f6ef643c9c2f6e4ceb2185898d5ee658
+```
+
+Active-tenant state proves zero new availability with the gate ON and zero eligibility rows:
+
+- Internal Supervised Proof already has a completed `ana-commercial-v1` operation;
+- Customer Hire Canary already has a completed `ana-commercial-v1` operation;
+- Empresa Exemplo has no eligibility row and no Paperclip control binding.
+
+The selected rollout order is **global gate first, tenant eligibility later**. Enabling eligibility first was rejected because it could leave latent tenants waiting behind a broad process switch.
+
+Baseline live POST proof with the gate OFF returns `404 not-found` for a syntactically valid hire request and produces no durable delta.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Digital-Employee Hire — Global Runtime Gate Activation Preflight V1.**
+Next: **Customer Digital-Employee Hire — Global Runtime Gate Activation Execution V1.**
 
-Preflight only. Revalidate the dormant foundation, prove the zero-eligibility fail-closed behavior, render the exact Core-only hire overlay/rollback composition and decide whether the global gate or first clean tenant eligibility should be activated first.
+That execution may materialize the exact canonical overlay and recreate the **same Core image** with only that extra environment variable.
 
-Do not enable the global gate or any tenant eligibility merely because the dormant foundation is healthy.
+It must stop with:
+
+```text
+Customer Digital-Employee Hire = ON
+eligibility rows = 0
+new tenant availability = 0
+Human Send = OFF
+Gateway outbound = OFF
+```
+
+No tenant eligibility may be enabled in the same slice.
 
 ## Operational safety
 
