@@ -168,11 +168,11 @@ export function createHumanSupervisionHandler(
         if (!digitalEmployeesService) {
           return { status: 404, body: { error: 'not-found' } };
         }
-        const items = await digitalEmployeesService.listDigitalEmployees(
+        const view = await digitalEmployeesService.getDigitalEmployeesView(
           request.authorization,
           digitalEmployeesOrganizationId,
         );
-        return { status: 200, body: { items } };
+        return { status: 200, body: view };
       }
 
       if (request.method !== 'GET') {
@@ -259,7 +259,10 @@ export function createHumanSupervisionHandler(
         return { status: 409, body: { error: error.code } };
       }
       if (error instanceof OrganizationAdapterUnavailableError) {
-        if (error.code === 'catalog-employee-unknown') {
+        if (
+          error.code === 'catalog-employee-unknown'
+          || error.code === 'catalog-hire-not-eligible'
+        ) {
           return { status: 404, body: { error: 'employee-not-available' } };
         }
         if (error.code === 'provider-not-configured') {
