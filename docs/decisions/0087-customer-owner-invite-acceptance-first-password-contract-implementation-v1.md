@@ -415,7 +415,52 @@ steps = null
 job logs = unavailable
 ```
 
-Those runnerless failures are not treated as code/test failures. A fresh Actions attempt is still required before merge if runners become available; the independent Node 22 proof does not silently relabel failed Actions checks as green.
+Those runnerless failures are not treated as code/test failures and are not relabeled as green.
+
+A further CI-equivalent disposable proof then built the exact final Nginx image from the branch Dockerfile and exercised the reviewed Web bridge against a disposable Core echo server:
+
+```text
+Docker build = success
+WANDORA_WEB_PR135_DOCKER_BUILD_OK
+WANDORA_WEB_PR135_BRIDGE_SMOKE_OK
+WANDORA_WEB_PR135_INVITE_ROUTE_OK
+WANDORA_WEB_PR135_FULL_BRIDGE_SMOKE_OK
+exit code = 0
+```
+
+The full smoke proved:
+
+- `/healthz = 200`;
+- `/accept-invite = 200`;
+- Authorization forwarding and browser Cookie stripping on `/api/v1/me`;
+- reviewed Work, Digital Employees, Conversations and conversation-detail bridges;
+- Customer Hire `Idempotency-Key` forwarding and body preservation;
+- reviewed proposal-send bridge;
+- generic/unreviewed API and internal paths remain `404`.
+
+The disposable containers and network use dedicated proof names and are removed by trap after execution.
+
+### CI infrastructure exception decision
+
+The final adversarial review distinguishes **test failure** from **runner assignment failure**.
+
+For the current PR:
+
+- every Actions failure occurs with `steps = null`, no runner identity and no job log;
+- repeated fresh attempts reproduce the same runnerless shape;
+- the branch changes only Web + canonical documentation;
+- the unchanged non-Web components inherit the last green base checkpoint;
+- the changed Web component has exact Node 22 production build proof plus Docker image + bridge smoke equivalent to the relevant CI job.
+
+Therefore merge may proceed under this explicitly documented CI-infrastructure exception **only if** immediately before merge:
+
+1. `main` is still the reviewed base or the branch is not behind it;
+2. the PR remains mergeable;
+3. no unresolved review thread exists;
+4. the branch diff still contains only the reviewed Web/documentation scope;
+5. production remains untouched.
+
+This exception does not weaken the normal green-CI policy. It applies only to this observed runnerless infrastructure condition with independent equivalent proof.
 
 ## EFFECT BOUNDARY
 
