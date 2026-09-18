@@ -2,14 +2,14 @@
 
 Last synchronized: **2026-09-17**
 
-Canonical Git base reverified before this closure:
+Canonical Git base before the current Execution V1 hostname-gate micro-slice:
 
 ```text
-main = e42f29967892c626c1ca790ee41ec0ceabc251ed
-PR #100 = merged
+main = aa6d4ee2f092bca58704d022c9dc3913460e1413
+PR #102 = merged
 ```
 
-Newer documentation in ADRs 0056–0057 records the bounded Paperclip provider-company bootstrap and closes Production Activation Preflight V2. Mutable Git/runtime state must still be reverified before execution.
+ADR 0059 records the newer partial live execution state and the Paperclip private-hostname blocker found by the first internal canary. Mutable Git/runtime state must still be reverified before execution.
 
 Authority order: `AGENTS.md` → accepted ADRs → `docs/CAPABILITY_AUTHORITY.md` → `docs/architecture.md` → this file → component README/runbook.
 
@@ -343,41 +343,56 @@ Rejected shortcuts:
 
 ## Production Activation Execution V1 — PARTIAL CHECKPOINT
 
-ADR 0058 records the first live execution step after Preflight V2.
-
-Current state:
+ADR 0059 supersedes the older PR #102 handoff for current execution state.
 
 ```text
 migration 010 = LIVE
-verifier 010  = NOT YET COMPLETED
-migration 011 = NOT APPLIED
-candidate Core = loaded, running count 0
-live Core = wandora/core:team-read-b31db507, healthy
-Organization Adapter = OFF
-Human Send = OFF
+verifier 010  = ORGANIZATION_ADAPTER_STATE_V1_OK
+migration 011 = LIVE
+verifier 011  = ORGANIZATION_ADAPTER_SERVICE_CONTRACT_V1_OK
+
+internal control-plane binding = exactly 1
+Paperclip plugin = wandora.organization-adapter-v1@0.1.0, ready
+Paperclip company config = present
+Paperclip company secret reference = present, version 2
+
+candidate = wandora-core-oa-candidate-smoke
+candidate healthz = 200
+candidate readyz = 200
+candidate Organization Adapter = ON
+candidate Human Send = OFF
+candidate published ports = none
+
+live Core Organization Adapter = OFF
 Gateway outbound = OFF
-plugin = NOT INSTALLED
-production Organization Adapter HMAC = NOT CREATED
-internal canary = NOT RUN
+Empresa Exemplo Paperclip company = absent
 ```
 
-The first 010 attempt under role `postgres` failed at the first table because `wandora_private` is owned by `supabase_admin`. Immediate post-failure proof showed all three tables absent. The same migration file matched canonical Git blob `ee366a5ba8ea8ea6c893d5ab9bc52531d3953f52`, was rerun as `supabase_admin`, and reached `COMMIT`.
+The first internal canary used `ana-commercial-v1` with idempotency key `oa-production-canary-v1-20260918`. Paperclip returned HTTP 403 before the plugin webhook route because the private Docker service hostname `wandora-paperclip` was not in Paperclip's private hostname allow set.
 
-**Do not reapply migration 010.** The exact canonical `VERIFY_20260916_ORGANIZATION_ADAPTER_STATE_V1.sql` is now the mandatory next gate. A tooling restriction prevented completing that verifier in the execution session; this is not a verifier success and does not permit migration 011.
+Current recovery state:
+
+```text
+Wandora hire operation = uncertain
+Wandora employee/provider binding = absent
+managed reconcile = not executed
+```
+
+The accepted narrow correction is to preserve `privateHostnameGuard` and add only `PAPERCLIP_ALLOWED_HOSTNAMES=wandora-paperclip` to the versioned Paperclip stack.
+
+**Do not create a new canary idempotency key.** After the exact merged Compose change is promoted and the internal hostname is proven accepted, retry only the existing operation.
 
 ## NEXT EXECUTABLE SLICE
 
-Execution V1 has started and is paused fail-closed after migration 010.
-
-Next:
-
-1. reverify current `main` and live effect boundary;
-2. execute the exact canonical `VERIFY_20260916_ORGANIZATION_ADAPTER_STATE_V1.sql`;
-3. stop on failure;
-4. only on green, apply migration 011 and run `VERIFY_20260916_ORGANIZATION_ADAPTER_SERVICE_CONTRACT_V1.sql`;
-5. then resume ADR 0057 at the operator-owned internal-canary Paperclip binding step.
-
-Do **not** reapply migration 010. Do **not** create `Empresa Exemplo` in Paperclip, install/configure the plugin, create production HMAC, start the candidate Core, enable customer `Contratar/Ativar`, Human Send or Gateway outbound before the pending verifier gates are green.
+1. merge the Paperclip internal-hostname allowlist micro-slice only after green CI;
+2. promote the exact merged Compose bytes;
+3. recreate only Paperclip and validate healthy/private/authenticated state;
+4. prove candidate Core can reach Paperclip through `wandora-paperclip:3100`;
+5. revalidate plugin/config and zero provider-agent state;
+6. confirm the existing canary operation remains `uncertain`;
+7. retry the same `oa-production-canary-v1-20260918` operation;
+8. prove exactly one managed Ana, stable replay and completed Wandora binding;
+9. stop before customer `Contratar/Ativar`, a second provider company, Human Send or Gateway outbound.
 
 ## Operational safety
 
