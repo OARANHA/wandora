@@ -290,7 +290,7 @@ Platform Admin remains a separate Wandora operator trust plane and is not the cu
 
 ## Security invariants
 
-- browser never talks directly to Paperclip, Mastra, Evolution or privileged DB/admin APIs;
+- customer/product browsers never talk directly to Paperclip, Mastra, Evolution or privileged DB/admin APIs; protected operator consoles are a separate operator-only surface;
 - provider IDs/contracts never become customer-facing Wandora contracts;
 - no production credential merely because a role/table/adapter exists;
 - outbound remains OFF unless deliberately activated by a separate reviewed step;
