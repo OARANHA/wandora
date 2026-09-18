@@ -235,6 +235,20 @@ Do not replace the entire ruleset and do not touch unrelated Cloudflare state.
 
 If Cloudflare leaves an otherwise empty entry-point ruleset after rule deletion, that empty no-effect provider state is acceptable.
 
+## GITHUB ACTIONS INFRASTRUCTURE EXCEPTION
+
+PR #141 triggered the five normal repository workflows. Each job ended before runner execution with `steps=null` and `logs_url=null`:
+
+```text
+Core CI #387 / run 35405776346
+Web CI #324 / run 35405776298
+Platform Admin CI #249 / run 35405776223
+Messaging Gateway CI #356 / run 35405776311
+Organization Adapter Plugin CI #70 / run 35405776217
+```
+
+These checks are not classified green and are not treated as code/test failures because no workflow step executed. The PR is documentation-only; production behavior was validated independently against the live edge/runtime as recorded above.
+
 ## RESULT
 
 **Customer Owner Recovery Edge Anti-Abuse Credential + Activation Execution V1 is complete and validated.**
