@@ -98,6 +98,7 @@ The following are current decisions unless superseded by a newer accepted ADR:
 - ADR 0065 selects a fresh employee-free customer-like tenant for the first live hire canary and rejects unproven adoption of the legacy `Empresa Exemplo` Ana.
 - ADR 0066 accepts Private Tenant Provisioning V2 in code/CI: V1 remains historically compatible, V2 creates organization + canonical owner with zero digital employees, and migration 012 is not live until a separate production preflight/application.
 - ADR 0067 closes the Private Tenant Provisioning V2 production migration preflight: a current backup/restore proof and exact migration rehearsal/reverse proof are green, but migration 012 remains absent from production until a separate execution slice.
+- ADR 0068 makes Private Tenant Provisioning V2 live as a dormant least-privilege operator capability: migration 012 is applied/verified, V2 has not yet provisioned any tenant, and customer/provider/outbound effects remain OFF.
 - Security gate #22 is cleared. The affected shared Supabase JWT compatibility material and shared PostgreSQL password were rotated with validated backups, old-credential invalidation, full service-health proof and production-safe verifier reruns.
 - Official WhatsApp providers remain a production option behind the same gateway.
 - Model vendors are replaceable infrastructure behind a provider boundary. Do not request or hard-code a provider credential until a real provider call is materially required.
@@ -269,11 +270,12 @@ control-plane provider bindings: 1
 digital-employee provider bindings: 1
 completed catalog hire operations: 1
 tenant provisioning requests: 0
-migration 012 / provisioning V2: absent
+migration 012 / provisioning V2: LIVE + verifier green
+provisioning V2 requests: 0
 customer-hire canary: absent
 ```
 
-These mutable values must still be reverified before execution. The controlled real delivery proofs remain historical evidence. Customer hire and outbound effects stay OFF; migration 012 being merged in Git does not make it live.
+These mutable values must still be reverified before execution. The controlled real delivery proofs remain historical evidence. Customer hire and outbound effects stay OFF; provisioning V2 being live does not authorize canary creation, provider bootstrap or customer hire.
 
 ## 9. Definition of progress
 
