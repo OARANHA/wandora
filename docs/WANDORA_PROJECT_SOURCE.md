@@ -677,11 +677,36 @@ Core/Web Compose drift gates each proved that the only promotion delta was the i
 
 No durable employee/binding/hire count changed and no tenant received eligibility.
 
+## Customer Digital-Employee Hire Global Runtime Gate Preflight — COMPLETE / OFF
+
+ADR 0083 proves the next process-wide activation is a one-line Core configuration effect on the already-live reviewed image.
+
+```text
+canonical overlay blob = cf188f4e22651f318984f10a17aba3dee05ad2ea
+delta = WANDORA_HUMAN_DIGITAL_EMPLOYEE_HIRE_ENABLED=true
+eligibility rows = 0
+live gate = OFF
+```
+
+The overlay is not yet materialized in the live stack directory. Config-only rendering proves no image/network/mount/secret/port or unrelated capability changes.
+
+Current safety state also proves:
+
+```text
+eligibility rows = 0
+unfinished hire operations = 0
+completed hire operations = 2
+```
+
+A disposable executable proof used the same live Core image with a production-derived Wandora schema clone and canonical migration 013. A synthetic fully wired owner tenant with no eligibility projected `unavailable`; POST returned provider-neutral 404 before journal/provider effect, with provider calls = 0 and no new employee/binding/operation.
+
+The rollout order is frozen as global gate first with zero eligibility **and zero unfinished operations**, validate no new tenant availability, then stop. Tenant eligibility remains a later scoped effect.
+
 ## Next executable slice
 
-Next: **Customer Digital-Employee Hire — Global Runtime Gate Activation Preflight V1.**
+Next: **Customer Digital-Employee Hire — Global Runtime Gate Activation Execution V1.**
 
-This is preflight only: revalidate the dormant foundation, prove fail-closed behavior with zero eligibility, render the exact hire-overlay candidate/rollback composition, and decide activation ordering. No global or tenant-specific hire effect is implied by the live foundation.
+Recreate only Core with the same image plus the exact reviewed hire overlay, validate healthy/ready + zero eligibility rows + zero unfinished hire operations + no new tenant availability/no durable state delta, then stop before any tenant eligibility.
 
 ## Platform Admin
 

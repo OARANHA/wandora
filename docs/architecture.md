@@ -463,15 +463,15 @@ future Ativar
 
 Migration 012 is live under ADR 0068 as a dormant, least-privilege employee-free provisioning capability. The first customer-like canary tenant was then provisioned, received separately reviewed Paperclip company/bootstrap/binding custody, and completed the ADR 0078 private-candidate hire through the real Human API + Organization Adapter path. Its Ana remains paused and supervised; same-key and different-key/same-catalog replay remained deduplicated.
 
-ADR 0079 selected an additional Wandora-owned organization+catalog eligibility fact because the Core hire gate is process-wide while tenant readiness differs. ADR 0080 implements that contract in code/CI, including the dedicated NOLOGIN hire-operator capability, Core enforcement/read projection and Web gating. Migration 013 is **not live**, no production eligibility state has been enabled, and normal live Customer Digital-Employee Hire remains OFF. Human Send and Gateway outbound remain separate disabled effects.
+ADR 0079 selected an additional Wandora-owned organization+catalog eligibility fact because the Core hire gate is process-wide while tenant readiness differs. ADR 0080 implements that contract in code/CI, including the dedicated NOLOGIN hire-operator capability, Core enforcement/read projection and Web gating. ADR 0082 then applied migration 013 and promoted the reviewed Core/Web foundation: migration 013 is **live with zero eligibility rows**, while normal live Customer Digital-Employee Hire remains OFF. ADR 0083 proves the future global gate activation is a Core-only one-overlay effect and requires zero unfinished hire operations before that effect. Human Send and Gateway outbound remain separate disabled effects.
 
 ## Near-term execution sequence
 
 1. keep canonical documentation synchronized with the live state;
 2. preserve Human Session, explicit multi-organization selection, `Equipe`, `Trabalho` and `Conversas` authorization boundaries;
 3. finish the existing customer-facing product by converting remaining PARTIAL/PLACEHOLDER surfaces through the correct Wandora contracts;
-4. ADR 0082 makes the Customer Digital-Employee Hire foundation live but dormant: migration 013 is live with zero eligibility rows and the reviewed Core/Web candidates are healthy while the process-wide hire gate remains OFF;
-5. the next step is a Global Runtime Gate Activation Preflight V1 only: prove zero-eligibility fail-closed behavior, freeze the exact Core-only hire-overlay rollback plan and decide activation ordering before any global or tenant eligibility effect;
+4. ADR 0083 closes the Customer Digital-Employee Hire global-gate preflight: the only runtime delta is the canonical hire environment overlay, zero eligibility rows imply zero new tenant availability, and global-gate-first is selected before any tenant eligibility;
+5. the next separately authorized execution may recreate only Core with the same image plus the hire overlay, validate healthy/ready with zero eligibility rows, then stop before any tenant-specific rollout;
 6. keep Human Send and Gateway outbound OFF by default after the successful controlled Confirmation V2 and hire-canary proofs;
 7. preserve exactly-once durable attempt semantics and never retry historical `uncertain` attempts blindly; incomplete customer hire may resume only through its original idempotency key;
 8. keep stronger commercial commitments on the existing approval boundary;
