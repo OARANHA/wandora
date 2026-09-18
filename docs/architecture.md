@@ -443,12 +443,32 @@ The Confirmation V2 pre-promotion operator snapshot is:
 
 Additional rollback metadata was captured before the ADR 0028 Core promotion and before controlled capability activation. Team Read V1 used separate rollback metadata and changed no business rows during deployment.
 
+## Current customer-hire / provisioning boundary
+
+The Paperclip capability audit, Organization Adapter canary and live cross-company isolation gate are complete. Customer hiring is now split into explicit Wandora contracts:
+
+```text
+private tenant provisioning V2
+  -> organization + canonical owner
+  -> zero digital employees
+
+customer Contratar
+  -> Organization Adapter catalog hire
+  -> paused + supervised employee
+
+future Ativar
+  -> separate execution permission
+  -> not yet available
+```
+
+Migration 012 implements employee-free provisioning in code/CI only and is not live until a separate production preflight/application. The first live customer-hire canary must use a private production-connected candidate Core while the normal live Core keeps the runtime-wide customer-hire gate OFF. Human Send and Gateway outbound remain separate disabled effects.
+
 ## Near-term execution sequence
 
 1. keep canonical documentation synchronized with the live state;
 2. preserve Human Session, explicit multi-organization selection, `Equipe`, `Trabalho` and `Conversas` authorization boundaries;
 3. finish the existing customer-facing product by converting remaining PARTIAL/PLACEHOLDER surfaces through the correct Wandora contracts;
-4. **before any customer digital-employee hiring/responsibility/control-plane implementation, audit/prove current Paperclip capabilities and the Wandora `Organization Adapter`; do not revive the abandoned native assignment/migration 010 direction by convenience;**
+4. complete Tenant Provisioning V2 production preflight/application before creating the fresh customer-hire canary; then bootstrap its Paperclip company/binding and prove the paused-first hire through a private candidate Core;
 5. keep Human Send and Gateway outbound OFF by default after the successful controlled Confirmation V2 proof;
 6. preserve exactly-once durable attempt semantics and never retry historical `uncertain` attempts blindly;
 7. keep stronger commercial commitments on the existing approval boundary;
