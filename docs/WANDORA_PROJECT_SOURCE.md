@@ -738,11 +738,28 @@ The two Paperclip-bound companies remain correctly wired with company-scoped `se
 
 No current tenant qualifies for a first new catalog rollout, so no eligibility was enabled. ADR 0085 freezes the future target-specific setter/rollback and requires the first rollout to fail closed unless exactly one reviewed organization+catalog pair becomes enabled. The frozen first-rollout transaction is serialized with an EXCLUSIVE table lock; a disposable two-session race proved a second concurrent target is rejected before setter execution, and rollback restores zero enabled rows. The local operator session uses the existing protected `supabase_admin` boundary and narrows to the NOLOGIN hire-operator role only for the setter.
 
+## Clean Tenant Rollout Candidate Preparation — COMPLETE / OWNER ONBOARDING BLOCKER
+
+ADR 0086 proves there is no real clean customer/owner target waiting in production:
+
+```text
+Auth users = 1
+Wandora users = 1
+users without memberships = 0
+active organizations = 3
+Paperclip companies = 2
+eligibility rows = 0
+```
+
+Private Tenant Provisioning V2 is ready but requires a real existing Supabase Auth subject. Public signup remains disabled. Live GoTrue has configured SMTP plus protected admin invite/generate-link routes, while the current Web only supports password login/refresh/logout and canonical `/api/v1/me` bootstrap.
+
+The selected beta path is invite-only onboarding through Supabase Auth, followed by employee-free V2 provisioning, Paperclip company/bootstrap+wiring, and finally the ADR 0085 serialized tenant eligibility transaction. No synthetic tenant is created merely to advance rollout.
+
 ## Next executable slice
 
-Next: **Customer Digital-Employee Hire — Clean Tenant Rollout Candidate Preparation Preflight V1.**
+Next: **Customer Owner Invite Acceptance + First Password Contract Implementation V1.**
 
-Preflight only: identify a real clean customer target or freeze the separately reviewed employee-free tenant preparation path. Do not provision, wire or enable a tenant merely as part of the preflight.
+Code/CI only. Implement the reviewed browser first-access contract without sending a real invite or changing production customer/provider/eligibility state.
 
 ## Platform Admin
 
@@ -817,6 +834,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0083 — Customer Digital-Employee Hire Global Runtime Gate Activation Preflight V1
 - ADR 0084 — Customer Digital-Employee Hire Global Runtime Gate Activation Execution V1
 - ADR 0085 — Customer Digital-Employee Hire First Tenant Eligibility Rollout Preflight V1
+- ADR 0086 — Customer Digital-Employee Hire Clean Tenant Rollout Candidate Preparation Preflight V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
