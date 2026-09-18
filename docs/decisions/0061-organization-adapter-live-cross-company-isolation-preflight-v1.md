@@ -108,8 +108,10 @@ The future execution is frozen as follows:
 10. require signature denial and prove B still has zero agents and zero managed resources;
 11. do **not** execute a B-secret -> B-target reconcile, because that would create a provider agent and is unnecessary to prove the negative isolation property;
 12. delete company B through the authenticated Paperclip company API;
-13. verify B company/config/secret/managed-resource/agent state is absent, A remains exactly one configured company with its existing Ana/managed resource, and Wandora DB bindings/operations/employees are unchanged;
-14. reverify Organization Adapter ON, Human Send OFF and Gateway outbound OFF.
+13. verify B company/config/secret/managed-resource/agent state is absent and Wandora DB bindings/operations/employees are unchanged;
+14. because Paperclip refreshes the worker's configured-company set on plugin config writes, re-POST the **exact existing A config JSON** after B deletion to force the runtime scope back to the current database set (A only); do not rotate or replace A's secret;
+15. verify A still references the same secret_ref and retains exactly one existing Ana/managed resource, with the plugin healthy/ready;
+16. reverify Organization Adapter ON, Human Send OFF and Gateway outbound OFF.
 
 If company-B deletion fails, stop. Do not use direct SQL cleanup. Preserve the residual fixture and document it for a separate reviewed cleanup.
 
@@ -136,11 +138,13 @@ A fourth proposal was to prove B validity with a B-secret -> B-target reconcile.
 
 A fifth proposal was to clean up with direct SQL. Rejected. Provider state is mutated only through Paperclip's authenticated API; failure to clean up is a stop condition, not permission to bypass the provider contract.
 
+A sixth proposal was to assume company deletion alone restores the plugin worker's in-memory company scope. Rejected after source review: plugin config writes explicitly recompute configured companies, while the company deletion service does not perform that worker refresh. The cleanup therefore re-saves A's already-existing config unchanged after B deletion. The expected metadata/activity timestamp change is acceptable; A's semantic config and secret_ref must remain identical.
+
 ## EFFECT BOUNDARY
 
 This preflight itself performs no provider mutation.
 
-The separately reviewed execution may create only the ephemeral B company, one B secret and one B plugin config required for the negative proof, followed by their API cleanup.
+The separately reviewed execution may create only the ephemeral B company, one B secret and one B plugin config required for the negative proof, followed by their API cleanup and one semantic no-op re-save of A's existing plugin config solely to refresh the worker's configured-company scope.
 
 It must not:
 
