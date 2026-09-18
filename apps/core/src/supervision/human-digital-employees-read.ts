@@ -94,7 +94,7 @@ export class HumanDigitalEmployeesReadService {
       state: 'unavailable',
     });
 
-    if (!this.catalogHireRuntimeEnabled || (role !== 'owner' && role !== 'admin')) {
+    if (role !== 'owner' && role !== 'admin') {
       return unavailable();
     }
 
@@ -115,6 +115,11 @@ export class HumanDigitalEmployeesReadService {
         state: 'already-hired',
       };
     }
+
+    if (!this.catalogHireRuntimeEnabled) {
+      return unavailable();
+    }
+
     if (operationStatus) {
       return {
         catalogKey: CUSTOMER_HIRE_CATALOG_KEY,
