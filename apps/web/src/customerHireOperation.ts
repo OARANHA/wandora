@@ -4,7 +4,12 @@ const IDEMPOTENCY_UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export class HireError extends Error {
-  constructor(readonly code: string, message: string, readonly retrySameKey = false) {
+  constructor(
+    readonly code: string,
+    message: string,
+    readonly retrySameKey = false,
+    readonly organizationId: string | null = null,
+  ) {
     super(message);
     this.name = 'HireError';
   }
@@ -49,6 +54,8 @@ export function resolveHireOperation(
     throw new HireError(
       'idempotency-storage-unavailable',
       'A contratação não pode começar neste navegador porque a operação segura não pôde ser preservada.',
+      false,
+      organizationId,
     );
   }
 
@@ -56,6 +63,8 @@ export function resolveHireOperation(
     throw new HireError(
       'idempotency-storage-invalid',
       'A contratação segura desta sessão precisa ser reiniciada antes de continuar.',
+      false,
+      organizationId,
     );
   }
 
@@ -65,6 +74,8 @@ export function resolveHireOperation(
       throw new HireError(
         'idempotency-generation-invalid',
         'A contratação segura não pôde gerar uma identidade válida para esta operação.',
+        false,
+        organizationId,
       );
     }
 
@@ -74,6 +85,8 @@ export function resolveHireOperation(
       throw new HireError(
         'idempotency-storage-unavailable',
         'A contratação não pode começar neste navegador porque a operação segura não pôde ser preservada.',
+        false,
+        organizationId,
       );
     }
   }
