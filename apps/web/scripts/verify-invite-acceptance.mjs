@@ -74,6 +74,19 @@ assert(
 );
 assert(replacedUrl === '/accept-invite?source=email', 'invite_fragment_not_removed_immediately');
 
+clearStagedInviteSession(storage);
+let siteRootReplace = null;
+assert(
+  stageInviteRedirectFromCurrentLocation({
+    location: { pathname: '/', search: '', hash: validHash },
+    history: { replaceState(_state, _unused, url) { siteRootReplace = url; } },
+    storage,
+    nowSeconds: now,
+  }) === true,
+  'site_url_invite_redirect_must_be_recovered',
+);
+assert(siteRootReplace === '/accept-invite', 'site_url_invite_not_canonicalized');
+
 const staged = loadStagedInviteSession(storage, now);
 assert(staged?.accessToken === 'invite-access', 'staged_invite_not_reloadable');
 
@@ -123,6 +136,22 @@ assert(
 );
 assert(invalidReplace === '/accept-invite', 'invalid_invite_fragment_not_removed');
 assert(loadStagedInviteSession(invalidStorage, now) === null, 'invalid_fragment_must_clear_stale_invite');
+
+let unsupportedRootReplace = null;
+assert(
+  stageInviteRedirectFromCurrentLocation({
+    location: {
+      pathname: '/',
+      search: '?keep=1',
+      hash: validHash.replace('type=invite', 'type=recovery'),
+    },
+    history: { replaceState(_state, _unused, url) { unsupportedRootReplace = url; } },
+    storage: invalidStorage,
+    nowSeconds: now,
+  }) === false,
+  'unsupported_supabase_flow_must_fail_closed',
+);
+assert(unsupportedRootReplace === '/?keep=1', 'unsupported_supabase_fragment_not_removed');
 
 const [authSource, providerSource, routerSource, mainSource, pageSource] = await Promise.all([
   readFile(new URL('../src/auth.ts', import.meta.url), 'utf8'),
