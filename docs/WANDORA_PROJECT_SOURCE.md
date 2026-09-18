@@ -491,11 +491,29 @@ fresh official Paperclip logical DB backup
 
 The proof reuses the exact production Paperclip image/runtime and never prints restored plaintext. No snapshot or canary wiring effect was created during the preflight.
 
+## Paperclip Local-Encrypted Secret Recovery Snapshot Execution — GREEN
+
+ADR 0075 creates and proves the protected same-host recovery pair outside the Paperclip Docker volume.
+
+```text
+fresh official DB backup = retained
+exact master.key copy = retained
+source/copy hashes = match
+disposable PG18 restore = green
+matching-key decrypt/hash-match = green
+wrong-key rejection = green
+proof-only state = removed
+```
+
+Live Paperclip/Core were not restarted or mutated, and the customer-hire canary still has zero secrets/config/agents/binding/employees/hire operations.
+
+This clears the ADR 0073 blocker but does not claim off-host/VPS-loss disaster recovery.
+
 ## Next executable slice
 
-Next: **Paperclip Local-Encrypted Secret Recovery Snapshot Execution V1.**
+Next: **Customer Hire Canary — Organization Adapter Custody + Config + Binding Execution V1.**
 
-Create and prove the protected recovery pair, clean only disposable proof state, and stop before customer-hire canary HMAC/secret/config/binding/hire.
+Apply the already-frozen ADR 0073 sequence and stop before digital-employee hire/activation/outbound.
 
 ## Platform Admin
 
@@ -559,6 +577,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0072 — Customer Hire Canary Paperclip Provider Company Bootstrap Execution V1
 - ADR 0073 — Customer Hire Canary Organization Adapter Custody + Config + Binding Preflight V1
 - ADR 0074 — Paperclip Local-Encrypted Secret Recovery Snapshot Preflight V1
+- ADR 0075 — Paperclip Local-Encrypted Secret Recovery Snapshot Execution V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
