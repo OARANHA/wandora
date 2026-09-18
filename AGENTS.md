@@ -93,6 +93,10 @@ The following are current decisions unless superseded by a newer accepted ADR:
 - ADR 0034 makes state-first continuity mandatory: recover real state and evidence before choosing work.
 - ADR 0035 connects customer `Equipe` to canonical tenant-authorized digital-employee reads; it does not decide how a full employee control plane/hiring capability is implemented.
 - ADR 0036 makes the **Capability Authority / Reuse Gate** mandatory before any material new domain entity/state machine/workflow/assignment/admin subsystem. Absence from the current Wandora schema is not evidence of Wandora ownership.
+- ADR 0063 separates customer `Contratar` from future `Ativar`: first catalog hire is paused + supervised and activation remains a later execution effect.
+- ADR 0064 implements the gated paused-first customer hire contract in code/CI only; the runtime gate remains disabled in production until a separately reviewed rollout.
+- ADR 0065 selects a fresh employee-free customer-like tenant for the first live hire canary and rejects unproven adoption of the legacy `Empresa Exemplo` Ana.
+- ADR 0066 accepts Private Tenant Provisioning V2 in code/CI: V1 remains historically compatible, V2 creates organization + canonical owner with zero digital employees, and migration 012 is not live until a separate production preflight/application.
 - Security gate #22 is cleared. The affected shared Supabase JWT compatibility material and shared PostgreSQL password were rotated with validated backups, old-credential invalidation, full service-health proof and production-safe verifier reruns.
 - Official WhatsApp providers remain a production option behind the same gateway.
 - Model vendors are replaceable infrastructure behind a provider boundary. Do not request or hard-code a provider credential until a real provider call is materially required.
