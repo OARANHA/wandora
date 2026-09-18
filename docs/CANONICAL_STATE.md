@@ -1522,11 +1522,70 @@ Rollback is image-only to `wandora/web:candidate-af542864d267`.
 
 No real invite/recovery was generated or sent.
 
+## Customer Owner First Real Access End-to-End Validation Preflight V1 — COMPLETE / BLOCKED BEFORE INVITE
+
+ADR 0095 closes the no-effect first-real-access preflight.
+
+Current live owner-access foundation remains green:
+
+```text
+Web = wandora/web:owner-access-candidate-5f135e90 / healthy
+Core/Auth/Gateway = healthy
+/login = 200
+/accept-invite = 200
+/recover-access = 200
+/api/v1/me unauthenticated = 401
+
+Cloudflare recovery guard:
+  exact /auth/v1/recover
+  6 requests / 10 seconds / IP
+  block 10 seconds
+```
+
+No-effect durable state remains:
+
+```text
+Auth users = 1
+recovery_sent rows = 0
+recovery_token rows = 0
+Auth one-time tokens = 0
+eligibility rows = 0
+enabled eligibility rows = 0
+unfinished hire operations = 0
+
+Customer Digital-Employee Hire = ON
+Human Send = OFF
+Gateway outbound = OFF
+```
+
+The preflight found a real production blocker that earlier “SMTP configured” checks did not prove away. Live GoTrue points at:
+
+```text
+GOTRUE_SMTP_HOST = supabase-mail
+GOTRUE_SMTP_PORT = 2500
+```
+
+but `supabase-mail` does not resolve from the Auth container, TCP probing returns `bad address`, and the live Supabase Compose service inventory contains no mail service. Those values are the same development/default values present in `.env.example`, not an operational transactional relay.
+
+The target gate also remains real: the only existing Auth/Wandora owner is already linked to the three legacy/canary/internal organizations. ADR 0086 still forbids creating another synthetic tenant merely to advance rollout. None of Empresa Exemplo, Customer Hire Canary or Internal Supervised Proof is repurposed as the first real customer.
+
+Decision:
+
+- do not send the first invite yet;
+- keep Supabase Auth as invite/password/recovery authority;
+- first fix/prove transactional SMTP in a separate slice;
+- later freeze one genuinely new owner mailbox + real customer organization;
+- primary first proof is the normal `/accept-invite -> first password -> password grant -> /api/v1/me` path;
+- `/recover-access` is contingency for an actual interruption, not something to force during the first happy-path proof;
+- keep Paperclip bootstrap, provider wiring, eligibility and hiring outside the owner-access proof.
+
+No invite/recovery, Auth user, tenant, Paperclip resource, eligibility or outbound effect occurred.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Owner First Real Access End-to-End Validation Preflight V1.**
+Next: **Customer Owner Transactional E-mail Delivery Foundation Preflight V1.**
 
-No-effect preflight only. Select the exact test owner/tenant context, verify provider e-mail/redirect state, freeze the first controlled real-flow scope and rollback/recovery expectations, and do not send an invite or recovery during the preflight.
+No-effect preflight only. Select the production SMTP provider/custody/config contract, verify sender-domain requirements and rollback, and prove the exact Auth configuration delta without sending an invite, recovery or test e-mail.
 
 ## Operational safety
 
