@@ -324,7 +324,7 @@ It was not referenced by live Paperclip at the ADR 0049 preflight and is **not**
 - direct `agent-hires` fallback;
 - Paperclip → Wandora/Mastra execution-adapter production promotion;
 - Human Send or Gateway outbound activation as part of Organization Adapter work;
-- second/customer Paperclip provider-company provisioning and live cross-company gate.
+- second/customer Paperclip provider-company provisioning.
 
 ## Second adversarial review after artifact promotion
 
@@ -385,56 +385,73 @@ customer Contratar/Ativar = absent
 
 ADR 0060 proves that no Core or Core-stack source changed after the candidate source revision, the promotion render had no residual delta beyond the candidate image + Organization Adapter config/mount, rollback was prepared before replacement, and a same-key replay through the live Core returned the existing Ana without duplication.
 
-## Organization Adapter Live Cross-Company Isolation Preflight V1 — COMPLETE, NO A/B EXECUTION
+## Organization Adapter Live Cross-Company Isolation Execution V1 — COMPLETE
 
-ADR 0061 closes the observation/plan phase for the remaining live A/B isolation gate.
+ADR 0062 closes the remaining live A/B isolation gate.
 
-Fresh evidence on `main@1141af04b68bd3a4d72bf4d915ce7caa64faafce` confirmed:
+The execution deliberately used an ephemeral provider-only company B and never provisioned `Empresa Exemplo`.
+
+Two setup attempts failed closed and were fully recovered before any retry:
+
+1. verifier used the wrong Paperclip membership table name; official cleanup restored baseline;
+2. preflight expected HTTP 422 for cross-company secret_ref rejection, while the live Paperclip route intentionally normalizes that internal error to HTTP 400; source review proved the exact mapping and official cleanup again restored baseline.
+
+The final proof established:
 
 ```text
-live Core = organization-adapter-candidate-068d30a49d9b, healthy
+B owner membership = 1
+B config / B secret_ref = valid
+B agents / managed = 0 / 0
+
+A secret_ref -> B config
+  = HTTP 400
+  = "Plugin config references a secret outside the selected company"
+  = B config unchanged
+
+A HMAC -> B target
+  = HTTP 502
+  = invalid_wandora_signature
+  = B agents / managed still 0 / 0
+```
+
+Cleanup used the official Paperclip company API, then re-saved A's exact existing config JSON unchanged to recompute the worker configured-company scope to A-only.
+
+Final independent state:
+
+```text
+Core / Paperclip = healthy / healthy
 Organization Adapter = ON
 Human Send = OFF
 Gateway outbound = OFF
 
-Paperclip = healthy/private/authenticated
-Paperclip companies = 1
-wandora.organization-adapter-v1 = ready
-internal company config / adapter secret / Ana / managed resource = 1 / 1 / 1 / 1
+Wandora organizations = 2
+control-plane bindings = 1
+digital-employee provider bindings = 1
+completed hire operations = 1
+Empresa Exemplo Paperclip binding = 0
 
-Empresa Exemplo Paperclip binding = absent
-second Paperclip company = absent
+Paperclip companies = 1
+ephemeral B = 0
+plugin = ready
+A config / secret / Ana / managed = 1 / 1 / 1 / 1
+A secret_ref unchanged = true
+fixture checkpoint = absent
 ```
 
-ADR 0040's exact disposable `A secret -> B target` denial remains valid. The live gap is specifically two-company production-instance evidence.
-
-The accepted minimum topology is an **ephemeral provider-only company B**, `Wandora Cross-Company Isolation Proof B`. It must never receive a Wandora organization/provider binding and must not be `Empresa Exemplo`.
-
-Paperclip source inspection proved official company deletion is transactional for child state and plugin config/managed-resource/company-settings company FKs are `ON DELETE CASCADE`. A second source review found that plugin config writes explicitly refresh the worker's configured-company set, while company deletion does not. Therefore cleanup is: official B delete **plus an unchanged re-save of A's existing plugin config** to recompute runtime scope to A-only. Direct SQL cleanup is forbidden.
-
-The future negative proof will configure B with its own company secret, then require both:
-
-1. an attempted B config using A's `secret_ref` is rejected without changing B's valid config;
-2. the exact private webhook naming B but signed with A's HMAC is rejected and creates zero B agents/managed resources.
-
-A positive `B secret -> B target` reconcile is deliberately excluded because it would create an unnecessary provider agent.
+The cross-company isolation gate is therefore **CLOSED**. No durable B provider state remains.
 
 ## NEXT EXECUTABLE SLICE
 
-Next: **Organization Adapter Live Cross-Company Isolation Execution V1**.
+Next: **Customer Digital-Employee Lifecycle Contract Preflight V1** — observation/plan-first.
 
-1. fresh REAL NOW against current `main`, A counts and effect switches;
-2. create exactly one ephemeral Paperclip company B through the authenticated API;
-3. create B-only HMAC secret and B plugin config without printing raw material;
-4. prove cross-company `secret_ref` rejection;
-5. prove A-HMAC -> B-target signature denial with zero B managed resources;
-6. delete B through the authenticated Paperclip API;
-7. prove no B company/config/secret/agent/managed-resource residue and no Wandora DB delta;
-8. re-save A's exact existing config JSON unchanged to refresh the worker configured-company set to A-only;
-9. prove A retains the same secret_ref and existing Ana/managed resource;
-10. keep customer `Contratar/Ativar`, Human Send and Gateway outbound absent/off.
-
-If cleanup fails, stop and preserve/document the fixture. Do not direct-SQL cleanup.
+1. fresh REAL NOW and authority review;
+2. classify the current customer `/start` and hire/activate surfaces as REAL/PARTIAL/PLACEHOLDER/ABSENT;
+3. define the customer semantics of `Contratar` vs `Ativar`;
+4. decide when a customer Paperclip company is legitimately bootstrapped;
+5. reuse the existing Organization Adapter idempotency/reconciliation contracts rather than creating a parallel lifecycle;
+6. freeze owner/admin authorization, tenant isolation, ambiguous-effect handling and the initial paused/supervised state;
+7. determine whether production Paperclip -> Wandora/Mastra execution-adapter readiness is a prerequisite for `Ativar`;
+8. do **not** create `Empresa Exemplo` in Paperclip or expose/enable a customer action during the preflight.
 
 ## Operational safety
 
