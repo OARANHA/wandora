@@ -323,6 +323,22 @@ recovery_sent rows = 0
 
 No recovery/invite was requested or generated.
 
+## GITHUB ACTIONS INFRASTRUCTURE EXCEPTION
+
+PR #139 triggered the five normal repository workflows. Each job ended before runner execution with `steps=null` and `logs_url=null`:
+
+```text
+Core CI #381 / run 35401348817
+Web CI #318 / run 35401348710
+Platform Admin CI #243 / run 35401348722
+Messaging Gateway CI #350 / run 35401348712
+Organization Adapter Plugin CI #66 / run 35401348715
+```
+
+These checks are not classified green and are not treated as code/test failures because no workflow step executed. This reproduces the runnerless GitHub Actions condition already recorded by ADRs 0087–0090.
+
+The documentation-only merge exception requires the final branch to remain based on unchanged reviewed `main`, contain only canonical documentation, have no unresolved review threads, and preserve all no-effect production invariants.
+
 ## DECISION RESULT
 
 **Customer Owner Recovery Edge Anti-Abuse Control Preflight V1 is accepted.**
