@@ -475,11 +475,35 @@ Second adversarial review found an existing legacy Ana in `Empresa Exemplo` that
 
 No production deployment or customer effect was authorized by this implementation slice. Customer Digital-Employee Hire remains OFF; Human Send and Gateway outbound remain OFF; customer activation remains unavailable.
 
+## Customer Hire Canary Selection + Legacy Reconciliation Preflight V1 — COMPLETE
+
+ADR 0065 selects a **fresh employee-free internal customer-like tenant** for the first paused-first customer hire canary and defers legacy `Empresa Exemplo` adoption.
+
+Read-only production evidence showed:
+
+- only two current organizations;
+- the internal supervised-proof organization already has the completed catalog canary and cannot prove first-time hire;
+- `Empresa Exemplo` has one legacy active/supervised Ana with no Paperclip binding and no catalog hire operation;
+- no durable provisioning/audit evidence proves that legacy row is `ana-commercial-v1`;
+- the current ADR 0030 tenant provisioner always creates one active supervised commercial-assistant employee, so it cannot create a clean paused-first hire tenant;
+- `wandora_platform_provisioner` remains inert at `CONNECTION LIMIT 0` with no password;
+- live Customer Digital-Employee Hire, Human Send and Gateway outbound remain OFF.
+
+The selected future canary is:
+
+```text
+Wandora Customer Hire Canary
+slug = wandora-customer-hire-canary
+pre-hire digital employees = 0
+```
+
+ADR 0065 also requires the actual first production hire effect to run through a **private production-connected candidate Core** with the customer-hire gate ON. The normal live Core stays customer-hire OFF during that canary because the current gate is runtime-wide, not tenant-specific.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Hire Canary Selection + Legacy Employee Reconciliation Preflight V1.**
+Next: **Private Tenant Provisioning V2 — Employee-Free Contract Implementation V1, code/CI only.**
 
-Choose with proven evidence between a clean customer-like canary with no legacy employee collision and an explicit operator-reviewed legacy reconciliation/adoption contract. Do not provision or auto-adopt `Empresa Exemplo`, enable customer hire, expose `Ativar`, or enable outbound effects during that preflight.
+Version the existing private provisioning boundary so organization + canonical user/identity + active owner membership can be created idempotently with **zero digital employees**. Keep V1 unchanged for historical compatibility. Do not apply the new migration live, create the canary tenant/provider company, enable customer hire, deploy #109, activate employees, or enable outbound effects in that implementation slice.
 
 ## Operational safety
 
