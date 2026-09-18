@@ -509,11 +509,29 @@ Live Paperclip/Core were not restarted or mutated, and the customer-hire canary 
 
 This clears the ADR 0073 blocker but does not claim off-host/VPS-loss disaster recovery.
 
+## Customer Hire Canary Organization Adapter Wiring Execution — GREEN
+
+ADR 0076 makes the clean canary's provider control-plane wiring live:
+
+```text
+Wandora org -> Paperclip company binding = present
+Core deterministic HMAC custody = present / 0640 / readable
+Paperclip local_encrypted secret = exactly 1
+Paperclip Organization Adapter config = exact secret_ref / healthy
+Paperclip agents = 0
+Wandora employees/employee bindings/hire ops = 0/0/0
+Customer Digital-Employee Hire = OFF
+Human Send = OFF
+Gateway outbound = OFF
+```
+
+Independent hash-only validation proves the Core HMAC file and Paperclip encrypted secret version represent the same plaintext without revealing it.
+
 ## Next executable slice
 
-Next: **Customer Hire Canary — Organization Adapter Custody + Config + Binding Execution V1.**
+Next: **Customer Hire Canary — Private Candidate Core Hire Preflight V1.**
 
-Apply the already-frozen ADR 0073 sequence and stop before digital-employee hire/activation/outbound.
+Freeze the private production-connected candidate, reviewed source/image provenance, authorized human-session POST, stable idempotency/replay contract, paused-first expected results, non-leakage checks and teardown before executing the first customer-like hire.
 
 ## Platform Admin
 
@@ -578,6 +596,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0073 — Customer Hire Canary Organization Adapter Custody + Config + Binding Preflight V1
 - ADR 0074 — Paperclip Local-Encrypted Secret Recovery Snapshot Preflight V1
 - ADR 0075 — Paperclip Local-Encrypted Secret Recovery Snapshot Execution V1
+- ADR 0076 — Customer Hire Canary Organization Adapter Custody + Config + Binding Execution V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 

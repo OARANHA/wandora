@@ -802,13 +802,41 @@ The customer-hire canary remains at zero secrets/config/agents/binding/employees
 
 The recovery blocker from ADR 0073 is therefore cleared. This snapshot is same-host/out-of-Docker-volume recovery only; off-host/VPS-loss recovery remains a separate infrastructure concern.
 
+## Customer Hire Canary — Organization Adapter Custody + Config + Binding Execution V1 — GREEN
+
+ADR 0076 records the completed production wiring.
+
+Current canary control-plane state:
+
+```text
+Wandora organization = 918d4c7e-fccb-41f0-aba7-04105a9b4ec0
+Paperclip company     = e7422a00-1474-49d5-ac32-34594520015e
+
+Wandora control-plane binding = exactly 1
+Core deterministic HMAC file  = present / 0640 / readable
+Paperclip company secret       = exactly 1 active local_encrypted
+Paperclip plugin config        = exact secret_ref / lastError=null
+secret usage                   = one required plugin hmacSecret binding
+Paperclip canary agents        = 0
+```
+
+The Core HMAC file SHA-256 and Paperclip secret-version `value_sha256` / `fingerprint_sha256` are identical:
+
+```text
+eba4bdda5baf60b57368d1d4a83628f73551b3e8ad1a226f3c983b06154ecb60
+```
+
+Execution order matched ADR 0073: operator binding → HMAC custody → encrypted Paperclip secret → plugin config last.
+
+The canary still has zero digital employees, zero digital-employee provider bindings and zero hire operations. Organization Adapter remains ON while Customer Digital-Employee Hire, Human Send and Gateway outbound remain OFF.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Hire Canary — Organization Adapter Custody + Config + Binding Execution V1.**
+Next: **Customer Hire Canary — Private Candidate Core Hire Preflight V1.**
 
-Execute ADR 0073 exactly: operator-owned Wandora binding → deterministic protected Core HMAC custody → one Paperclip company-owned `local_encrypted` secret → company-scoped Organization Adapter config last → independent validation.
+Observation/plan-first only. Freeze the exact reviewed Core image/source, private production-connected composition, real authorized human-session request path, stable idempotency key, paused-first expectations, replay/no-duplicate proofs, response non-leakage, ambiguity handling and complete candidate cleanup.
 
-Keep zero digital employees/hire operations and leave Customer Digital-Employee Hire, Human Send and Gateway outbound OFF.
+Do not execute the hire, expose the candidate publicly, enable the normal live Core customer-hire gate, activate Ana, Human Send or Gateway outbound during that preflight.
 
 ## Operational safety
 
