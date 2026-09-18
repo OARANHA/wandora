@@ -365,7 +365,7 @@ wandora_private.provision_beta_organization_v2(...)
 
 V1 remains historically compatible and continues to create its original initial active supervised employee. V1 and V2 share one private idempotency ledger with an explicit version/row-shape invariant; only `wandora_platform_provisioner` may execute V2.
 
-PR #111 merged the code/CI implementation. Migration 012 is **not live yet**.
+PR #111 merged the code/CI implementation; at that historical checkpoint migration 012 was not yet live. ADR 0068 later applied it to production.
 
 ADR 0067 then proved the live pre-012 state, produced and restore-tested the current rollback snapshot, applied the exact migration twice to a disposable restore of current production, and proved a lossless migration-only reverse path while `tenant_provisioning_requests = 0`.
 
@@ -406,11 +406,28 @@ The accepted execution path keeps `wandora_platform_provisioner` passwordless wi
 
 Production is unchanged after preflight: canary absent, provisioning ledger empty, Customer Digital-Employee Hire OFF, Human Send OFF and Gateway outbound OFF.
 
+## Customer Hire Canary Tenant Provisioning Execution — LIVE
+
+ADR 0070 created the single employee-free customer-like canary through V2 using the frozen no-password least-privilege path.
+
+```text
+Wandora organizations = 3
+canary = Wandora Customer Hire Canary
+canary employees = 0
+V2 provisioning requests = 1
+canary Paperclip company = absent
+canary provider bindings/hire operations = 0
+```
+
+The existing canonical owner was reused; no provider subject was persisted to Git. `wandora_platform_provisioner` remains passwordless with `CONNECTION LIMIT 0`.
+
+Paperclip independently remains at exactly one company, `Wandora Internal Supervised Proof`. Customer Digital-Employee Hire, Human Send and Gateway outbound remain OFF.
+
 ## Next executable slice
 
-Next: **Customer Hire Canary — Employee-Free Tenant Provisioning Execution V1.**
+Next: **Customer Hire Canary — Paperclip Provider Company Bootstrap Preflight V1.**
 
-Create exactly one V2 canary organization with the frozen request and zero employees, verify the V2 idempotency row and owner reuse, then stop before any Paperclip/provider/hire/activation/outbound effect.
+Freeze the exact instance-admin creation path, provider-company identity, duplicate/timeout/recovery behavior and post-bootstrap invariants before any provider mutation. Keep custody/config/binding, hire, activation and outbound separate.
 
 ## Platform Admin
 
@@ -469,6 +486,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0067 — Private Tenant Provisioning V2 Production Migration Preflight V1
 - ADR 0068 — Private Tenant Provisioning V2 Production Migration Execution V1
 - ADR 0069 — Customer Hire Canary Employee-Free Tenant Provisioning Preflight V1
+- ADR 0070 — Customer Hire Canary Employee-Free Tenant Provisioning Execution V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 

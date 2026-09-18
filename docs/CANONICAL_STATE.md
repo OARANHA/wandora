@@ -634,13 +634,40 @@ No redundant V2 rehearsal was run because ADR 0066/PR #111 already proves exact 
 
 Production remains unchanged after this preflight: 2 organizations, 0 provisioning requests, canary absent, Customer Digital-Employee Hire OFF, Human Send OFF and Gateway outbound OFF.
 
+## Customer Hire Canary — Employee-Free Tenant Provisioning Execution V1 — LIVE
+
+ADR 0070 records the bounded V2 production execution.
+
+Current durable state:
+
+```text
+organizations                       = 3
+digital_employees total             = 3
+tenant_provisioning_requests        = 1
+
+Wandora Customer Hire Canary        = active
+canary active owner memberships     = 1
+canary digital employees            = 0
+canary control-plane bindings       = 0
+canary employee-provider bindings   = 0
+canary hire operations              = 0
+```
+
+The provisioning row uses the frozen request key `customer-hire-canary:tenant-v2:v1`, `provisioning_version=2`, `employee_id=NULL`, and reuses the frozen canonical owner.
+
+The least-privilege role remains passwordless with `CONNECTION LIMIT 0`.
+
+Independent Paperclip API proof still reports exactly one provider company — `Wandora Internal Supervised Proof` — so the new canary has no Paperclip company yet.
+
+Customer Digital-Employee Hire, Human Send and Gateway outbound remain OFF. The existing Organization Adapter internal canary bindings/operation remain unchanged at 1/1/1.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Hire Canary — Employee-Free Tenant Provisioning Execution V1.**
+Next: **Customer Hire Canary — Paperclip Provider Company Bootstrap Preflight V1.**
 
-Create exactly one `Wandora Customer Hire Canary` organization through V2, require reuse of the frozen canonical owner, verify zero canary employees and exactly one V2 provisioning row, then stop.
+Observation/plan-first only. Freeze the authenticated instance-admin creation path, exact provider-company identity, duplicate/timeout/recovery semantics and post-bootstrap invariants.
 
-Keep Paperclip company/bootstrap, provider custody/config/binding, customer hire, activation, Human Send and Gateway outbound outside this execution slice.
+Do not create the provider company during the preflight. Keep company-scoped HMAC custody/config, Wandora control-plane binding, customer hire, activation, Human Send and Gateway outbound as later separate effects.
 
 ## Operational safety
 
