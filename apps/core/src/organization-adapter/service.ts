@@ -166,6 +166,21 @@ export class OrganizationAdapterService {
         return catalogOperation;
       }
 
+      const eligibility = await client.query<{ enabled: boolean }>(
+        `SELECT enabled
+           FROM wandora_private.digital_employee_catalog_hire_eligibility
+          WHERE organization_id = $1
+            AND catalog_key = $2
+          LIMIT 1`,
+        [args.organizationId, args.definition.key],
+      );
+      if (eligibility.rows[0]?.enabled !== true) {
+        throw new OrganizationAdapterUnavailableError(
+          'catalog-hire-not-eligible',
+          'Catalog hire is not enabled for this organization.',
+        );
+      }
+
       const legacyCollision = await client.query<{ employee_id: string }>(
         `SELECT id::text AS employee_id
            FROM wandora.digital_employees
