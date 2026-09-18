@@ -1,6 +1,6 @@
 # ADR 0092 — Customer Owner Recovery Edge Anti-Abuse Credential + Activation Execution V1 — Pre-Mutation Credential Gate
 
-Status: **Accepted / execution attempted and stopped before mutation; operator credential issuance required**
+Status: **Accepted / execution resumed; edge rule created exactly; behavioral validation pending**
 
 Date: 2026-09-18
 
@@ -205,3 +205,107 @@ This is a human account-authority boundary, not a software gap and not a product
 ## NEXT ACTION
 
 Operator issues and securely installs the dedicated Cloudflare WAF token exactly as defined above. Then resume **Customer Owner Recovery Edge Anti-Abuse Credential + Activation Execution V1** from the ruleset-read/snapshot step.
+
+
+## EXECUTION RESUMED — EDGE RULE CREATED / BEHAVIORAL VALIDATION PENDING
+
+The operator completed the dedicated credential issuance and custody gate without exposing the token in chat or Git.
+
+Host custody was independently verified:
+
+```text
+/opt/wandora/data/cloudflare/secrets/recovery_ratelimit_api_token
+owner = root:wandora-ops
+mode = 0640
+size = 53 bytes
+```
+
+The credential itself remains unread by repository/application components and is not mounted into Web/Core/Auth/Gateway/Paperclip.
+
+### Ruleset pre-mutation proof
+
+A read-only request with the dedicated WAF credential returned:
+
+```text
+HTTP_STATUS=404
+SUCCESS=false
+ERROR_CODE=10003
+ERROR_MESSAGE=could not find entrypoint ruleset in the http_ratelimit phase
+```
+
+This proves the zone had no existing `http_ratelimit` entry-point ruleset at the mutation boundary. Therefore the single Free-plan rate-limit slot was not occupied by another rule.
+
+### Exact rule creation
+
+The operator executed the reviewed fail-closed transaction. It rechecked the entry point immediately before mutation and created the first zone-level `http_ratelimit` ruleset only after receiving the expected 404/10003 absence proof.
+
+Creation/read-back result:
+
+```text
+ZONE_OK=true
+PLAN=Free Website
+PRECHECK_HTTP=404
+FREE_SLOT_CONFIRMED=true
+CREATE_HTTP=200
+CREATE_SUCCESS=true
+VERIFY_HTTP=200
+RULESET_ID=56c46388452f4328b27a6e6bf5f55cc8
+RULE_ID=77758d45428d43fa8c8810569579f90f
+RULE_COUNT=1
+RULE_REF=wandora_owner_recovery_burst_guard_v1
+ACTION=block
+EXPRESSION=http.request.uri.path eq "/auth/v1/recover"
+PERIOD=10
+REQUESTS_PER_PERIOD=6
+MITIGATION_TIMEOUT=10
+EXACT_MATCH=true
+```
+
+The transaction is idempotent by stable rule ref and would stop rather than replace an unexpected existing ruleset.
+
+### Post-creation no-effect invariants already proven
+
+Immediately after creation:
+
+```text
+recovery_sent_at rows = 0
+recovery_token rows = 0
+eligibility rows = 0
+enabled eligibility rows = 0
+unfinished hire operations = 0
+
+Customer Digital-Employee Hire = ON
+Human Send = OFF
+Gateway outbound = OFF
+
+live Web remains wandora/web:candidate-af542864d267
+owner-access Web remains undeployed
+```
+
+No recovery POST, invite/recovery e-mail, Auth-user mutation, Web deploy, tenant/provider provisioning or eligibility activation occurred.
+
+### Remaining validation gate
+
+The edge effect is now active but this execution slice is not yet closed.
+
+Still required:
+
+1. bounded external burst using only `OPTIONS /auth/v1/recover`;
+2. prove normal OPTIONS works before the burst;
+3. prove the bounded burst reaches the Cloudflare rate-limit response;
+4. wait longer than the 10-second mitigation window and prove OPTIONS returns to normal;
+5. prove recovery-token/sent counters remain zero;
+6. reprove arbitrary external direct-origin access is not reachable;
+7. freeze final rollback evidence and close the slice.
+
+The assistant execution environment rejected automated repeated OPTIONS traffic as a safety restriction. That restriction does not imply a production failure and must not be bypassed. The behavioral proof therefore requires one bounded operator-side OPTIONS test.
+
+### Rollback identifiers now frozen
+
+```text
+ruleset id = 56c46388452f4328b27a6e6bf5f55cc8
+rule id = 77758d45428d43fa8c8810569579f90f
+stable ref = wandora_owner_recovery_burst_guard_v1
+```
+
+Rollback must target only this stable rule/ref and must never replace/delete unrelated rulesets wholesale.
