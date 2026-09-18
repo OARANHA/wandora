@@ -476,11 +476,26 @@ Future order is: operator-owned control-plane binding → protected Core custody
 
 The second adversarial review found the current Paperclip disaster-recovery gap: automatic database backups and `master.key` live on the same Docker volume, but both are required to restore `local_encrypted` values. No out-of-volume master-key recovery copy was found, so canary secret creation is blocked.
 
+## Paperclip Local-Encrypted Secret Recovery Snapshot Preflight — COMPLETE
+
+ADR 0074 freezes a same-host, out-of-Docker-volume recovery pair before another `local_encrypted` secret is allowed.
+
+```text
+fresh official Paperclip logical DB backup
++ exact current master.key
++ SHA-256/mode manifest
++ disposable PG18 restore
++ correct-key decrypt/hash-match
++ wrong-key decrypt rejection
+```
+
+The proof reuses the exact production Paperclip image/runtime and never prints restored plaintext. No snapshot or canary wiring effect was created during the preflight.
+
 ## Next executable slice
 
-Next: **Paperclip Local-Encrypted Secret Recovery Snapshot Preflight V1.**
+Next: **Paperclip Local-Encrypted Secret Recovery Snapshot Execution V1.**
 
-Freeze an out-of-volume database + `master.key` recovery pair and a disposable restore/secret-resolution proof before any additional Organization Adapter wiring effect.
+Create and prove the protected recovery pair, clean only disposable proof state, and stop before customer-hire canary HMAC/secret/config/binding/hire.
 
 ## Platform Admin
 
@@ -543,6 +558,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0071 — Customer Hire Canary Paperclip Provider Company Bootstrap Preflight V1
 - ADR 0072 — Customer Hire Canary Paperclip Provider Company Bootstrap Execution V1
 - ADR 0073 — Customer Hire Canary Organization Adapter Custody + Config + Binding Preflight V1
+- ADR 0074 — Paperclip Local-Encrypted Secret Recovery Snapshot Preflight V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
