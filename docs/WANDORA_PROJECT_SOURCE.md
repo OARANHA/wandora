@@ -527,33 +527,37 @@ Gateway outbound = OFF
 
 Independent hash-only validation proves the Core HMAC file and Paperclip encrypted secret version represent the same plaintext without revealing it.
 
-## Customer Hire Canary Private Candidate Hire Preflight — COMPLETE
+## Customer Hire Canary Private Candidate Hire Preflight — COMPLETE / RECONCILED
 
-ADR 0077 freezes the first customer-like paused-first hire proof.
+ADR 0077 prefers the later PR #111 candidate already cryptographically verified and staged on the host:
 
 ```text
-candidate = existing PR #109 reviewed artifact
-candidate ingress = private only / no published ports
-Human API = ON
-Organization Adapter = ON
-Customer Digital-Employee Hire = ON only in candidate
-Gateway ingress / Agent Runtime / Human Send = OFF
-
-real owner identity = existing canary Supabase owner
-temporary canary Auth session = separate from existing sessions
-primary idempotency key = customer-hire-canary:ana-commercial-v1:v1
-catalog = ana-commercial-v1
-expected Wandora status = paused + supervised
-expected Paperclip status = paused
+image = wandora/core:organization-adapter-candidate-f8e553072c36
+artifact id = 10535228149
+runtime/compose difference vs current main = none
+candidate running = false
+public ingress = none
 ```
 
-Existing owner refresh chains are never consumed. Same-key and alternate-key/same-catalog replay must not create duplicate employee, operation, provider binding or Paperclip agent. The candidate and its temporary Auth session are removed after proof; the successful paused hire remains.
+The older PR #109 candidate was rechecked and is not invalid; it is simply not selected because the later artifact is equally current-equivalent and already staged.
+
+The live hire proof requires a **real normal Supabase owner browser session**. Privileged/service-role impersonation and refresh-token harvesting are rejected. The candidate may be started and proven ready autonomously, but no hire is sent until that real bearer passes candidate `GET /api/v1/me`.
+
+```text
+primary idempotency key = customer-hire-canary:ana-commercial-v1:v1
+catalog = ana-commercial-v1
+expected Wandora result = Ana paused + supervised
+expected Paperclip result = managed Ana paused
+normal live Core hire gate = OFF
+Human Send = OFF
+Gateway outbound = OFF
+```
 
 ## Next executable slice
 
 Next: **Customer Hire Canary — Private Candidate Core Hire Execution V1.**
 
-Execute the frozen private candidate proof and stop before public hire rollout, activation, Human Send or Gateway outbound.
+Start/prove the private candidate. If a real owner bearer is available through the approved non-chat ephemeral channel, execute the one-shot hire and replay proofs; otherwise stop after readiness without substituting privileged auth.
 
 ## Platform Admin
 
