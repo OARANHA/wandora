@@ -533,11 +533,45 @@ A dedicated Core CI harness applies migrations 001→012 in order, reapplies 012
 
 **Migration 012 is not applied to production by this implementation slice.** The future canary tenant and Paperclip company remain absent; Customer Digital-Employee Hire, Human Send and Gateway outbound remain OFF.
 
+## Private Tenant Provisioning V2 — PRODUCTION MIGRATION PREFLIGHT COMPLETE / NOT LIVE
+
+ADR 0067 closes the production migration preflight without applying migration 012.
+
+Fresh read-only live evidence before the preflight showed:
+
+```text
+organizations                     = 2
+digital_employees                 = 3
+control_plane_provider_bindings   = 1
+digital_employee_provider_bindings= 1
+completed catalog hire operations = 1
+tenant_provisioning_requests      = 0
+customer-hire canary              = absent
+
+V1 function                       = present
+V2 function                       = absent
+provisioning_version column       = absent
+employee_id                       = NOT NULL
+```
+
+The current rollback snapshot is:
+
+```text
+/home/wandora-admin/backups/postgres-pre-provisioning-v2-20260918T070139Z.dump
+sha256=d88a4acb89eba37f7a366621c1d0ede4a824a26e54565bd823591979f28853ff
+```
+
+Restore proof on disposable `supabase/postgres:17.6.1.136` reproduced the current production business/integration counts and confirmed V1 present / V2 absent.
+
+The exact canonical migration 012 Git blob `f9b6eedaf56b967ce9b30fd9a0558fb4c4cd34e7` was then applied twice to a disposable restore of that snapshot. It preserved all current business rows, created V2 only for `wandora_platform_provisioner`, and remained denied to Core/authenticated. A migration-only reverse path also restored the exact pre-012 schema while the provisioning ledger remained empty.
+
+**Migration 012 is still absent from production.** Customer Digital-Employee Hire, Human Send and Gateway outbound remain OFF. The canary tenant and Paperclip company remain absent.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Private Tenant Provisioning V2 — Production Migration Preflight V1.**
+Next: **Private Tenant Provisioning V2 — Production Migration Execution V1.**
 
-Reverify the exact live migration/role/table/function state, backup/reversibility and migration-012 diff before any production application. Do not create the canary tenant or Paperclip company, enable customer hire, deploy #109, activate employees or enable outbound effects during the preflight.
+Apply only migration 012 to production after a fresh state/SHA recheck, immediately run its live-safe verifier, prove all existing business/provider counts unchanged and provisioning requests still zero, and keep every customer/provider/outbound effect OFF. Do not create the canary tenant or Paperclip company in the migration execution slice.
 
 ## Operational safety
 
