@@ -143,7 +143,7 @@ assert(
     location: {
       pathname: '/',
       search: '?keep=1',
-      hash: validHash.replace('type=invite', 'type=recovery'),
+      hash: validHash.replace('type=invite', 'type=magiclink'),
     },
     history: { replaceState(_state, _unused, url) { unsupportedRootReplace = url; } },
     storage: invalidStorage,
