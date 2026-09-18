@@ -895,11 +895,21 @@ The recovery edge guard remains reachable normally after mitigation and direct-o
 
 No real invite/recovery has been sent.
 
+## First Real Customer Owner Access Preflight — COMPLETE / BLOCKED
+
+ADR 0095 revalidated the live owner-access Web, Auth boundary and recovery edge with no external effect.
+
+The browser/edge foundation is ready, but the live Auth SMTP target is still the development/default `supabase-mail:2500`. That hostname does not resolve from the Auth container and no `supabase-mail` service exists in the production Supabase Compose. Transactional invitation e-mail is therefore not operational.
+
+The other gate remains deliberate: no genuine new customer owner + real customer organization target exists yet. Existing legacy/canary/internal tenants are not repurposed merely to advance the proof.
+
+No invite/recovery, Auth user, tenant, provider state, eligibility or outbound effect was created.
+
 ## Next executable slice
 
-Next: **Customer Owner First Real Access End-to-End Validation Preflight V1.**
+Next: **Customer Owner Transactional E-mail Delivery Foundation Preflight V1.**
 
-No-effect preflight only: select the exact first controlled proof context and freeze the permitted external effects before any invitation or recovery is sent.
+No-effect preflight only. Select and prove the production SMTP provider, secret custody, sender-domain requirements, exact GoTrue configuration delta and rollback without sending invite/recovery/test mail or creating customer state.
 
 ## Platform Admin
 
@@ -983,6 +993,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0092 — Customer Owner Recovery Edge Anti-Abuse Credential + Activation Execution V1 Pre-Mutation Credential Gate
 - ADR 0093 — Customer Owner Recovery Edge Anti-Abuse Credential + Activation Execution V1
 - ADR 0094 — Customer Owner Invite + Recovery Web Production Activation Execution V1
+- ADR 0095 — Customer Owner First Real Access End-to-End Validation Preflight V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
