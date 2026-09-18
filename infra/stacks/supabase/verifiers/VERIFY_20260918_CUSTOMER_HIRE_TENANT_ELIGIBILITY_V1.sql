@@ -89,6 +89,28 @@ BEGIN
        'UPDATE'
      )
   THEN RAISE EXCEPTION 'customer_hire_eligibility_provisioner_authority_leak'; END IF;
+
+  IF NOT has_function_privilege(
+       'wandora_platform_provisioner',
+       'wandora_private.set_digital_employee_catalog_hire_eligibility(uuid,text,boolean)',
+       'EXECUTE'
+     )
+     OR has_function_privilege(
+       'wandora_core_runtime',
+       'wandora_private.set_digital_employee_catalog_hire_eligibility(uuid,text,boolean)',
+       'EXECUTE'
+     )
+     OR has_function_privilege(
+       'authenticated',
+       'wandora_private.set_digital_employee_catalog_hire_eligibility(uuid,text,boolean)',
+       'EXECUTE'
+     )
+     OR has_function_privilege(
+       'anon',
+       'wandora_private.set_digital_employee_catalog_hire_eligibility(uuid,text,boolean)',
+       'EXECUTE'
+     )
+  THEN RAISE EXCEPTION 'customer_hire_eligibility_function_authority_invalid'; END IF;
 END
 $$;
 
@@ -99,10 +121,52 @@ VALUES
   ('61111111-1111-4111-8111-111111111101', 'hire-eligibility-a', 'Hire Eligibility A'),
   ('61111111-1111-4111-8111-111111111102', 'hire-eligibility-b', 'Hire Eligibility B');
 
+SET LOCAL ROLE wandora_platform_provisioner;
+
+SELECT *
+FROM wandora_private.set_digital_employee_catalog_hire_eligibility(
+  '61111111-1111-4111-8111-111111111101',
+  ' ANA-COMMERCIAL-V1 ',
+  true
+);
+
+RESET ROLE;
+
+DO $
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+      FROM wandora_private.digital_employee_catalog_hire_eligibility
+     WHERE organization_id = '61111111-1111-4111-8111-111111111101'
+       AND catalog_key = 'ana-commercial-v1'
+       AND enabled
+  ) THEN
+    RAISE EXCEPTION 'customer_hire_eligibility_operator_enable_failed';
+  END IF;
+END
+$;
+
+SET LOCAL ROLE wandora_platform_provisioner;
+
+SELECT *
+FROM wandora_private.set_digital_employee_catalog_hire_eligibility(
+  '61111111-1111-4111-8111-111111111101',
+  'ana-commercial-v1',
+  false
+);
+
+SELECT *
+FROM wandora_private.set_digital_employee_catalog_hire_eligibility(
+  '61111111-1111-4111-8111-111111111101',
+  'ana-commercial-v1',
+  true
+);
+
+RESET ROLE;
+
 INSERT INTO wandora_private.digital_employee_catalog_hire_eligibility
   (organization_id, catalog_key, enabled)
 VALUES
-  ('61111111-1111-4111-8111-111111111101', 'ana-commercial-v1', true),
   ('61111111-1111-4111-8111-111111111102', 'ana-commercial-v1', true);
 
 SET LOCAL ROLE wandora_core_runtime;
@@ -144,7 +208,49 @@ $$;
 
 RESET ROLE;
 
-DO $$
+UPDATE wandora.organizations
+   SET status = 'suspended'
+ WHERE id = '61111111-1111-4111-8111-111111111102';
+
+SET LOCAL ROLE wandora_platform_provisioner;
+DO $
+BEGIN
+  BEGIN
+    PERFORM *
+      FROM wandora_private.set_digital_employee_catalog_hire_eligibility(
+        '61111111-1111-4111-8111-111111111102',
+        'ana-commercial-v1',
+        true
+      );
+    RAISE EXCEPTION 'expected_customer_hire_eligibility_suspended_enable_denial';
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM <> 'customer_hire_eligibility_organization_not_active' THEN
+      RAISE;
+    END IF;
+  END;
+END
+$;
+
+SELECT *
+FROM wandora_private.set_digital_employee_catalog_hire_eligibility(
+  '61111111-1111-4111-8111-111111111102',
+  'ana-commercial-v1',
+  false
+);
+RESET ROLE;
+
+DO $
+BEGIN
+  IF (SELECT enabled
+        FROM wandora_private.digital_employee_catalog_hire_eligibility
+       WHERE organization_id = '61111111-1111-4111-8111-111111111102'
+         AND catalog_key = 'ana-commercial-v1') IS DISTINCT FROM false THEN
+    RAISE EXCEPTION 'customer_hire_eligibility_suspended_disable_failed';
+  END IF;
+END
+$;
+
+DO $
 BEGIN
   BEGIN
     INSERT INTO wandora_private.digital_employee_catalog_hire_eligibility
