@@ -2,7 +2,7 @@
 
 Snapshot date: **2026-09-17**
 Repository: `OARANHA/wandora`
-Canonical base verified before this closure: `e42f29967892c626c1ca790ee41ec0ceabc251ed`
+Canonical base before this canary-completion checkpoint: `58b792529e8fa7fa9e4b556459f45952b607ee43`
 
 > **Purpose:** compact bootstrap for ChatGPT Project Sources and future development sessions. It prevents architectural drift, accidental reinvention and stale workflow assumptions.
 >
@@ -148,8 +148,9 @@ Cloudflare Access: required/proven for both
 
 Paperclip companies = 1
 Paperclip canary company = Wandora Internal Supervised Proof
-Paperclip canary agents = 0
-Paperclip plugin registry entries = 0
+Paperclip canary agents = 1
+Paperclip managed resources = 1
+Organization Adapter plugin = wandora.organization-adapter-v1@0.1.0, ready
 
 Human Send: OFF / enable flag absent
 Gateway outbound: OFF / enable flag absent
@@ -158,7 +159,7 @@ digital_employees = 2
 active_employees = 2
 ```
 
-Migrations `20260916_010_organization_adapter_state_v1.sql` and `20260916_011_organization_adapter_service_contract_v1.sql` remain **merged in Git but not applied live** at this snapshot. No Organization Adapter production HMAC exists and the candidate Core remains loaded but not running.
+Migrations `20260916_010_organization_adapter_state_v1.sql` and `20260916_011_organization_adapter_service_contract_v1.sql` are **live**, and both canonical verifiers are green. The internal canary has live provider binding + company-scoped custody/config. The candidate image remains loaded; the temporary smoke container was removed after the successful canary.
 
 ## Paperclip boundary — proven
 
@@ -179,7 +180,7 @@ Paperclip task/run
 
 The adapter minimizes provider context via allow-list. Wandora never receives Paperclip's JWT master signing secret.
 
-## ADR 0038 — Organization Adapter private state — MERGED, INERT
+## ADR 0038 — Organization Adapter private state — LIVE FOR INTERNAL CANARY
 
 The accepted minimum private state remains:
 
@@ -187,15 +188,9 @@ The accepted minimum private state remains:
 - Wandora digital employee <-> provider agent binding;
 - operation journal for Wandora idempotency/request hash/recovery/audit.
 
-Migration `20260916_010_organization_adapter_state_v1.sql` remains deliberately inert and not live:
+Migration 010 is live and remains private. Migration 011 grants only the reviewed minimum Core runtime contract. There is still no authenticated/customer direct access, no customer hiring route, and provider credentials remain behind the adapter/custody boundaries.
 
-- no `wandora_core_runtime` access;
-- no `authenticated` access;
-- no customer hiring route;
-- no provider credential;
-- no live Paperclip adapter installation.
-
-## ADR 0039 — Managed Catalog Organization Adapter V1 — MERGED, NOT LIVE
+## ADR 0039 — Managed Catalog Organization Adapter V1 — LIVE FOR INTERNAL CANARY
 
 PR #78 merged at:
 
@@ -254,35 +249,44 @@ The old native `digital_employee_work_assignments` direction was rejected before
 
 Do not create a Wandora-native employee hierarchy/responsibility/task control plane merely because the concepts are convenient locally.
 
-## Next executable slice
+## Current Organization Adapter canary
 
-Do **not** expose customer `Contratar funcionário` yet.
-
-Production Activation Preflight V2 is complete in ADR 0057. The legitimate Paperclip instance-admin exists and one provider company is frozen for the internal canary:
+ADR 0059 records the completed internal canary.
 
 ```text
-Wandora organization = Wandora Internal Supervised Proof
-Paperclip company     = Wandora Internal Supervised Proof
-providerCompanyRef    = 815d499e-4231-4e6b-b7fc-67f0ba22a595
-Paperclip agents      = 0
+migrations 010/011 = LIVE + verifiers green
+internal Wandora -> Paperclip binding = 1
+Paperclip plugin = installed + ready
+Paperclip company config = present
+company-scoped custody = live
+Wandora Ana = 1 active / supervised
+Paperclip Ana = 1 paused / wandora_mastra
+Paperclip managed resources = 1
+same-idempotency-key replay = same Wandora employee id
+
+live Core Organization Adapter = OFF
+Human Send = OFF
+Gateway outbound = OFF
+customer Contratar/Ativar = absent
+Empresa Exemplo Paperclip company = absent
 ```
 
-The next possible slice is a separate **Organization Adapter Production Activation Execution V1**. It is a real production-effect decision and is **not executed or implicitly authorized** by the preflight.
+The first canary attempt failed closed at Paperclip's private hostname guard. PR #103 added only the internal Docker hostname to the allowlist, preserved the guard, and the same `uncertain` operation was retried with the same idempotency key and completed.
 
-Frozen high-level order:
+The temporary candidate smoke container was removed after validation; the provenance-matched candidate image remains loaded.
 
-1. fresh REAL NOW + second adversarial review;
-2. migration 010 + verifier;
-3. migration 011 + verifier;
-4. operator-only Wandora organization -> Paperclip company binding, fail-closed on conflict;
-5. verify/materialize the canonical CI plugin artifact;
-6. install only `wandora.organization-adapter-v1@0.1.0`;
-7. generate one per-company HMAC exactly once and establish Core/Paperclip custody;
-8. configure only the internal canary company with its own `secret_ref`;
-9. re-render/promote the candidate Core with Organization Adapter enabled, customer hire route still absent, Human Send OFF and Gateway outbound OFF;
-10. run one internal canary and validate stable managed Ana/replay before any second/customer company.
+## Next executable slice
 
-`Empresa Exemplo` deliberately has no Paperclip provider company yet. Do not create it merely to continue context recovery.
+Next: **Organization Adapter Live Core Promotion V1**.
+
+1. fresh REAL NOW and authority review;
+2. render the candidate preserving database, Gateway ingress, deterministic Agent Runtime and Human API overlays;
+3. keep Human Send and Gateway outbound absent;
+4. second adversarial review of replacement/rollback and traffic impact;
+5. promote only the provenance-matched candidate image if all gates remain green;
+6. validate live Core health/readiness and existing customer read/ingress paths;
+7. keep customer hiring/activation absent;
+8. stop before second/customer Paperclip company provisioning and the live cross-company gate.
 
 ## Platform Admin
 
@@ -332,6 +336,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0039 — Managed Catalog Organization Adapter V1
 - ADR 0056 — Paperclip Provider Company Bootstrap V1
 - ADR 0057 — Organization Adapter Production Activation Preflight V2 Closure
+- ADR 0059 — Organization Adapter Execution V1 internal canary
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
