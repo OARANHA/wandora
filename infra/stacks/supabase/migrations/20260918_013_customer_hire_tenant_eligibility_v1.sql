@@ -1,5 +1,41 @@
 BEGIN;
 
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_roles WHERE rolname = 'wandora_customer_hire_operator'
+  ) THEN
+    CREATE ROLE wandora_customer_hire_operator
+      NOLOGIN
+      NOSUPERUSER
+      NOCREATEDB
+      NOCREATEROLE
+      NOINHERIT
+      NOREPLICATION
+      NOBYPASSRLS;
+  ELSE
+    IF EXISTS (
+      SELECT 1
+        FROM pg_roles
+       WHERE rolname = 'wandora_customer_hire_operator'
+         AND (
+           rolcanlogin
+           OR rolsuper
+           OR rolcreatedb
+           OR rolcreaterole
+           OR rolinherit
+           OR rolreplication
+           OR rolbypassrls
+         )
+    ) THEN
+      RAISE EXCEPTION 'wandora_customer_hire_operator_role_drift';
+    END IF;
+  END IF;
+END;
+$$;
+
+GRANT USAGE ON SCHEMA wandora_private TO wandora_customer_hire_operator;
+
 CREATE TABLE IF NOT EXISTS wandora_private.digital_employee_catalog_hire_eligibility (
   organization_id uuid NOT NULL REFERENCES wandora.organizations(id) ON DELETE CASCADE,
   catalog_key text NOT NULL CHECK (catalog_key ~ '^[a-z0-9][a-z0-9._-]{2,63}$'),
@@ -19,7 +55,7 @@ ALTER TABLE wandora_private.digital_employee_catalog_hire_eligibility ENABLE ROW
 
 REVOKE ALL ON wandora_private.digital_employee_catalog_hire_eligibility
   FROM PUBLIC, anon, authenticated, service_role, supabase_functions_admin,
-       wandora_core_runtime, wandora_platform_provisioner;
+       wandora_core_runtime, wandora_platform_provisioner, wandora_customer_hire_operator;
 
 GRANT SELECT ON wandora_private.digital_employee_catalog_hire_eligibility
   TO wandora_core_runtime;
@@ -91,11 +127,11 @@ $$;
 REVOKE ALL ON FUNCTION wandora_private.set_digital_employee_catalog_hire_eligibility(
   uuid, text, boolean
 ) FROM PUBLIC, anon, authenticated, service_role, supabase_functions_admin,
-       wandora_core_runtime, wandora_platform_provisioner;
+       wandora_core_runtime, wandora_platform_provisioner, wandora_customer_hire_operator;
 
 GRANT EXECUTE ON FUNCTION wandora_private.set_digital_employee_catalog_hire_eligibility(
   uuid, text, boolean
-) TO wandora_platform_provisioner;
+) TO wandora_customer_hire_operator;
 
 DO $$
 BEGIN
@@ -114,6 +150,8 @@ BEGIN
 END
 $$;
 
+COMMENT ON ROLE wandora_customer_hire_operator IS
+  'NOLOGIN least-privilege Wandora operator capability for customer catalog-hire eligibility; no direct table DML and no tenant-provisioning authority.';
 COMMENT ON TABLE wandora_private.digital_employee_catalog_hire_eligibility IS
   'Private Wandora-owned product policy controlling whether a tenant may start a new catalog digital-employee hire. Provider-neutral and operator-owned.';
 COMMENT ON FUNCTION wandora_private.set_digital_employee_catalog_hire_eligibility(uuid, text, boolean) IS
