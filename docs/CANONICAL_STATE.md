@@ -1418,9 +1418,68 @@ mode = 0640
 
 No Cloudflare rule, Web/Auth runtime, recovery/invite, tenant/provider state or eligibility changed. After the token is securely installed, resume the same execution slice at ruleset read/snapshot; stop if the Free-plan slot is already occupied.
 
+## Customer Owner Recovery Edge Anti-Abuse Credential + Activation Execution V1 — COMPLETE
+
+ADR 0093 closes the Cloudflare edge activation.
+
+The dedicated WAF credential is stored at:
+
+```text
+/opt/wandora/data/cloudflare/secrets/recovery_ratelimit_api_token
+owner = root:wandora-ops
+mode = 0640
+size = 53 bytes
+```
+
+The existing DNS token was not widened.
+
+Immediately before mutation, Cloudflare returned `404 / 10003` for the zone `http_ratelimit` entry point, proving no rate-limit ruleset existed.
+
+The created and read-back rule is exactly:
+
+```text
+ruleset id = 56c46388452f4328b27a6e6bf5f55cc8
+rule id = 77758d45428d43fa8c8810569579f90f
+ref = wandora_owner_recovery_burst_guard_v1
+path = /auth/v1/recover
+action = block
+characteristics = cf.colo.id + ip.src
+period = 10 seconds
+requests = 6
+mitigation = 10 seconds
+exact match = true
+```
+
+OPTIONS-only validation from independent `28server` proved the edge control without generating recovery state:
+
+```text
+baseline OPTIONS = 200
+bounded burst = multiple 429 responses
+after 12 seconds = 200
+
+Auth users = 1
+recovery_token rows = 0
+recovery_sent rows = 0
+```
+
+The direct-origin TCP check from `28server` still timed out on port 443, so no new external origin bypass became reachable.
+
+The owner-access Web candidate remains staged but not running:
+
+```text
+wandora/web:owner-access-candidate-5f135e90
+sha256:7921ad23cd626efc9f6fc619f70fc98a5d62e862958d6534edc488e6afc21ba5
+```
+
+Live Web remains `wandora/web:candidate-af542864d267`.
+
+No invite/recovery, tenant/provider state, eligibility, Human Send or Gateway outbound effect occurred.
+
 ## NEXT EXECUTABLE SLICE
 
-Resume: **Customer Owner Recovery Edge Anti-Abuse Credential + Activation Execution V1** after operator credential issuance/custody.
+Next: **Customer Owner Invite + Recovery Web Production Activation Execution V1.**
+
+Promote only the already-proven owner-access Web candidate under ADR 0090's frozen image-only activation/rollback contract. Do not issue a real invite or recovery in that deployment slice.
 
 ## Operational safety
 
