@@ -282,17 +282,27 @@ The temporary candidate smoke container was removed after validation. ADR 0060 t
 
 Post-promotion replay through the live Core returned the same existing Ana employee ID. Paperclip remains at one company, one paused Ana and one managed resource.
 
+## Live cross-company isolation preflight
+
+ADR 0061 accepts the minimum reversible live A/B proof plan.
+
+Current production has only the internal Paperclip company; `Empresa Exemplo` remains deliberately unbound. The existing disposable final-contract proof already establishes A-secret -> B-target denial. The remaining gap is live evidence against the production Paperclip/plugin/custody composition.
+
+The selected execution fixture is one ephemeral provider-only company:
+
+```text
+Wandora Cross-Company Isolation Proof B
+```
+
+It receives no Wandora organization/provider binding and is not customer state. The execution must configure B with a B-owned secret_ref, prove cross-company secret-ref rejection, prove A-HMAC -> B-target denial with zero B resources, then remove B through the official Paperclip API and verify no provider/Wandora residue.
+
+A positive B reconcile is intentionally excluded.
+
 ## Next executable slice
 
-Next: **Organization Adapter Live Cross-Company Isolation Preflight V1** — observation/plan-first.
+Next: **Organization Adapter Live Cross-Company Isolation Execution V1**.
 
-1. fresh REAL NOW and authority review;
-2. re-read ADRs 0039/0040/0057/0059/0060 and the disposable A-secret -> B-target denial evidence;
-3. determine whether a second live provider company is actually required to close the remaining live isolation gate;
-4. do not create `Empresa Exemplo` in Paperclip merely to begin the preflight;
-5. if required, freeze the minimum second-company/bootstrap/config/custody sequence before any effect;
-6. perform a second adversarial review;
-7. keep customer hiring/activation, Human Send and Gateway outbound absent during the preflight.
+Run fresh REAL NOW first. Keep `Empresa Exemplo` unprovisioned, customer hire/activate absent, Human Send OFF and Gateway outbound OFF. If B cleanup fails, stop and document the residual fixture; never repair provider state with direct SQL.
 
 ## Platform Admin
 
