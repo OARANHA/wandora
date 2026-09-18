@@ -527,11 +527,33 @@ Gateway outbound = OFF
 
 Independent hash-only validation proves the Core HMAC file and Paperclip encrypted secret version represent the same plaintext without revealing it.
 
+## Customer Hire Canary Private Candidate Hire Preflight — COMPLETE
+
+ADR 0077 freezes the first customer-like paused-first hire proof.
+
+```text
+candidate = existing PR #109 reviewed artifact
+candidate ingress = private only / no published ports
+Human API = ON
+Organization Adapter = ON
+Customer Digital-Employee Hire = ON only in candidate
+Gateway ingress / Agent Runtime / Human Send = OFF
+
+real owner identity = existing canary Supabase owner
+temporary canary Auth session = separate from existing sessions
+primary idempotency key = customer-hire-canary:ana-commercial-v1:v1
+catalog = ana-commercial-v1
+expected Wandora status = paused + supervised
+expected Paperclip status = paused
+```
+
+Existing owner refresh chains are never consumed. Same-key and alternate-key/same-catalog replay must not create duplicate employee, operation, provider binding or Paperclip agent. The candidate and its temporary Auth session are removed after proof; the successful paused hire remains.
+
 ## Next executable slice
 
-Next: **Customer Hire Canary — Private Candidate Core Hire Preflight V1.**
+Next: **Customer Hire Canary — Private Candidate Core Hire Execution V1.**
 
-Freeze the private production-connected candidate, reviewed source/image provenance, authorized human-session POST, stable idempotency/replay contract, paused-first expected results, non-leakage checks and teardown before executing the first customer-like hire.
+Execute the frozen private candidate proof and stop before public hire rollout, activation, Human Send or Gateway outbound.
 
 ## Platform Admin
 
@@ -597,6 +619,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0074 — Paperclip Local-Encrypted Secret Recovery Snapshot Preflight V1
 - ADR 0075 — Paperclip Local-Encrypted Secret Recovery Snapshot Execution V1
 - ADR 0076 — Customer Hire Canary Organization Adapter Custody + Config + Binding Execution V1
+- ADR 0077 — Customer Hire Canary Private Candidate Core Hire Preflight V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 

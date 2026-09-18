@@ -830,13 +830,50 @@ Execution order matched ADR 0073: operator binding → HMAC custody → encrypte
 
 The canary still has zero digital employees, zero digital-employee provider bindings and zero hire operations. Organization Adapter remains ON while Customer Digital-Employee Hire, Human Send and Gateway outbound remain OFF.
 
+## Customer Hire Canary — Private Candidate Core Hire Preflight V1 — COMPLETE / NO HIRE YET
+
+ADR 0077 freezes the first paused-first customer-like hire proof.
+
+The exact reviewed PR #109 candidate artifact is reused rather than rebuilt. Its manifest/archive/OCI digests are frozen, and direct blob comparison proves the relevant Core runtime/package files plus Human API / Organization Adapter / customer-hire overlays are byte-identical to current canonical source.
+
+The future candidate:
+
+```text
+container = wandora-core-hire-canary-v1
+published ports = none
+public/reverse-proxy ingress = none
+networks = wandora-core + wandora-data
+
+Human API = ON
+Organization Adapter = ON
+Customer Digital-Employee Hire = ON
+
+Gateway ingress = OFF
+Agent Runtime = disabled
+Human Send = OFF
+```
+
+The canary has one real active owner mapped to Supabase Auth. Existing browser/device sessions are not consumed or refreshed. Execution will create one separate temporary session for that same owner through private `supabase-auth:9999`, use its Bearer only via protected transient state/stdin, and revoke only that session afterward.
+
+Frozen primary request:
+
+```text
+POST /api/v1/organizations/918d4c7e-fccb-41f0-aba7-04105a9b4ec0/digital-employees
+Idempotency-Key: customer-hire-canary:ana-commercial-v1:v1
+body: {"catalogKey":"ana-commercial-v1"}
+```
+
+Expected first result is exactly one Wandora Ana `paused + supervised`, one provider binding, one completed hire operation and one paused Paperclip managed Ana. Same-key replay and alternate-key/same-catalog replay must return the same employee without duplication.
+
+No candidate/session/hire effect occurred in this preflight.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Hire Canary — Private Candidate Core Hire Preflight V1.**
+Next: **Customer Hire Canary — Private Candidate Core Hire Execution V1.**
 
-Observation/plan-first only. Freeze the exact reviewed Core image/source, private production-connected composition, real authorized human-session request path, stable idempotency key, paused-first expectations, replay/no-duplicate proofs, response non-leakage, ambiguity handling and complete candidate cleanup.
+Load and cryptographically verify the frozen artifact, start the no-ingress private candidate, create one separate temporary real-owner Supabase session, prove `/me`, issue the primary hire exactly once, reconcile/validate paused Wandora + Paperclip state, prove same-key and alternate-key/same-catalog no-duplicate behavior, revoke only the temporary session and remove the candidate.
 
-Do not execute the hire, expose the candidate publicly, enable the normal live Core customer-hire gate, activate Ana, Human Send or Gateway outbound during that preflight.
+Do not enable the normal live Core hire gate, activate Ana, Human Send or Gateway outbound.
 
 ## Operational safety
 
