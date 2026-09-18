@@ -25,7 +25,8 @@ export type RuntimeReadiness =
         | 'database-unavailable'
         | 'unexpected-database-role'
         | 'tenant-scope-leak'
-        | 'organization-adapter-database-boundary-unavailable';
+        | 'organization-adapter-database-boundary-unavailable'
+        | 'customer-hire-eligibility-database-boundary-unavailable';
     };
 
 export type RuntimeServerDeps = {
