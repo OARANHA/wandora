@@ -903,11 +903,53 @@ The eligibility fact is provider-neutral and operator-owned. It is enabled only 
 
 No production activation occurred.
 
+## Customer Digital-Employee Hire — Tenant Eligibility Contract Implementation V1 — CODE/CI GREEN / NOT LIVE
+
+ADR 0080 records the completed implementation on PR #128.
+
+The contract now provides:
+
+- private provider-neutral eligibility keyed by Wandora organization + catalog;
+- dedicated `wandora_customer_hire_operator` NOLOGIN capability with controlled setter-only authority;
+- Core tenant-scoped read-only eligibility access;
+- eligibility enforcement before new journal/provider effects;
+- original-key-only resume for unfinished hires;
+- completed catalog dedupe independent of later eligibility disablement;
+- provider-neutral customer read states: `available | already-hired | reconciliation-required | unavailable`;
+- Web gating driven by the Core projection rather than owner/admin role alone;
+- refresh/tenant-switch reconciliation that never invents a replacement idempotency key.
+
+Final technical validation before the ADR/checkpoint was fully green:
+
+```text
+Core CI                 35342325894 = success
+Web CI                  35342325859 = success
+Platform Admin CI       35342325774 = success
+Messaging Gateway CI    35342325740 = success
+Core Candidate Artifact 35342325793 = success
+```
+
+Reviewed Core/Web candidate artifacts were produced as CI evidence only and were not promoted.
+
+Production remains unchanged:
+
+```text
+migration 013                             = ABSENT
+tenant/catalog eligibility rows           = none / contract not live
+normal live Customer Digital-Employee Hire = OFF
+Human Send                                = OFF
+Gateway outbound                          = OFF
+```
+
+No live role grant, migration, candidate deployment, customer hire activation, employee activation or outbound effect occurred.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Digital-Employee Hire — Tenant Eligibility Contract Implementation V1.**
+Next: **Customer Digital-Employee Hire — Production Activation Preflight V2.**
 
-Implementation/CI only: add the minimal private eligibility contract, Core enforcement + customer-safe read projection, and Web gating while preserving owner/admin isolation and PR #126 idempotency. Keep normal live hire, Human Send and Gateway outbound OFF; do not apply the production migration or deploy candidates in that implementation slice.
+Preflight only: revalidate current `main` + live DB/runtime, prove migration 013 remains absent, select exact post-merge Core/Web artifacts, freeze migration/deploy/rollback order with the global hire gate OFF, define zero-eligibility post-migration validation and the least-privilege future operator path, and inspect candidate tenants independently before any enablement.
+
+Do not apply migration 013, deploy candidates, grant a live operator path, enable eligibility or enable the global hire gate merely because ADR 0080 is green.
 
 ## Operational safety
 
