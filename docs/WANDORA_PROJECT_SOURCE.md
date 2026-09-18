@@ -755,11 +755,23 @@ Private Tenant Provisioning V2 is ready but requires a real existing Supabase Au
 
 The selected beta path is invite-only onboarding through Supabase Auth, followed by employee-free V2 provisioning, Paperclip company/bootstrap+wiring, and finally the ADR 0085 serialized tenant eligibility transaction. No synthetic tenant is created merely to advance rollout.
 
+## Customer Owner Invite Acceptance + First Password — IMPLEMENTED / NOT LIVE
+
+ADR 0087 implements the provider-aligned normal first-access path in Web/code/CI only.
+
+Against exact GoTrue v2.196.0 source, Wandora now handles the current administrative invite as an implicit-flow redirect, strictly stages only `sb + type=invite + bearer + unexpired` sessions, removes credentials from the URL before React renders, supports SITE_URL-root fallback, and sets the first password through authenticated Supabase Auth `PUT /user`.
+
+The invite session is isolated from the normal browser session until password success; existing `/api/v1/me` remains the canonical Wandora user/organization authorization boundary. No `service_role` or Auth-admin secret is added to Web/Core.
+
+Web CI proved the invite acceptance, first-password, existing customer-hire browser and Human API bridge contracts together. The code is **not deployed** and no real invite/Auth user/customer tenant/provider/eligibility effect occurred.
+
+An explicit operational gap remains: if the browser session is lost after one-time invite verification but before the password is defined, the customer cannot know GoTrue's random temporary password. A Supabase Auth recovery contract must be reviewed before real customer invitation.
+
 ## Next executable slice
 
-Next: **Customer Owner Invite Acceptance + First Password Contract Implementation V1.**
+Next: **Customer Owner Interrupted Invite Recovery Contract Preflight V1.**
 
-Code/CI only. Implement the reviewed browser first-access contract without sending a real invite or changing production customer/provider/eligibility state.
+Preflight only. Reuse Supabase Auth recovery/generate-link semantics; do not send a real recovery, create a customer Auth user, deploy Web, provision a tenant, create provider wiring or enable eligibility.
 
 ## Platform Admin
 
@@ -835,6 +847,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0084 — Customer Digital-Employee Hire Global Runtime Gate Activation Execution V1
 - ADR 0085 — Customer Digital-Employee Hire First Tenant Eligibility Rollout Preflight V1
 - ADR 0086 — Customer Digital-Employee Hire Clean Tenant Rollout Candidate Preparation Preflight V1
+- ADR 0087 — Customer Owner Invite Acceptance + First Password Contract Implementation V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
