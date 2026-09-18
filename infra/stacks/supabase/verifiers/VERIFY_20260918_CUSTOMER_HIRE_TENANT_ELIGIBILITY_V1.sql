@@ -81,8 +81,18 @@ BEGIN
        'wandora_private.digital_employee_catalog_hire_eligibility',
        'SELECT'
      )
+     OR has_table_privilege(
+       'service_role',
+       'wandora_private.digital_employee_catalog_hire_eligibility',
+       'SELECT'
+     )
+     OR has_table_privilege(
+       'supabase_functions_admin',
+       'wandora_private.digital_employee_catalog_hire_eligibility',
+       'SELECT'
+     )
   THEN
-    RAISE EXCEPTION 'customer_hire_eligibility_browser_leak';
+    RAISE EXCEPTION 'customer_hire_eligibility_non_operator_leak';
   END IF;
 
   IF has_table_privilege(
@@ -126,6 +136,16 @@ BEGIN
      )
      OR has_function_privilege(
        'anon',
+       'wandora_private.set_digital_employee_catalog_hire_eligibility(uuid,text,boolean)',
+       'EXECUTE'
+     )
+     OR has_function_privilege(
+       'service_role',
+       'wandora_private.set_digital_employee_catalog_hire_eligibility(uuid,text,boolean)',
+       'EXECUTE'
+     )
+     OR has_function_privilege(
+       'supabase_functions_admin',
        'wandora_private.set_digital_employee_catalog_hire_eligibility(uuid,text,boolean)',
        'EXECUTE'
      )
