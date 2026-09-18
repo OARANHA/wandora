@@ -1238,13 +1238,43 @@ Invite verification consumes the one-time token and GoTrue assigns a random temp
 
 Therefore the normal first-access path is implemented, but a real customer invitation is not yet operationally recoverable. Recovery must reuse Supabase Auth recovery semantics rather than inventing Wandora credential state.
 
+## Customer Owner Interrupted Invite Recovery Contract Preflight V1 — COMPLETE / NO EFFECT
+
+ADR 0088 closes the interrupted-invite recovery preflight against exact `supabase/auth@v2.196.0`.
+
+The provider-native public `POST /recover` path is sufficient: unknown e-mails receive neutral `200 {}`; existing users receive provider-owned recovery tokens/e-mail; successful implicit verification consumes recovery token state and issues an authenticated `type=recovery` session. The recovery verification itself does not set a new password.
+
+The selected future Web contract is a dedicated `/recover-access` request/callback/reset flow. Recovery sessions must be staged separately from invite and normal sessions, URL credentials removed before React render, and password definition must reuse ADR 0087's authenticated `GET /user -> PUT /user -> password grant` reconciliation before normal session promotion and `/api/v1/me` bootstrap.
+
+No Wandora recovery-token table or generic Core Auth-recovery proxy is justified. Protected `/admin/generate_link type=recovery` remains operator-only emergency/diagnostic capability and is not the customer path.
+
+Read-only production evidence remained:
+
+```text
+Auth users = 1
+users with recovery_token = 0
+users with recovery_sent_at = 0
+recovery one-time tokens = 0
+eligibility rows = 0
+enabled eligibility rows = 0
+unfinished hire operations = 0
+
+Customer Digital-Employee Hire = ON
+Human Send = OFF
+Gateway outbound = OFF
+```
+
+Live GoTrue has SMTP configured, public signup disabled and the Wandora app origin allow-listed. CAPTCHA is currently unset/disabled. Provider rate/frequency limits exist, but ADR 0088 makes anti-abuse review (provider-native CAPTCHA and/or compatible edge protection) an explicit activation gate before the first real customer recovery.
+
+No `/recover` or admin generate-link call was made. No invite/recovery e-mail or token was generated, no Auth user or tenant was created, no Web/Core/Auth deploy occurred, no provider wiring changed and no eligibility was enabled.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Owner Interrupted Invite Recovery Contract Preflight V1.**
+Next: **Customer Owner Interrupted Invite Recovery Contract Implementation V1.**
 
-Preflight only. Inspect exact GoTrue v2.196.0 recovery/generate-link behavior and select the minimum fail-closed recovery path for an invite that was verified but interrupted before password definition.
+Code/CI only. Implement the dedicated request/callback/reset Web flow, strict `type=recovery` staging and shared password-finalization verifier.
 
-Do not send a real recovery email/link, create a real customer Auth user, deploy the new Web, provision a tenant, create provider wiring or enable eligibility during that preflight.
+Do not deploy, send a real recovery/invite, create a real customer Auth user, provision a tenant, create provider wiring or enable eligibility during that implementation slice.
 
 ## Operational safety
 
