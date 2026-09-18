@@ -101,6 +101,7 @@ The following are current decisions unless superseded by a newer accepted ADR:
 - ADR 0068 makes Private Tenant Provisioning V2 live as a dormant least-privilege operator capability: migration 012 is applied/verified, V2 has not yet provisioned any tenant, and customer/provider/outbound effects remain OFF.
 - ADR 0069 freezes the first customer-hire canary tenant provisioning request and proves a no-password `SET LOCAL ROLE wandora_platform_provisioner` execution path; the canary tenant is still absent until a separate execution slice.
 - ADR 0070 makes the employee-free `Wandora Customer Hire Canary` tenant live through V2: one active owner is reused, zero canary employees/provider state exist, and customer hire/outbound remain OFF.
+- ADR 0071 freezes the first customer-hire canary Paperclip company bootstrap: exact one-shot instance-admin request, provider non-idempotency/partial-effect semantics, stop-on-ambiguity reconciliation and no coupling to custody/binding/hire.
 - Security gate #22 is cleared. The affected shared Supabase JWT compatibility material and shared PostgreSQL password were rotated with validated backups, old-credential invalidation, full service-health proof and production-safe verifier reruns.
 - Official WhatsApp providers remain a production option behind the same gateway.
 - Model vendors are replaceable infrastructure behind a provider boundary. Do not request or hard-code a provider credential until a real provider call is materially required.
