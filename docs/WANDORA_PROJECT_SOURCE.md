@@ -830,11 +830,36 @@ The future edge-rule validation can use OPTIONS-only burst traffic and therefore
 
 No Cloudflare rule, Auth setting, Web runtime, tenant/provider state or eligibility changed in this preflight.
 
+## Recovery Edge Activation — PRE-MUTATION CREDENTIAL GATE
+
+ADR 0092 records that execution reached the credential/custody boundary and stopped safely.
+
+Only the Cloudflare DNS token exists on the VPS and it remains DNS-scoped. The reviewed WAF secret directory does not exist and `/opt/wandora/data` is root-owned, so `wandora-admin` cannot create the production custody path without sudo. No alternate WAF token was found.
+
+Required operator-issued token:
+
+```text
+specific zone = wandora.com.br
+Zone Read
+Zone WAF Read
+Zone WAF Edit/Write
+no DNS edit
+no account-level WAF
+```
+
+Reviewed custody:
+
+```text
+/opt/wandora/data/cloudflare/secrets/recovery_ratelimit_api_token
+root:wandora-ops
+0640
+```
+
+No Cloudflare rule mutation occurred.
+
 ## Next executable slice
 
-Next: **Customer Owner Recovery Edge Anti-Abuse Credential + Activation Execution V1.**
-
-Use a dedicated zone-scoped WAF token, snapshot/read the existing `http_ratelimit` entry point, stop if the Free slot is occupied, otherwise create only the reviewed rule and validate with OPTIONS only. Keep owner-access Web undeployed and do not issue a real invite/recovery in the same slice.
+Resume **Customer Owner Recovery Edge Anti-Abuse Credential + Activation Execution V1** after the dedicated token is issued and installed. Start at ruleset read/snapshot; do not deploy owner-access Web or issue real recovery in the same slice.
 
 ## Platform Admin
 
@@ -915,6 +940,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0089 — Customer Owner Interrupted Invite Recovery Contract Implementation V1
 - ADR 0090 — Customer Owner Invite + Recovery Production Activation Preflight V1
 - ADR 0091 — Customer Owner Recovery Edge Anti-Abuse Control Preflight V1
+- ADR 0092 — Customer Owner Recovery Edge Anti-Abuse Credential + Activation Execution V1 Pre-Mutation Credential Gate
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
