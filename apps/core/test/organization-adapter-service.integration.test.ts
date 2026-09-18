@@ -104,7 +104,7 @@ test('owner gets one canonical employee across same-key and new-key replays with
     organizationId: ORG_A, actorUserId: USER, catalogKey: 'ana-commercial-v1', idempotencyKey: 'hire-ana-2',
   });
 
-  assert.deepEqual(first, { id: EMPLOYEE, name: 'Ana', role: 'commercial-assistant', status: 'active', autonomy: 'supervised' });
+  assert.deepEqual(first, { id: EMPLOYEE, name: 'Ana', role: 'commercial-assistant', status: 'paused', autonomy: 'supervised' });
   assert.deepEqual(replay, first);
   assert.deepEqual(resourceReplay, first);
   assert.equal(provider.calls.length, 1);
@@ -117,6 +117,28 @@ test('owner gets one canonical employee across same-key and new-key replays with
        (SELECT count(*)::int FROM wandora_private.digital_employee_hire_operations) AS operations`,
   );
   assert.deepEqual(counts.rows[0], { employees: 1, bindings: 1, operations: 1 });
+});
+
+test('completed hire replay returns the same employee with its later canonical active status without another provider call', async () => {
+  await resetFixture();
+  const provider = new MemoryPaperclipProvider();
+  const service = makeService(provider);
+
+  const hired = await service.ensureCatalogEmployee({
+    organizationId: ORG_A, actorUserId: USER, catalogKey: 'ana-commercial-v1', idempotencyKey: 'hire-then-activate',
+  });
+  assert.equal(hired.status, 'paused');
+
+  await fixturePool.query(
+    `UPDATE wandora.digital_employees SET status='active' WHERE organization_id=$1 AND id=$2`,
+    [ORG_A, EMPLOYEE],
+  );
+
+  const replay = await service.ensureCatalogEmployee({
+    organizationId: ORG_A, actorUserId: USER, catalogKey: 'ana-commercial-v1', idempotencyKey: 'hire-then-activate',
+  });
+  assert.deepEqual(replay, { ...hired, status: 'active' });
+  assert.equal(provider.calls.length, 1);
 });
 
 test('same idempotency key with a changed canonical request fails before another provider call', async () => {
