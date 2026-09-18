@@ -1386,11 +1386,41 @@ The future activation proof is effect-free with respect to Auth: after creating 
 
 No Cloudflare rule, Auth config, Web runtime, tenant/provider state or eligibility changed during this preflight.
 
+## Customer Owner Recovery Edge Anti-Abuse Credential + Activation Execution V1 — BLOCKED PRE-MUTATION
+
+ADR 0092 records an explicit operator credential/custody gate before any Cloudflare mutation.
+
+Observed host custody:
+
+```text
+existing DNS token:
+  /opt/wandora/data/traefik/secrets/cloudflare_dns_api_token
+  owner root:wandora-ops
+  mode 0640
+
+dedicated WAF custody:
+  /opt/wandora/data/cloudflare/secrets/
+  absent
+
+/opt/wandora/data = root-owned
+wandora-admin noninteractive sudo = unavailable
+```
+
+No alternate WAF/Rulesets token exists. The DNS token remains intentionally insufficient and must not be widened.
+
+The required operator action is to issue a separate Cloudflare token scoped only to `wandora.com.br` with Zone Read + Zone WAF Read/Edit (or current UI-equivalent Write), then install it as:
+
+```text
+/opt/wandora/data/cloudflare/secrets/recovery_ratelimit_api_token
+owner = root:wandora-ops
+mode = 0640
+```
+
+No Cloudflare rule, Web/Auth runtime, recovery/invite, tenant/provider state or eligibility changed. After the token is securely installed, resume the same execution slice at ruleset read/snapshot; stop if the Free-plan slot is already occupied.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Owner Recovery Edge Anti-Abuse Credential + Activation Execution V1.**
-
-Create/use a separate least-privilege, one-zone WAF credential, first read/snapshot the current `http_ratelimit` entry point and prove the Free-plan slot is available, then create only the reviewed recovery rule and validate with OPTIONS only. Do not deploy owner-access Web or issue a real recovery/invite in that execution slice.
+Resume: **Customer Owner Recovery Edge Anti-Abuse Credential + Activation Execution V1** after operator credential issuance/custody.
 
 ## Operational safety
 
