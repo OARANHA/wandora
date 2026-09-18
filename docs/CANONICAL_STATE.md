@@ -1145,13 +1145,42 @@ eligibility rows = 0
 
 Rollback is config-only: omit the hire overlay and recreate the same Core image with the previous six overlays.
 
+## Customer Digital-Employee Hire — First Tenant Eligibility Rollout Preflight V1 — COMPLETE / NO CURRENT TARGET
+
+ADR 0085 closes the first tenant eligibility rollout preflight without enabling any tenant.
+
+Current live safety state remains:
+
+```text
+Customer Digital-Employee Hire = ON
+eligibility rows = 0
+enabled eligibility rows = 0
+unfinished hire operations = 0
+Human Send = OFF
+Gateway outbound = OFF
+```
+
+All three active organizations were re-reviewed:
+
+- **Wandora Internal Supervised Proof** already has a completed `ana-commercial-v1` operation and projects `already-hired`;
+- **Wandora Customer Hire Canary** already has a completed `ana-commercial-v1` operation and projects `already-hired`;
+- **Empresa Exemplo** has a matching legacy active/supervised Ana and no Paperclip control-plane binding, so it remains `unavailable`.
+
+The two Paperclip-bound companies each still have one paused `wandora_mastra` Ana, company-scoped Organization Adapter config with HMAC `secret_ref`, a healthy/ready plugin and deterministic Core HMAC custody at mode 0640 readable by Core.
+
+The dedicated `wandora_customer_hire_operator` remains NOLOGIN and setter-only. Core remains read-only for eligibility; platform provisioner, browser roles and service role cannot execute the setter.
+
+No current tenant qualifies for a first new `ana-commercial-v1` rollout. The exact future setter and rollback transaction are frozen in ADR 0085 for a separately reviewed clean target. The first activation must start from zero enabled rows and fail before commit unless exactly the reviewed target becomes the sole enabled organization+catalog pair.
+
+No eligibility row, tenant, Paperclip resource, hire operation, employee activation or outbound effect was created by this preflight.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Digital-Employee Hire — First Tenant Eligibility Rollout Preflight V1.**
+Next: **Customer Digital-Employee Hire — Clean Tenant Rollout Candidate Preparation Preflight V1.**
 
-Preflight only. Select exactly one clean tenant or prove that none of the current tenants qualifies, validate provider wiring/collision state, freeze the exact scoped eligibility setter transaction and rollback, and keep Human Send/Gateway outbound/employee activation OFF.
+Preflight only. Select a real clean customer target if one exists, or freeze the separately reviewed path for an employee-free tenant through the already accepted provisioning and Organization Adapter boundaries.
 
-Do not enable a tenant eligibility row during the preflight.
+Do not provision a tenant, create provider wiring or enable eligibility merely to satisfy the preflight.
 
 ## Operational safety
 
