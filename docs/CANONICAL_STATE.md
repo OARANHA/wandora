@@ -1082,6 +1082,18 @@ Active-tenant state proves zero new availability with the gate ON and zero eligi
 - Customer Hire Canary already has a completed `ana-commercial-v1` operation;
 - Empresa Exemplo has no eligibility row and no Paperclip control binding.
 
+The live hire journal also has exactly **0 unfinished operations** (`planned|creating|uncertain`) and 2 completed operations. This is a mandatory companion invariant to zero eligibility because an existing unfinished operation is intentionally reconciled before the eligibility check.
+
+A disposable executable proof used the **same live Core image**, the accepted production-derived backup, canonical migration 013 and a synthetic fully wired owner tenant with no eligibility. With the hire path enabled only inside the harness:
+
+```text
+GET hire state = unavailable
+available = false
+POST = 404 employee-not-available
+provider calls = 0
+new operations/employees/employee-bindings = 0
+```
+
 The selected rollout order is **global gate first, tenant eligibility later**. Enabling eligibility first was rejected because it could leave latent tenants waiting behind a broad process switch.
 
 Baseline live POST proof with the gate OFF returns `404 not-found` for a syntactically valid hire request and produces no durable delta.
@@ -1097,6 +1109,7 @@ It must stop with:
 ```text
 Customer Digital-Employee Hire = ON
 eligibility rows = 0
+unfinished hire operations = 0
 new tenant availability = 0
 Human Send = OFF
 Gateway outbound = OFF
