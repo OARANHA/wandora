@@ -557,11 +557,29 @@ Gateway outbound = OFF
 
 The successful Ana remains paused. `Ativar` is still a separate future effect.
 
+## Customer Digital-Employee Hire Public Rollout Preflight — COMPLETE / OFF
+
+ADR 0079 freezes the rollout boundary. PR #126 is merged and proves refresh-safe, tenant-bound browser idempotency. The live Web is still pre-rollout and normal customer hire remains OFF.
+
+The Core hire flag is global while organizations have different readiness states. A control-plane binding cannot serve as customer eligibility because accepted wiring creates that binding before the integration setup is complete.
+
+Decision:
+
+```text
+global runtime hire gate
+AND
+explicit Wandora-owned organization + catalog eligibility
+=
+customer hire available
+```
+
+Eligibility is provider-neutral, operator-owned and enforced before provider effects. No production activation occurred.
+
 ## Next executable slice
 
-Next: **Customer Digital-Employee Hire — Public Rollout Preflight V1.**
+Next: **Customer Digital-Employee Hire — Tenant Eligibility Contract Implementation V1.**
 
-Observation/plan-first: prove the current normal Core/Web rollout boundary, all-tenant runtime gate implications, legacy/catalog collision behavior, public authorization/idempotency, paused-first UX and rollback before enabling customer hire publicly. Do not activate Ana or enable outbound in that preflight.
+Implementation/CI only: add the minimal private eligibility state, Core enforcement + safe read projection, and Web gating. Keep normal live hire, Human Send and Gateway outbound OFF; do not apply production migration or deploy candidates in this slice.
 
 ## Platform Admin
 
