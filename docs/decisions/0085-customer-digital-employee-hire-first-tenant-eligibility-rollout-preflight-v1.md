@@ -177,6 +177,75 @@ anon / authenticated / service_role
 
 The only eligibility RLS policy is the tenant-scoped Core read policy.
 
+### Protected operator session identity
+
+A read-only live authority check found an important Supabase-specific detail:
+
+```text
+postgres
+  LOGIN = true
+  SUPERUSER = false
+  member of wandora_customer_hire_operator = false
+
+supabase_admin
+  LOGIN = true
+  SUPERUSER = true
+```
+
+Therefore the frozen local operator path must use the already protected local `supabase_admin` administration boundary, then immediately narrow the mutation with `SET LOCAL ROLE wandora_customer_hire_operator`. No membership is granted to `postgres`, Core, Platform Admin or an application/service login.
+
+The first disposable harness correctly failed when it assumed `postgres` could set the NOLOGIN role. That failure produced no production effect and was used to correct the harness rather than weakening production authority.
+
+## PROVEN EVIDENCE — SERIALIZED FIRST-ROLLOUT TRANSACTION
+
+The second adversarial review found a concurrency hole in the first draft of the future transaction: a post-write `enabled count = 1` assertion alone does not serialize two simultaneous first-rollout sessions. Two transactions could theoretically each observe only their own uncommitted row before either commit.
+
+The frozen transaction was therefore strengthened with:
+
+```text
+protected local supabase_admin session
+-> BEGIN
+-> EXCLUSIVE lock on eligibility table
+-> assert enabled rows = 0 before role narrowing
+-> SET LOCAL ROLE wandora_customer_hire_operator
+-> call controlled setter for exactly one target
+-> RESET ROLE
+-> assert exactly one enabled row and it is the reviewed target
+-> COMMIT
+```
+
+A disposable concurrency proof ran on the same pinned PostgreSQL family image (`supabase/postgres:17.6.1.136`) in an isolated no-port/no-network container. The proof database was created from `template0` and reproduced the canonical eligibility table/setter boundary with synthetic organizations only.
+
+Two concurrent first-rollout sessions were deliberately raced:
+
+```text
+session A target -> acquired lock -> enabled target A -> held transaction
+session B target -> blocked on same lock
+session A -> postcondition passed -> COMMIT
+session B -> acquired lock -> precondition saw enabled row -> rejected before setter
+```
+
+Observed result:
+
+```text
+CONCURRENT_A_OK=true
+CONCURRENT_B_REJECTED=true
+enabled rows = 1
+target A enabled rows = 1
+target B rows = 0
+```
+
+The frozen rollback was then executed in the same disposable harness:
+
+```text
+enabled rows = 0
+target A disabled rows = 1
+```
+
+The disposable container and proof files were removed.
+
+A broader disposable schema-restore attempt was rejected because Supabase GraphQL DDL event triggers interfered with replay inside the throwaway database. It never targeted production and was not used as evidence. The final concurrency proof intentionally reduced the harness to the exact eligibility objects and operator semantics under test.
+
 ## GAPS
 
 There is no clean current production tenant for a first new `ana-commercial-v1` availability rollout.
@@ -228,6 +297,7 @@ Rejected alternatives:
 6. **Insert an eligibility row disabled=false/true merely to test the setter** — rejected; ADR 0080 CI/disposable proofs already cover setter behavior and production must remain zero-row in this preflight.
 7. **Use a broad application/service login for eligibility** — rejected; the accepted NOLOGIN capability remains sufficient.
 8. **Combine eligibility with employee activation or outbound** — rejected; `Contratar`, future `Ativar`, Human Send and Gateway outbound remain distinct effects.
+9. **Rely on a post-write count without serialization** — rejected after adversarial concurrency analysis; the first-rollout transaction now takes an EXCLUSIVE table lock and checks the zero-enabled invariant before the setter.
 
 ## FROZEN FUTURE ELIGIBILITY TRANSACTION
 
@@ -248,6 +318,21 @@ Activation:
 ```sql
 BEGIN;
 
+LOCK TABLE wandora_private.digital_employee_catalog_hire_eligibility
+  IN EXCLUSIVE MODE;
+
+DO $
+BEGIN
+  IF EXISTS (
+    SELECT 1
+      FROM wandora_private.digital_employee_catalog_hire_eligibility
+     WHERE enabled
+  ) THEN
+    RAISE EXCEPTION 'customer_hire_first_rollout_not_zero';
+  END IF;
+END
+$;
+
 SET LOCAL ROLE wandora_customer_hire_operator;
 
 SELECT organization_id, catalog_key, enabled, updated_at
@@ -259,7 +344,7 @@ FROM wandora_private.set_digital_employee_catalog_hire_eligibility(
 
 RESET ROLE;
 
-DO $$
+DO $
 BEGIN
   IF (SELECT count(*)
         FROM wandora_private.digital_employee_catalog_hire_eligibility
@@ -277,7 +362,7 @@ BEGIN
     RAISE EXCEPTION 'customer_hire_first_rollout_target_not_enabled';
   END IF;
 END
-$$;
+$;
 
 COMMIT;
 ```
@@ -305,6 +390,9 @@ For the first rollout, tenant-specific rollback is the same controlled setter wi
 ```sql
 BEGIN;
 
+LOCK TABLE wandora_private.digital_employee_catalog_hire_eligibility
+  IN EXCLUSIVE MODE;
+
 SET LOCAL ROLE wandora_customer_hire_operator;
 
 SELECT organization_id, catalog_key, enabled, updated_at
@@ -316,7 +404,7 @@ FROM wandora_private.set_digital_employee_catalog_hire_eligibility(
 
 RESET ROLE;
 
-DO $$
+DO $
 BEGIN
   IF EXISTS (
     SELECT 1
@@ -326,7 +414,7 @@ BEGIN
     RAISE EXCEPTION 'customer_hire_first_rollout_disable_incomplete';
   END IF;
 END
-$$;
+$;
 
 COMMIT;
 ```
@@ -345,6 +433,7 @@ Production operations performed by this preflight were read-only:
 - eligibility role/privilege/RLS reads;
 - Paperclip company/agent/config/health reads;
 - Organization Adapter secret-file metadata/readability checks without secret content.
+- disposable no-network PostgreSQL transaction/concurrency proof using synthetic organizations only.
 
 Documentation is the only durable change produced by this slice.
 
