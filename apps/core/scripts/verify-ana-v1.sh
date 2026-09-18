@@ -202,5 +202,19 @@ docker compose \
   -f "$ROOT/infra/stacks/core/compose.human-api.yaml" \
   -f "$ROOT/infra/stacks/core/compose.human-send-proposal.yaml" config >/dev/null
 
+HIRE_EFFECTIVE="$(WANDORA_CORE_DB_PASSWORD_FILE="$TMP_SECRET" \
+WANDORA_CORE_SECRET_GID="$(id -g)" \
+WANDORA_ORGANIZATION_ADAPTER_SECRET_DIR_HOST="$TMP_ORG_ADAPTER_DIR" \
+docker compose \
+  -f "$ROOT/infra/stacks/core/compose.yaml" \
+  -f "$ROOT/infra/stacks/core/compose.database.yaml" \
+  -f "$ROOT/infra/stacks/core/compose.human-api.yaml" \
+  -f "$ROOT/infra/stacks/core/compose.organization-adapter.yaml" \
+  -f "$ROOT/infra/stacks/core/compose.human-digital-employee-hire.yaml" \
+  config)"
+grep -q 'WANDORA_HUMAN_DIGITAL_EMPLOYEE_HIRE_ENABLED: "true"' <<<"$HIRE_EFFECTIVE"
+grep -q 'WANDORA_ORGANIZATION_ADAPTER_ENABLED: "true"' <<<"$HIRE_EFFECTIVE"
+grep -q 'WANDORA_HUMAN_API_ENABLED: "true"' <<<"$HIRE_EFFECTIVE"
+
 echo "WANDORA_CORE_PRIVATE_RUNTIME_V1_OK"
 echo "ANA_VERTICAL_SLICE_V1_VERIFY_OK"
