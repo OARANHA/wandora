@@ -341,13 +341,43 @@ Rejected shortcuts:
 - reuse the residual future `paperclip-db` PostgreSQL password as HMAC material;
 - repeat backup, restore proof or candidate load just because prior chats froze.
 
+## Production Activation Execution V1 — PARTIAL CHECKPOINT
+
+ADR 0058 records the first live execution step after Preflight V2.
+
+Current state:
+
+```text
+migration 010 = LIVE
+verifier 010  = NOT YET COMPLETED
+migration 011 = NOT APPLIED
+candidate Core = loaded, running count 0
+live Core = wandora/core:team-read-b31db507, healthy
+Organization Adapter = OFF
+Human Send = OFF
+Gateway outbound = OFF
+plugin = NOT INSTALLED
+production Organization Adapter HMAC = NOT CREATED
+internal canary = NOT RUN
+```
+
+The first 010 attempt under role `postgres` failed at the first table because `wandora_private` is owned by `supabase_admin`. Immediate post-failure proof showed all three tables absent. The same migration file matched canonical Git blob `ee366a5ba8ea8ea6c893d5ab9bc52531d3953f52`, was rerun as `supabase_admin`, and reached `COMMIT`.
+
+**Do not reapply migration 010.** The exact canonical `VERIFY_20260916_ORGANIZATION_ADAPTER_STATE_V1.sql` is now the mandatory next gate. A tooling restriction prevented completing that verifier in the execution session; this is not a verifier success and does not permit migration 011.
+
 ## NEXT EXECUTABLE SLICE
 
-Preflight V2 is complete. The next possible slice is **Organization Adapter Production Activation Execution V1**, but it remains a separate production-effect decision.
+Execution V1 has started and is paused fail-closed after migration 010.
 
-Before any execution, re-run REAL NOW and second adversarial review against ADR 0057. The frozen order starts with migrations 010/011 + verifiers, then an operator-only control-plane binding for the internal canary organization, canonical plugin artifact verification/install, per-company HMAC custody + Paperclip `secret_ref` config, candidate Core activation with customer hiring still absent, and one internal canary.
+Next:
 
-Do **not** create `Empresa Exemplo` in Paperclip, enable customer `Contratar/Ativar`, Human Send or Gateway outbound merely to continue from this checkpoint.
+1. reverify current `main` and live effect boundary;
+2. execute the exact canonical `VERIFY_20260916_ORGANIZATION_ADAPTER_STATE_V1.sql`;
+3. stop on failure;
+4. only on green, apply migration 011 and run `VERIFY_20260916_ORGANIZATION_ADAPTER_SERVICE_CONTRACT_V1.sql`;
+5. then resume ADR 0057 at the operator-owned internal-canary Paperclip binding step.
+
+Do **not** reapply migration 010. Do **not** create `Empresa Exemplo` in Paperclip, install/configure the plugin, create production HMAC, start the candidate Core, enable customer `Contratar/Ativar`, Human Send or Gateway outbound before the pending verifier gates are green.
 
 ## Operational safety
 
