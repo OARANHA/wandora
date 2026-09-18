@@ -28,11 +28,79 @@ class HireError extends Error {
   }
 }
 
+
+const HIRE_CATALOG_KEY = 'ana-commercial-v1' as const;
+const IDEMPOTENCY_UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+type HireOperationRef = {
+  organizationId: string;
+  catalogKey: typeof HIRE_CATALOG_KEY;
+  idempotencyKey: string;
+  storageKey: string;
+};
+
+function resolveHireOperation(
+  organizationId: string,
+  current: HireOperationRef | null,
+): HireOperationRef {
+  if (current?.organizationId === organizationId && current.catalogKey === HIRE_CATALOG_KEY) {
+    return current;
+  }
+
+  const storageKey =
+    `wandora:customer-hire:idempotency:v1:${organizationId}:${HIRE_CATALOG_KEY}`;
+
+  let idempotencyKey: string | null = null;
+  try {
+    idempotencyKey = window.sessionStorage.getItem(storageKey)?.trim() || null;
+  } catch {
+    throw new HireError(
+      'idempotency-storage-unavailable',
+      'A contratação não pode começar neste navegador porque a operação segura não pôde ser preservada.',
+    );
+  }
+
+  if (idempotencyKey && !IDEMPOTENCY_UUID_RE.test(idempotencyKey)) {
+    throw new HireError(
+      'idempotency-storage-invalid',
+      'A contratação segura desta sessão precisa ser reiniciada antes de continuar.',
+    );
+  }
+
+  if (!idempotencyKey) {
+    idempotencyKey = crypto.randomUUID();
+    try {
+      window.sessionStorage.setItem(storageKey, idempotencyKey);
+    } catch {
+      throw new HireError(
+        'idempotency-storage-unavailable',
+        'A contratação não pode começar neste navegador porque a operação segura não pôde ser preservada.',
+      );
+    }
+  }
+
+  return {
+    organizationId,
+    catalogKey: HIRE_CATALOG_KEY,
+    idempotencyKey,
+    storageKey,
+  };
+}
+
+function clearHireOperation(operation: HireOperationRef): void {
+  try {
+    window.sessionStorage.removeItem(operation.storageKey);
+  } catch {
+    // A stale opaque key is safe: the backend will replay the completed catalog operation.
+  }
+}
+
 export function StartPage() {
   const { activeOrganization, context, authFetch } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const idempotencyKeyRef = useRef<string | null>(null);
+  const hireOperationRef = useRef<HireOperationRef | null>(null);
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -41,17 +109,17 @@ export function StartPage() {
         throw new HireError('forbidden', 'Somente owner ou admin pode contratar um funcionário digital.');
       }
 
-      const idempotencyKey = idempotencyKeyRef.current ?? crypto.randomUUID();
-      idempotencyKeyRef.current = idempotencyKey;
+      const operation = resolveHireOperation(activeOrganization.id, hireOperationRef.current);
+      hireOperationRef.current = operation;
       const response = await authFetch(
         `/api/v1/organizations/${activeOrganization.id}/digital-employees`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Idempotency-Key': idempotencyKey,
+            'Idempotency-Key': operation.idempotencyKey,
           },
-          body: JSON.stringify({ catalogKey: 'ana-commercial-v1' }),
+          body: JSON.stringify({ catalogKey: HIRE_CATALOG_KEY }),
         },
       );
 
@@ -61,7 +129,9 @@ export function StartPage() {
         if (!employee?.id || employee.name !== 'Ana') {
           throw new HireError('invalid-response', 'A Wandora retornou uma resposta de contratação inválida.');
         }
-        return employee;
+        clearHireOperation(operation);
+        hireOperationRef.current = null;
+        return { employee, organizationId: operation.organizationId };
       }
 
       const code = typeof payload?.error === 'string' ? payload.error : 'unexpected';
@@ -89,10 +159,8 @@ export function StartPage() {
       }
       throw new HireError(code, 'Não foi possível concluir a contratação agora.');
     },
-    onSuccess: async () => {
-      if (activeOrganization) {
-        await queryClient.invalidateQueries({ queryKey: ['digital-employees', activeOrganization.id] });
-      }
+    onSuccess: async ({ organizationId }) => {
+      await queryClient.invalidateQueries({ queryKey: ['digital-employees', organizationId] });
       await navigate({ to: '/team' });
     },
   });
