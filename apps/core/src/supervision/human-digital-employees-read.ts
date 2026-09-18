@@ -16,7 +16,7 @@ export type HumanDigitalEmployee = {
 export type HumanDigitalEmployeeHireAvailability = {
   catalogKey: typeof CUSTOMER_HIRE_CATALOG_KEY;
   available: boolean;
-  state: 'available' | 'already-hired' | 'unavailable';
+  state: 'available' | 'already-hired' | 'reconciliation-required' | 'unavailable';
 };
 
 export type HumanDigitalEmployeesView = {
@@ -118,8 +118,8 @@ export class HumanDigitalEmployeesReadService {
     if (operationStatus) {
       return {
         catalogKey: CUSTOMER_HIRE_CATALOG_KEY,
-        available: true,
-        state: 'available',
+        available: false,
+        state: 'reconciliation-required',
       };
     }
 
