@@ -256,6 +256,24 @@ size = 64
 Core can read it = true
 ```
 
+Independent value-integrity proof used only hashes, never plaintext:
+
+```text
+Core HMAC file SHA-256
+= eba4bdda5baf60b57368d1d4a83628f73551b3e8ad1a226f3c983b06154ecb60
+
+Paperclip latest secret version value_sha256
+= eba4bdda5baf60b57368d1d4a83628f73551b3e8ad1a226f3c983b06154ecb60
+
+Paperclip latest secret version fingerprint_sha256
+= eba4bdda5baf60b57368d1d4a83628f73551b3e8ad1a226f3c983b06154ecb60
+
+version = 1
+hash match = true
+```
+
+The Paperclip hash was read from `company_secret_versions` through a disposable local-only PostgreSQL client sharing the Paperclip network namespace. No encrypted material or plaintext secret value was selected or printed.
+
 Wandora durable readback:
 
 ```text
