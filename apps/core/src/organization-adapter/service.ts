@@ -163,6 +163,15 @@ export class OrganizationAdapterService {
             'The catalog employee is already reserved with a different canonical definition.',
           );
         }
+        if (
+          catalogOperation.status !== 'completed'
+          && catalogOperation.idempotency_key !== args.idempotencyKey
+        ) {
+          throw new OrganizationAdapterConflictError(
+            'idempotency-conflict',
+            'An unfinished catalog hire must be retried with its original idempotency key.',
+          );
+        }
         return catalogOperation;
       }
 
