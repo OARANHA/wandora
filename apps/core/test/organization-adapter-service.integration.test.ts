@@ -79,6 +79,13 @@ async function resetFixture(role: 'owner' | 'admin' | 'member' = 'owner'): Promi
        ($1,'paperclip','paperclip-company-a'),($2,'paperclip','paperclip-company-b')`,
     [ORG_A, ORG_B],
   );
+  await fixturePool.query(
+    `INSERT INTO wandora_private.digital_employee_catalog_hire_eligibility
+       (organization_id,catalog_key,enabled) VALUES
+       ($1,'ana-commercial-v1',true),($2,'ana-commercial-v1',true),
+       ($1,'ana-commercial-v2-test-only',true)`,
+    [ORG_A, ORG_B],
+  );
 }
 
 const makeService = (provider: MemoryPaperclipProvider) => new OrganizationAdapterService(
@@ -132,6 +139,12 @@ test('completed hire replay returns the same employee with its later canonical a
   await fixturePool.query(
     `UPDATE wandora.digital_employees SET status='active' WHERE organization_id=$1 AND id=$2`,
     [ORG_A, EMPLOYEE],
+  );
+  await fixturePool.query(
+    `UPDATE wandora_private.digital_employee_catalog_hire_eligibility
+        SET enabled=false
+      WHERE organization_id=$1 AND catalog_key='ana-commercial-v1'`,
+    [ORG_A],
   );
 
   const replay = await service.ensureCatalogEmployee({
@@ -211,6 +224,23 @@ test('ambiguous provider success is repaired with the frozen company snapshot an
       WHERE organization_id=$1 AND provider='paperclip'`,
     [ORG_A],
   );
+  await fixturePool.query(
+    `UPDATE wandora_private.digital_employee_catalog_hire_eligibility
+        SET enabled=false
+      WHERE organization_id=$1 AND catalog_key='ana-commercial-v1'`,
+    [ORG_A],
+  );
+
+  await assert.rejects(
+    service.ensureCatalogEmployee({
+      organizationId: ORG_A,
+      actorUserId: USER,
+      catalogKey: 'ana-commercial-v1',
+      idempotencyKey: 'hire-ambiguous-different-key',
+    }),
+    (error: unknown) => error instanceof OrganizationAdapterConflictError && error.code === 'idempotency-conflict',
+  );
+  assert.equal(provider.calls.length, 1);
 
   const repaired = await service.ensureCatalogEmployee({
     organizationId: ORG_A, actorUserId: USER, catalogKey: 'ana-commercial-v1', idempotencyKey: 'hire-ambiguous',
@@ -229,6 +259,40 @@ test('ambiguous provider success is repaired with the frozen company snapshot an
   assert.equal(final.rows[0]?.status, 'completed');
   assert.equal(final.rows[0]?.completed, true);
   assert.match(final.rows[0]?.provider_agent_ref ?? '', /^managed:paperclip-company-a:/);
+});
+
+test('eligibility off blocks a new catalog hire before journal reservation or provider effect', async () => {
+  await resetFixture();
+  await fixturePool.query(
+    `UPDATE wandora_private.digital_employee_catalog_hire_eligibility
+        SET enabled=false
+      WHERE organization_id=$1 AND catalog_key='ana-commercial-v1'`,
+    [ORG_A],
+  );
+
+  const provider = new MemoryPaperclipProvider();
+  const service = makeService(provider);
+  await assert.rejects(
+    service.ensureCatalogEmployee({
+      organizationId: ORG_A,
+      actorUserId: USER,
+      catalogKey: 'ana-commercial-v1',
+      idempotencyKey: 'hire-disabled',
+    }),
+    (error: unknown) => (
+      error instanceof OrganizationAdapterUnavailableError
+      && error.code === 'catalog-hire-not-eligible'
+    ),
+  );
+
+  assert.equal(provider.calls.length, 0);
+  const counts = await fixturePool.query(
+    `SELECT
+       (SELECT count(*)::int FROM wandora_private.digital_employee_hire_operations) AS operations,
+       (SELECT count(*)::int FROM wandora.digital_employees) AS employees,
+       (SELECT count(*)::int FROM wandora_private.digital_employee_provider_bindings) AS bindings`,
+  );
+  assert.deepEqual(counts.rows[0], { operations: 0, employees: 0, bindings: 0 });
 });
 
 test('matching legacy employee fails closed before journal reservation or provider effect', async () => {
