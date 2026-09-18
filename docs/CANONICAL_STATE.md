@@ -721,13 +721,39 @@ The canary Wandora organization still has zero employees, zero provider bindings
 
 Customer Digital-Employee Hire, Human Send and Gateway outbound remain OFF.
 
+## Customer Hire Canary — Organization Adapter Custody + Config + Binding Preflight V1 — COMPLETE / EXECUTION BLOCKED
+
+ADR 0073 freezes the production wiring contract without creating any new binding, secret or config.
+
+Frozen pair:
+
+```text
+Wandora organization = 918d4c7e-fccb-41f0-aba7-04105a9b4ec0
+Paperclip company     = e7422a00-1474-49d5-ac32-34594520015e
+provider              = paperclip
+```
+
+Future Core custody filename:
+
+```text
+paperclip-0cbf21f19c002ca9207c67e5cdec8180641431eacdf601629b683de2a363bbd2.hmac
+```
+
+The accepted execution order is operator-owned Wandora binding → one protected HMAC file → one company-owned Paperclip `local_encrypted` secret → company-scoped plugin config **last** → independent validation. Core remains unable to INSERT the control-plane binding.
+
+Secret creation and plugin-config responses are reconciled by readback after ambiguity; blind retry is forbidden. Plugin config is not treated as safely repeatable merely because its storage operation is an upsert.
+
+The second adversarial review found a recovery blocker: live Paperclip database backups and `/paperclip/instances/default/secrets/master.key` are currently colocated on the same Docker volume, while Paperclip requires both database metadata and that master key to restore `local_encrypted` secrets. No independent external master-key recovery copy was found.
+
+Therefore no second production `local_encrypted` HMAC is created yet.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Hire Canary — Organization Adapter Custody + Config + Binding Preflight V1.**
+Next: **Paperclip Local-Encrypted Secret Recovery Snapshot Preflight V1.**
 
-Observation/plan-first only. Freeze the exact Wandora↔Paperclip pair, deterministic custody reference, secret/config contract, private binding operator path, ordering/recovery semantics and zero-employee postconditions.
+Freeze the supported fresh database-backup path, protected out-of-volume paired `master.key` snapshot, hash/mode evidence, disposable restore/secret-resolution proof and cleanup procedure.
 
-Do not create HMAC custody/config, the Wandora provider binding, an employee/hire operation, activation, Human Send or Gateway outbound during that preflight.
+Do not create the canary HMAC, Paperclip secret/config, Wandora provider binding, employee/hire operation, activation, Human Send or Gateway outbound in that preflight.
 
 ## Operational safety
 
