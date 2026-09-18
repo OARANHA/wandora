@@ -1,6 +1,6 @@
 \set ON_ERROR_STOP on
 
-DO $
+DO $authority$
 DECLARE
   v_role text;
 BEGIN
@@ -200,7 +200,7 @@ BEGIN
     END IF;
   END LOOP;
 END
-$$;
+$authority$;
 
 BEGIN;
 
