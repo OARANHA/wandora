@@ -309,11 +309,33 @@ Provider company creation is lazy at first hire but is not yet safe to hide insi
 
 The current `/start` prototype is not a production contract. V1 must be authenticated/tenant-bound, use the selected organization, expose only real catalog Ana, perform only `Contratar`, and remove fake company/WhatsApp/knowledge effects.
 
+## Customer Hire Contract Implementation V1 — COMPLETE, GATE OFF
+
+ADR 0064 records that the paused-first customer hire contract is implemented and CI-green without production activation.
+
+Implemented in code:
+
+- exact authenticated POST on the canonical digital-employees collection;
+- owner/admin authorization through Organization Adapter;
+- stable idempotency key;
+- first-time `paused + supervised` finalization;
+- replay returning current `paused|active`;
+- dedicated disabled-by-default customer-hire runtime flag and separate compose overlay;
+- authenticated tenant-bound Ana-only `/start`;
+- `Equipe` paused presentation as “Contratada · aguardando ativação”;
+- reviewed Web bridge for Authorization + Idempotency-Key with Cookie stripped.
+
+The second adversarial review found a legacy active/supervised Ana already present in `Empresa Exemplo` with no Paperclip binding and no proven catalog identity. Automatic adoption by name/role is rejected. A matching legacy row now causes `catalog-conflict` before journal reservation or provider effect.
+
+Therefore `Empresa Exemplo` must not be used as a naive first-hire canary. The earlier future-canary assumption in ADR 0063 is superseded by ADR 0064.
+
+Production remains unchanged: Customer Digital-Employee Hire OFF, Human Send OFF, Gateway outbound OFF, customer activation unavailable.
+
 ## Next executable slice
 
-Next: **Customer Hire Contract Implementation V1 — code/CI only, runtime gate OFF.**
+Next: **Customer Hire Canary Selection + Legacy Employee Reconciliation Preflight V1.**
 
-Implement the paused-first POST + protected minimal `/start` path and tests. Do not provision `Empresa Exemplo`, mutate live Paperclip, enable the customer-hire gate, expose `Ativar`, or enable Human Send/Gateway outbound.
+Select either a clean customer-like canary or a separately proven legacy reconciliation/adoption contract. Do not provision/auto-adopt `Empresa Exemplo`, enable customer hire/activation, or enable outbound effects merely to complete the preflight.
 
 ## Platform Admin
 
