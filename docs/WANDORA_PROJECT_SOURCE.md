@@ -777,11 +777,23 @@ A second interruption after consuming a recovery link is not terminal: the exact
 
 The preflight generated no invite/recovery, changed no Auth user, performed no deploy/provisioning/provider wiring and kept eligibility at zero.
 
+## Customer Owner Interrupted Invite Recovery — IMPLEMENTED / NOT LIVE
+
+ADR 0089 + PR #137 implement the ADR 0088 recovery contract in Web/code proof only.
+
+The public `/recover-access` route now provides a neutral recovery request and the provider callback/reset path. The browser calls public Supabase Auth `POST /recover` with the publishable key only, stages exact unexpired `type=recovery` sessions separately under `wandora.auth.recovery.v1`, removes URL credentials before React renders and reuses the shared authenticated password-update + password-grant reconciliation from ADR 0087.
+
+The second review found a pre-render collision: the existing invite handler would have stripped a valid recovery fragment first. Invite now explicitly defers recovery and recovery explicitly defers invite; unsupported Auth fragments still fail closed.
+
+GitHub-hosted checks for the implementation head again ended before runner assignment with `steps=null`, so they are not called green. An independent reconstruction of the exact Web branch with the pinned Dockerfile passed strict TypeScript, invite/recovery/hire verifiers, Vite production build and an isolated route smoke with `/recover-access=200`, `/accept-invite=200` and generic unreviewed API `404`.
+
+The implementation is not deployed. No recovery/invite was generated or sent, no Auth user/tenant/provider state changed, and eligibility remains zero. Live CAPTCHA is still disabled and remains an activation gate.
+
 ## Next executable slice
 
-Next: **Customer Owner Interrupted Invite Recovery Contract Implementation V1.**
+Next: **Customer Owner Invite + Recovery Production Activation Preflight V1.**
 
-Code/CI only. Implement the dedicated recovery request/callback/reset browser flow and executable verifier. Do not deploy, send a real invite/recovery, create a customer Auth user, provision a tenant, create provider wiring or enable eligibility.
+No-effect preflight only: verify provider-native CAPTCHA and/or compatible edge abuse protection, redirect/origin configuration, exact Web candidate provenance, rollback and post-deploy validation. Do not deploy, send a real invite/recovery, provision a tenant, create provider wiring or enable eligibility.
 
 ## Platform Admin
 
@@ -858,6 +870,8 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0085 — Customer Digital-Employee Hire First Tenant Eligibility Rollout Preflight V1
 - ADR 0086 — Customer Digital-Employee Hire Clean Tenant Rollout Candidate Preparation Preflight V1
 - ADR 0087 — Customer Owner Invite Acceptance + First Password Contract Implementation V1
+- ADR 0088 — Customer Owner Interrupted Invite Recovery Contract Preflight V1
+- ADR 0089 — Customer Owner Interrupted Invite Recovery Contract Implementation V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
