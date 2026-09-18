@@ -95,6 +95,7 @@ export function stageInviteRedirectFromCurrentLocation(options: {
 
   const fragment = new URLSearchParams(location.hash.startsWith('#') ? location.hash.slice(1) : location.hash);
   const isSupabaseAuthRedirect = fragment.has('sb');
+  if (isSupabaseAuthRedirect && fragment.get('type') === 'recovery') return false;
   if (location.pathname !== INVITE_ACCEPTANCE_PATH && !isSupabaseAuthRedirect) return false;
 
   const history = options.history ?? window.history;
