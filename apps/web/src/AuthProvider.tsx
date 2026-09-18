@@ -38,6 +38,7 @@ type AuthContextValue = {
   selectOrganization: (organizationId: string) => void;
   authFetch: (input: string, init?: RequestInit) => Promise<Response>;
   retryBootstrap: () => Promise<void>;
+  completeInvitation: (session: BrowserAuthSession) => Promise<void>;
 };
 
 class BootstrapError extends Error {
@@ -183,6 +184,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await bootstrap(session);
   }, [bootstrap]);
 
+
+  const completeInvitation = useCallback(async (session: BrowserAuthSession) => {
+    setError(null);
+    await bootstrap(session);
+  }, [bootstrap]);
+
   const signOut = useCallback(async () => {
     const current = sessionRef.current;
     clearToAnonymous();
@@ -242,7 +249,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     selectOrganization,
     authFetch,
     retryBootstrap,
-  }), [activeOrganization, authFetch, context, error, retryBootstrap, selectOrganization, signIn, signOut, status]);
+    completeInvitation,
+  }), [activeOrganization, authFetch, completeInvitation, context, error, retryBootstrap, selectOrganization, signIn, signOut, status]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
