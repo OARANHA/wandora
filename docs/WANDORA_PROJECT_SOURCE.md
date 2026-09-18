@@ -575,11 +575,56 @@ customer hire available
 
 Eligibility is provider-neutral, operator-owned and enforced before provider effects. No production activation occurred.
 
+## Customer Digital-Employee Hire Tenant Eligibility — IMPLEMENTED / CI GREEN / NOT LIVE
+
+ADR 0080 + PR #128 implement the Wandora-owned eligibility boundary selected by ADR 0079.
+
+Current implemented contract:
+
+```text
+new hire availability
+=
+global Core hire gate
+AND
+organization + catalog eligibility
+AND
+normal authorization / safety checks
+```
+
+Eligibility is a private Wandora fact. It does not contain provider IDs/configuration.
+
+Write authority is isolated behind a dedicated `wandora_customer_hire_operator` NOLOGIN capability and a controlled setter. The tenant provisioner is deliberately not reused for rollout policy. Core has tenant-scoped SELECT only; browser/service roles have no direct authority.
+
+The Core checks eligibility before any new journal/provider effect. An unfinished catalog hire can resume only with its original idempotency key; a completed catalog hire remains deduplicated even if eligibility is later disabled.
+
+Customer GET now exposes only:
+
+```text
+available
+already-hired
+reconciliation-required
+unavailable
+```
+
+The Web gates `Equipe`/`Contratar` from that projection and never invents a new key for a reconciliation-required operation.
+
+Technical validation was green on the implementation head:
+
+```text
+Core CI                 35342325894 = success
+Web CI                  35342325859 = success
+Platform Admin CI       35342325774 = success
+Messaging Gateway CI    35342325740 = success
+Core Candidate Artifact 35342325793 = success
+```
+
+Production is unchanged: migration 013 is absent; no eligibility state is live; normal Customer Hire, Human Send and Gateway outbound remain OFF. CI candidate artifacts were not promoted.
+
 ## Next executable slice
 
-Next: **Customer Digital-Employee Hire — Tenant Eligibility Contract Implementation V1.**
+Next: **Customer Digital-Employee Hire — Production Activation Preflight V2.**
 
-Implementation/CI only: add the minimal private eligibility state, Core enforcement + safe read projection, and Web gating. Keep normal live hire, Human Send and Gateway outbound OFF; do not apply production migration or deploy candidates in this slice.
+Preflight only. Revalidate `main` + live runtime/DB, select exact post-merge candidates, prove migration 013 is still absent, freeze migration/deploy/rollback order with global hire OFF, define zero-eligibility post-migration checks and least-privilege operator execution, and inspect each prospective tenant before any future eligibility/global-gate effect.
 
 ## Platform Admin
 
@@ -646,6 +691,9 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0075 — Paperclip Local-Encrypted Secret Recovery Snapshot Execution V1
 - ADR 0076 — Customer Hire Canary Organization Adapter Custody + Config + Binding Execution V1
 - ADR 0077 — Customer Hire Canary Private Candidate Core Hire Preflight V1
+- ADR 0078 — Customer Hire Canary Private Candidate Core Hire Execution V1
+- ADR 0079 — Customer Digital-Employee Hire Public Rollout Preflight V1
+- ADR 0080 — Customer Digital-Employee Hire Tenant Eligibility Contract Implementation V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
