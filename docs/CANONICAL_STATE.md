@@ -661,13 +661,47 @@ Independent Paperclip API proof still reports exactly one provider company — `
 
 Customer Digital-Employee Hire, Human Send and Gateway outbound remain OFF. The existing Organization Adapter internal canary bindings/operation remain unchanged at 1/1/1.
 
+## Customer Hire Canary — Paperclip Provider Company Bootstrap Preflight V1 — COMPLETE, NO PROVIDER MUTATION
+
+ADR 0071 freezes the first provider-company bootstrap for the clean customer-hire canary.
+
+Live Paperclip proof:
+
+```text
+commit              = 65ec059bde30d98c92165b24a30a540800dd1f6f
+deployment          = authenticated / private
+bootstrap           = ready
+database backup     = enabled / ok
+operator credential = board_key / isInstanceAdmin=true
+companies           = 1
+exact canary-name matches = 0
+```
+
+Frozen request:
+
+```json
+{"name":"Wandora Customer Hire Canary"}
+```
+
+Body SHA-256:
+
+```text
+e1c49549f40291c7247bc70916127842ffa7aecb04428ce1b3380b08aaad51fe
+```
+
+Paperclip company creation has no idempotency key, company names are not unique, and the route is not externally atomic across company creation, owner membership/grants and audit. Therefore any lost/non-201 response after dispatch is treated as potentially effectful. Blind retry is forbidden; reconciliation against the frozen pre-call company baseline is mandatory.
+
+The live health contract reports `companyDeletionEnabled=false`, so deletion is not assumed as normal rollback. Partial/orphan state stops the slice for separately reviewed recovery rather than direct SQL repair.
+
+Production remains unchanged after preflight: Paperclip still has one company, the canary has zero employees/provider bindings/hire operations, and Customer Digital-Employee Hire, Human Send and Gateway outbound remain OFF.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Hire Canary — Paperclip Provider Company Bootstrap Preflight V1.**
+Next: **Customer Hire Canary — Paperclip Provider Company Bootstrap Execution V1.**
 
-Observation/plan-first only. Freeze the authenticated instance-admin creation path, exact provider-company identity, duplicate/timeout/recovery semantics and post-bootstrap invariants.
+Send the exact frozen company-create request once, reconcile provider state independently and stop after one clean provider company exists.
 
-Do not create the provider company during the preflight. Keep company-scoped HMAC custody/config, Wandora control-plane binding, customer hire, activation, Human Send and Gateway outbound as later separate effects.
+Keep company-scoped HMAC custody/config, Wandora control-plane binding, customer hire, activation, Human Send and Gateway outbound outside that execution slice.
 
 ## Operational safety
 
