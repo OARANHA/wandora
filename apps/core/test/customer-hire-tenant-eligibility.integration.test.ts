@@ -121,8 +121,11 @@ test('runtime gate off, eligibility off and member role all project unavailable'
   await fixturePool.query(
     `UPDATE wandora_private.digital_employee_catalog_hire_eligibility
         SET enabled=true
-      WHERE organization_id=$1 AND catalog_key='ana-commercial-v1';
-     UPDATE wandora.memberships
+      WHERE organization_id=$1 AND catalog_key='ana-commercial-v1'`,
+    [ORG_A],
+  );
+  await fixturePool.query(
+    `UPDATE wandora.memberships
         SET role='member'
       WHERE organization_id=$1 AND user_id=$2`,
     [ORG_A, USER],
@@ -156,11 +159,14 @@ test('unfinished operation projects reconciliation-required even after eligibili
        (organization_id, idempotency_key, request_hash, employee_id, provider,
         catalog_key, provider_company_ref, status)
      VALUES ($1, 'hire-view-uncertain', repeat('a',64), $2, 'paperclip',
-             'ana-commercial-v1', 'paperclip-hire-view-a', 'uncertain');
-     UPDATE wandora_private.digital_employee_catalog_hire_eligibility
+             'ana-commercial-v1', 'paperclip-hire-view-a', 'uncertain')`,
+    [ORG_A, EMPLOYEE],
+  );
+  await fixturePool.query(
+    `UPDATE wandora_private.digital_employee_catalog_hire_eligibility
         SET enabled=false
       WHERE organization_id=$1 AND catalog_key='ana-commercial-v1'`,
-    [ORG_A, EMPLOYEE],
+    [ORG_A],
   );
 
   const view = await service().getDigitalEmployeesView('Bearer valid', ORG_A);
@@ -179,17 +185,26 @@ test('completed catalog operation projects already-hired and preserves canonical
         catalog_key, provider_company_ref, status, provider_agent_ref, completed_at)
      VALUES ($1, 'hire-view-completed', repeat('b',64), $2, 'paperclip',
              'ana-commercial-v1', 'paperclip-hire-view-a', 'completed',
-             'paperclip-agent-hire-view-a', now());
-     INSERT INTO wandora.digital_employees
+             'paperclip-agent-hire-view-a', now())`,
+    [ORG_A, EMPLOYEE],
+  );
+  await fixturePool.query(
+    `INSERT INTO wandora.digital_employees
        (id, organization_id, display_name, role, status, autonomy_mode)
-     VALUES ($2, $1, 'Ana', 'commercial-assistant', 'paused', 'supervised');
-     INSERT INTO wandora_private.digital_employee_provider_bindings
+     VALUES ($2, $1, 'Ana', 'commercial-assistant', 'paused', 'supervised')`,
+    [ORG_A, EMPLOYEE],
+  );
+  await fixturePool.query(
+    `INSERT INTO wandora_private.digital_employee_provider_bindings
        (organization_id, employee_id, provider, provider_agent_ref)
-     VALUES ($1, $2, 'paperclip', 'paperclip-agent-hire-view-a');
-     UPDATE wandora_private.digital_employee_catalog_hire_eligibility
+     VALUES ($1, $2, 'paperclip', 'paperclip-agent-hire-view-a')`,
+    [ORG_A, EMPLOYEE],
+  );
+  await fixturePool.query(
+    `UPDATE wandora_private.digital_employee_catalog_hire_eligibility
         SET enabled=false
       WHERE organization_id=$1 AND catalog_key='ana-commercial-v1'`,
-    [ORG_A, EMPLOYEE],
+    [ORG_A],
   );
 
   const view = await service().getDigitalEmployeesView('Bearer valid', ORG_A);
