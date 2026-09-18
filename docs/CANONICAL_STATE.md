@@ -1176,13 +1176,40 @@ The transaction is now concurrency-safe for the first rollout: a protected local
 
 No eligibility row, tenant, Paperclip resource, hire operation, employee activation or outbound effect was created by this preflight.
 
+## Customer Digital-Employee Hire — Clean Tenant Rollout Candidate Preparation Preflight V1 — COMPLETE / OWNER ONBOARDING BLOCKER
+
+ADR 0086 proves that no real clean customer target currently exists.
+
+Current identity/tenant inventory:
+
+```text
+Supabase Auth users = 1
+canonical Wandora users = 1
+Wandora users without memberships = 0
+active organizations = 3
+Paperclip companies = 2
+eligibility rows = 0
+```
+
+All existing organizations remain unsuitable for a first new `ana-commercial-v1` rollout: two already have completed exact-catalog hires and `Empresa Exemplo` has matching legacy Ana state with no Paperclip control binding.
+
+The blocker is now explicit: **the first real customer owner identity does not exist yet**.
+
+Supabase Auth live remains correctly closed to public signup, has e-mail/SMTP configured and exposes protected admin invite/generate-link routes. Private Tenant Provisioning V2 remains live and employee-free, but correctly requires an already-existing Supabase Auth subject.
+
+The current Web remains login-only: password grant, refresh, logout and `/api/v1/me` bootstrap are implemented; invite acceptance, first-password setup, password recovery and onboarding UI are absent.
+
+ADR 0086 selects invite-only beta onboarding and rejects creating another synthetic tenant under the existing internal owner, widening public signup, direct `auth.users` mutation, or placing Auth admin credentials in Web/Core.
+
+No Auth user, invite, tenant, Paperclip company, provider binding, eligibility, employee or outbound effect was created by this preflight.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Digital-Employee Hire — Clean Tenant Rollout Candidate Preparation Preflight V1.**
+Next: **Customer Owner Invite Acceptance + First Password Contract Implementation V1.**
 
-Preflight only. Select a real clean customer target if one exists, or freeze the separately reviewed path for an employee-free tenant through the already accepted provisioning and Organization Adapter boundaries.
+Code/CI only. Inspect the exact live GoTrue v2.196.0 invite redirect/session contract, implement the browser first-access flow, preserve public signup OFF and keep all admin/service credentials out of Web and normal Core.
 
-Do not provision a tenant, create provider wiring or enable eligibility merely to satisfy the preflight.
+Do not send a real invite, create a customer Auth user, provision a tenant, create provider state or enable eligibility during that implementation slice.
 
 ## Operational safety
 
