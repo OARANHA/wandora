@@ -5,7 +5,7 @@ import {
   AuthClientError,
   refreshBrowserSession,
   sessionNeedsRefresh,
-  updateInvitedUserPassword,
+  finalizeInvitedUserPassword,
   type BrowserAuthSession,
 } from '../auth';
 import {
@@ -50,9 +50,9 @@ export function InviteAcceptancePage() {
         setInviteSession(session);
       }
 
-      await updateInvitedUserPassword(session, password);
+      const completedSession = await finalizeInvitedUserPassword(session, password);
       clearStagedInviteSession();
-      await completeInvitation(session);
+      await completeInvitation(completedSession);
       await navigate({ to: '/work', replace: true });
     } catch (error) {
       if (error instanceof AuthClientError) {
