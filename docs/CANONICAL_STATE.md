@@ -1172,6 +1172,8 @@ The dedicated `wandora_customer_hire_operator` remains NOLOGIN and setter-only. 
 
 No current tenant qualifies for a first new `ana-commercial-v1` rollout. The exact future setter and rollback transaction are frozen in ADR 0085 for a separately reviewed clean target. The first activation must start from zero enabled rows and fail before commit unless exactly the reviewed target becomes the sole enabled organization+catalog pair.
 
+The transaction is now concurrency-safe for the first rollout: a protected local `supabase_admin` session takes an EXCLUSIVE eligibility-table lock, proves zero enabled rows, narrows to `wandora_customer_hire_operator` only for the setter, then rechecks the sole target before commit. A two-session disposable race proved the second contender blocks and is rejected before creating its row; rollback returns to zero enabled rows.
+
 No eligibility row, tenant, Paperclip resource, hire operation, employee activation or outbound effect was created by this preflight.
 
 ## NEXT EXECUTABLE SLICE
