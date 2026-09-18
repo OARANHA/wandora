@@ -567,11 +567,46 @@ The exact canonical migration 012 Git blob `f9b6eedaf56b967ce9b30fd9a0558fb4c4cd
 
 **Migration 012 is still absent from production.** Customer Digital-Employee Hire, Human Send and Gateway outbound remain OFF. The canary tenant and Paperclip company remain absent.
 
+## Private Tenant Provisioning V2 — LIVE / DORMANT
+
+ADR 0068 records the successful production application of migration 012.
+
+Production now has:
+
+```text
+wandora_private.provision_beta_organization_v1(...) = present
+wandora_private.provision_beta_organization_v2(...) = present
+tenant_provisioning_requests.provisioning_version  = present
+tenant_provisioning_requests.employee_id           = nullable
+
+wandora_platform_provisioner EXECUTE V2 = true
+wandora_core_runtime EXECUTE V2          = false
+authenticated EXECUTE V2                 = false
+platform direct ledger SELECT            = false
+platform provisioner password            = absent
+```
+
+Post-migration business/integration state remained unchanged:
+
+```text
+organizations                     = 2
+digital_employees                 = 3
+control_plane_provider_bindings   = 1
+digital_employee_provider_bindings= 1
+completed catalog hire operations = 1
+tenant_provisioning_requests      = 0
+customer-hire canary              = absent
+```
+
+The canonical live-safe verifier returned `PRIVATE_TENANT_PROVISIONING_V2_LIVE_OK`. Core/Web/Paperclip/Gateway remained healthy. Customer Digital-Employee Hire, Human Send and Gateway outbound remained OFF.
+
+V2 is therefore a **live but dormant** operator capability. No tenant has yet been created through it.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Private Tenant Provisioning V2 — Production Migration Execution V1.**
+Next: **Customer Hire Canary — Employee-Free Tenant Provisioning Preflight V1.**
 
-Apply only migration 012 to production after a fresh state/SHA recheck, immediately run its live-safe verifier, prove all existing business/provider counts unchanged and provisioning requests still zero, and keep every customer/provider/outbound effect OFF. Do not create the canary tenant or Paperclip company in the migration execution slice.
+Freeze the exact execution identity/path, request key and postconditions for creating the single `Wandora Customer Hire Canary` organization with zero employees. Keep Paperclip company/bootstrap, provider binding, customer hire, activation and outbound outside that preflight/provisioning effect.
 
 ## Operational safety
 

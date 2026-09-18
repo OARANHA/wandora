@@ -461,14 +461,14 @@ future Ativar
   -> not yet available
 ```
 
-Migration 012 implements employee-free provisioning in code/CI only. ADR 0067 completed its production migration preflight with current backup/restore and migration/reverse rehearsal evidence; the migration is still not live until the separate Production Migration Execution V1 slice. The first live customer-hire canary must use a private production-connected candidate Core while the normal live Core keeps the runtime-wide customer-hire gate OFF. Human Send and Gateway outbound remain separate disabled effects.
+Migration 012 is now live under ADR 0068 as a dormant, least-privilege employee-free provisioning capability. No V2 provisioning request has been executed yet. The first live customer-hire canary still requires a separately reviewed employee-free tenant provisioning effect, followed later by separate Paperclip bootstrap/binding and a private production-connected candidate Core for the paused-first hire while the normal live Core keeps the runtime-wide customer-hire gate OFF. Human Send and Gateway outbound remain separate disabled effects.
 
 ## Near-term execution sequence
 
 1. keep canonical documentation synchronized with the live state;
 2. preserve Human Session, explicit multi-organization selection, `Equipe`, `Trabalho` and `Conversas` authorization boundaries;
 3. finish the existing customer-facing product by converting remaining PARTIAL/PLACEHOLDER surfaces through the correct Wandora contracts;
-4. apply and verify Tenant Provisioning V2 migration 012 in its isolated production execution slice before creating the fresh customer-hire canary; then bootstrap its Paperclip company/binding and prove the paused-first hire through a private candidate Core;
+4. preflight and execute exactly one employee-free customer-hire canary tenant through live Provisioning V2; only afterward bootstrap its Paperclip company/binding and prove the paused-first hire through a private candidate Core;
 5. keep Human Send and Gateway outbound OFF by default after the successful controlled Confirmation V2 proof;
 6. preserve exactly-once durable attempt semantics and never retry historical `uncertain` attempts blindly;
 7. keep stronger commercial commitments on the existing approval boundary;

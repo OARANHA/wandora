@@ -376,13 +376,26 @@ Current rollback artifact:
 sha256=d88a4acb89eba37f7a366621c1d0ede4a824a26e54565bd823591979f28853ff
 ```
 
-Production remains pre-012: V2 function/column absent, `employee_id NOT NULL`, organizations=2, digital employees=3, provisioning requests=0. Customer Digital-Employee Hire, Human Send and Gateway outbound remain OFF.
+ADR 0068 then applied migration 012 to production using the exact canonical Git artifacts after a fresh live-state/hash recheck.
+
+Production now has the employee-free V2 provisioner live but dormant:
+
+```text
+V2 function = present
+provisioning_version = present
+employee_id = nullable
+platform provisioner EXECUTE V2 = true
+Core/authenticated EXECUTE V2 = false
+tenant provisioning requests = 0
+```
+
+Existing business/provider state remained unchanged at 2 organizations, 3 digital employees, 1 control-plane binding, 1 employee binding and 1 completed catalog hire. The future customer-hire canary remains absent. Customer Digital-Employee Hire, Human Send and Gateway outbound remain OFF.
 
 ## Next executable slice
 
-Next: **Private Tenant Provisioning V2 — Production Migration Execution V1.**
+Next: **Customer Hire Canary — Employee-Free Tenant Provisioning Preflight V1.**
 
-Apply only migration 012 after fresh live-state/hash verification, run the exact live-safe verifier immediately, prove business/provider state unchanged and provisioning requests still zero, and stop before any canary tenant/Paperclip/provider/hire effect.
+Select/freeze the exact least-privilege execution path and request identity for creating one `Wandora Customer Hire Canary` organization with zero employees. Stop before Paperclip company/bootstrap, provider binding, hire, activation or outbound effects.
 
 ## Platform Admin
 
@@ -439,6 +452,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0065 — Customer Hire Canary Selection + Legacy Reconciliation Preflight V1
 - ADR 0066 — Private Tenant Provisioning V2 Employee-Free Contract Implementation V1
 - ADR 0067 — Private Tenant Provisioning V2 Production Migration Preflight V1
+- ADR 0068 — Private Tenant Provisioning V2 Production Migration Execution V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
