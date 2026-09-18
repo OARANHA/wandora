@@ -57,7 +57,7 @@ REVOKE ALL ON wandora_private.digital_employee_catalog_hire_eligibility
   FROM PUBLIC, wandora_core_runtime, wandora_platform_provisioner,
        wandora_customer_hire_operator;
 
-DO $
+DO $revoke$
 DECLARE
   v_role text;
 BEGIN
@@ -76,7 +76,7 @@ BEGIN
     END IF;
   END LOOP;
 END
-$;
+$revoke$;
 
 GRANT SELECT ON wandora_private.digital_employee_catalog_hire_eligibility
   TO wandora_core_runtime;
@@ -150,7 +150,7 @@ REVOKE ALL ON FUNCTION wandora_private.set_digital_employee_catalog_hire_eligibi
 ) FROM PUBLIC, wandora_core_runtime, wandora_platform_provisioner,
        wandora_customer_hire_operator;
 
-DO $
+DO $revoke$
 DECLARE
   v_role text;
 BEGIN
@@ -169,7 +169,7 @@ BEGIN
     END IF;
   END LOOP;
 END
-$;
+$revoke$;
 
 GRANT EXECUTE ON FUNCTION wandora_private.set_digital_employee_catalog_hire_eligibility(
   uuid, text, boolean
