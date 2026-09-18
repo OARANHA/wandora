@@ -84,11 +84,19 @@ const humanSendProposalService = pool && humanVerifier && config.humanSendPropos
     )
   : undefined;
 
+const humanDigitalEmployeeHireService = pool
+  && humanVerifier
+  && config.humanDigitalEmployeeHire
+  && organizationAdapterService
+  ? organizationAdapterService
+  : undefined;
+
 const handleHumanSupervision = humanReadService
   ? createHumanSupervisionHandler(
       humanReadService,
       humanSendProposalService,
       humanDigitalEmployeesReadService,
+      humanDigitalEmployeeHireService,
     )
   : undefined;
 
@@ -106,6 +114,7 @@ server.listen(config.port, '0.0.0.0', () => {
     gatewayIngress: Boolean(handleGatewayInbound),
     humanApi: Boolean(handleHumanSupervision),
     humanSendProposal: Boolean(humanSendProposalService),
+    humanDigitalEmployeeHire: Boolean(humanDigitalEmployeeHireService),
     organizationAdapter: Boolean(organizationAdapterService),
     agentRuntime: config.agentRuntime?.mode ?? 'disabled',
   }));
