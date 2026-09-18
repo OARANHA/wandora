@@ -1313,7 +1313,7 @@ The implementation remains **not deployed**. No real invite/recovery was request
 
 ADR 0090 closes the no-effect production activation preflight.
 
-Canonical source remains `main@5f135e9070380e28c64f244c8a7126644cfa793c`. The retained Web build context was hash-compared against all 34 `apps/web` files at that main and is byte-for-byte equivalent. PR #137 head -> merge also has no file delta.
+The application/Web source base entering this preflight is `main@5f135e9070380e28c64f244c8a7126644cfa793c`; PR #138 is documentation-only and does not change that application tree. The retained Web build context was hash-compared against all 34 `apps/web` files at that base and is byte-for-byte equivalent. PR #137 head -> merge also has no file delta.
 
 A real-key, non-live Web candidate is staged locally:
 
