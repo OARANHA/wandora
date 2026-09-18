@@ -20,6 +20,7 @@ services:
       PAPERCLIP_DEPLOYMENT_MODE: "authenticated"
       PAPERCLIP_DEPLOYMENT_EXPOSURE: "private"
       PAPERCLIP_PUBLIC_URL: "https://control.wandora.com.br"
+      PAPERCLIP_ALLOWED_HOSTNAMES: "wandora-paperclip"
       PAPERCLIP_TELEMETRY_DISABLED: "1"
       DO_NOT_TRACK: "1"
       BETTER_AUTH_SECRET: "${BETTER_AUTH_SECRET:?required}"
