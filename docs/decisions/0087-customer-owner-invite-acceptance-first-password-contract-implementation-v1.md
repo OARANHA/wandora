@@ -388,7 +388,34 @@ They failed again with the same runnerless shape when selectively retried. No co
 
 The final PR head must still receive fresh CI after canonical documentation is added.
 
-A subsequent adversarial review hardened password-write ambiguity with `GET /user` identity readback plus password-grant reconciliation. That hardening changes Web code/verifier only and must receive fresh Web CI before merge. Runnerless Actions failures are not treated as test failures; they require runner/job evidence before retry.
+A subsequent adversarial review hardened password-write ambiguity with `GET /user` identity readback plus password-grant reconciliation.
+
+That hardened head was independently materialized into a disposable Web tree and validated with the exact canonical build runtime:
+
+```text
+node:22.23.2-bookworm-slim@sha256:83f487e0a63425e5b4d146fb5e5be574bcbe1b7b843d3ebafdd95eaf7767a7e5
+npm run build
+exit code = 0
+
+WANDORA_WEB_OWNER_INVITE_ACCEPTANCE_V1_OK
+WANDORA_WEB_FIRST_PASSWORD_CONTRACT_V1_OK
+WANDORA_WEB_DIGITAL_EMPLOYEE_HIRE_BRIDGE_V1_OK
+WANDORA_WEB_CUSTOMER_HIRE_BROWSER_IDEMPOTENCY_V1_OK
+WANDORA_WEB_CUSTOMER_HIRE_TENANT_AVAILABILITY_V1_OK
+vite production build = success
+```
+
+The disposable validation tree lives under `/tmp` only and is not production runtime.
+
+GitHub Actions attempts on the same PR head continued to fail before runner assignment:
+
+```text
+runner_name = absent
+steps = null
+job logs = unavailable
+```
+
+Those runnerless failures are not treated as code/test failures. A fresh Actions attempt is still required before merge if runners become available; the independent Node 22 proof does not silently relabel failed Actions checks as green.
 
 ## EFFECT BOUNDARY
 
