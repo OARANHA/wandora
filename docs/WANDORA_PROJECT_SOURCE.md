@@ -1,8 +1,8 @@
 # Wandora — Project Source / Continuity Bootstrap
 
-Snapshot date: **2026-09-17**
+Snapshot date: **2026-09-18**
 Repository: `OARANHA/wandora`
-Canonical base before this live-Core-promotion checkpoint: `8ceb1c43f5fb9967966f0c1564c51ecea382b13c`
+Canonical main entering ADR 0090 preflight: `5f135e9070380e28c64f244c8a7126644cfa793c`
 
 > **Purpose:** compact bootstrap for ChatGPT Project Sources and future development sessions. It prevents architectural drift, accidental reinvention and stale workflow assumptions.
 >
@@ -789,11 +789,30 @@ GitHub-hosted checks for the implementation head again ended before runner assig
 
 The implementation is not deployed. No recovery/invite was generated or sent, no Auth user/tenant/provider state changed, and eligibility remains zero. Live CAPTCHA is still disabled and remains an activation gate.
 
+## Customer Owner Invite + Recovery Production Activation Preflight — COMPLETE / BLOCKED
+
+ADR 0090 proves the owner-access Web source and a production-keyed local candidate without deploying it.
+
+```text
+canonical main = 5f135e9070380e28c64f244c8a7126644cfa793c
+candidate = wandora/web:owner-access-candidate-5f135e90
+candidate manifest list = sha256:7921ad23cd626efc9f6fc619f70fc98a5d62e862958d6534edc488e6afc21ba5
+live Web = wandora/web:candidate-af542864d267
+```
+
+All 34 Web build-context files match current main Git blobs. The candidate uses the existing public Supabase ANON/publishable key, passed strict TypeScript + invite/recovery/hire verifiers + Vite build, and isolated smoke returned 200 for `/login`, `/accept-invite`, `/recover-access`, with unauthenticated `/api/v1/me=401`. Rollback is image-only.
+
+Auth redirect/origin configuration is compatible and public signup remains disabled. No recovery POST was sent.
+
+Activation remains blocked by the anti-abuse gate: GoTrue CAPTCHA is off and the current Web has no CAPTCHA-token contract; the public Supabase Traefik router has no recovery-specific limiter; the origin is not proven Cloudflare-only; and the installed Cloudflare DNS token can read the zone but receives 403 reading the HTTP rate-limit ruleset. Therefore no compatible Cloudflare recovery rule is currently proven.
+
+No Web/Auth/Core deployment, invite/recovery, tenant/provider wiring or eligibility effect occurred.
+
 ## Next executable slice
 
-Next: **Customer Owner Invite + Recovery Production Activation Preflight V1.**
+Next: **Customer Owner Recovery Edge Anti-Abuse Control Preflight V1.**
 
-No-effect preflight only: verify provider-native CAPTCHA and/or compatible edge abuse protection, redirect/origin configuration, exact Web candidate provenance, rollback and post-deploy validation. Do not deploy, send a real invite/recovery, provision a tenant, create provider wiring or enable eligibility.
+No-effect preflight only. Obtain Rulesets-authorized Cloudflare visibility (or prove a provider-native CAPTCHA alternative), freeze the narrowest compatible recovery abuse-control rule and rollback, and do not deploy owner-access Web or issue a real recovery/invite yet.
 
 ## Platform Admin
 
@@ -872,6 +891,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0087 — Customer Owner Invite Acceptance + First Password Contract Implementation V1
 - ADR 0088 — Customer Owner Interrupted Invite Recovery Contract Preflight V1
 - ADR 0089 — Customer Owner Interrupted Invite Recovery Contract Implementation V1
+- ADR 0090 — Customer Owner Invite + Recovery Production Activation Preflight V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 

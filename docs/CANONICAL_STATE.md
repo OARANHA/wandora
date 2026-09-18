@@ -1309,13 +1309,51 @@ isolated route smoke:
 
 The implementation remains **not deployed**. No real invite/recovery was requested or generated, no Auth user/tenant/provider state was created and eligibility remains unchanged. ADR 0088's anti-abuse gate remains mandatory because live CAPTCHA is still disabled.
 
+## Customer Owner Invite + Recovery Production Activation Preflight V1 — COMPLETE / ACTIVATION BLOCKED
+
+ADR 0090 closes the no-effect production activation preflight.
+
+The application/Web source base entering this preflight is `main@5f135e9070380e28c64f244c8a7126644cfa793c`; PR #138 is documentation-only and does not change that application tree. The retained Web build context was hash-compared against all 34 `apps/web` files at that base and is byte-for-byte equivalent. PR #137 head -> merge also has no file delta.
+
+A real-key, non-live Web candidate is staged locally:
+
+```text
+wandora/web:owner-access-candidate-5f135e90
+manifest list = sha256:7921ad23cd626efc9f6fc619f70fc98a5d62e862958d6534edc488e6afc21ba5
+```
+
+It was built with the existing public Supabase ANON/publishable key without emitting the key, passed strict TypeScript plus all invite/recovery/hire verifiers and Vite build, and passed isolated route smoke:
+
+```text
+publishable-key fingerprint = expected
+/healthz = 200
+/login = 200
+/accept-invite = 200
+/recover-access = 200
+/api/v1/me without session = 401
+```
+
+The old ADR 0089 proof image used a synthetic publishable key and is not promotable. The current live Web also predates owner invite/recovery and is not the candidate.
+
+Auth redirect/origin preflight is green: live SITE_URL is `https://app.wandora.com.br`, the allow-list covers `https://app.wandora.com.br/**`, public signup remains disabled, and an OPTIONS preflight to `/auth/v1/recover` from the Wandora app origin returns 200 with the exact allowed origin. No recovery POST was made.
+
+Production activation is nevertheless **blocked** by anti-abuse:
+
+- GoTrue CAPTCHA is not configured live;
+- the current Web sends no CAPTCHA token, so enabling provider CAPTCHA now would break recovery;
+- the public Supabase Traefik router has no recovery-specific rate limiter;
+- Traefik HTTPS is public-bound and a direct-origin route exists, so forwarded Cloudflare client-IP headers are not accepted as a trusted local rate-limit identity without a proven Cloudflare-only origin boundary;
+- the installed Cloudflare DNS token can read the zone but receives 403 on the HTTP rate-limit ruleset, so no compatible edge rule is currently provable.
+
+No edge rule, Auth config, Web runtime or production service was changed.
+
+The activation/rollback plan is frozen: after anti-abuse is separately proven, promote only the Web image; rollback restores `wandora/web:candidate-af542864d267`. Post-deploy checks must preserve Hire ON, eligibility 0, unfinished hires 0, Human Send OFF, Gateway outbound OFF, Auth signup disabled, and zero recovery-token/sent state until a separately authorized real recovery test.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Owner Invite + Recovery Production Activation Preflight V1.**
+Next: **Customer Owner Recovery Edge Anti-Abuse Control Preflight V1.**
 
-No-effect preflight only. Verify provider-native CAPTCHA and/or compatible edge abuse protection, redirect/origin configuration, exact Web candidate provenance, rollback and post-deploy checks before any activation execution is authorized.
-
-Do not deploy, send a real recovery/invite, provision a tenant, create provider wiring or enable eligibility during that preflight.
+No-effect preflight only. Inspect actual Cloudflare rules/capability with Rulesets-authorized access (or prove a provider-native CAPTCHA alternative), freeze the narrowest compatible anti-abuse control and rollback, and do not deploy Web or issue a real invite/recovery during that preflight.
 
 ## Operational safety
 
