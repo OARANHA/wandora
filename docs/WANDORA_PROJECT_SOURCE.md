@@ -439,11 +439,34 @@ Exact future POST body is `{"name":"Wandora Customer Hire Canary"}` (SHA-256 `e1
 
 Paperclip does not provide an idempotency key for company creation, names are not unique and the route can persist the company before later owner/audit steps complete. Therefore any ambiguous/non-201 result after dispatch requires read-only reconciliation and never a blind retry. The live health contract reports company deletion disabled, so normal rollback does not assume DELETE.
 
+## Customer Hire Canary Paperclip Bootstrap Execution — LIVE
+
+ADR 0072 created the canary provider company once through the official Paperclip CLI with the protected Board credential store.
+
+```text
+Wandora Customer Hire Canary providerCompanyRef
+  = e7422a00-1474-49d5-ac32-34594520015e
+
+Paperclip companies = 2
+canary provider company = active
+canary owner membership = active
+canary provider agents = 0
+canary Organization Adapter config = absent
+canary company secrets = 0
+
+Wandora canary employees/provider bindings/hire operations = 0/0/0
+Customer Digital-Employee Hire = OFF
+Human Send = OFF
+Gateway outbound = OFF
+```
+
+No provider-create replay was executed.
+
 ## Next executable slice
 
-Next: **Customer Hire Canary — Paperclip Provider Company Bootstrap Execution V1.**
+Next: **Customer Hire Canary — Organization Adapter Custody + Config + Binding Preflight V1.**
 
-Issue the frozen POST exactly once and independently prove one clean active provider company with active owner membership and zero agents. Stop before HMAC custody/config, Wandora provider binding, hire, activation or outbound.
+Freeze the exact provider pair, deterministic HMAC custody reference, Paperclip secret/config contract, private Wandora binding path and cross-system recovery ordering before any additional mutation.
 
 ## Platform Admin
 
@@ -504,6 +527,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0069 — Customer Hire Canary Employee-Free Tenant Provisioning Preflight V1
 - ADR 0070 — Customer Hire Canary Employee-Free Tenant Provisioning Execution V1
 - ADR 0071 — Customer Hire Canary Paperclip Provider Company Bootstrap Preflight V1
+- ADR 0072 — Customer Hire Canary Paperclip Provider Company Bootstrap Execution V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 

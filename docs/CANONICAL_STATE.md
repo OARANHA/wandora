@@ -695,13 +695,39 @@ The live health contract reports `companyDeletionEnabled=false`, so deletion is 
 
 Production remains unchanged after preflight: Paperclip still has one company, the canary has zero employees/provider bindings/hire operations, and Customer Digital-Employee Hire, Human Send and Gateway outbound remain OFF.
 
+## Customer Hire Canary — Paperclip Provider Company Bootstrap Execution V1 — LIVE
+
+ADR 0072 records the one-shot provider bootstrap through the official Paperclip CLI/instance-admin boundary.
+
+Current provider state:
+
+```text
+Paperclip companies total = 2
+
+Wandora Internal Supervised Proof
+  providerCompanyRef = 815d499e-4231-4e6b-b7fc-67f0ba22a595
+  status = active
+
+Wandora Customer Hire Canary
+  providerCompanyRef = e7422a00-1474-49d5-ac32-34594520015e
+  status = active
+  owner membership = active
+  agents = 0
+  Organization Adapter config = absent
+  company secrets = 0
+```
+
+The canary Wandora organization still has zero employees, zero provider bindings and zero hire operations. Existing internal integration totals remain 1/1/1.
+
+Customer Digital-Employee Hire, Human Send and Gateway outbound remain OFF.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Hire Canary — Paperclip Provider Company Bootstrap Execution V1.**
+Next: **Customer Hire Canary — Organization Adapter Custody + Config + Binding Preflight V1.**
 
-Send the exact frozen company-create request once, reconcile provider state independently and stop after one clean provider company exists.
+Observation/plan-first only. Freeze the exact Wandora↔Paperclip pair, deterministic custody reference, secret/config contract, private binding operator path, ordering/recovery semantics and zero-employee postconditions.
 
-Keep company-scoped HMAC custody/config, Wandora control-plane binding, customer hire, activation, Human Send and Gateway outbound outside that execution slice.
+Do not create HMAC custody/config, the Wandora provider binding, an employee/hire operation, activation, Human Send or Gateway outbound during that preflight.
 
 ## Operational safety
 
