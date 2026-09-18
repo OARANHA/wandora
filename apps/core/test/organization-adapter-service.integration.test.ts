@@ -151,7 +151,23 @@ test('completed hire replay returns the same employee with its later canonical a
     organizationId: ORG_A, actorUserId: USER, catalogKey: 'ana-commercial-v1', idempotencyKey: 'hire-then-activate',
   });
   assert.deepEqual(replay, { ...hired, status: 'active' });
+
+  const catalogReplay = await service.ensureCatalogEmployee({
+    organizationId: ORG_A,
+    actorUserId: USER,
+    catalogKey: 'ana-commercial-v1',
+    idempotencyKey: 'hire-after-eligibility-disabled',
+  });
+  assert.deepEqual(catalogReplay, replay);
   assert.equal(provider.calls.length, 1);
+
+  const operations = await fixturePool.query(
+    `SELECT count(*)::int AS count
+       FROM wandora_private.digital_employee_hire_operations
+      WHERE organization_id=$1`,
+    [ORG_A],
+  );
+  assert.equal(operations.rows[0]?.count, 1);
 });
 
 test('same idempotency key with a changed canonical request fails before another provider call', async () => {
