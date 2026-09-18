@@ -1,0 +1,4 @@
+services:
+  core:
+    environment:
+      WANDORA_HUMAN_DIGITAL_EMPLOYEE_HIRE_ENABLED: "true"
