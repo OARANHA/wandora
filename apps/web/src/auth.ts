@@ -1,5 +1,6 @@
 const SUPABASE_AUTH_ORIGIN = 'https://supabase.wandora.com.br';
 const SESSION_STORAGE_KEY = 'wandora.auth.session.v1';
+const RECOVERY_REDIRECT_TO = 'https://app.wandora.com.br/recover-access';
 const REFRESH_SKEW_SECONDS = 60;
 
 const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim() ?? '';
@@ -66,6 +67,29 @@ export function signInWithPassword(email: string, password: string): Promise<Bro
   return tokenRequest('password', { email: email.trim(), password });
 }
 
+export async function requestPasswordRecovery(email: string): Promise<void> {
+  let response: Response;
+  try {
+    response = await fetch(`${SUPABASE_AUTH_ORIGIN}/auth/v1/recover`, {
+      method: 'POST',
+      headers: {
+        apikey: requirePublishableKey(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: email.trim(),
+        redirect_to: RECOVERY_REDIRECT_TO,
+      }),
+    });
+  } catch {
+    throw new AuthClientError('provider-error', 'Não foi possível solicitar a recuperação agora. Tente novamente mais tarde.');
+  }
+
+  if (!response.ok) {
+    throw new AuthClientError('provider-error', 'Não foi possível solicitar a recuperação agora. Tente novamente mais tarde.');
+  }
+}
+
 export function refreshBrowserSession(session: BrowserAuthSession): Promise<BrowserAuthSession> {
   return tokenRequest('refresh_token', { refresh_token: session.refreshToken });
 }
@@ -90,25 +114,25 @@ async function readAuthenticatedUserEmail(session: BrowserAuthSession): Promise<
       },
     });
   } catch {
-    throw new AuthClientError('provider-error', 'Não foi possível validar seu convite agora.');
+    throw new AuthClientError('provider-error', 'Não foi possível validar esta sessão de alteração de senha agora.');
   }
 
   if (response.status === 401) {
-    throw new AuthClientError('session-expired', 'Seu convite expirou. Solicite um novo acesso à Wandora.');
+    throw new AuthClientError('session-expired', 'Esta sessão expirou. Solicite um novo link de acesso.');
   }
   if (!response.ok) {
-    throw new AuthClientError('provider-error', 'Não foi possível validar seu convite agora.');
+    throw new AuthClientError('provider-error', 'Não foi possível validar esta sessão de alteração de senha agora.');
   }
 
   const payload = await response.json() as AuthenticatedUserResponse;
   const email = payload.email?.trim() ?? '';
   if (!email) {
-    throw new AuthClientError('provider-error', 'A identidade do convite não possui um e-mail válido.');
+    throw new AuthClientError('provider-error', 'A identidade autenticada não possui um e-mail válido.');
   }
   return email;
 }
 
-export async function updateInvitedUserPassword(session: BrowserAuthSession, password: string): Promise<void> {
+export async function updateAuthenticatedUserPassword(session: BrowserAuthSession, password: string): Promise<void> {
   let response: Response;
   try {
     response = await fetch(`${SUPABASE_AUTH_ORIGIN}/auth/v1/user`, {
@@ -127,7 +151,7 @@ export async function updateInvitedUserPassword(session: BrowserAuthSession, pas
   if (response.ok) return;
 
   if (response.status === 401) {
-    throw new AuthClientError('session-expired', 'Seu convite expirou. Solicite um novo acesso à Wandora.');
+    throw new AuthClientError('session-expired', 'Esta sessão expirou. Solicite um novo link de acesso.');
   }
   if (response.status === 400 || response.status === 422) {
     throw new AuthClientError('password-rejected', 'A senha não atende aos requisitos de segurança do acesso.');
@@ -136,7 +160,7 @@ export async function updateInvitedUserPassword(session: BrowserAuthSession, pas
   throw new AuthClientError('provider-error', 'Não foi possível atualizar sua senha agora.');
 }
 
-export async function finalizeInvitedUserPassword(
+export async function finalizeAuthenticatedUserPassword(
   session: BrowserAuthSession,
   password: string,
 ): Promise<BrowserAuthSession> {
@@ -144,7 +168,7 @@ export async function finalizeInvitedUserPassword(
   let updateError: AuthClientError | null = null;
 
   try {
-    await updateInvitedUserPassword(session, password);
+    await updateAuthenticatedUserPassword(session, password);
   } catch (error) {
     if (error instanceof AuthClientError && error.code === 'session-expired') {
       throw error;
