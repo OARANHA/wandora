@@ -30,14 +30,21 @@ function baseServices() {
   } as unknown as HumanSupervisionReadService;
 
   const digitalEmployeesService = {
-    async listDigitalEmployees() {
-      return [{
-        id: EMPLOYEE,
-        name: 'Ana',
-        role: 'commercial-assistant' as const,
-        status: 'paused' as const,
-        autonomy: 'supervised' as const,
-      }];
+    async getDigitalEmployeesView() {
+      return {
+        items: [{
+          id: EMPLOYEE,
+          name: 'Ana',
+          role: 'commercial-assistant' as const,
+          status: 'paused' as const,
+          autonomy: 'supervised' as const,
+        }],
+        hire: {
+          catalogKey: 'ana-commercial-v1' as const,
+          available: false,
+          state: 'already-hired' as const,
+        },
+      };
     },
   } as unknown as HumanDigitalEmployeesReadService;
 
@@ -62,7 +69,15 @@ test('exact UUID digital employees GET remains canonical read-only projection', 
       status: 'paused',
       autonomy: 'supervised',
     }],
+    hire: {
+      catalogKey: 'ana-commercial-v1',
+      available: false,
+      state: 'already-hired',
+    },
   });
+  assert.equal(JSON.stringify(allowed.body).includes('paperclip'), false);
+  assert.equal(JSON.stringify(allowed.body).includes('provider'), false);
+  assert.equal(JSON.stringify(allowed.body).includes('secret'), false);
 
   const invalidId = await handler({
     method: 'GET',
@@ -198,6 +213,11 @@ test('customer hire maps authorization, conflict and unavailable outcomes withou
     },
     {
       error: new OrganizationAdapterUnavailableError('catalog-employee-unknown', 'missing'),
+      status: 404,
+      body: { error: 'employee-not-available' },
+    },
+    {
+      error: new OrganizationAdapterUnavailableError('catalog-hire-not-eligible', 'private policy detail'),
       status: 404,
       body: { error: 'employee-not-available' },
     },
