@@ -651,11 +651,37 @@ migration 013
 
 Eligibility changes use the dedicated NOLOGIN `wandora_customer_hire_operator` only through a protected local transactional `SET LOCAL ROLE` path; no new general-purpose login is authorized.
 
+## Customer Digital-Employee Hire Dormant Production Foundation — LIVE / DORMANT
+
+ADR 0082 applied migration 013 and promoted the reviewed PR #128 Core/Web candidates while deliberately keeping every rollout effect closed.
+
+Live foundation:
+
+```text
+migration 013 = LIVE
+eligibility rows = 0
+customer-hire operator = NOLOGIN / controlled setter only
+
+Core = wandora/core:organization-adapter-candidate-af542864d267
+Web  = wandora/web:candidate-af542864d267
+Core/Web = healthy
+
+Customer Hire = OFF
+Human Send = OFF
+Gateway outbound = OFF
+```
+
+A fresh pre-migration backup is retained and its Wandora-owned schemas passed a disposable PostgreSQL 17.6 restore/count proof. Exact migration and candidate provenance were hash-gated before production use.
+
+Core/Web Compose drift gates each proved that the only promotion delta was the image. Previous Core/Web images and rollback records remain available.
+
+No durable employee/binding/hire count changed and no tenant received eligibility.
+
 ## Next executable slice
 
-Next: **Customer Digital-Employee Hire — Dormant Production Foundation Activation V1.**
+Next: **Customer Digital-Employee Hire — Global Runtime Gate Activation Preflight V1.**
 
-Apply migration 013 and promote Core/Web only in a separately reviewed execution slice, with zero eligibility rows and the global customer-hire gate remaining OFF. Tenant eligibility and global-gate activation remain later independent effects.
+This is preflight only: revalidate the dormant foundation, prove fail-closed behavior with zero eligibility, render the exact hire-overlay candidate/rollback composition, and decide activation ordering. No global or tenant-specific hire effect is implied by the live foundation.
 
 ## Platform Admin
 

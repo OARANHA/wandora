@@ -996,13 +996,58 @@ The future eligibility operator path does not create a new LOGIN: the protected 
 
 No migration, candidate deploy, eligibility row, global hire activation, employee activation or outbound effect occurred during this preflight.
 
+## Customer Digital-Employee Hire — Dormant Production Foundation Activation V1 — LIVE / DORMANT
+
+ADR 0082 makes the eligibility contract and reviewed customer Core/Web live without enabling any customer-hire effect.
+
+Current production foundation:
+
+```text
+migration 013 table / setter / operator role = LIVE
+wandora_customer_hire_operator = NOLOGIN / least privilege
+eligibility rows = 0
+
+Core = wandora/core:organization-adapter-candidate-af542864d267
+Core health / ready / restarts = healthy / 200 / 0
+
+Web = wandora/web:candidate-af542864d267
+Web health / restarts = healthy / 0
+
+Customer Digital-Employee Hire = OFF
+Human Send = OFF
+Gateway outbound = OFF
+```
+
+The exact migration Git blob was hash-gated before execution. A fresh pre-migration custom-format backup is retained under `/home/wandora-admin/backups/customer-hire-foundation-20260918T123446Z/` with SHA-256 `9ab8ebc19342be406d1b505073b6dbddce3fd7314014ddac743c745d565ee423`.
+
+Recovery proof restored the Wandora-owned `wandora` + `wandora_private` schemas into disposable PostgreSQL 17.6 and reproduced the exact pre-migration counts. The first broader Supabase-image restore attempts were explicitly rejected after disposable-only failures; production was never used as a restore target.
+
+Migration 013 live postverify is read-only and proves zero rows, RLS, tenant-scoped Core SELECT, setter-only NOLOGIN operator authority, no platform-provisioner authority, and no browser/service-role authority.
+
+The Core and Web promotion renders each differed from the previous live render only by their image line. Previous images and rollback records remain locally available.
+
+Public Web route checks are green for `/healthz`, `/`, `/login`, `/team`, `/work`, `/conversations`, `/company` and `/start`.
+
+Durable business/integration counts remained unchanged:
+
+```text
+organizations = 3
+digital_employees = 4
+control_plane_provider_bindings = 2
+digital_employee_provider_bindings = 2
+digital_employee_hire_operations = 2
+tenant_provisioning_requests = 1
+```
+
+No tenant eligibility, hire, employee activation, Paperclip mutation or outbound effect occurred.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Digital-Employee Hire — Dormant Production Foundation Activation V1.**
+Next: **Customer Digital-Employee Hire — Global Runtime Gate Activation Preflight V1.**
 
-That execution may apply migration 013 and promote the selected Core/Web candidates only with **zero eligibility rows** and the process-wide Customer Digital-Employee Hire gate still **OFF**.
+Preflight only. Revalidate the dormant foundation, prove the zero-eligibility fail-closed behavior, render the exact Core-only hire overlay/rollback composition and decide whether the global gate or first clean tenant eligibility should be activated first.
 
-It must stop after proving the dormant foundation healthy. Global hire enablement and tenant/catalog eligibility enablement remain separate later effects with their own review cycles.
+Do not enable the global gate or any tenant eligibility merely because the dormant foundation is healthy.
 
 ## Operational safety
 
