@@ -470,8 +470,8 @@ ADR 0079 selected an additional Wandora-owned organization+catalog eligibility f
 1. keep canonical documentation synchronized with the live state;
 2. preserve Human Session, explicit multi-organization selection, `Equipe`, `Trabalho` and `Conversas` authorization boundaries;
 3. finish the existing customer-facing product by converting remaining PARTIAL/PLACEHOLDER surfaces through the correct Wandora contracts;
-4. run Customer Digital-Employee Hire Production Activation Preflight V2 before any migration/deploy/eligibility effect: revalidate live state, select exact post-merge artifacts, freeze migration/deploy/rollback order and prove the global hire gate remains OFF;
-5. if a later execution slice is authorized, apply migration 013 with zero eligibility rows first, validate fail-closed behavior, then promote reviewed Core/Web candidates independently; tenant eligibility and the process-wide hire gate remain separately reviewed effects;
+4. ADR 0081 completed Customer Digital-Employee Hire Production Activation Preflight V2 with no production effect: migration 013 remains absent, the final PR #128 artifacts are proven current-main tree-equivalent, and no active tenant is selected for a new catalog hire;
+5. the next separately authorized execution is dormant foundation only: apply migration 013 with zero eligibility rows, run read-only authority/zero-row postverify, then promote reviewed Core before Web while the process-wide customer-hire gate remains OFF; tenant eligibility and global-gate activation remain later independent effects;
 6. keep Human Send and Gateway outbound OFF by default after the successful controlled Confirmation V2 and hire-canary proofs;
 7. preserve exactly-once durable attempt semantics and never retry historical `uncertain` attempts blindly; incomplete customer hire may resume only through its original idempotency key;
 8. keep stronger commercial commitments on the existing approval boundary;

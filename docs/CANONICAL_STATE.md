@@ -943,13 +943,66 @@ Gateway outbound                          = OFF
 
 No live role grant, migration, candidate deployment, customer hire activation, employee activation or outbound effect occurred.
 
+## Customer Digital-Employee Hire — Production Activation Preflight V2 — COMPLETE / NO EFFECT
+
+ADR 0081 closes the production activation preflight after PR #128.
+
+Current canonical Git/provenance:
+
+```text
+main = e438518bb52be8119883c4350295dac58cd70ef2
+main tree = 1438f0b4c33a7dda4d7ec8de94755f4e5f93122e
+PR #128 reviewed merge-ref = af542864d267c0d186bae7272b208a4ee676f1cc
+reviewed merge-ref tree = 1438f0b4c33a7dda4d7ec8de94755f4e5f93122e
+```
+
+The selected Core/Web artifacts from the final PR validation are therefore accepted as current-main **tree-equivalent** candidates; no arbitrary rebuild is required merely because the squash commit identity differs.
+
+Read-only production revalidation proves:
+
+```text
+migration 013 table / role / setter = ABSENT / ABSENT / ABSENT
+normal Customer Digital-Employee Hire = OFF
+Human Send = OFF
+Gateway outbound = OFF
+Core/Web/Paperclip/Gateway = healthy / 0 restarts
+```
+
+Tenant-by-tenant review found no active tenant that should receive a new `ana-commercial-v1` eligibility row now:
+
+- Internal Supervised Proof already has a completed catalog operation and proof/employee state;
+- Empresa Exemplo has a legacy active Ana and no Paperclip control-plane binding;
+- Customer Hire Canary already has the completed paused-first catalog hire.
+
+Paperclip readback independently shows one paused `wandora_mastra` Ana in each bound company (Internal Supervised Proof and Customer Hire Canary).
+
+Future dormant-foundation order is frozen:
+
+```text
+fresh backup/rollback evidence
+-> migration 013
+-> read-only zero-row + authority postverify
+-> global customer-hire gate still OFF
+-> Core candidate
+-> Core health/readiness/no-effect verification
+-> Web candidate
+-> Web fail-closed verification
+-> STOP
+```
+
+Core precedes Web because the old Web safely ignores the additional Core `hire` field, while the new Web depends on that projection.
+
+The future eligibility operator path does not create a new LOGIN: the protected local DB administration session uses transactional `SET LOCAL ROLE wandora_customer_hire_operator` and the controlled setter only. No persistent grant to an application/service account is authorized.
+
+No migration, candidate deploy, eligibility row, global hire activation, employee activation or outbound effect occurred during this preflight.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Digital-Employee Hire — Production Activation Preflight V2.**
+Next: **Customer Digital-Employee Hire — Dormant Production Foundation Activation V1.**
 
-Preflight only: revalidate current `main` + live DB/runtime, prove migration 013 remains absent, select exact post-merge Core/Web artifacts, freeze migration/deploy/rollback order with the global hire gate OFF, define zero-eligibility post-migration validation and the least-privilege future operator path, and inspect candidate tenants independently before any enablement.
+That execution may apply migration 013 and promote the selected Core/Web candidates only with **zero eligibility rows** and the process-wide Customer Digital-Employee Hire gate still **OFF**.
 
-Do not apply migration 013, deploy candidates, grant a live operator path, enable eligibility or enable the global hire gate merely because ADR 0080 is green.
+It must stop after proving the dormant foundation healthy. Global hire enablement and tenant/catalog eligibility enablement remain separate later effects with their own review cycles.
 
 ## Operational safety
 
