@@ -499,11 +499,45 @@ pre-hire digital employees = 0
 
 ADR 0065 also requires the actual first production hire effect to run through a **private production-connected candidate Core** with the customer-hire gate ON. The normal live Core stays customer-hire OFF during that canary because the current gate is runtime-wide, not tenant-specific.
 
+## Private Tenant Provisioning V2 — IMPLEMENTED IN CODE / NOT LIVE
+
+ADR 0066 implements the employee-free private provisioning contract without changing V1 behavior.
+
+The versioned migration is:
+
+```text
+infra/stacks/supabase/migrations/20260918_012_private_tenant_provisioning_v2.sql
+```
+
+Contract:
+
+```text
+wandora_private.provision_beta_organization_v2(...)
+  -> organization
+  -> canonical user / Supabase identity mapping
+  -> active owner membership
+  -> private idempotency evidence
+  -> zero digital employees
+```
+
+V1 and V2 share the private provisioning ledger with an explicit version/row-shape invariant:
+
+```text
+V1 -> provisioning_version = 1 -> employee_id required
+V2 -> provisioning_version = 2 -> employee_id absent
+```
+
+The V1 function signature and first-employee behavior remain unchanged. V2 is executable only by the dedicated `wandora_platform_provisioner`; browser/authenticated/Core roles remain denied and the provisioner still has no direct table access.
+
+A dedicated Core CI harness applies migrations 001→012 in order, reapplies 012, proves V2 behavior, V1 regression compatibility, shared-key cross-version fail-closed behavior and the least-privilege boundary.
+
+**Migration 012 is not applied to production by this implementation slice.** The future canary tenant and Paperclip company remain absent; Customer Digital-Employee Hire, Human Send and Gateway outbound remain OFF.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Private Tenant Provisioning V2 — Employee-Free Contract Implementation V1, code/CI only.**
+Next: **Private Tenant Provisioning V2 — Production Migration Preflight V1.**
 
-Version the existing private provisioning boundary so organization + canonical user/identity + active owner membership can be created idempotently with **zero digital employees**. Keep V1 unchanged for historical compatibility. Do not apply the new migration live, create the canary tenant/provider company, enable customer hire, deploy #109, activate employees, or enable outbound effects in that implementation slice.
+Reverify the exact live migration/role/table/function state, backup/reversibility and migration-012 diff before any production application. Do not create the canary tenant or Paperclip company, enable customer hire, deploy #109, activate employees or enable outbound effects during the preflight.
 
 ## Operational safety
 

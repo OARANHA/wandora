@@ -30,6 +30,10 @@ jobs:
         shell: bash
         run: bash apps/core/scripts/verify-ana-v1.sh
 
+      - name: Run Private Tenant Provisioning V2 verifier
+        shell: bash
+        run: bash apps/core/scripts/verify-private-tenant-provisioning-v2.sh
+
       - name: Run Organization Adapter Production Activation Rehearsal verifier
         shell: bash
         run: bash apps/core/scripts/verify-organization-adapter-production-activation-rehearsal-v1.sh
