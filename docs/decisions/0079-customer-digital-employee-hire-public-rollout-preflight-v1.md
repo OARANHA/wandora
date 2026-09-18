@@ -147,7 +147,8 @@ Rules:
 - operator/platform authority owns enable/disable;
 - no provider identifiers or provider configuration fields;
 - eligibility is enabled only after provider wiring validation;
-- disabling eligibility blocks future hires without deleting already-successful hires.
+- disabling eligibility blocks creation of new catalog-hire operations without deleting already-successful hires;
+- an already-reserved operation may still be safely replayed/reconciled under its frozen operation context; the process-wide runtime gate remains the absolute kill switch when all customer-hire continuation must stop.
 
 This is deliberately specific to customer catalog hire. It is not a general-purpose feature-flag framework.
 
