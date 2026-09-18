@@ -42,6 +42,7 @@ companyDeletionEnabled = false
 
 companies total     = 1
 Wandora Customer Hire Canary name matches = 0
+existing company id = 815d499e-4231-4e6b-b7fc-67f0ba22a595
 existing company    = Wandora Internal Supervised Proof
 ```
 
