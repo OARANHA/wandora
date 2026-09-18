@@ -162,10 +162,13 @@ const [authSource, providerSource, routerSource, mainSource, pageSource] = await
 ]);
 
 for (const fragment of [
+  "method: 'GET'",
   "method: 'PUT'",
   "${SUPABASE_AUTH_ORIGIN}/auth/v1/user",
   "Authorization: `Bearer ${session.accessToken}`",
   "body: JSON.stringify({ password })",
+  "const email = await readAuthenticatedUserEmail(session);",
+  "return await signInWithPassword(email, password);",
 ]) {
   assert(authSource.includes(fragment), `invite_password_transport_missing:${fragment}`);
 }
@@ -180,12 +183,19 @@ const renderIndex = mainSource.indexOf('createRoot(');
 assert(stageIndex >= 0, 'invite_fragment_staging_missing_from_main');
 assert(stageIndex < renderIndex, 'invite_fragment_must_be_staged_before_react_render');
 
-const updateIndex = pageSource.indexOf('await updateInvitedUserPassword(session, password);');
-const clearIndex = pageSource.indexOf('clearStagedInviteSession();', updateIndex);
-const promoteIndex = pageSource.indexOf('await completeInvitation(session);');
-assert(updateIndex >= 0, 'invite_password_update_missing');
-assert(clearIndex > updateIndex, 'invite_staging_cleared_before_password_success');
-assert(promoteIndex > clearIndex, 'invite_session_promoted_before_password_success');
+const finalizeIndex = pageSource.indexOf(
+  'const completedSession = await finalizeInvitedUserPassword(session, password);',
+);
+const clearIndex = pageSource.indexOf('clearStagedInviteSession();', finalizeIndex);
+const promoteIndex = pageSource.indexOf('await completeInvitation(completedSession);');
+assert(finalizeIndex >= 0, 'invite_password_finalize_missing');
+assert(clearIndex > finalizeIndex, 'invite_staging_cleared_before_password_reconciliation');
+assert(promoteIndex > clearIndex, 'invite_session_promoted_before_password_reconciliation');
+assert(
+  authSource.indexOf('return await signInWithPassword(email, password);')
+    > authSource.indexOf('await updateInvitedUserPassword(session, password);'),
+  'invite_password_grant_reconciliation_must_follow_update_attempt',
+);
 
 console.log('WANDORA_WEB_OWNER_INVITE_ACCEPTANCE_V1_OK');
 console.log('WANDORA_WEB_FIRST_PASSWORD_CONTRACT_V1_OK');
