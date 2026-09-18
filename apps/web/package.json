@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && node scripts/verify-invite-acceptance.mjs && node scripts/verify-reviewed-bridge.mjs && vite build",
+    "build": "tsc -b && node scripts/verify-invite-acceptance.mjs && node scripts/verify-recovery-access.mjs && node scripts/verify-reviewed-bridge.mjs && vite build",
     "typecheck": "tsc -b --pretty false",
     "preview": "vite preview"
   },
