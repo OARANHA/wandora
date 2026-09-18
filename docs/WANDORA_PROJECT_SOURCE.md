@@ -857,9 +857,30 @@ root:wandora-ops
 
 No Cloudflare rule mutation occurred.
 
+## Customer Owner Recovery Edge Activation — COMPLETE
+
+ADR 0093 records the successful edge-rule transaction.
+
+The Free-plan `http_ratelimit` phase had no entry point before mutation (`404 / 10003`). The dedicated one-zone WAF token was used to create exactly one reviewed rule:
+
+```text
+wandora_owner_recovery_burst_guard_v1
+/auth/v1/recover
+6 requests / 10 seconds / IP
+block 10 seconds
+```
+
+Read-back returned one rule with exact match. OPTIONS-only burst validation reached 429 and returned to 200 after 12 seconds. No recovery POST was sent; recovery-token/sent counters remain zero.
+
+Independent direct-origin TCP remained unreachable after the edge change.
+
+Owner-access Web remains undeployed; live Web is still `wandora/web:candidate-af542864d267`.
+
 ## Next executable slice
 
-Resume **Customer Owner Recovery Edge Anti-Abuse Credential + Activation Execution V1** after the dedicated token is issued and installed. Start at ruleset read/snapshot; do not deploy owner-access Web or issue real recovery in the same slice.
+Next: **Customer Owner Invite + Recovery Web Production Activation Execution V1.**
+
+Promote only `wandora/web:owner-access-candidate-5f135e90` using ADR 0090's image-only activation and rollback contract. Keep real invite/recovery as a separate later effect.
 
 ## Platform Admin
 
@@ -941,6 +962,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0090 — Customer Owner Invite + Recovery Production Activation Preflight V1
 - ADR 0091 — Customer Owner Recovery Edge Anti-Abuse Control Preflight V1
 - ADR 0092 — Customer Owner Recovery Edge Anti-Abuse Credential + Activation Execution V1 Pre-Mutation Credential Gate
+- ADR 0093 — Customer Owner Recovery Edge Anti-Abuse Credential + Activation Execution V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
