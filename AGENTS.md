@@ -97,6 +97,7 @@ The following are current decisions unless superseded by a newer accepted ADR:
 - ADR 0064 implements the gated paused-first customer hire contract in code/CI only; the runtime gate remains disabled in production until a separately reviewed rollout.
 - ADR 0065 selects a fresh employee-free customer-like tenant for the first live hire canary and rejects unproven adoption of the legacy `Empresa Exemplo` Ana.
 - ADR 0066 accepts Private Tenant Provisioning V2 in code/CI: V1 remains historically compatible, V2 creates organization + canonical owner with zero digital employees, and migration 012 is not live until a separate production preflight/application.
+- ADR 0067 closes the Private Tenant Provisioning V2 production migration preflight: a current backup/restore proof and exact migration rehearsal/reverse proof are green, but migration 012 remains absent from production until a separate execution slice.
 - Security gate #22 is cleared. The affected shared Supabase JWT compatibility material and shared PostgreSQL password were rotated with validated backups, old-credential invalidation, full service-health proof and production-safe verifier reruns.
 - Official WhatsApp providers remain a production option behind the same gateway.
 - Model vendors are replaceable infrastructure behind a provider boundary. Do not request or hard-code a provider credential until a real provider call is materially required.
@@ -247,23 +248,32 @@ Unless an active blocker or explicit user decision changes priority:
 
 Supabase Foundation V1, Mastra Agent Runtime V1 laboratory validation, Evolution Messaging Gateway V1, Wandora Core Multi-tenant/Auth Contract V1, Human Interface/Product Shell V1, First-Day Customer Journey V1, Ana durable Core vertical slice, security gate #22, least-privilege Core runtime, supervised inbound, deterministic proposal generation, canonical `work_proposals`, Human Supervision Read, Human Session Bootstrap, Web Human Session, explicit multi-organization selection, Conversations list/history, Private Messaging Gateway Outbound code, Human Send Proposal code, Evolution private Origin fix, explicit send confirmation, Human Send Canonical Confirmation V2 and customer Team Read V1 are complete/implemented as recorded by their ADRs/evidence.
 
-Current production runtime after the 2026-09-16 Team Read promotion:
+Current mutable production checkpoint reverified during ADR 0067 on 2026-09-18:
 
 ```text
-merged application source head: b31db507b225bb03ebd221c8f05b111fe100e25d
-Core:    wandora/core:team-read-b31db507
-Web:     wandora/web:team-read-b31db507
-Gateway: wandora/messaging-gateway:origin-fix-94cfb4de
-Core/Web/Gateway: healthy
-Human Send enable flag: absent
-Gateway outbound enable flag: absent
+canonical Git main entering preflight: fe945214b5aec824d133c9fc05b0314f2a841ab0
+Core:      wandora/core:organization-adapter-candidate-068d30a49d9b
+Web:       wandora/web:team-read-b31db507
+Gateway:   wandora/messaging-gateway:origin-fix-94cfb4de
+Paperclip: wandora/paperclip:v2026.831.1
+Core/Web/Gateway/Paperclip: healthy
+
+Organization Adapter enable flag: true
+Customer Digital-Employee Hire flag: absent / OFF
+Human Send enable flag: absent / OFF
+Gateway outbound enable flag: absent / OFF
+
 organizations: 2
-digital employees: 2 (2 active, 0 paused)
-historical outbound attempts: 4 (2 uncertain, 2 succeeded)
-canonical outbound messages: 2
+digital employees: 3
+control-plane provider bindings: 1
+digital-employee provider bindings: 1
+completed catalog hire operations: 1
+tenant provisioning requests: 0
+migration 012 / provisioning V2: absent
+customer-hire canary: absent
 ```
 
-The controlled real delivery proofs are historical evidence. Both external-effect switches remain OFF. No native responsibility-assignment migration 010 was merged or applied.
+These mutable values must still be reverified before execution. The controlled real delivery proofs remain historical evidence. Customer hire and outbound effects stay OFF; migration 012 being merged in Git does not make it live.
 
 ## 9. Definition of progress
 
