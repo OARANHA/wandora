@@ -91,7 +91,11 @@ export function stageInviteRedirectFromCurrentLocation(options: {
   nowSeconds?: number;
 } = {}): boolean {
   const location = options.location ?? window.location;
-  if (location.pathname !== INVITE_ACCEPTANCE_PATH || !location.hash) return false;
+  if (!location.hash) return false;
+
+  const fragment = new URLSearchParams(location.hash.startsWith('#') ? location.hash.slice(1) : location.hash);
+  const isSupabaseAuthRedirect = fragment.has('sb');
+  if (location.pathname !== INVITE_ACCEPTANCE_PATH && !isSupabaseAuthRedirect) return false;
 
   const history = options.history ?? window.history;
   const storage = options.storage ?? window.sessionStorage;
@@ -101,8 +105,10 @@ export function stageInviteRedirectFromCurrentLocation(options: {
   else clearStagedInviteSession(storage);
 
   // GoTrue v2.196.0 implicit verification returns credentials in the URL fragment.
-  // Remove them before React renders or any network request is made.
-  history.replaceState(null, '', `${location.pathname}${location.search}`);
+  // Remove them before React renders or any network request is made. A valid invite
+  // is canonicalized to the dedicated public route even if GoTrue fell back to SITE_URL.
+  const nextPath = session ? INVITE_ACCEPTANCE_PATH : location.pathname;
+  history.replaceState(null, '', `${nextPath}${location.search}`);
 
   return session !== null;
 }
