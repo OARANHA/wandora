@@ -2,7 +2,7 @@
 
 Snapshot date: **2026-09-17**
 Repository: `OARANHA/wandora`
-Canonical base before this canary-completion checkpoint: `58b792529e8fa7fa9e4b556459f45952b607ee43`
+Canonical base before this live-Core-promotion checkpoint: `8ceb1c43f5fb9967966f0c1564c51ecea382b13c`
 
 > **Purpose:** compact bootstrap for ChatGPT Project Sources and future development sessions. It prevents architectural drift, accidental reinvention and stale workflow assumptions.
 >
@@ -155,8 +155,8 @@ Organization Adapter plugin = wandora.organization-adapter-v1@0.1.0, ready
 Human Send: OFF / enable flag absent
 Gateway outbound: OFF / enable flag absent
 organizations = 2
-digital_employees = 2
-active_employees = 2
+digital_employees = 3
+active_employees = 3
 ```
 
 Migrations `20260916_010_organization_adapter_state_v1.sql` and `20260916_011_organization_adapter_service_contract_v1.sql` are **live**, and both canonical verifiers are green. The internal canary has live provider binding + company-scoped custody/config. The candidate image remains loaded; the temporary smoke container was removed after the successful canary.
@@ -264,7 +264,12 @@ Paperclip Ana = 1 paused / wandora_mastra
 Paperclip managed resources = 1
 same-idempotency-key replay = same Wandora employee id
 
-live Core Organization Adapter = OFF
+live Core = wandora/core:organization-adapter-candidate-068d30a49d9b
+live Core Organization Adapter = ON
+live Core healthz/readyz = 200/200
+Gateway ingress = ON
+Human API = ON
+deterministic Agent Runtime = ON
 Human Send = OFF
 Gateway outbound = OFF
 customer Contratar/Ativar = absent
@@ -273,20 +278,21 @@ Empresa Exemplo Paperclip company = absent
 
 The first canary attempt failed closed at Paperclip's private hostname guard. PR #103 added only the internal Docker hostname to the allowlist, preserved the guard, and the same `uncertain` operation was retried with the same idempotency key and completed.
 
-The temporary candidate smoke container was removed after validation; the provenance-matched candidate image remains loaded.
+The temporary candidate smoke container was removed after validation. ADR 0060 then promoted the same provenance-matched image to the live Core. Git comparison proved no later changes under `apps/core/` or `infra/stacks/core/`; the final render preserved the existing database, Gateway ingress, deterministic Agent Runtime and Human API capabilities and added only the reviewed Organization Adapter configuration/custody mount.
+
+Post-promotion replay through the live Core returned the same existing Ana employee ID. Paperclip remains at one company, one paused Ana and one managed resource.
 
 ## Next executable slice
 
-Next: **Organization Adapter Live Core Promotion V1**.
+Next: **Organization Adapter Live Cross-Company Isolation Preflight V1** — observation/plan-first.
 
 1. fresh REAL NOW and authority review;
-2. render the candidate preserving database, Gateway ingress, deterministic Agent Runtime and Human API overlays;
-3. keep Human Send and Gateway outbound absent;
-4. second adversarial review of replacement/rollback and traffic impact;
-5. promote only the provenance-matched candidate image if all gates remain green;
-6. validate live Core health/readiness and existing customer read/ingress paths;
-7. keep customer hiring/activation absent;
-8. stop before second/customer Paperclip company provisioning and the live cross-company gate.
+2. re-read ADRs 0039/0040/0057/0059/0060 and the disposable A-secret -> B-target denial evidence;
+3. determine whether a second live provider company is actually required to close the remaining live isolation gate;
+4. do not create `Empresa Exemplo` in Paperclip merely to begin the preflight;
+5. if required, freeze the minimum second-company/bootstrap/config/custody sequence before any effect;
+6. perform a second adversarial review;
+7. keep customer hiring/activation, Human Send and Gateway outbound absent during the preflight.
 
 ## Platform Admin
 
@@ -337,6 +343,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0056 — Paperclip Provider Company Bootstrap V1
 - ADR 0057 — Organization Adapter Production Activation Preflight V2 Closure
 - ADR 0059 — Organization Adapter Execution V1 internal canary
+- ADR 0060 — Organization Adapter Live Core Promotion V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
