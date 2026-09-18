@@ -288,6 +288,28 @@ recovery_sent_at users = 0
 
 No real invite/recovery was requested or generated. No Auth user, tenant, Paperclip/provider state or eligibility changed.
 
+## GITHUB ACTIONS INFRASTRUCTURE EXCEPTION
+
+PR #138 triggered all five repository workflows. Each job failed before runner execution, with `steps=null` and `logs_url=null`:
+
+```text
+Core CI #377 / run 35399943333
+Web CI #314 / run 35399943364
+Platform Admin CI #239 / run 35399943386
+Messaging Gateway CI #346 / run 35399943457
+Organization Adapter Plugin CI #63 / run 35399943430
+```
+
+These checks are not classified green and are not classified as application/test failures because no workflow step ran. This reproduces the runnerless GitHub Actions condition already recorded by ADRs 0087–0089.
+
+The merge exception is bounded to this documentation-only branch and requires all of the following at merge time:
+
+- branch diff remains documentation-only;
+- branch remains based on the unchanged reviewed main;
+- no unresolved review threads;
+- no application/runtime/migration/secret file change;
+- production no-effect invariants remain unchanged.
+
 ## DECISION RESULT
 
 **Customer Owner Invite + Recovery Production Activation Preflight V1 is complete, but production activation is NOT AUTHORIZED yet.**
