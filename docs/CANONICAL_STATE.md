@@ -876,13 +876,38 @@ Gateway outbound = OFF
 
 The successful hire remains deliberately paused. `Contratar` is still separate from future `Ativar`.
 
+## Customer Digital-Employee Hire — Public Rollout Preflight V1 — COMPLETE / NOT ACTIVATED
+
+ADR 0079 closes the rollout design after the successful canary.
+
+Key findings:
+
+- PR #126 is merged and behaviorally proves browser idempotency survives reload and remains bound to the original organization across tenant switches;
+- the live Web is still the older pre-rollout image and public customer hire remains OFF;
+- the Core hire flag is process-wide while production has multiple active organizations in different readiness states;
+- Core already fails closed for member/cross-tenant access, missing provider binding, matching legacy employee, catalog replay and ambiguous provider outcomes;
+- Private Tenant Provisioning V2 intentionally creates no provider/control-plane wiring;
+- a control-plane binding cannot double as customer eligibility because accepted wiring creates that binding before provider configuration is complete.
+
+Decision:
+
+```text
+global runtime hire gate
+AND
+explicit Wandora-owned organization + catalog eligibility
+=
+customer hire available
+```
+
+The eligibility fact is provider-neutral and operator-owned. It is enabled only after wiring validation and is enforced server-side before journal/provider effects. No provider identifiers/configuration become customer state.
+
+No production activation occurred.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Digital-Employee Hire — Public Rollout Preflight V1.**
+Next: **Customer Digital-Employee Hire — Tenant Eligibility Contract Implementation V1.**
 
-Observation/plan-first only. Revalidate current Core/Web provenance and public `/start` + `Equipe` behavior, runtime-wide gate scope across all active organizations, legacy/catalog collision behavior, owner/admin isolation, stable browser idempotency behavior, paused-first UX, rollback-to-OFF semantics and continued separation from activation/Agent Runtime/Human Send/Gateway outbound.
-
-Do not enable the normal live Core customer-hire gate, activate Ana, enable Human Send or enable Gateway outbound during that preflight.
+Implementation/CI only: add the minimal private eligibility contract, Core enforcement + customer-safe read projection, and Web gating while preserving owner/admin isolation and PR #126 idempotency. Keep normal live hire, Human Send and Gateway outbound OFF; do not apply the production migration or deploy candidates in that implementation slice.
 
 ## Operational safety
 
