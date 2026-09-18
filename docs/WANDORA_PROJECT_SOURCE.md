@@ -349,11 +349,40 @@ The first actual hire effect must run through a private production-connected can
 
 Live state remains unchanged: organizations = 2, new canary absent, `Empresa Exemplo` unbound, Customer Digital-Employee Hire OFF, Human Send OFF, Gateway outbound OFF.
 
+## Private Tenant Provisioning V2 — CODE COMPLETE / PRODUCTION PREFLIGHT COMPLETE
+
+ADRs 0066–0067 establish the employee-free tenant provisioning path.
+
+Canonical V2:
+
+```text
+wandora_private.provision_beta_organization_v2(...)
+  -> organization
+  -> canonical user / Supabase identity mapping
+  -> active owner membership
+  -> zero digital employees
+```
+
+V1 remains historically compatible and continues to create its original initial active supervised employee. V1 and V2 share one private idempotency ledger with an explicit version/row-shape invariant; only `wandora_platform_provisioner` may execute V2.
+
+PR #111 merged the code/CI implementation. Migration 012 is **not live yet**.
+
+ADR 0067 then proved the live pre-012 state, produced and restore-tested the current rollback snapshot, applied the exact migration twice to a disposable restore of current production, and proved a lossless migration-only reverse path while `tenant_provisioning_requests = 0`.
+
+Current rollback artifact:
+
+```text
+/home/wandora-admin/backups/postgres-pre-provisioning-v2-20260918T070139Z.dump
+sha256=d88a4acb89eba37f7a366621c1d0ede4a824a26e54565bd823591979f28853ff
+```
+
+Production remains pre-012: V2 function/column absent, `employee_id NOT NULL`, organizations=2, digital employees=3, provisioning requests=0. Customer Digital-Employee Hire, Human Send and Gateway outbound remain OFF.
+
 ## Next executable slice
 
-Next: **Private Tenant Provisioning V2 — Employee-Free Contract Implementation V1, code/CI only.**
+Next: **Private Tenant Provisioning V2 — Production Migration Execution V1.**
 
-Add the employee-free versioned private provisioner and least-privilege verifier/grant contract. Keep V1 intact. Do not apply the migration live, create the canary tenant or Paperclip company, enable customer hire/activation, deploy #109, or enable outbound effects in that slice.
+Apply only migration 012 after fresh live-state/hash verification, run the exact live-safe verifier immediately, prove business/provider state unchanged and provisioning requests still zero, and stop before any canary tenant/Paperclip/provider/hire effect.
 
 ## Platform Admin
 
@@ -405,6 +434,11 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0057 — Organization Adapter Production Activation Preflight V2 Closure
 - ADR 0059 — Organization Adapter Execution V1 internal canary
 - ADR 0060 — Organization Adapter Live Core Promotion V1
+- ADR 0063 — Customer Digital-Employee Lifecycle Contract Preflight V1
+- ADR 0064 — Customer Hire Contract Implementation V1
+- ADR 0065 — Customer Hire Canary Selection + Legacy Reconciliation Preflight V1
+- ADR 0066 — Private Tenant Provisioning V2 Employee-Free Contract Implementation V1
+- ADR 0067 — Private Tenant Provisioning V2 Production Migration Preflight V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
