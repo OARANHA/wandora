@@ -1098,24 +1098,60 @@ The selected rollout order is **global gate first, tenant eligibility later**. E
 
 Baseline live POST proof with the gate OFF returns `404 not-found` for a syntactically valid hire request and produces no durable delta.
 
-## NEXT EXECUTABLE SLICE
+## Customer Digital-Employee Hire — Global Runtime Gate Activation Execution V1 — LIVE / ZERO TENANT ELIGIBILITY
 
-Next: **Customer Digital-Employee Hire — Global Runtime Gate Activation Execution V1.**
+ADR 0084 enables only the process-wide customer-hire runtime gate on the already reviewed Core image.
 
-That execution may materialize the exact canonical overlay and recreate the **same Core image** with only that extra environment variable.
-
-It must stop with:
+Current production:
 
 ```text
+Core = wandora/core:organization-adapter-candidate-af542864d267
+Core health / ready / restarts = healthy / 200 / 0
+
 Customer Digital-Employee Hire = ON
 eligibility rows = 0
+enabled eligibility rows = 0
 unfinished hire operations = 0
-new tenant availability = 0
+completed hire operations = 2
+
 Human Send = OFF
 Gateway outbound = OFF
 ```
 
-No tenant eligibility may be enabled in the same slice.
+The live overlay is the exact canonical Git blob `cf188f4e22651f318984f10a17aba3dee05ad2ea`. The Core recreation used the same reviewed image and differed only by `WANDORA_HUMAN_DIGITAL_EMPLOYEE_HIRE_ENABLED=true`.
+
+The unauthenticated hire route now returns `401 unauthorized` instead of the prior structural `404 not-found`, with no durable delta.
+
+The live compiled customer projection was executed read-only for all active organizations:
+
+```text
+Internal Supervised Proof -> already-hired / available=false
+Customer Hire Canary      -> already-hired / available=false
+Empresa Exemplo           -> unavailable / available=false
+```
+
+No active organization projects `available=true`.
+
+Durable totals remain:
+
+```text
+organizations = 3
+digital_employees = 4
+control_plane_provider_bindings = 2
+digital_employee_provider_bindings = 2
+digital_employee_hire_operations = 2
+eligibility rows = 0
+```
+
+Rollback is config-only: omit the hire overlay and recreate the same Core image with the previous six overlays.
+
+## NEXT EXECUTABLE SLICE
+
+Next: **Customer Digital-Employee Hire — First Tenant Eligibility Rollout Preflight V1.**
+
+Preflight only. Select exactly one clean tenant or prove that none of the current tenants qualifies, validate provider wiring/collision state, freeze the exact scoped eligibility setter transaction and rollback, and keep Human Send/Gateway outbound/employee activation OFF.
+
+Do not enable a tenant eligibility row during the preflight.
 
 ## Operational safety
 
