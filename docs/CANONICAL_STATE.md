@@ -385,17 +385,55 @@ customer Contratar/Ativar = absent
 
 ADR 0060 proves that no Core or Core-stack source changed after the candidate source revision, the promotion render had no residual delta beyond the candidate image + Organization Adapter config/mount, rollback was prepared before replacement, and a same-key replay through the live Core returned the existing Ana without duplication.
 
+## Organization Adapter Live Cross-Company Isolation Preflight V1 — COMPLETE, NO A/B EXECUTION
+
+ADR 0061 closes the observation/plan phase for the remaining live A/B isolation gate.
+
+Fresh evidence on `main@1141af04b68bd3a4d72bf4d915ce7caa64faafce` confirmed:
+
+```text
+live Core = organization-adapter-candidate-068d30a49d9b, healthy
+Organization Adapter = ON
+Human Send = OFF
+Gateway outbound = OFF
+
+Paperclip = healthy/private/authenticated
+Paperclip companies = 1
+wandora.organization-adapter-v1 = ready
+internal company config / adapter secret / Ana / managed resource = 1 / 1 / 1 / 1
+
+Empresa Exemplo Paperclip binding = absent
+second Paperclip company = absent
+```
+
+ADR 0040's exact disposable `A secret -> B target` denial remains valid. The live gap is specifically two-company production-instance evidence.
+
+The accepted minimum topology is an **ephemeral provider-only company B**, `Wandora Cross-Company Isolation Proof B`. It must never receive a Wandora organization/provider binding and must not be `Empresa Exemplo`.
+
+Paperclip source inspection proved official company deletion is transactional for child state and plugin config/managed-resource/company-settings company FKs are `ON DELETE CASCADE`. Therefore cleanup through the authenticated provider API is part of the same future execution slice; direct SQL cleanup is forbidden.
+
+The future negative proof will configure B with its own company secret, then require both:
+
+1. an attempted B config using A's `secret_ref` is rejected without changing B's valid config;
+2. the exact private webhook naming B but signed with A's HMAC is rejected and creates zero B agents/managed resources.
+
+A positive `B secret -> B target` reconcile is deliberately excluded because it would create an unnecessary provider agent.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Organization Adapter Live Cross-Company Isolation Preflight V1** — observation/plan-first.
+Next: **Organization Adapter Live Cross-Company Isolation Execution V1**.
 
-1. fresh REAL NOW against current `main`, live Core, Paperclip and effect switches;
-2. re-read ADRs 0039/0040/0057/0059/0060 and the accepted disposable A-secret -> B-target denial proof;
-3. determine the minimum live topology required to satisfy the remaining cross-company isolation gate;
-4. do **not** create `Empresa Exemplo` in Paperclip merely to begin the preflight;
-5. freeze the exact second-company/bootstrap/config/custody sequence only if the live gate truly requires it;
-6. perform a second adversarial review of whether the disposable proof plus current host scoping already satisfies part of the requirement;
-7. execute no customer-facing `Contratar/Ativar`, Human Send or Gateway outbound effect during the preflight.
+1. fresh REAL NOW against current `main`, A counts and effect switches;
+2. create exactly one ephemeral Paperclip company B through the authenticated API;
+3. create B-only HMAC secret and B plugin config without printing raw material;
+4. prove cross-company `secret_ref` rejection;
+5. prove A-HMAC -> B-target signature denial with zero B managed resources;
+6. delete B through the authenticated Paperclip API;
+7. prove no B company/config/secret/agent/managed-resource residue and no Wandora DB delta;
+8. prove A remains unchanged;
+9. keep customer `Contratar/Ativar`, Human Send and Gateway outbound absent/off.
+
+If cleanup fails, stop and preserve/document the fixture. Do not direct-SQL cleanup.
 
 ## Operational safety
 
