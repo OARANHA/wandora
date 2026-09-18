@@ -1,8 +1,8 @@
 # ADR 0077 — Customer Hire Canary Private Candidate Core Hire Preflight V1
 
-- Status: **Accepted preflight — hire NOT executed**
+- Status: **Accepted preflight — candidate image staged; no hire executed; continuity reconciled after concurrent PR #122**
 - Date: 2026-09-18
-- Scope: freeze the exact private production-connected Core artifact, temporary human-auth session boundary, one-shot customer-hire request, replay/no-duplicate proofs and teardown rules before the first paused-first customer-like production hire
+- Scope: freeze the exact private production-connected Core candidate, human-session boundary, canary request/replay semantics, expected paused-first result and cleanup before the first customer-like hire effect
 
 ## REAL NOW
 
@@ -14,182 +14,217 @@ PR #121 = merged
 open PRs = 0
 ```
 
-The clean customer-hire canary is fully wired but still employee-free:
+ADR 0076 has made the customer-hire canary Organization Adapter wiring canonical.
+
+Live canary boundary:
 
 ```text
-Wandora organization
-  id = 918d4c7e-fccb-41f0-aba7-04105a9b4ec0
+Wandora organization = 918d4c7e-fccb-41f0-aba7-04105a9b4ec0
+Paperclip company     = e7422a00-1474-49d5-ac32-34594520015e
 
-Paperclip company
-  id = e7422a00-1474-49d5-ac32-34594520015e
-
-Wandora control-plane binding = 1
-Core deterministic HMAC custody = present/readable
-Paperclip company HMAC secret = 1 active local_encrypted
-Paperclip plugin config = exact hmacSecret secret_ref
+control-plane binding = exactly 1
+Organization Adapter config/HMAC = green
 Paperclip canary agents = 0
-
 Wandora digital employees = 0
-Wandora employee-provider bindings = 0
-Wandora hire operations = 0
+digital-employee provider bindings = 0
+hire operations = 0
 ```
 
-Runtime effect boundary remains:
+Frozen first-hire key is not yet present:
 
 ```text
-live Core Organization Adapter = ON
-live Core Customer Digital-Employee Hire = OFF
-Human Send = OFF
-Gateway outbound = OFF
+customer-hire-canary:ana-commercial-v1:v1
+count = 0
 ```
 
-## PROVEN CUSTOMER-HIRE IMPLEMENTATION
+The existing canonical owner remains:
 
-PR #109 / ADR 0064 remains the accepted customer-hire implementation.
+```text
+Wandora user = e1000000-0000-4000-8000-000000000001
+active canary owner memberships = 1
+Supabase identities for owner = 1
+```
 
-Canonical customer route:
+The normal live Core remains:
+
+```text
+Organization Adapter = ON
+Customer Digital-Employee Hire = OFF / absent
+Human Send = OFF / absent
+Gateway outbound = OFF / absent
+```
+
+No customer-hire candidate container has been started in this slice.
+
+## CUSTOMER-HIRE CONTRACT REVALIDATED
+
+The reviewed Core contract remains:
 
 ```http
 POST /api/v1/organizations/918d4c7e-fccb-41f0-aba7-04105a9b4ec0/digital-employees
-Authorization: Bearer <real Supabase human access token>
-Idempotency-Key: <stable key>
+Authorization: Bearer <real Supabase human session>
+Idempotency-Key: customer-hire-canary:ana-commercial-v1:v1
 Content-Type: application/json
 
 {"catalogKey":"ana-commercial-v1"}
 ```
 
-The route requires:
+The route:
 
-- Human API enabled;
-- Organization Adapter enabled;
-- dedicated Customer Digital-Employee Hire gate enabled;
-- an authenticated human session;
-- owner/admin authorization in the target organization;
-- a non-empty idempotency key no longer than 255 characters;
-- exact catalog-key body validation.
+- requires a canonical UUID organization selector;
+- requires a non-empty idempotency key no longer than 255 characters;
+- accepts exactly one body field, `catalogKey`;
+- validates the real human session before the adapter effect;
+- passes only canonical Wandora actor, tenant, catalog key and idempotency key to the Organization Adapter;
+- maps provider ambiguity to `employee-hiring-uncertain` with `retry: same-idempotency-key`;
+- returns only Wandora-owned employee fields;
+- does not expose provider company refs, provider agent refs, secret refs or credentials.
 
-First successful catalog hire finalizes Wandora state as:
+The Organization Adapter independently requires the actor to hold an active `owner` or `admin` membership in the active organization.
+
+## PAUSED-FIRST PROVIDER CONTRACT
+
+The Wandora catalog contains only:
 
 ```text
-name = Ana
+catalogKey = ana-commercial-v1
+displayName = Ana
 role = commercial-assistant
+autonomy = supervised
+```
+
+The installed Paperclip Organization Adapter manifest declares the matching managed agent:
+
+```text
+agentKey = ana-commercial-v1
+displayName = Ana
+role = commercial-assistant
+adapterType = wandora_mastra
+status = paused
+budgetMonthlyCents = 0
+```
+
+The plugin requests `agents.managed`, not `agents.resume`.
+
+The Core finalization contract inserts the first Wandora employee as:
+
+```text
 status = paused
 autonomy = supervised
 ```
 
-The customer response contains only Wandora-owned employee fields:
+Therefore this hire cannot be treated as activation.
+
+## IDEMPOTENCY / REPLAY CONTRACT
+
+The private journal is keyed by:
 
 ```text
-id
-name
-role
-status
-autonomy
+PRIMARY KEY (organization_id, idempotency_key)
 ```
 
-Provider company refs, provider agent refs, HMAC refs and credentials do not cross the customer response.
+The service first looks up the exact idempotency key. A changed canonical request under the same key fails with `idempotency-conflict`.
 
-## EXACT CANDIDATE ARTIFACT
-
-Do not rebuild merely because the production VPS does not currently hold the image.
-
-The already-green PR #109 Core Candidate Artifact remains available:
+If a different key is supplied for the same:
 
 ```text
-workflow run = 35313526898
-artifact id = 10534402346
-artifact name =
-  core-organization-adapter-candidate-2563bdebad05711e36bfc765d058ae7cbe5f8cee
-
-artifact digest =
-  sha256:e4c7c447fcaaf2e3906436f52a2178ebb95181557aeb937737ae2174ea9b1afc
-
-artifact expiry = 2026-09-25T06:08:37Z
+organization + provider + catalog_key
 ```
 
-Manifest:
+the service reuses the existing catalog operation when the canonical request hash matches. It does not reserve a second employee/provider resource merely because the browser generated another key.
+
+Therefore the live proof after first success must establish:
+
+1. same key + same body -> same employee;
+2. different key + same catalog -> same employee;
+3. hire-operation count for `ana-commercial-v1` remains exactly 1;
+4. Paperclip managed Ana count remains exactly 1.
+
+## CANDIDATE ARTIFACT SELECTION
+
+The PR #109 candidate artifact was re-opened and inspected during continuity recovery. Its relevant runtime blobs and built image do contain the final customer-hire contract, so it is **not classified as invalid**.
+
+It is nevertheless not selected for this production canary because a later PR #111 candidate is also runtime-equivalent to current main, has later provenance, and is already cryptographically verified and staged on the production host without being started.
+
+The PR #111 candidate is therefore accepted as the preferred artifact.
+
+GitHub evidence:
+
+```text
+workflow run = 35316885875
+artifact id = 10535228149
+artifact name = core-organization-adapter-candidate-f8e553072c36b229b3fced2f4a7e9378e67d7aa4
+artifact ZIP digest = sha256:5f08d2a61cb576a0b1b48d8e8bdd67beab973c19417150021e174c081f46cd91
+source merge-ref = f8e553072c36b229b3fced2f4a7e9378e67d7aa4
+```
+
+Candidate manifest:
 
 ```text
 candidate_contract = organization-adapter-core-v1
-source_sha = 2563bdebad05711e36bfc765d058ae7cbe5f8cee
-source_tree_sha = f61ab52f32e20d1bab4a5e70626162923601945b
-
-image_tag =
-  wandora/core:organization-adapter-candidate-2563bdebad05
-
-runner_image_id / oci_config_digest =
-  sha256:e40a82348bb07356b2a8c967a8b7d7d52b2a53b0ac77b2744086d7def9d3460e
-
-oci_manifest_digest =
-  sha256:af1437525490d9961bfdd22ab0c7c999681dd116b87b6d11336c1445a4d6878c
-
-archive_sha256 =
-  a8d8f6c9a7be1958e88bf588011c792683b601908c2a290f45e0840d7395630e
-
+source_tree_sha = 271a7585462de1dfef0b6d325417f087ffae5366
+image_tag = wandora/core:organization-adapter-candidate-f8e553072c36
+oci_config_digest = sha256:759211874f26af86ea610971ab3e41c0e9ebbe468e2be1b0187e5a6007a89978
+oci_manifest_digest = sha256:20f97179251549e4dc93a3cb426ff90c35641ef36216e336f2afb3532501e36d
 image_user = node
+archive_sha256 = b597abfd14cf6df9d9c50643611ab4af8e5ce70f87580dc481c4a1358f8b4c5c
 ```
 
-## SOURCE EQUIVALENCE PROOF
+Comparison from this artifact merge-ref to the reconciled current main finds no Core runtime/compose change:
 
-The candidate source SHA is a GitHub PR merge-ref commit, so commit-history comparison alone is misleading.
+No file under the reviewed Core runtime source, Core image package inputs, or Core compose overlays differs. Later repository changes are documentation/verifier continuity only.
 
-Direct blob comparison proved the following files are byte-identical between candidate source `2563bdeb...` and current canonical source:
+## HOST STAGING PROOF
+
+The retained GitHub artifact was downloaded once into operator cache, verified by the GitHub artifact digest, extracted and its own `SHA256SUMS` passed.
+
+The image was loaded but **not started**.
+
+Host image inspection:
 
 ```text
-apps/core/src/organization-adapter/contracts.ts
-apps/core/src/organization-adapter/service.ts
-apps/core/src/runtime/config.ts
-apps/core/src/runtime/human-supervision.ts
-apps/core/src/runtime/main.ts
-apps/core/src/runtime/server.ts
-apps/core/Dockerfile
-apps/core/package.json
-apps/core/package-lock.json
-
-infra/stacks/core/compose.human-api.yaml
-infra/stacks/core/compose.organization-adapter.yaml
-infra/stacks/core/compose.human-digital-employee-hire.yaml
+image = wandora/core:organization-adapter-candidate-f8e553072c36
+Docker loaded image id = sha256:20f97179251549e4dc93a3cb426ff90c35641ef36216e336f2afb3532501e36d
+revision label = f8e553072c36b229b3fced2f4a7e9378e67d7aa4
+candidate label = organization-adapter-core-v1
+user = node
+baked Wandora enable flags = absent
+baked password/token/API-key material = absent
 ```
 
-The candidate image itself was independently inspected and contains:
+The loaded Docker image id matches the manifest's accepted OCI manifest digest. The workflow verifier explicitly permits the loaded engine id to equal either the config or manifest digest.
 
-- the dedicated `WANDORA_HUMAN_DIGITAL_EMPLOYEE_HIRE_ENABLED` gate;
-- the exact digital-employees POST route;
-- legacy collision fail-closed behavior;
-- paused-first finalization;
-- same-key/catalog replay logic.
+## PRIVATE CANDIDATE COMPOSITION — FROZEN
 
-Therefore this existing candidate is the preferred production canary artifact.
-
-## PRIVATE CANDIDATE COMPOSITION
-
-Future container name:
+Future execution uses exactly one ephemeral container:
 
 ```text
-wandora-core-hire-canary-v1
+name = wandora-core-customer-hire-canary-candidate-v1
+image = wandora/core:organization-adapter-candidate-f8e553072c36
+restart policy = no
+published host ports = none
+wandora-edge attachment = none
 ```
 
-The candidate must:
+Security boundary:
 
-- publish **no host ports**;
-- use no public reverse-proxy/Cloudflare route;
-- use no alias `wandora-core`;
-- use restart policy `no`;
-- join only the existing private networks needed by its dependencies:
+```text
+user = node
+read-only rootfs = true
+tmpfs /tmp = rw,noexec,nosuid,size=16m
+no-new-privileges = true
+cap_drop = ALL
+supplementary secret group = 987
+```
+
+Private networks only:
 
 ```text
 wandora-core
 wandora-data
 ```
 
-Private dependency aliases already proven live:
-
-```text
-wandora-postgres -> production Supabase PostgreSQL on wandora-data
-wandora-paperclip:3100 -> production Paperclip on wandora-core
-```
-
-Read-only mounts:
+Read-only secret mounts:
 
 ```text
 /opt/wandora/stacks/core/secrets/wandora_core_db_password
@@ -199,314 +234,215 @@ Read-only mounts:
   -> /run/secrets/wandora/organization-adapter
 ```
 
-Required candidate runtime:
+No gateway-ingress or outbound secret is mounted.
+
+Candidate runtime configuration:
 
 ```text
-PORT=8788
-WANDORA_CORE_MODE=database
+PORT = 8788
+WANDORA_CORE_MODE = database
 
-WANDORA_CORE_DB_HOST=wandora-postgres
-WANDORA_CORE_DB_PORT=5432
-WANDORA_CORE_DB_NAME=postgres
-WANDORA_CORE_DB_USER=wandora_core_runtime
-WANDORA_CORE_DB_PASSWORD_FILE=/run/secrets/wandora_core_db_password
+WANDORA_CORE_DB_HOST = wandora-postgres
+WANDORA_CORE_DB_PORT = 5432
+WANDORA_CORE_DB_NAME = postgres
+WANDORA_CORE_DB_USER = wandora_core_runtime
+WANDORA_CORE_DB_PASSWORD_FILE = /run/secrets/wandora_core_db_password
 
-WANDORA_HUMAN_API_ENABLED=true
-WANDORA_AUTH_JWKS_URL=https://supabase.wandora.com.br/auth/v1/.well-known/jwks.json
-WANDORA_AUTH_ISSUER=https://supabase.wandora.com.br/auth/v1
-WANDORA_AUTH_AUDIENCE=authenticated
+WANDORA_HUMAN_API_ENABLED = true
+WANDORA_AUTH_JWKS_URL = https://supabase.wandora.com.br/auth/v1/.well-known/jwks.json
+WANDORA_AUTH_ISSUER = https://supabase.wandora.com.br/auth/v1
+WANDORA_AUTH_AUDIENCE = authenticated
 
-WANDORA_ORGANIZATION_ADAPTER_ENABLED=true
-WANDORA_ORGANIZATION_ADAPTER_WEBHOOK_URL=
+WANDORA_ORGANIZATION_ADAPTER_ENABLED = true
+WANDORA_ORGANIZATION_ADAPTER_WEBHOOK_URL =
   http://wandora-paperclip:3100/api/plugins/wandora.organization-adapter-v1/webhooks/employee-reconcile
-WANDORA_ORGANIZATION_ADAPTER_SECRET_DIRECTORY=
+WANDORA_ORGANIZATION_ADAPTER_SECRET_DIRECTORY =
   /run/secrets/wandora/organization-adapter
 
-WANDORA_HUMAN_DIGITAL_EMPLOYEE_HIRE_ENABLED=true
+WANDORA_HUMAN_DIGITAL_EMPLOYEE_HIRE_ENABLED = true
+
+WANDORA_GATEWAY_INGRESS_ENABLED = false
+WANDORA_HUMAN_SEND_PROPOSAL_ENABLED = false
+WANDORA_AGENT_RUNTIME_MODE = disabled
 ```
 
-Explicitly keep disabled/absent in the candidate:
+The candidate is called only from inside its own private container/network namespace. No Web/Nginx route and no public hostname targets it.
+
+The normal live `wandora-core` is not restarted or modified.
+
+## HUMAN SESSION AUTHORITY — FROZEN
+
+The hire proof must use a **real normal Supabase human session** for the existing canonical owner.
+
+Accepted source:
 
 ```text
-WANDORA_GATEWAY_INGRESS_ENABLED=false
-WANDORA_AGENT_RUNTIME_MODE=disabled
-WANDORA_HUMAN_SEND_PROPOSAL_ENABLED=false
+existing provisioned account
+  -> normal Supabase email/password browser login
+  -> normal access token
+  -> /api/v1/me
+  -> canonical Wandora owner + active organizations
 ```
 
-The candidate must return:
+The token itself is ephemeral evidence and is not canonical state.
 
-```text
-GET /healthz -> 200 / status=ok
-GET /readyz  -> 200 / status=ready
-```
+Rejected:
 
-before any authenticated business request is sent.
+- Supabase service-role impersonation;
+- admin-created JWTs;
+- signing a token with server keys;
+- bypassing Human API and calling the Organization Adapter service directly;
+- putting a browser token in Git, ADR, shell history or chat.
 
-## REAL HUMAN SESSION SOURCE
+At execution time the current browser-session bearer token must be transferred through an operator-controlled non-chat channel into a mode-0600 ephemeral file and never printed.
 
-The canary has exactly one active owner mapped to provider `supabase`.
+Before the hire POST, the candidate must use that token for:
 
-Read-only Auth proof at preflight:
-
-```text
-owner Supabase identities = 1
-active auth.sessions for that principal = 7
-unrevoked refresh chains = 7
-```
-
-No existing refresh token may be consumed for this canary because refresh-token rotation could disturb the user's browser/device sessions.
-
-Instead, execution will create one **separate temporary Supabase Auth session for the same existing owner**.
-
-The live Auth runtime is:
-
-```text
-supabase/gotrue:v2.196.0
-private service alias = supabase-auth
-private port = 9999
-```
-
-Execution contract:
-
-1. resolve the canonical canary owner -> existing Supabase Auth user inside the operator boundary;
-2. read the existing service-role credential from the private Supabase stack without printing it;
-3. use the private `supabase-auth:9999` endpoint;
-4. call admin magic-link generation for the existing owner only;
-5. do not send an email;
-6. exchange the returned token hash through the normal OTP verification path to create a new Auth session;
-7. keep access/refresh tokens only in protected temporary process/file state;
-8. never print, commit or place them in argv;
-9. use that access token as the Bearer for `GET /api/v1/me` and the hire POST;
-10. after all replay validation, revoke **only that temporary session** using local-session sign-out semantics;
-11. prove the pre-existing session population remains intact.
-
-The temporary session must not modify owner identity, membership or user metadata.
-
-## AUTHORIZATION PRECHECK
-
-Before hire:
-
-```text
+```http
 GET /api/v1/me
-Authorization: Bearer <temporary real owner session>
 ```
 
-must return 200.
-
-The target organization must be present in that session's authorized organization projection with owner/admin capability sufficient for the existing Organization Adapter service.
-
-Any 401/403 stops before hire.
-
-## FROZEN HIRE REQUEST
-
-Primary idempotency key:
+and require:
 
 ```text
-customer-hire-canary:ana-commercial-v1:v1
+user.id = e1000000-0000-4000-8000-000000000001
+organizations includes:
+  id = 918d4c7e-fccb-41f0-aba7-04105a9b4ec0
+  role = owner
 ```
 
-Alternate same-catalog replay key:
+If this proof is absent or expired, no hire request is sent.
+
+## EXECUTION / REPLAY PLAN
+
+After fresh preconditions and candidate readiness:
+
+1. prove candidate `/healthz = 200` and `/readyz = 200` from inside the candidate;
+2. prove candidate has no host port and no `wandora-edge` attachment;
+3. prove normal live Core customer-hire flag remains OFF;
+4. validate the ephemeral real human token through candidate `GET /api/v1/me`;
+5. re-prove zero canary employees/provider employee bindings/hire operations/Paperclip agents;
+6. issue exactly one POST using:
+   - frozen route;
+   - frozen body;
+   - `customer-hire-canary:ana-commercial-v1:v1`;
+7. independently inspect Wandora and Paperclip state;
+8. if success is complete, replay the **same key + same body** and require the same employee;
+9. issue one **different key + same catalog** proof and require the same employee with no second journal/provider resource;
+10. remove the candidate and delete ephemeral token material;
+11. prove the normal live Core customer-hire flag remains OFF.
+
+The second-key proof is only performed after first success and state reconciliation. It is not a fallback for an uncertain first request.
+
+## SUCCESS INVARIANTS
+
+A clean first hire must end with:
 
 ```text
-customer-hire-canary:ana-commercial-v1:v1-alt
-```
+Wandora canary digital employees = 1
+employee:
+  name = Ana
+  role = commercial-assistant
+  status = paused
+  autonomy = supervised
 
-Body bytes:
-
-```json
-{"catalogKey":"ana-commercial-v1"}
-```
-
-The primary request is sent once.
-
-There is no automatic HTTP retry.
-
-## EXPECTED FIRST-HIRE POSTCONDITIONS
-
-Wandora:
-
-```text
-digital employees for canary = 1
-employee status = paused
-employee autonomy = supervised
-employee role = commercial-assistant
-
-digital-employee provider bindings for canary = 1
-hire operations for canary/catalog = 1
+Wandora canary digital-employee provider bindings = 1
+Wandora ana-commercial-v1 hire operations = 1
 hire operation status = completed
+
+Paperclip canary managed Ana count = 1
+Paperclip Ana status = paused
+Paperclip adapter type = wandora_mastra
+
+same-key replay employee id = original employee id
+different-key/same-catalog employee id = original employee id
+
+customer response contains no provider/secret fields
 ```
 
-Paperclip:
+Still required after the proof:
 
 ```text
-canary managed agents = exactly 1
-agent key/catalog identity = ana-commercial-v1
-display name = Ana
-role = commercial-assistant
-adapterType = wandora_mastra
-status = paused
+normal live Core Customer Digital-Employee Hire = OFF
+Human Send = OFF
+Gateway outbound = OFF
+customer activation route/control = unavailable
 ```
-
-The provider agent may exist, but activation/work execution is not authorized.
-
-## RESPONSE NON-LEAKAGE
-
-First response must be 200 with exactly a Wandora-owned employee projection.
-
-Reject as a preflight failure if the customer response exposes any of:
-
-```text
-providerCompanyRef
-provider_company_ref
-providerAgentRef
-provider_agent_ref
-secretId
-hmac
-token
-credential
-```
-
-## REPLAY PROOF
-
-After first success and independent durable/provider readback:
-
-### Same-key replay
-
-Repeat the exact POST with:
-
-```text
-Idempotency-Key: customer-hire-canary:ana-commercial-v1:v1
-```
-
-Expected:
-
-- 200;
-- same Wandora employee ID;
-- employee count remains 1;
-- hire-operation count remains 1;
-- Paperclip managed-agent count remains 1.
-
-### Different-key / same-catalog replay
-
-Then send the same body with:
-
-```text
-Idempotency-Key: customer-hire-canary:ana-commercial-v1:v1-alt
-```
-
-Expected:
-
-- 200;
-- same Wandora employee ID;
-- no second hire-operation row;
-- no second employee-provider binding;
-- no second Paperclip agent.
-
-This proves catalog-level deduplication in addition to request-key replay.
 
 ## AMBIGUITY / FAILURE POLICY
 
-### Candidate startup/readiness failure
+There is no blind retry.
 
-Remove only the candidate container. Do not mutate live Core, Paperclip or Wandora state.
+If the first POST response is lost, times out, returns `employee-hiring-uncertain` or the chat/tool connection drops after dispatch:
 
-### Temporary Auth session failure
+1. do not mint a new idempotency key;
+2. inspect the exact operation by `customer-hire-canary:ana-commercial-v1:v1`;
+3. inspect Wandora employee/provider binding state;
+4. inspect Paperclip company managed-agent state;
+5. if the operation is completed and all invariants match, adopt success;
+6. if the operation is `uncertain`, retry only the exact same route/body/key after separate readback confirms the candidate/session are still valid;
+7. if provider state exists but local state is incomplete/inconsistent, stop for a separately reviewed recovery;
+8. never use a different idempotency key to escape uncertainty.
 
-Stop before hire and clean only temporary Auth/session material.
+If candidate startup/readiness/session validation fails before the POST, remove the candidate and no business/provider effect has occurred.
 
-Never consume an existing browser refresh token as fallback.
+## CANDIDATE CLEANUP
 
-### Initial hire transport ambiguity
+After the proof, whether successful or failed before dispatch:
 
-Do **not** issue another first-time POST blindly.
+- remove `wandora-core-customer-hire-canary-candidate-v1`;
+- delete the ephemeral bearer-token file;
+- retain the staged image/artifact cache only as non-running operator evidence unless separately cleaned;
+- do not restart the normal Core;
+- do not change public Web/Nginx routing;
+- do not enable Human Send or Gateway outbound.
 
-First reconcile:
-
-- Wandora hire operation under the frozen primary key;
-- Wandora employee/provider-binding counts;
-- Paperclip managed agent list for the canary company.
-
-If an operation exists in `uncertain`, only the **same primary idempotency key** may be used to re-enter the adapter contract.
-
-### 409 / uncertain response
-
-Honor the route contract:
-
-```text
-retry = same-idempotency-key
-```
-
-Never switch to the alternate key while first-hire state is uncertain.
-
-### Durable success but later validation failure
-
-Preserve the hired paused employee/agent. Do not delete a successful production hire merely because a later readback check failed.
-
-Investigate in a separate reviewed recovery slice.
-
-## CANDIDATE TEARDOWN
-
-After all proofs:
-
-1. revoke only the temporary Supabase Auth session;
-2. delete its protected temporary token material;
-3. stop/remove `wandora-core-hire-canary-v1`;
-4. remove the imported candidate image only if no other reviewed proof depends on it;
-5. prove no candidate container/network alias/public port remains;
-6. leave normal `wandora-core` untouched with customer-hire gate OFF;
-7. leave the successful Ana hire paused;
-8. leave Human Send and Gateway outbound OFF.
+Old unrelated candidate containers are not cleaned as part of this slice.
 
 ## SECOND ADVERSARIAL REVIEW
 
 Rejected:
 
-- enabling customer hire on the public/live Core merely for the canary;
-- rebuilding a candidate when the exact reviewed artifact still exists;
-- trusting artifact name alone without manifest/archive/OCI verification;
-- treating the PR merge-ref SHA as stale without content comparison;
-- publishing a candidate port on loopback or public interfaces;
-- giving the candidate the `wandora-core` DNS alias;
-- enabling Gateway ingress or Mastra runtime when hire does not require them;
-- enabling Human Send or Gateway outbound;
-- reusing or refreshing any of the owner's seven existing sessions;
-- printing owner email, provider subject, access token, refresh token or service-role token;
-- passing bearer token in argv;
-- blind retry after a lost/ambiguous first-hire response;
-- using the alternate key before the primary operation is proven complete;
-- activating the Paperclip agent as part of hire;
-- destructive rollback after a durable successful paused hire.
+- preferring the older PR #109 candidate when the later PR #111 artifact is equally current-equivalent, already verified and already staged;
+- rebuilding an arbitrary image when a later provenance-verified artifact already contains the same current runtime;
+- exposing the candidate through a host port, Cloudflare or Web proxy;
+- attaching the candidate to `wandora-edge`;
+- enabling Gateway ingress, Mastra Agent Runtime or Human Send merely for a hire proof;
+- using service-role/admin JWT impersonation;
+- persisting a bearer token in docs/Git/chat;
+- calling the Organization Adapter directly instead of the customer POST;
+- creating Ana before a real owner session is proven;
+- treating `Contratar` as `Ativar`;
+- retrying an ambiguous first POST with a new key;
+- leaving the candidate running after proof.
 
 ## EFFECT BOUNDARY
 
-This preflight performs **no customer-hire mutation**.
+This preflight staged only a traceable candidate image.
 
-Still true:
+It did **not**:
 
-```text
-canary Wandora employees = 0
-canary employee-provider bindings = 0
-canary hire operations = 0
-canary Paperclip agents = 0
-
-live Core Customer Digital-Employee Hire = OFF
-Human Send = OFF
-Gateway outbound = OFF
-
-private candidate container = absent
-temporary canary Auth session = absent
-```
+- start the hire candidate container;
+- obtain/persist a human bearer token;
+- send the customer hire POST;
+- create a Wandora employee;
+- create a provider employee binding;
+- create a Paperclip managed Ana;
+- activate Ana;
+- enable the public live Core customer-hire gate;
+- enable Human Send;
+- enable Gateway outbound.
 
 ## DECISION
 
-**Customer Hire Canary — Private Candidate Core Hire Preflight V1 is complete as a plan.**
+**Customer Hire Canary — Private Candidate Core Hire Preflight V1 is complete.**
 
-The exact reviewed candidate artifact, private topology, temporary real-owner session path, first-hire request, replay semantics, ambiguity rules and teardown are frozen.
+The candidate artifact, minimal private composition, real-human-session boundary, stable idempotency key, replay/no-duplicate plan, paused-first invariants and cleanup/ambiguity rules are frozen.
 
 ## NEXT EXECUTABLE SLICE
 
 **Customer Hire Canary — Private Candidate Core Hire Execution V1.**
 
-Load and verify the frozen artifact, start the no-ingress private candidate, create one separate temporary Supabase owner session, prove `/me`, issue the primary hire exactly once, independently validate paused Wandora/Paperclip state, prove same-key and alternate-key/same-catalog no-duplicate behavior, revoke only the temporary session and remove the candidate.
+Start the frozen private candidate, prove readiness/no-public-ingress, validate a real owner Supabase session against `/api/v1/me`, execute the frozen first hire once, reconcile paused-first state, perform same-key and different-key/same-catalog replay proofs, remove the candidate and leave the normal live Core customer-hire gate plus all outbound effects OFF.
 
-Do not enable the normal live Core hire gate, activate Ana, Human Send or Gateway outbound.
+If no real owner browser session can be transferred through the approved non-chat ephemeral channel, stop after candidate readiness and request only that operator action; do not substitute an admin/service-role session.
