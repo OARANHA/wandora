@@ -9,7 +9,9 @@ BEGIN
        AND table_name = 'digital_employee_catalog_hire_eligibility'
        AND column_name = 'organization_id'
        AND is_nullable = 'NO'
-  ) THEN RAISE EXCEPTION 'customer_hire_eligibility_org_missing'; END IF;
+  ) THEN
+    RAISE EXCEPTION 'customer_hire_eligibility_org_missing';
+  END IF;
 
   IF NOT EXISTS (
     SELECT 1
@@ -18,7 +20,9 @@ BEGIN
        AND table_name = 'digital_employee_catalog_hire_eligibility'
        AND column_name = 'catalog_key'
        AND is_nullable = 'NO'
-  ) THEN RAISE EXCEPTION 'customer_hire_eligibility_catalog_missing'; END IF;
+  ) THEN
+    RAISE EXCEPTION 'customer_hire_eligibility_catalog_missing';
+  END IF;
 
   IF NOT EXISTS (
     SELECT 1
@@ -28,7 +32,9 @@ BEGIN
        AND column_name = 'enabled'
        AND is_nullable = 'NO'
        AND column_default = 'false'
-  ) THEN RAISE EXCEPTION 'customer_hire_eligibility_enabled_contract_invalid'; END IF;
+  ) THEN
+    RAISE EXCEPTION 'customer_hire_eligibility_enabled_contract_invalid';
+  END IF;
 
   IF NOT EXISTS (
     SELECT 1
@@ -37,7 +43,9 @@ BEGIN
      WHERE n.nspname = 'wandora_private'
        AND c.relname = 'digital_employee_catalog_hire_eligibility'
        AND c.relrowsecurity
-  ) THEN RAISE EXCEPTION 'customer_hire_eligibility_rls_missing'; END IF;
+  ) THEN
+    RAISE EXCEPTION 'customer_hire_eligibility_rls_missing';
+  END IF;
 
   IF NOT has_table_privilege(
        'wandora_core_runtime',
@@ -59,7 +67,9 @@ BEGIN
        'wandora_private.digital_employee_catalog_hire_eligibility',
        'DELETE'
      )
-  THEN RAISE EXCEPTION 'customer_hire_eligibility_core_privileges_invalid'; END IF;
+  THEN
+    RAISE EXCEPTION 'customer_hire_eligibility_core_privileges_invalid';
+  END IF;
 
   IF has_table_privilege(
        'authenticated',
@@ -71,7 +81,9 @@ BEGIN
        'wandora_private.digital_employee_catalog_hire_eligibility',
        'SELECT'
      )
-  THEN RAISE EXCEPTION 'customer_hire_eligibility_browser_leak'; END IF;
+  THEN
+    RAISE EXCEPTION 'customer_hire_eligibility_browser_leak';
+  END IF;
 
   IF has_table_privilege(
        'wandora_platform_provisioner',
@@ -88,7 +100,14 @@ BEGIN
        'wandora_private.digital_employee_catalog_hire_eligibility',
        'UPDATE'
      )
-  THEN RAISE EXCEPTION 'customer_hire_eligibility_provisioner_authority_leak'; END IF;
+     OR has_table_privilege(
+       'wandora_platform_provisioner',
+       'wandora_private.digital_employee_catalog_hire_eligibility',
+       'DELETE'
+     )
+  THEN
+    RAISE EXCEPTION 'customer_hire_eligibility_provisioner_table_authority_leak';
+  END IF;
 
   IF NOT has_function_privilege(
        'wandora_platform_provisioner',
@@ -110,7 +129,9 @@ BEGIN
        'wandora_private.set_digital_employee_catalog_hire_eligibility(uuid,text,boolean)',
        'EXECUTE'
      )
-  THEN RAISE EXCEPTION 'customer_hire_eligibility_function_authority_invalid'; END IF;
+  THEN
+    RAISE EXCEPTION 'customer_hire_eligibility_function_authority_invalid';
+  END IF;
 END
 $$;
 
@@ -132,7 +153,7 @@ FROM wandora_private.set_digital_employee_catalog_hire_eligibility(
 
 RESET ROLE;
 
-DO $
+DO $$
 BEGIN
   IF NOT EXISTS (
     SELECT 1
@@ -144,7 +165,7 @@ BEGIN
     RAISE EXCEPTION 'customer_hire_eligibility_operator_enable_failed';
   END IF;
 END
-$;
+$$;
 
 SET LOCAL ROLE wandora_platform_provisioner;
 
@@ -170,7 +191,11 @@ VALUES
   ('61111111-1111-4111-8111-111111111102', 'ana-commercial-v1', true);
 
 SET LOCAL ROLE wandora_core_runtime;
-SELECT set_config('wandora.organization_id', '61111111-1111-4111-8111-111111111101', true);
+SELECT set_config(
+  'wandora.organization_id',
+  '61111111-1111-4111-8111-111111111101',
+  true
+);
 
 DO $$
 DECLARE
@@ -178,6 +203,7 @@ DECLARE
 BEGIN
   SELECT count(*) INTO n
     FROM wandora_private.digital_employee_catalog_hire_eligibility;
+
   IF n <> 1 THEN
     RAISE EXCEPTION 'customer_hire_eligibility_tenant_scope_failed:%', n;
   END IF;
@@ -201,7 +227,8 @@ BEGIN
        SET enabled = false
      WHERE organization_id = '61111111-1111-4111-8111-111111111101';
     RAISE EXCEPTION 'expected_customer_hire_eligibility_core_write_denial';
-  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  EXCEPTION WHEN insufficient_privilege THEN
+    NULL;
   END;
 END
 $$;
@@ -213,7 +240,8 @@ UPDATE wandora.organizations
  WHERE id = '61111111-1111-4111-8111-111111111102';
 
 SET LOCAL ROLE wandora_platform_provisioner;
-DO $
+
+DO $$
 BEGIN
   BEGIN
     PERFORM *
@@ -229,7 +257,7 @@ BEGIN
     END IF;
   END;
 END
-$;
+$$;
 
 SELECT *
 FROM wandora_private.set_digital_employee_catalog_hire_eligibility(
@@ -237,9 +265,42 @@ FROM wandora_private.set_digital_employee_catalog_hire_eligibility(
   'ana-commercial-v1',
   false
 );
+
+DO $$
+BEGIN
+  BEGIN
+    PERFORM *
+      FROM wandora_private.set_digital_employee_catalog_hire_eligibility(
+        '61111111-1111-4111-8111-111111111101',
+        NULL,
+        true
+      );
+    RAISE EXCEPTION 'expected_customer_hire_eligibility_null_catalog_denial';
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM <> 'customer_hire_eligibility_invalid_catalog_key' THEN
+      RAISE;
+    END IF;
+  END;
+
+  BEGIN
+    PERFORM *
+      FROM wandora_private.set_digital_employee_catalog_hire_eligibility(
+        '61111111-1111-4111-8111-111111111101',
+        'ana-commercial-v1',
+        NULL
+      );
+    RAISE EXCEPTION 'expected_customer_hire_eligibility_null_enabled_denial';
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM <> 'customer_hire_eligibility_enabled_required' THEN
+      RAISE;
+    END IF;
+  END;
+END
+$$;
+
 RESET ROLE;
 
-DO $
+DO $$
 BEGIN
   IF (SELECT enabled
         FROM wandora_private.digital_employee_catalog_hire_eligibility
@@ -247,18 +308,15 @@ BEGIN
          AND catalog_key = 'ana-commercial-v1') IS DISTINCT FROM false THEN
     RAISE EXCEPTION 'customer_hire_eligibility_suspended_disable_failed';
   END IF;
-END
-$;
 
-DO $
-BEGIN
   BEGIN
     INSERT INTO wandora_private.digital_employee_catalog_hire_eligibility
       (organization_id, catalog_key, enabled)
     VALUES
       ('61111111-1111-4111-8111-111111111101', 'INVALID KEY', true);
     RAISE EXCEPTION 'expected_customer_hire_eligibility_catalog_check';
-  EXCEPTION WHEN check_violation THEN NULL;
+  EXCEPTION WHEN check_violation THEN
+    NULL;
   END;
 END
 $$;
