@@ -3,7 +3,10 @@ import type { RuntimeReadiness } from './server.js';
 
 export function createRuntimeReadinessChecker(
   pool: Pool | undefined,
-  options: { organizationAdapterEnabled?: boolean } = {},
+  options: {
+    organizationAdapterEnabled?: boolean;
+    customerHireEnabled?: boolean;
+  } = {},
 ): () => Promise<RuntimeReadiness> {
   return async (): Promise<RuntimeReadiness> => {
     if (!pool) return { ready: false, reason: 'standby' };
@@ -20,23 +23,40 @@ export function createRuntimeReadinessChecker(
       if (row.organization_scope !== null) {
         return { ready: false, reason: 'tenant-scope-leak' };
       }
+    } catch {
+      return { ready: false, reason: 'database-unavailable' };
+    }
 
-      if (options.organizationAdapterEnabled) {
+    if (options.organizationAdapterEnabled) {
+      try {
         await pool.query(`
           SELECT 1 FROM wandora_private.control_plane_provider_bindings LIMIT 0;
           SELECT 1 FROM wandora_private.digital_employee_provider_bindings LIMIT 0;
           SELECT 1 FROM wandora_private.digital_employee_hire_operations LIMIT 0;
         `);
+      } catch {
+        return {
+          ready: false,
+          reason: 'organization-adapter-database-boundary-unavailable',
+        };
       }
-
-      return { ready: true };
-    } catch {
-      return {
-        ready: false,
-        reason: options.organizationAdapterEnabled
-          ? 'organization-adapter-database-boundary-unavailable'
-          : 'database-unavailable',
-      };
     }
+
+    if (options.customerHireEnabled) {
+      try {
+        await pool.query(`
+          SELECT 1
+            FROM wandora_private.digital_employee_catalog_hire_eligibility
+           LIMIT 0;
+        `);
+      } catch {
+        return {
+          ready: false,
+          reason: 'customer-hire-eligibility-database-boundary-unavailable',
+        };
+      }
+    }
+
+    return { ready: true };
   };
 }
