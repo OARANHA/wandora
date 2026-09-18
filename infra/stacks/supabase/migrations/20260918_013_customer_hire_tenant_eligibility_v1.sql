@@ -18,7 +18,8 @@ CREATE TRIGGER digital_employee_catalog_hire_eligibility_set_updated_at
 ALTER TABLE wandora_private.digital_employee_catalog_hire_eligibility ENABLE ROW LEVEL SECURITY;
 
 REVOKE ALL ON wandora_private.digital_employee_catalog_hire_eligibility
-  FROM PUBLIC, anon, authenticated, wandora_core_runtime, wandora_platform_provisioner;
+  FROM PUBLIC, anon, authenticated, service_role, supabase_functions_admin,
+       wandora_core_runtime, wandora_platform_provisioner;
 
 GRANT SELECT ON wandora_private.digital_employee_catalog_hire_eligibility
   TO wandora_core_runtime;
@@ -89,7 +90,8 @@ $$;
 
 REVOKE ALL ON FUNCTION wandora_private.set_digital_employee_catalog_hire_eligibility(
   uuid, text, boolean
-) FROM PUBLIC, anon, authenticated, wandora_core_runtime;
+) FROM PUBLIC, anon, authenticated, service_role, supabase_functions_admin,
+       wandora_core_runtime, wandora_platform_provisioner;
 
 GRANT EXECUTE ON FUNCTION wandora_private.set_digital_employee_catalog_hire_eligibility(
   uuid, text, boolean
