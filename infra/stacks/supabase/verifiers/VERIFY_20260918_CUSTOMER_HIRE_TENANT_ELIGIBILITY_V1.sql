@@ -1,6 +1,8 @@
 \set ON_ERROR_STOP on
 
-DO $$
+DO $
+DECLARE
+  v_role text;
 BEGIN
   IF NOT EXISTS (
     SELECT 1
@@ -86,29 +88,35 @@ BEGIN
     RAISE EXCEPTION 'customer_hire_eligibility_core_privileges_invalid';
   END IF;
 
-  IF has_table_privilege(
-       'authenticated',
-       'wandora_private.digital_employee_catalog_hire_eligibility',
-       'SELECT'
-     )
-     OR has_table_privilege(
-       'anon',
-       'wandora_private.digital_employee_catalog_hire_eligibility',
-       'SELECT'
-     )
-     OR has_table_privilege(
-       'service_role',
-       'wandora_private.digital_employee_catalog_hire_eligibility',
-       'SELECT'
-     )
-     OR has_table_privilege(
-       'supabase_functions_admin',
-       'wandora_private.digital_employee_catalog_hire_eligibility',
-       'SELECT'
-     )
-  THEN
-    RAISE EXCEPTION 'customer_hire_eligibility_non_operator_leak';
-  END IF;
+  FOR v_role IN
+    SELECT rolname
+      FROM pg_roles
+     WHERE rolname IN ('anon', 'authenticated', 'service_role', 'supabase_functions_admin')
+  LOOP
+    IF has_table_privilege(
+         v_role,
+         'wandora_private.digital_employee_catalog_hire_eligibility',
+         'SELECT'
+       )
+       OR has_table_privilege(
+         v_role,
+         'wandora_private.digital_employee_catalog_hire_eligibility',
+         'INSERT'
+       )
+       OR has_table_privilege(
+         v_role,
+         'wandora_private.digital_employee_catalog_hire_eligibility',
+         'UPDATE'
+       )
+       OR has_table_privilege(
+         v_role,
+         'wandora_private.digital_employee_catalog_hire_eligibility',
+         'DELETE'
+       )
+    THEN
+      RAISE EXCEPTION 'customer_hire_eligibility_non_operator_leak:%', v_role;
+    END IF;
+  END LOOP;
 
   IF has_table_privilege(
        'wandora_customer_hire_operator',
@@ -173,29 +181,24 @@ BEGIN
        'wandora_private.set_digital_employee_catalog_hire_eligibility(uuid,text,boolean)',
        'EXECUTE'
      )
-     OR has_function_privilege(
-       'authenticated',
-       'wandora_private.set_digital_employee_catalog_hire_eligibility(uuid,text,boolean)',
-       'EXECUTE'
-     )
-     OR has_function_privilege(
-       'anon',
-       'wandora_private.set_digital_employee_catalog_hire_eligibility(uuid,text,boolean)',
-       'EXECUTE'
-     )
-     OR has_function_privilege(
-       'service_role',
-       'wandora_private.set_digital_employee_catalog_hire_eligibility(uuid,text,boolean)',
-       'EXECUTE'
-     )
-     OR has_function_privilege(
-       'supabase_functions_admin',
-       'wandora_private.set_digital_employee_catalog_hire_eligibility(uuid,text,boolean)',
-       'EXECUTE'
-     )
   THEN
     RAISE EXCEPTION 'customer_hire_eligibility_function_authority_invalid';
   END IF;
+
+  FOR v_role IN
+    SELECT rolname
+      FROM pg_roles
+     WHERE rolname IN ('anon', 'authenticated', 'service_role', 'supabase_functions_admin')
+  LOOP
+    IF has_function_privilege(
+         v_role,
+         'wandora_private.set_digital_employee_catalog_hire_eligibility(uuid,text,boolean)',
+         'EXECUTE'
+       )
+    THEN
+      RAISE EXCEPTION 'customer_hire_eligibility_function_leak:%', v_role;
+    END IF;
+  END LOOP;
 END
 $$;
 
