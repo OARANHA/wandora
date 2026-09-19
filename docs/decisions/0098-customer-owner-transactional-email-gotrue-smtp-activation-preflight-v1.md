@@ -99,6 +99,12 @@ Therefore weakening the host secret to world-readable, hard-coding the host `wan
 
 The Wandora Supabase overlay now carries the reviewed Auth-only secret startup candidate.
 
+Exact candidate SHA-256 as materialized from the branch:
+
+```text
+2d35d6ea292c0749d4edb3654cec007a6e5ffc6086d8f44516e53742abfaa280  infra/stacks/supabase/docker-compose.wandora.yml
+```
+
 The candidate:
 
 1. keeps the host secret at `root:wandora-ops/0640`;
@@ -302,23 +308,37 @@ The branch `preflight/gotrue-smtp-activation-v1` versions the candidate, but thi
 
 ## VALIDATION / NO-EFFECT PROOF
 
-The preflight must close with:
+Final production read-back after all proofs:
 
 ```text
-live GoTrue SMTP host/port/from/name = unchanged
-supabase-auth container identity     = unchanged
-supabase-auth recreation             = false
-invite sent                          = false
-recovery sent                        = false
-test e-mail sent                     = false
-Auth users/recovery tokens           = unchanged
-tenant eligibility                   = unchanged
-unfinished hires                     = unchanged
-Human Send                           = OFF
-Gateway outbound                     = OFF
+supabase-auth container identity = unchanged
+GOTRUE_SMTP_HOST                 = supabase-mail
+GOTRUE_SMTP_PORT                 = 2500
+GOTRUE_SMTP_ADMIN_EMAIL          = admin@example.com
+GOTRUE_SMTP_SENDER_NAME          = fake_sender
+
+supabase-auth / Web / Core / Gateway = healthy
+
+auth_users          = 1
+recovery_sent       = 0
+recovery_token      = 0
+one_time_tokens     = 0
+eligibility_rows    = 0
+eligibility_enabled = 0
+unfinished_hires    = 0
+
+Customer Digital-Employee Hire = ON
+Human Send                    = OFF
+Gateway outbound              = OFF
+
+invite sent       = false
+recovery sent     = false
+test e-mail sent  = false
+proof containers  = 0
+proof directory   = absent
 ```
 
-Disposable proof containers/files must be removed after final validation.
+No live Auth service was recreated and no live SMTP setting changed.
 
 ## RESULT
 
