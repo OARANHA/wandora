@@ -126,7 +126,6 @@ CREATE DATABASE paperclip_attestation OWNER paperclip_attestation;
 SQL
 
 MIGRATIONS="$ROOT/infra/stacks/supabase/migrations"
-VERIFIERS="$ROOT/infra/stacks/supabase/verifiers"
 for migration in   20260914_001_core_multitenant_auth_v1.sql   20260914_002_ana_vertical_slice_v1.sql   20260914_003_core_runtime_role_v1.sql   20260915_004_supervised_proposal_v1.sql   20260915_005_human_supervision_read_v1.sql   20260915_006_human_session_bootstrap_v1.sql   20260915_007_human_send_proposal_v1.sql   20260916_008_private_tenant_provisioning_v1.sql   20260916_009_platform_provisioner_role_v1.sql   20260916_010_organization_adapter_state_v1.sql   20260916_011_organization_adapter_service_contract_v1.sql   20260918_013_customer_hire_tenant_eligibility_v1.sql; do
   docker cp "$MIGRATIONS/$migration" "$DB:/tmp/$migration" >/dev/null
   docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$WANDORA_DB" -f "/tmp/$migration" >/dev/null
@@ -262,13 +261,31 @@ docker exec "$CORE" node --input-type=module -e '
   console.log("BRIDGE_READINESS_WITHOUT_014_FAILS_CLOSED_OK");
 '
 
-BRIDGE_MIGRATION="20260919_014_paperclip_execution_binding_resolver_v1.sql"
-BRIDGE_VERIFIER="VERIFY_20260919_PAPERCLIP_EXECUTION_BINDING_RESOLVER_V1.sql"
-docker cp "$MIGRATIONS/$BRIDGE_MIGRATION" "$DB:/tmp/$BRIDGE_MIGRATION" >/dev/null
-docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$WANDORA_DB" -f "/tmp/$BRIDGE_MIGRATION" >/dev/null
-docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$WANDORA_DB" -f "/tmp/$BRIDGE_MIGRATION" >/dev/null
-docker cp "$VERIFIERS/$BRIDGE_VERIFIER" "$DB:/tmp/$BRIDGE_VERIFIER" >/dev/null
-docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$WANDORA_DB" -f "/tmp/$BRIDGE_VERIFIER" >/dev/null
+# Migration 014 is deliberately NOT applied in this attestation.
+# Install only a disposable resolver shim with the same callable boundary so
+# /readyz and the end-to-end bridge can be proven without changing migration state.
+docker exec -i "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$WANDORA_DB" <<'SQL' >/dev/null
+CREATE OR REPLACE FUNCTION wandora_private.resolve_paperclip_execution_organization(
+  p_provider_company_ref text
+)
+RETURNS uuid
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, wandora, wandora_private, pg_temp
+AS $
+  SELECT o.id
+    FROM wandora_private.control_plane_provider_bindings b
+    JOIN wandora.organizations o ON o.id = b.organization_id
+   WHERE b.provider = 'paperclip'
+     AND b.provider_company_ref = p_provider_company_ref
+     AND o.status = 'active'
+   LIMIT 1;
+$;
+REVOKE ALL ON FUNCTION wandora_private.resolve_paperclip_execution_organization(text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION wandora_private.resolve_paperclip_execution_organization(text)
+  TO wandora_core_runtime;
+SQL
 
 docker exec "$CORE" node --input-type=module -e '
   const response = await fetch("http://127.0.0.1:8788/readyz");
@@ -344,6 +361,7 @@ test "$(printf '%s' "$agent_me" | json_field metadata.pluginManagedAgent.pluginK
 test "$(printf '%s' "$agent_me" | json_field metadata.pluginManagedAgent.agentKey)" = "ana-commercial-v1"
 
 printf '%s\n' "PAPERCLIP_WANDORA_MASTRA_DISPOSABLE_E2E_ATTESTATION_V1_OK"
+printf '%s\n' "migration_014_applied=false"
 printf '%s\n' "paperclip_commit=$actual_paperclip_commit"
 printf '%s\n' "run_status=$RUN_STATUS"
 printf '%s\n' "execution_id_shape=exec_sha256"
