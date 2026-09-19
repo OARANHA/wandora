@@ -235,6 +235,24 @@ MEDICSPRO remains ineligible despite the global customer-hire gate being ON.
 
 A post-effect aggregate SQL validation command initially failed because shell quoting removed a SQL string literal before PostgreSQL could run the query. The failed command was read-only and did not mutate state. The checks were immediately reissued as smaller independent read-only commands and produced the canonical results above.
 
+## REPOSITORY PUBLICATION VALIDATION
+
+PR #155 is documentation-only.
+
+All five GitHub Actions again failed before receiving a runnable step:
+
+```text
+Core CI                         steps = null / logs = null
+Web CI                          steps = null / logs = null
+Platform Admin CI               steps = null / logs = null
+Messaging Gateway CI            steps = null / logs = null
+Organization Adapter Plugin CI  steps = null / logs = null
+```
+
+These checks are not called green. They reproduce the already-known external runner failure pattern and executed no code/test step.
+
+The bounded provider effect was independently validated against the live Paperclip official CLI, canonical Wandora PostgreSQL state, HMAC custody absence and healthy runtime before repository publication.
+
 ## RESULT
 
 **Customer Owner First Real Tenant Paperclip Company Bootstrap Execution V1 is complete and live.**
