@@ -421,6 +421,8 @@ Mastra upgrade             = NOT PART OF THIS SLICE
 
 Resume **Paperclip v2026.916.0 Disposable Upgrade Compatibility Proof V1**.
 
+Execute against `docs/operations/paperclip-v2026-916-0-disposable-upgrade-compatibility-proof-v1.md`; the runbook is fail-closed and begins by reconciling the already-dispatched build/pull before any retry.
+
 First action after runtime access returns:
 
 ```text
