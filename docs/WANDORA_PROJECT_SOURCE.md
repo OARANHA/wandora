@@ -1205,17 +1205,39 @@ Key reuse decisions:
 
 Production remains on Paperclip `v2026.831.1` and Mastra Core `1.66.0`.
 
-Paperclip upstream stable `v2026.916.0` is materially interesting, especially for Connections, but production upgrade remains NO-GO until a production-derived disposable migration/runtime/adapter/bridge compatibility proof is green.
+ADRs 0127–0128 completed the production-derived Paperclip `v2026.916.0` disposable compatibility proof.
 
-The exact v916 candidate build and PostgreSQL 18.1 proof-image pull were already dispatched during the preflight, but the remote VPS execution channel became unavailable before their completion could be reconciled. **Read actual state before any retry.**
+Final result:
+
+```text
+schema-faithful live/proof equality = GREEN
+migrations 0231..0279               = GREEN
+Organization Adapter                = GREEN
+wandora_mastra                      = GREEN
+local_encrypted recovery            = GREEN
+real run-scoped JWT                 = GREEN
+Core -> Mastra deterministic E2E    = GREEN
+unknown mapping / bad HMAC          = fail-closed
+production drift                    = none
+rollback lab                        = GREEN before cleanup
+proof cleanup                       = complete
+```
+
+Important upgrade/rollback amendment:
+
+- Paperclip's official logical backup does not serialize PostgreSQL CHECK constraints;
+- keep using it with the matching `master.key` for canonical Paperclip logical recovery;
+- any production Paperclip upgrade must additionally capture a fresh protected PostgreSQL 18.1 schema-faithful `pg_dump -Fc` for exact rollback.
+
+The v916 candidate is now **qualified for a separate production-upgrade preflight**, not promoted.
 
 ## Next executable slice
 
-**Paperclip v2026.916.0 Disposable Upgrade Compatibility Proof V1.**
+**Paperclip v2026.916.0 Production Upgrade Preflight V1.**
 
-Start with REAL NOW reconciliation of Git, the VPS/runtime and the already-started candidate build/pull. Then use the protected current Paperclip DB + `master.key` only in an isolated disposable lab and prove migration, company/membership, Organization Adapter, local-encrypted secrets, Ana paused state, `wandora_mastra`, run-scoped JWT, private bridge E2E, fail-closed unknown mapping, zero unexpected wakeup/outbound and rollback.
+Revalidate REAL NOW, re-attest `wandora_mastra` compatibility for v916, capture both rollback artifacts, freeze the exact v831 image/wrapper/adapter store/packages, define migration + rollback triggers, prove Ana remains paused and outbound remains OFF, then STOP before production mutation.
 
-Do not upgrade production, grant `agents.resume`, activate/resume Ana, enable Human Send or enable Gateway outbound in that proof.
+Do not upgrade production, upgrade Mastra, grant `agents.resume`, activate/resume Ana, enable Human Send or enable Gateway outbound in that preflight.
 
 ## Platform Admin
 
@@ -1335,6 +1357,8 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0124 — Paperclip Bridge Wrapper Command Preservation Correction
 - ADR 0125 — Paperclip -> Wandora/Mastra Production Execution Bridge Activation Execution V1 Complete
 - ADR 0126 — Paperclip + Mastra Capability Canonicalization, Authority Collision Audit + Paperclip Upgrade Preflight V1
+- ADR 0127 — Paperclip v2026.916.0 Disposable Upgrade Compatibility Proof V1 Partial Checkpoint
+- ADR 0128 — Paperclip v2026.916.0 Disposable Upgrade Compatibility Proof V1 Complete
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
