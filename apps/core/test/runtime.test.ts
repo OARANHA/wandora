@@ -95,6 +95,55 @@ test('WANDORA CORE PRIVATE RUNTIME V1', async (t) => {
     }
   });
 
+  await t.test('Paperclip execution bridge is disabled by default and requires Mastra plus a distinct file-backed HMAC', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'wandora-core-paperclip-bridge-'));
+    const dbSecret = join(dir, 'db-password');
+    const gatewaySecret = join(dir, 'gateway-secret');
+    const bridgeSecret = join(dir, 'paperclip-bridge-secret');
+    try {
+      await writeFile(dbSecret, 'synthetic-test-password\n', { mode: 0o600 });
+      await writeFile(gatewaySecret, 'gateway-test-secret-0123456789abcdef0123456789abcdef\n', { mode: 0o600 });
+      await writeFile(bridgeSecret, 'paperclip-bridge-secret-0123456789abcdef0123456789abcdef\n', { mode: 0o600 });
+
+      await assert.rejects(
+        loadRuntimeConfig({
+          WANDORA_CORE_MODE: 'database',
+          WANDORA_CORE_DB_PASSWORD_FILE: dbSecret,
+          WANDORA_PAPERCLIP_EXECUTION_BRIDGE_ENABLED: 'true',
+          WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE: bridgeSecret,
+        }),
+        /requires an Agent Runtime/,
+      );
+
+      const config = await loadRuntimeConfig({
+        WANDORA_CORE_MODE: 'database',
+        WANDORA_CORE_DB_PASSWORD_FILE: dbSecret,
+        WANDORA_GATEWAY_INGRESS_ENABLED: 'true',
+        WANDORA_GATEWAY_INGRESS_SECRET_FILE: gatewaySecret,
+        WANDORA_AGENT_RUNTIME_MODE: 'mastra-deterministic',
+        WANDORA_PAPERCLIP_EXECUTION_BRIDGE_ENABLED: 'true',
+        WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE: bridgeSecret,
+      });
+      assert.equal(config.paperclipExecutionBridge?.agentMeUrl, 'http://wandora-paperclip:3100/api/agents/me');
+      assert.equal(config.paperclipExecutionBridge?.secret.startsWith('paperclip-bridge-secret-'), true);
+
+      await assert.rejects(
+        loadRuntimeConfig({
+          WANDORA_CORE_MODE: 'database',
+          WANDORA_CORE_DB_PASSWORD_FILE: dbSecret,
+          WANDORA_GATEWAY_INGRESS_ENABLED: 'true',
+          WANDORA_GATEWAY_INGRESS_SECRET_FILE: gatewaySecret,
+          WANDORA_AGENT_RUNTIME_MODE: 'mastra-deterministic',
+          WANDORA_PAPERCLIP_EXECUTION_BRIDGE_ENABLED: 'true',
+          WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE: gatewaySecret,
+        }),
+        /must be distinct from messaging HMAC secrets/,
+      );
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   await t.test('health stays healthy while standby readiness stays closed', async () => {
     await withServer(async () => ({ ready: false, reason: 'standby' }), async (baseUrl) => {
       const health = await fetch(`${baseUrl}/healthz`);
@@ -114,6 +163,12 @@ test('WANDORA CORE PRIVATE RUNTIME V1', async (t) => {
         body: '{}',
       });
       assert.equal(closedIngress.status, 404);
+
+      const closedPaperclipBridge = await fetch(`${baseUrl}/internal/v1/paperclip/execution`, {
+        method: 'POST',
+        body: '{}',
+      });
+      assert.equal(closedPaperclipBridge.status, 404);
     });
   });
 

@@ -640,8 +640,36 @@ An ambiguous provider result never becomes invented success and is never blindly
 
 No new Wandora lifecycle/task/control-plane subsystem is approved. Existing `paused|active` remains the customer projection; a later implementation may add only minimum external-effect operation state if it proves necessary for concurrency/idempotency after reuse of provider reconciliation is exhausted.
 
+## Paperclip -> Wandora/Mastra Production Execution Bridge Contract Implementation V1
+
+ADR 0117 materializes the accepted ADR 0037 direction as a disabled-by-default production-shaped contract.
+
+```text
+Paperclip run
+  -> external adapter wandora_mastra
+     -> dedicated file-backed bridge HMAC
+     -> opaque run-scoped token in dedicated header only
+     -> reviewed task allow-list
+  -> private Core /internal/v1/paperclip/execution
+     -> HMAC + clock check
+     -> Paperclip /api/agents/me identity reconciliation
+     -> exact managed Ana/company proof
+     -> Paperclip company -> active Wandora org resolver
+     -> exact Wandora employee/provider binding
+     -> require Wandora active + supervised
+     -> AgentTaskRuntime -> existing Mastra runtime
+```
+
+The bridge does not trust the HMAC-signed provider agent ID by itself. The opaque Paperclip run token is independently validated back against Paperclip before Wandora mapping, which prevents another same-company agent from being treated as the catalog Ana.
+
+Provider IDs/run IDs stop at the bridge and do not enter Mastra task input. The bridge uses the existing deterministic runtime rather than creating a new scheduler, task engine or agent lifecycle.
+
+Migration 014 adds only the least-privilege Paperclip-company -> active-Wandora-organization resolver. It remains unapplied until a separate activation execution.
+
+The external adapter package, Core runtime gate and Compose overlay are artifacts only. Merge does not install `wandora_mastra`, enable the private bridge, activate Ana or alter Human Send/Gateway outbound.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Paperclip -> Wandora/Mastra Production Execution Bridge Contract Implementation V1 — code/CI only.**
+After CI-green merge: **Paperclip -> Wandora/Mastra Production Execution Bridge Activation Preflight V1.**
 
-Promote the ADR 0037 laboratory bridge into canonical production-installable code and prove the private execution contract against the pinned Paperclip image and existing Wandora Agent Runtime/Mastra boundary. Production install, resume authority, customer activation and all outbound effects remain separate later gates.
+That preflight must remain no-effect and freeze the live artifact/migration/HMAC/Core promotion order and rollback. Resume authority, customer activation and outbound remain separate later gates.

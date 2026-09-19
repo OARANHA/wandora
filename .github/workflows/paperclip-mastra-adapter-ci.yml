@@ -1,0 +1,101 @@
+name: Paperclip Mastra Adapter CI
+
+on:
+  pull_request:
+    paths:
+      - 'integrations/paperclip/adapters/wandora-mastra-v1/**'
+      - '.github/workflows/paperclip-mastra-adapter-ci.yml'
+      - 'docs/decisions/0117-paperclip-wandora-mastra-production-execution-bridge-contract-implementation-v1.md'
+  push:
+    branches: [main]
+    paths:
+      - 'integrations/paperclip/adapters/wandora-mastra-v1/**'
+      - '.github/workflows/paperclip-mastra-adapter-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: paperclip-mastra-adapter-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-package:
+    runs-on: [self-hosted, linux, x64, wandora-ci]
+    timeout-minutes: 20
+    steps:
+      - name: Checkout Wandora
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Checkout pinned Paperclip source
+        uses: actions/checkout@v4
+        with:
+          repository: paperclipai/paperclip
+          ref: 65ec059bde30d98c92165b24a30a540800dd1f6f
+          path: .paperclip
+          persist-credentials: false
+
+      - name: Set up Node 24.21.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.21.0
+
+      - name: Set up pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.4 --activate
+          pnpm --version
+
+      - name: Install pinned Paperclip dependencies
+        working-directory: .paperclip
+        run: pnpm install --frozen-lockfile
+
+      - name: Unit contract tests
+        working-directory: integrations/paperclip/adapters/wandora-mastra-v1
+        run: node --test test/*.test.mjs
+
+      - name: Prove loader contract against pinned Paperclip source
+        env:
+          PAPERCLIP_SOURCE_ROOT: ${{ github.workspace }}/.paperclip
+          WANDORA_ADAPTER_SOURCE_DIR: ${{ github.workspace }}/integrations/paperclip/adapters/wandora-mastra-v1
+        run: |
+          node --import "$PAPERCLIP_SOURCE_ROOT/server/node_modules/tsx/dist/loader.mjs"             integrations/paperclip/adapters/wandora-mastra-v1/verify-live-image.mjs
+
+      - name: Build deterministic private artifact
+        working-directory: integrations/paperclip/adapters/wandora-mastra-v1
+        env:
+          WANDORA_SOURCE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          rm -rf artifacts /tmp/wandora-mastra-pack-a /tmp/wandora-mastra-pack-b
+          mkdir -p artifacts /tmp/wandora-mastra-pack-a /tmp/wandora-mastra-pack-b
+          name_a="$(npm pack --pack-destination /tmp/wandora-mastra-pack-a --silent)"
+          name_b="$(npm pack --pack-destination /tmp/wandora-mastra-pack-b --silent)"
+          test "$name_a" = "$name_b"
+          sha_a="$(sha256sum "/tmp/wandora-mastra-pack-a/$name_a" | awk '{print $1}')"
+          sha_b="$(sha256sum "/tmp/wandora-mastra-pack-b/$name_b" | awk '{print $1}')"
+          test "$sha_a" = "$sha_b"
+          tar -tzf "/tmp/wandora-mastra-pack-a/$name_a" | sort > /tmp/wandora-mastra-files.txt
+          cat > /tmp/wandora-mastra-expected.txt <<'EOF'
+          package/README.md
+          package/compatibility.json
+          package/index.mjs
+          package/package.json
+          EOF
+          sort -o /tmp/wandora-mastra-expected.txt /tmp/wandora-mastra-expected.txt
+          diff -u /tmp/wandora-mastra-expected.txt /tmp/wandora-mastra-files.txt
+          cp "/tmp/wandora-mastra-pack-a/$name_a" "artifacts/$name_a"
+          printf '%s  %s\n' "$sha_a" "$name_a" > "artifacts/$name_a.sha256"
+          printf 'wandora_source=%s\npaperclip_image=wandora/paperclip:v2026.831.1\npaperclip_source=65ec059bde30d98c92165b24a30a540800dd1f6f\nadapter_type=wandora_mastra\n'             "$WANDORA_SOURCE_SHA" > artifacts/provenance.txt
+          ! tar -xOzf "artifacts/$name_a" package/index.mjs | grep -E 'wandora_mastra_spike|127\.0\.0\.1|localhost|BEGIN .*PRIVATE KEY|Bearer [A-Za-z0-9_-]'
+
+      - name: Upload private installable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: paperclip-mastra-adapter-${{ github.sha }}
+          path: integrations/paperclip/adapters/wandora-mastra-v1/artifacts/*
+          if-no-files-found: error
+          retention-days: 7

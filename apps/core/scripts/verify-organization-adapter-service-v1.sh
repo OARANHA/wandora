@@ -85,6 +85,15 @@ ELIGIBILITY_VERIFIER="VERIFY_20260918_CUSTOMER_HIRE_TENANT_ELIGIBILITY_V1.sql"
 docker cp "$VERIFIERS/$ELIGIBILITY_VERIFIER" "$DB:/tmp/$ELIGIBILITY_VERIFIER" >/dev/null
 docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -f "/tmp/$ELIGIBILITY_VERIFIER"
 
+BRIDGE_MIGRATION="20260919_014_paperclip_execution_binding_resolver_v1.sql"
+docker cp "$MIGRATIONS/$BRIDGE_MIGRATION" "$DB:/tmp/$BRIDGE_MIGRATION" >/dev/null
+docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -f "/tmp/$BRIDGE_MIGRATION" >/dev/null
+docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -f "/tmp/$BRIDGE_MIGRATION" >/dev/null
+
+BRIDGE_VERIFIER="VERIFY_20260919_PAPERCLIP_EXECUTION_BINDING_RESOLVER_V1.sql"
+docker cp "$VERIFIERS/$BRIDGE_VERIFIER" "$DB:/tmp/$BRIDGE_VERIFIER" >/dev/null
+docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -f "/tmp/$BRIDGE_VERIFIER"
+
 docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -c \
   "ALTER ROLE wandora_core_runtime CONNECTION LIMIT 4 PASSWORD '${CORE_PASSWORD}';
    CREATE ROLE wandora_fixture_admin_test LOGIN BYPASSRLS PASSWORD '${FIXTURE_PASSWORD}';
@@ -96,8 +105,9 @@ docker run --rm --network "$NET" -v "$CORE:/app" -w /app \
   -e DATABASE_URL="postgresql://wandora_core_runtime:${CORE_PASSWORD}@${DB}:5432/${DB_NAME}" \
   -e FIXTURE_DATABASE_URL="postgresql://wandora_fixture_admin_test:${FIXTURE_PASSWORD}@${DB}:5432/${DB_NAME}" \
   "$NODE_IMAGE" sh -lc \
-  'npm ci --ignore-scripts >/dev/null && npm run typecheck && node --import tsx --test --test-concurrency=1 test/organization-adapter-service.integration.test.ts test/organization-adapter-runtime-e2e.integration.test.ts'
+  'npm ci --ignore-scripts >/dev/null && npm run typecheck && node --import tsx --test --test-concurrency=1 test/organization-adapter-service.integration.test.ts test/organization-adapter-runtime-e2e.integration.test.ts test/paperclip-execution-service.integration.test.ts'
 
 echo "ORGANIZATION_ADAPTER_SERVICE_CONTRACT_V1_VERIFY_OK"
 echo "ORGANIZATION_ADAPTER_RUNTIME_E2E_V1_VERIFY_OK"
 echo "CUSTOMER_HIRE_TENANT_ELIGIBILITY_V1_VERIFY_OK"
+echo "PAPERCLIP_EXECUTION_BINDING_RESOLVER_V1_VERIFY_OK"

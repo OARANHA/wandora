@@ -2198,11 +2198,36 @@ Therefore `adapterType=wandora_mastra` is not treated as runtime readiness, the 
 
 The future path remains provider-first and keeps Human Send/Gateway outbound independent. No new Wandora lifecycle/control-plane model is approved; only minimum external-effect safety state may be proposed later if serialized reconciliation cannot prove replay/concurrency safety.
 
+## Paperclip -> Wandora/Mastra Production Execution Bridge Contract Implementation V1 — CODE/CI CANDIDATE
+
+ADR 0117 promotes the ADR 0037 laboratory bridge into production-shaped repository contracts without activating production.
+
+Implemented candidate boundary:
+
+```text
+Paperclip external adapter package = @wandora/paperclip-adapter-mastra@0.1.0
+adapter type                       = wandora_mastra
+supportsLocalAgentJwt              = true
+private Core route                 = POST /internal/v1/paperclip/execution
+Core runtime gate                  = disabled by default
+migration source                   = 20260919_014_paperclip_execution_binding_resolver_v1.sql
+production migration               = NOT applied
+production adapter install         = NOT performed
+```
+
+The adapter uses a dedicated file-backed HMAC and forwards the Paperclip run token only in a secret header. Core independently calls private Paperclip `/api/agents/me` using that run-scoped token and requires exact agent/company plus `wandora.organization-adapter-v1 / ana-commercial-v1` managed identity before resolving Wandora state.
+
+Core then requires the exact Wandora employee-provider binding and `status=active / autonomy=supervised` before calling the existing Agent Runtime/Mastra boundary. A paused employee therefore cannot execute merely because the adapter artifact exists or is later installed.
+
+No new Paperclip-like task/control-plane domain is created. The only new DB capability is a least-privilege active organization resolver executable by `wandora_core_runtime`.
+
+The current deterministic runtime makes duplicate execution of the same run non-effectful at this stage. This is not a general idempotency claim for future model/tool/external effects; those require a newer durable effect/reconciliation contract before activation.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Paperclip -> Wandora/Mastra Production Execution Bridge Contract Implementation V1 — code/CI only.**
+After ADR 0117 is CI-green and merged: **Paperclip -> Wandora/Mastra Production Execution Bridge Activation Preflight V1.**
 
-Promote the ADR 0037 laboratory execution adapter/bridge direction into canonical production-installable code and prove it against the pinned Paperclip image plus the existing Wandora Agent Runtime/Mastra boundary. Do not install the adapter live, resume/activate Ana, grant `agents.resume` live, expose customer activation, enable Human Send or enable Gateway outbound.
+The preflight is no-effect. Reverify live state and freeze migration-014 application/verifier, dedicated bridge-HMAC custody, adapter artifact provenance/install path, Core overlay/candidate promotion, rollback and synthetic end-to-end proof. Do not apply migration 014, install the adapter, recreate Core, resume/activate Ana, grant `agents.resume`, enable Human Send or enable Gateway outbound during that preflight.
 
 ## Operational safety
 
