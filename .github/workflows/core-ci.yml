@@ -53,6 +53,7 @@ jobs:
           WANDORA_CORE_GATEWAY_OUTBOUND_SECRET_FILE: /tmp/ci-core-outbound-secret
           WANDORA_HUMAN_SEND_PROPOSAL_CONNECTION_ID: 22222222-2222-2222-2222-222222222222
           WANDORA_ORGANIZATION_ADAPTER_SECRET_DIR_HOST: /tmp/ci-organization-adapter-secrets
+          WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE_HOST: /tmp/ci-paperclip-execution-bridge-secret
         run: |
           effective="$(docker compose \
             -f infra/stacks/core/compose.yaml \
@@ -62,6 +63,7 @@ jobs:
             -f infra/stacks/core/compose.human-api.yaml \
             -f infra/stacks/core/compose.human-send-proposal.yaml \
             -f infra/stacks/core/compose.organization-adapter.yaml \
+            -f infra/stacks/core/compose.paperclip-execution-bridge.yaml \
             config)"
           printf '%s\n' "$effective" >/dev/null
           grep -q 'WANDORA_HUMAN_API_ENABLED: "true"' <<<"$effective"
@@ -77,5 +79,10 @@ jobs:
           grep -q 'WANDORA_ORGANIZATION_ADAPTER_SECRET_DIRECTORY: /run/secrets/wandora/organization-adapter' <<<"$effective"
           grep -q 'source: /tmp/ci-organization-adapter-secrets' <<<"$effective"
           grep -q 'target: /run/secrets/wandora/organization-adapter' <<<"$effective"
+          grep -q 'WANDORA_PAPERCLIP_EXECUTION_BRIDGE_ENABLED: "true"' <<<"$effective"
+          grep -q 'WANDORA_PAPERCLIP_AGENT_ME_URL: http://wandora-paperclip:3100/api/agents/me' <<<"$effective"
+          grep -q 'WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE: /run/secrets/wandora/paperclip-execution-bridge.hmac' <<<"$effective"
+          grep -q 'source: /tmp/ci-paperclip-execution-bridge-secret' <<<"$effective"
+          grep -q 'target: /run/secrets/wandora/paperclip-execution-bridge.hmac' <<<"$effective"
           grep -q 'read_only: true' <<<"$effective"
           ! grep -q 'WANDORA_HUMAN_AUTH_' <<<"$effective"
