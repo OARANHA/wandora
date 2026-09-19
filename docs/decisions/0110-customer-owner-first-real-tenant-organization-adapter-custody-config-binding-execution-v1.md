@@ -354,6 +354,32 @@ It does **not**:
 - print/store the HMAC plaintext in Git, logs or Wandora PostgreSQL;
 - destructively roll back correct desired state merely because the previous response was absent.
 
+## REPOSITORY PUBLICATION VALIDATION
+
+PR #159 changes documentation only:
+
+```text
+changed files = 5
+code          = 0
+migrations    = 0
+Compose       = 0
+branch behind main = 0
+```
+
+All five GitHub Actions reproduced the already-known external runner failure pattern before executing any step:
+
+```text
+Web CI                          runner_name = empty / steps = []
+Core CI                         runner_name = empty / steps = []
+Messaging Gateway CI            runner_name = empty / steps = []
+Organization Adapter Plugin CI   runner_name = empty / steps = []
+Platform Admin CI                runner_name = empty / steps = []
+```
+
+These checks are **not** called green. They provide no code-test signal because no workflow step ran.
+
+The bounded production state was independently validated through Wandora PostgreSQL reads, protected HMAC file metadata/readability, authenticated private Paperclip CLI reads, Paperclip provider health, hash-only secret-version comparison and live container health. The PR records that already-proven state; it does not perform the wiring.
+
 ## RESULT
 
 **Customer Owner First Real Tenant Organization Adapter Custody + Config + Binding Execution V1 is GREEN and live.**
