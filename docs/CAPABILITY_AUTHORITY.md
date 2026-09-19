@@ -41,7 +41,7 @@ Native consoles — Paperclip UI, Mastra Studio, Evolution Manager, Supabase Stu
 | --- | --- | --- |
 | Customer product experience | vocabulary, UX, authorization, policy, stable product IDs | Wandora Web/Core |
 | Platform operation | operator contracts, authorization, audit, coherent cross-tenant controls | Wandora Platform Admin over adapters |
-| Human identity/session | canonical Wandora user/membership semantics and authorization | Supabase Auth supplies identity/session |
+| Human identity/session | canonical Wandora user/membership semantics and authorization | Supabase Auth supplies identity/session |\n| Auth transactional e-mail delivery | sender identity choice, rollout/custody policy and customer-access semantics | Supabase Auth creates invite/recovery mail; Resend SMTP supplies transport behind that Auth boundary |
 | Wandora durable facts | policy facts, mappings, projections, audit evidence, product state that must survive provider replacement | Supabase PostgreSQL is storage infrastructure |
 | Digital-employee organization/control plane | Wandora-facing employee identity/contract, customer policy and replaceability boundary | Paperclip through Organization Adapter, subject to adapter proof |
 | Agent/workflow execution | Wandora Agent Runtime contract, allowed inputs/outputs and policy | Mastra through Agent Runtime Adapter |
