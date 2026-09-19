@@ -918,19 +918,19 @@ No invite, recovery or test e-mail was sent. Auth/recovery counters remain uncha
 
 The remaining first-access gate is deliberate: no genuine new customer owner + real customer organization target has yet been selected. Existing legacy/canary/internal tenants are not repurposed merely to advance the proof.
 
-## First Real Customer Owner Invite — LIVE / ACCEPTANCE PENDING
+## First Real Customer Owner Access — REAL / UNLINKED
 
-ADR 0100 froze the safe invite/reconciliation contract. ADR 0101 then executed exactly one real GoTrue invite after the operator/user explicitly authorized a genuine new owner target; the target address is intentionally omitted from Git.
+ADR 0101 sent the first real owner invite. ADR 0102 now proves the recipient consumed it, established a first password, explicitly signed out, and completed a fresh normal password login.
 
-The request returned HTTP 200 and read-back proves one pending unconfirmed invited Auth user with one one-time token. No retry occurred. Auth remains healthy and unchanged operationally; tenant provisioning, membership creation, Paperclip wiring and eligibility remain untouched.
+Provider/Auth evidence shows a confirmed user and a fresh Auth session created after confirmation. The customer Web then reached the canonical `/api/v1/me` unlinked boundary: the Auth subject has no Wandora identity or membership yet, so the account is authenticated but not authorized into any organization.
 
-The next human step is to consume the Wandora invite and define the first password through the already-live `/accept-invite` flow.
+No tenant, Paperclip provider state or eligibility was created by the access flow.
 
 ## Next executable slice
 
-Next: **Customer Owner First Invite Acceptance + First Password Validation V1.**
+Next: **Customer Owner First Real Tenant Provisioning Preflight V1.**
 
-Validate invite consumption, confirmed Auth state, first password, normal password grant and `/api/v1/me` before Private Tenant Provisioning V2. Do not provision the tenant or enable eligibility earlier.
+Reuse the live Private Tenant Provisioning V2 contract and freeze the exact real organization identity before any production creation. Eligibility, Paperclip bootstrap/binding and employee hire remain later separate effects.
 
 ## Platform Admin
 
@@ -1021,6 +1021,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0099 — Customer Owner Transactional E-mail GoTrue SMTP Activation Execution V1
 - ADR 0100 — Customer Owner First Real Invite Execution Preflight V1
 - ADR 0101 — Customer Owner First Real Invite Execution V1
+- ADR 0102 — Customer Owner First Invite Acceptance + First Password Validation V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
