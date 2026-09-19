@@ -1144,19 +1144,21 @@ outbound attempts       = 0
 
 Continuity rule: **never repeat migration 014 on resume merely because the HMAC/runtime portion remains incomplete.** Reconcile first and continue from the HMAC custody gate.
 
-## Paperclip privilege-drop bridge-secret correction gate
+## Paperclip bridge wrapper command-preservation correction gate
 
-ADR 0123 records a new fail-closed production finding after ADR 0122. Migration 014 remains LIVE/verified and must not be repeated. The dedicated HMAC now exists with canonical `root:wandora-ops / 0640` custody; the exact Core candidate is live and bridge-ready; Paperclip has the bridge overlay; and `wandora_mastra` was installed exactly once from the persistent hash-addressed local path.
+ADR 0123 is canonical on `main@2710f3e9100e93214b202953432a74d513ee5739`. Its root-custody -> tmpfs secret-copy design remains selected, but the first live promotion exposed an independent Compose bug: the custom entrypoint rendered with `Cmd=null`. Paperclip therefore entered a restart loop before application startup.
 
-The official adapter readback is green, but its no-effect `test-environment` returned EACCES because Paperclip's original entrypoint drops the application to UID/GID 1000 via `gosu node`. A disposable proof showed Docker `group_add` is also discarded. PR #173 therefore versions a startup wrapper that copies only the root-readable bind into an in-container tmpfs as `0400 node:node` and then execs the original entrypoint. The pinned image passed this proof with final UID/GID 1000.
+The failed recreate was rolled back immediately to the prior bridge overlay. Paperclip is healthy again; `wandora_mastra` remains installed exactly once; Ana remains paused with zero wakeups/heartbeats; `agents.resume` remains absent; Human Send and Gateway outbound remain OFF.
+
+ADR 0124 corrects the deployment contract by preserving the exact pinned Paperclip image command explicitly in the bridge overlay and requiring the wrapper to fail closed when it receives zero arguments. CI is hardened to detect both conditions.
 
 Do not reinstall the adapter, change host HMAC ownership/mode, repeat migration 014, resume Ana, grant `agents.resume`, enable Human Send or enable Gateway outbound.
 
 ## Next executable slice
 
-**Complete the Paperclip bridge secret privilege-drop correction, then finish Activation Execution V1.**
+**Complete ADR 0124, then finish Activation Execution V1.**
 
-After PR #173 is green and merged: stage the exact corrected wrapper/overlay -> recreate only Paperclip -> prove final app UID/GID 1000 and tmpfs HMAC hash == host HMAC -> adapter readback without reinstall -> official `test-environment` must pass -> prove Ana paused, zero wakeups/heartbeats, `agents.resume` absent, Human Send OFF, Gateway outbound OFF and outbound attempts zero -> STOP.
+After the ADR 0124 correction is merged and green: stage exact overlay/wrapper -> prove Git blobs + rendered explicit command -> recreate only Paperclip -> prove healthy/restart 0, final app UID/GID 1000, tmpfs HMAC `0400 node:node` and hash equality -> adapter readback without reinstall -> official `test-environment` once and require pass -> prove Ana paused, zero wakeups/heartbeats, `agents.resume` absent, Human Send OFF, Gateway outbound OFF and outbound attempts zero -> STOP.
 
 ## Platform Admin
 
