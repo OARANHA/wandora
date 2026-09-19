@@ -43,6 +43,11 @@ export type RuntimeHumanDigitalEmployeeHireConfig = {
   enabled: true;
 };
 
+export type RuntimePaperclipExecutionBridgeConfig = {
+  secret: string;
+  agentMeUrl: string;
+};
+
 export type RuntimeConfig = {
   port: number;
   mode: RuntimeMode;
@@ -53,6 +58,7 @@ export type RuntimeConfig = {
   humanSendProposal?: RuntimeHumanSendProposalConfig;
   organizationAdapter?: RuntimeOrganizationAdapterConfig;
   humanDigitalEmployeeHire?: RuntimeHumanDigitalEmployeeHireConfig;
+  paperclipExecutionBridge?: RuntimePaperclipExecutionBridgeConfig;
 };
 
 const parsePort = (value: string | undefined, fallback: number, name: string): number => {
@@ -106,6 +112,25 @@ const validateMessagingGatewayOutboundUrl = (value: string): string => {
   return url.toString();
 };
 
+const validatePaperclipAgentMeUrl = (value: string): string => {
+  const url = new URL(value);
+  if (
+    url.protocol !== 'http:'
+    || url.hostname !== 'wandora-paperclip'
+    || url.port !== '3100'
+    || url.pathname !== '/api/agents/me'
+    || url.username
+    || url.password
+    || url.search
+    || url.hash
+  ) {
+    throw new Error(
+      'WANDORA_PAPERCLIP_AGENT_ME_URL must target the private canonical Paperclip agent identity route.',
+    );
+  }
+  return url.toString();
+};
+
 const validateOrganizationAdapterWebhookUrl = (value: string): string => {
   const url = new URL(value);
   if (
@@ -152,6 +177,10 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     env.WANDORA_HUMAN_DIGITAL_EMPLOYEE_HIRE_ENABLED,
     'WANDORA_HUMAN_DIGITAL_EMPLOYEE_HIRE_ENABLED',
   );
+  const paperclipExecutionBridgeEnabled = parseEnabled(
+    env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_ENABLED,
+    'WANDORA_PAPERCLIP_EXECUTION_BRIDGE_ENABLED',
+  );
   const agentRuntimeMode = parseAgentRuntimeMode(env.WANDORA_AGENT_RUNTIME_MODE);
 
   if (mode === 'standby') {
@@ -170,6 +199,9 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     if (humanDigitalEmployeeHireEnabled) {
       throw new Error('Human Digital Employee Hire cannot be enabled while Wandora Core is in standby mode.');
     }
+    if (paperclipExecutionBridgeEnabled) {
+      throw new Error('Paperclip Execution Bridge cannot be enabled while Wandora Core is in standby mode.');
+    }
     if (agentRuntimeMode !== 'disabled') {
       throw new Error('Agent Runtime cannot be enabled while Wandora Core is in standby mode.');
     }
@@ -187,6 +219,9 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
   }
   if (humanDigitalEmployeeHireEnabled && !organizationAdapterEnabled) {
     throw new Error('Human Digital Employee Hire requires the Organization Adapter to be enabled.');
+  }
+  if (paperclipExecutionBridgeEnabled && agentRuntimeMode === 'disabled') {
+    throw new Error('Paperclip Execution Bridge requires an Agent Runtime to be enabled.');
   }
 
   const user = (env.WANDORA_CORE_DB_USER ?? 'wandora_core_runtime').trim();
@@ -241,6 +276,28 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     };
   }
 
+  let paperclipExecutionBridge: RuntimePaperclipExecutionBridgeConfig | undefined;
+  if (paperclipExecutionBridgeEnabled) {
+    const secretFile = required(env, 'WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE');
+    if (!isAbsolute(secretFile)) {
+      throw new Error('WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE must be an absolute mounted file.');
+    }
+    const secret = (await readFile(secretFile, 'utf8')).trim();
+    if (secret.length < 32 || secret.length > 8_192) {
+      throw new Error('Wandora Paperclip execution bridge secret must contain between 32 and 8192 characters.');
+    }
+    if (gatewayIngress?.secret === secret || humanSendProposal?.gatewaySecret === secret) {
+      throw new Error('Paperclip execution bridge HMAC must be distinct from messaging HMAC secrets.');
+    }
+    paperclipExecutionBridge = {
+      secret,
+      agentMeUrl: validatePaperclipAgentMeUrl(
+        env.WANDORA_PAPERCLIP_AGENT_ME_URL?.trim()
+          || 'http://wandora-paperclip:3100/api/agents/me',
+      ),
+    };
+  }
+
   let organizationAdapter: RuntimeOrganizationAdapterConfig | undefined;
   if (organizationAdapterEnabled) {
     const secretDirectory = required(env, 'WANDORA_ORGANIZATION_ADAPTER_SECRET_DIRECTORY');
@@ -273,6 +330,7 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     ...(humanApi ? { humanApi } : {}),
     ...(humanSendProposal ? { humanSendProposal } : {}),
     ...(organizationAdapter ? { organizationAdapter } : {}),
+    ...(paperclipExecutionBridge ? { paperclipExecutionBridge } : {}),
     ...(humanDigitalEmployeeHireEnabled
       ? { humanDigitalEmployeeHire: { enabled: true as const } }
       : {}),
