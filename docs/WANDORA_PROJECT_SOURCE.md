@@ -1261,6 +1261,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - `docs/PAPERCLIP_CAPABILITY_MAP.md`
 - `docs/MASTRA_CAPABILITY_MAP.md`
 - `docs/CAPABILITY_COLLISION_MATRIX.md`
+- `docs/operations/paperclip-v2026-916-0-disposable-upgrade-compatibility-proof-v1.md`
 - ADR 0034 — state-first continuity
 - ADR 0036 — capability authority/reuse gate
 - ADR 0037 — Paperclip/Wandora/Mastra execution bridge
