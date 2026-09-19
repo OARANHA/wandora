@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
 PAPERCLIP_SOURCE_ROOT="${PAPERCLIP_SOURCE_ROOT:?set PAPERCLIP_SOURCE_ROOT to pinned Paperclip source checkout}"
 EXPECTED_PAPERCLIP_COMMIT="65ec059bde30d98c92165b24a30a540800dd1f6f"
 POSTGRES_IMAGE="${POSTGRES_IMAGE:-supabase/postgres:17.6.1.136}"
-NODE24_IMAGE="${NODE24_IMAGE:-node:24.21.0-bookworm-slim}"
+NODE24_IMAGE="${NODE24_IMAGE:-node:24.21.0-bookworm-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6}"
 TMP_PARENT="${WANDORA_ATTESTATION_TMP_ROOT:-${RUNNER_TEMP:-/tmp}/wandora-paperclip-core-e2e}"
 SUFFIX="${GITHUB_RUN_ID:-local}-${GITHUB_RUN_ATTEMPT:-1}-$$"
 TMP="${TMP_PARENT%/}/$SUFFIX"
@@ -89,7 +89,7 @@ done
 
 docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$WANDORA_DB" -c   "ALTER ROLE wandora_core_runtime CONNECTION LIMIT 4 PASSWORD '$CORE_PASSWORD';" >/dev/null
 
-docker run -d --name "$PAPERCLIP"   --network "$NET" --network-alias wandora-paperclip   --read-only   --tmpfs /tmp:rw,nosuid,size=64m   --tmpfs /paperclip:rw,nosuid,size=256m   -v "$TMP/paperclip-source:/app:ro"   -v "$TMP/wandora-adapter:/proof/wandora-adapter:ro"   -v "$TMP/bridge.hmac:/proof/bridge.hmac:ro"   -e HOST=0.0.0.0   -e PORT=3100   -e SERVE_UI=false   -e PAPERCLIP_HOME=/paperclip   -e PAPERCLIP_INSTANCE_ID=wandora-disposable-attestation   -e PAPERCLIP_DEPLOYMENT_MODE=local_trusted   -e PAPERCLIP_DEPLOYMENT_EXPOSURE=private   -e PAPERCLIP_PUBLIC_URL=http://wandora-paperclip:3100   -e PAPERCLIP_ALLOWED_HOSTNAMES=wandora-paperclip   -e PAPERCLIP_TELEMETRY_DISABLED=1   -e DO_NOT_TRACK=1   -e PAPERCLIP_MIGRATION_AUTO_APPLY=true   -e PAPERCLIP_MIGRATION_PROMPT=never   -e DATABASE_URL="postgresql://paperclip_attestation:$PAPERCLIP_DB_PASSWORD@$DB:5432/paperclip_attestation"   -e BETTER_AUTH_SECRET=disposable-better-auth-secret-0123456789abcdef   -e PAPERCLIP_AGENT_JWT_SECRET=disposable-agent-jwt-secret-0123456789abcdef0123456789abcdef   -e PAPERCLIP_TOOL_ACTION_SIGNING_SECRET=disposable-tool-secret-0123456789abcdef0123456789abcdef   -e WANDORA_PAPERCLIP_EXECUTION_BRIDGE_URL=http://wandora-core:8788/internal/v1/paperclip/execution   -e WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE=/proof/bridge.hmac   "$NODE24_IMAGE"   node --import /app/server/node_modules/tsx/dist/loader.mjs /app/server/src/index.ts >/dev/null
+docker run -d --name "$PAPERCLIP"   --network "$NET" --network-alias wandora-paperclip   --read-only   --tmpfs /tmp:rw,nosuid,size=64m   --tmpfs /paperclip:rw,nosuid,size=256m   -v "$TMP/paperclip-source:/app:ro"   -v "$TMP/wandora-adapter:/proof/wandora-adapter:ro"   -v "$TMP/bridge.hmac:/proof/bridge.hmac:ro"   -e HOST=0.0.0.0   -e PORT=3100   -e SERVE_UI=false   -e PAPERCLIP_HOME=/paperclip   -e PAPERCLIP_INSTANCE_ID=wandora-disposable-attestation   -e PAPERCLIP_DEPLOYMENT_MODE=local_trusted   -e PAPERCLIP_DEPLOYMENT_EXPOSURE=private   -e PAPERCLIP_PUBLIC_URL=http://wandora-paperclip:3100   -e PAPERCLIP_ALLOWED_HOSTNAMES=wandora-paperclip   -e PAPERCLIP_TELEMETRY_DISABLED=1   -e DO_NOT_TRACK=1   -e PAPERCLIP_BUILD_VERSION=v2026.831.1   -e PAPERCLIP_BUILD_COMMIT="$EXPECTED_PAPERCLIP_COMMIT"   -e PAPERCLIP_MIGRATION_AUTO_APPLY=true   -e PAPERCLIP_MIGRATION_PROMPT=never   -e DATABASE_URL="postgresql://paperclip_attestation:$PAPERCLIP_DB_PASSWORD@$DB:5432/paperclip_attestation"   -e BETTER_AUTH_SECRET=disposable-better-auth-secret-0123456789abcdef   -e PAPERCLIP_AGENT_JWT_SECRET=disposable-agent-jwt-secret-0123456789abcdef0123456789abcdef   -e PAPERCLIP_TOOL_ACTION_SIGNING_SECRET=disposable-tool-secret-0123456789abcdef0123456789abcdef   -e WANDORA_PAPERCLIP_EXECUTION_BRIDGE_URL=http://wandora-core:8788/internal/v1/paperclip/execution   -e WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE=/proof/bridge.hmac   "$NODE24_IMAGE"   node --import /app/server/node_modules/tsx/dist/loader.mjs /app/server/dist/index.js >/dev/null
 
 pc_api() {
   local method="$1" path="$2" body="${3:-}"
@@ -125,10 +125,21 @@ json_field() {
 }
 
 for _ in $(seq 1 120); do
-  if pc_api GET /api/health >/dev/null 2>&1; then break; fi
+  if pc_api GET /api/health >/dev/null 2>&1; then
+    break
+  fi
+  if [ "$(docker inspect -f '{{.State.Running}}' "$PAPERCLIP" 2>/dev/null || echo false)" != "true" ]; then
+    echo "Disposable Paperclip exited during startup." >&2
+    docker logs "$PAPERCLIP" >&2 || true
+    exit 1
+  fi
   sleep 1
 done
-pc_api GET /api/health >/dev/null
+if ! pc_api GET /api/health >/dev/null 2>&1; then
+  echo "Disposable Paperclip did not become healthy." >&2
+  docker logs "$PAPERCLIP" >&2 || true
+  exit 1
+fi
 
 adapter_install="$(pc_api POST /api/adapters '{"localPath":"/proof/wandora-adapter"}')"
 test -n "$adapter_install"
