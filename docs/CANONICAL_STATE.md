@@ -1968,11 +1968,65 @@ current-state recovery refresh
 
 No HMAC, Paperclip secret/config, Wandora binding, eligibility or employee was created by ADR 0108. Human Send and Gateway outbound remain OFF.
 
+## Customer Owner First Real Tenant Paperclip Local-Encrypted Recovery Snapshot Refresh Execution V1 — COMPLETE
+
+ADR 0109 clears ADR 0108's recovery blocker.
+
+Exactly one fresh official Paperclip manual backup was created:
+
+```text
+source backup = paperclip-20260919-034717.sql.gz
+size          = 334736 bytes
+trigger       = manual
+started       = 2026-09-19T03:47:17.080Z
+finished      = 2026-09-19T03:47:18.896Z
+```
+
+The current-state protected pair now exists at:
+
+```text
+/home/wandora-admin/backups/paperclip-local-encrypted-20260919T034717Z/
+```
+
+with directory `0700`, files `0600`, byte-identical source/copy hashes and green gzip validation. The previous ADR 0075 snapshot remains retained and green.
+
+The fresh backup contains the live canary HMAC secret/config state and the real MEDICSPRO company. An isolated no-network PostgreSQL 18 restore using Paperclip's own restore/decrypt code proved:
+
+```text
+RESTORE_OK                  = true
+MEDICSPRO_COMPANY_PRESENT   = true
+CANARY_CONFIG_PRESENT       = true
+LOCAL_ENCRYPTED_DECRYPT_OK  = true
+HMAC_HASH_MATCH             = true
+WRONG_KEY_DECRYPT_REJECTED  = true
+```
+
+No secret plaintext was emitted. The PostgreSQL 17.6 helper was client-only; the restore server remained embedded PostgreSQL 18.
+
+All proof-only container/image/harness state was removed.
+
+Post-refresh MEDICSPRO remains intentionally unwired:
+
+```text
+employees                  = 0
+control bindings           = 0
+employee provider bindings = 0
+hire operations            = 0
+eligibility                = 0 / 0 enabled
+HMAC file                  = absent
+Paperclip agents           = 0
+Paperclip company secrets  = 0
+Paperclip plugin config    = null
+unfinished hires total     = 0
+```
+
+Auth, DB, Web, Core, Paperclip and Messaging Gateway remain healthy with zero restarts. Human Send and Gateway outbound remain OFF.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Owner First Real Tenant Paperclip Local-Encrypted Recovery Snapshot Refresh Execution V1.**
+Next: **Customer Owner First Real Tenant Organization Adapter Custody + Config + Binding Execution V1.**
 
-Reuse the already-proven ADR 0074–0075 mechanism to create one fresh official logical backup, pair it out of the Docker volume with the exact current `master.key`, hash/gzip gate it, prove current canary secret recovery plus MEDICSPRO company presence on disposable PG18 state, and keep the previous snapshot until the new pair is green. Do not create MEDICSPRO HMAC, Paperclip secret/config, Wandora provider binding, eligibility or employee during that refresh.
+Reuse ADR 0108 without redesign. Revalidate the exact pair and then execute only the operator-owned Wandora control binding, one deterministic-path protected MEDICSPRO HMAC, one company-owned Paperclip `local_encrypted` secret and one company-scoped Organization Adapter `secret_ref` config written last. Keep MEDICSPRO eligibility at zero and create no employee/hire operation. Do not enable Human Send or Gateway outbound.
 
 ## Operational safety
 

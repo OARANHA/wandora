@@ -929,21 +929,21 @@ plugin config       = null
 
 Wandora remains intentionally unwired for MEDICSPRO: control binding, employee-provider binding, eligibility and hire state are all zero. The deterministic future HMAC file is also absent. No runtime was recreated and no outbound effect was enabled.
 
-## MEDICSPRO Organization Adapter Custody + Config + Binding — PREFLIGHT COMPLETE / EXECUTION BLOCKED
+## MEDICSPRO Organization Adapter Custody + Config + Binding — PREFLIGHT COMPLETE / RECOVERY GATE CLEARED
 
-ADR 0108 freezes the exact MEDICSPRO↔Paperclip wiring contract without creating it. The future control binding remains operator-owned; the Core HMAC target is deterministic from the provider-company ref; the Paperclip secret remains company-owned `local_encrypted`; and plugin config remains a same-company `secret_ref` written last.
+ADR 0108 freezes the exact MEDICSPRO↔Paperclip wiring contract without creating it. ADR 0109 now clears its recovery blocker.
 
-The retained ADR 0075 out-of-volume recovery snapshot is internally intact and its `master.key` copy still matches live, but its database predates the current canary HMAC secret and the MEDICSPRO company. The only newer backups are still inside the live Docker volume, and the newest observed backup also predates MEDICSPRO company creation.
+One fresh official Paperclip logical backup was paired outside the Docker volume with the exact current `master.key` at `paperclip-local-encrypted-20260919T034717Z`. The previous protected snapshot remains retained.
 
-Therefore do not begin MEDICSPRO binding/HMAC/secret/config execution until a fresh current-state protected DB + key pair is created and proven.
+Disposable PG18 restore proved the current canary HMAC secret/config, the MEDICSPRO provider company, matching-key decryption/hash and wrong-key rejection. Proof-only state was removed.
 
-No MEDICSPRO HMAC, Paperclip secret/config, Wandora binding, eligibility or employee exists.
+MEDICSPRO remains at zero HMAC/secret/config/binding/eligibility/employee/hire state.
 
 ## Next executable slice
 
-Next: **Customer Owner First Real Tenant Paperclip Local-Encrypted Recovery Snapshot Refresh Execution V1.**
+Next: **Customer Owner First Real Tenant Organization Adapter Custody + Config + Binding Execution V1.**
 
-Reuse ADRs 0074–0075 to create and prove one fresh current-state out-of-volume Paperclip DB + `master.key` recovery pair. Keep the previous snapshot until the new pair is green. Do not create MEDICSPRO wiring, eligibility or an employee during the refresh.
+Reuse ADR 0108 exactly: operator-owned control binding -> one protected deterministic-path HMAC -> one company-owned Paperclip `local_encrypted` secret -> company-scoped `secret_ref` config last -> independent validation. Keep eligibility zero and do not create an employee/hire or enable outbound.
 
 ## Platform Admin
 
@@ -1041,6 +1041,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0106 — Customer Owner First Real Tenant Paperclip Company Bootstrap Preflight V1
 - ADR 0107 — Customer Owner First Real Tenant Paperclip Company Bootstrap Execution V1
 - ADR 0108 — Customer Owner First Real Tenant Organization Adapter Custody + Config + Binding Preflight V1
+- ADR 0109 — Customer Owner First Real Tenant Paperclip Local-Encrypted Recovery Snapshot Refresh Execution V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
