@@ -1177,11 +1177,45 @@ MEDICSPRO outbound attempts = 0
 
 The bridge being live is **not** permission to execute Ana or send messages.
 
+## Paperclip + Mastra capability canonicalization — CURRENT
+
+ADR 0126 adds the canonical capability maps:
+
+- `docs/PAPERCLIP_CAPABILITY_MAP.md`;
+- `docs/MASTRA_CAPABILITY_MAP.md`;
+- `docs/CAPABILITY_COLLISION_MATRIX.md`.
+
+Durable split:
+
+```text
+Paperclip = organizational control plane
+Mastra    = execution runtime
+Wandora   = customer contract, tenancy, policy, adapters and external effects
+```
+
+Key reuse decisions:
+
+- Paperclip Routines own durable business recurrence;
+- Paperclip tasks/issues own durable organizational work;
+- Paperclip owns organizational Skills catalog/policy while Mastra may materialize runtime skills;
+- Paperclip Decisions/Execution Policy govern control-plane work, not Wandora external-effect authorization;
+- Paperclip Decision Training and Mastra Evals are different evidence layers;
+- Paperclip Connections is the leading candidate for organizational connection/grant authority;
+- Mastra `@mastra/connect` is not adopted as a competing authority.
+
+Production remains on Paperclip `v2026.831.1` and Mastra Core `1.66.0`.
+
+Paperclip upstream stable `v2026.916.0` is materially interesting, especially for Connections, but production upgrade remains NO-GO until a production-derived disposable migration/runtime/adapter/bridge compatibility proof is green.
+
+The exact v916 candidate build and PostgreSQL 18.1 proof-image pull were already dispatched during the preflight, but the remote VPS execution channel became unavailable before their completion could be reconciled. **Read actual state before any retry.**
+
 ## Next executable slice
 
-**STOP the bridge-foundation activation slice.**
+**Paperclip v2026.916.0 Disposable Upgrade Compatibility Proof V1.**
 
-Any future digital-employee activation/resume or outbound enablement must begin in a new reviewed slice from fresh REAL NOW evidence. Do not grant `agents.resume`, change Ana to active, enable Human Send, enable Gateway outbound or send customer messages merely because the bridge foundation is ready.
+Start with REAL NOW reconciliation of Git, the VPS/runtime and the already-started candidate build/pull. Then use the protected current Paperclip DB + `master.key` only in an isolated disposable lab and prove migration, company/membership, Organization Adapter, local-encrypted secrets, Ana paused state, `wandora_mastra`, run-scoped JWT, private bridge E2E, fail-closed unknown mapping, zero unexpected wakeup/outbound and rollback.
+
+Do not upgrade production, grant `agents.resume`, activate/resume Ana, enable Human Send or enable Gateway outbound in that proof.
 
 ## Platform Admin
 
@@ -1224,6 +1258,9 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - `docs/CAPABILITY_AUTHORITY.md`
 - `docs/architecture.md`
 - `docs/CANONICAL_STATE.md`
+- `docs/PAPERCLIP_CAPABILITY_MAP.md`
+- `docs/MASTRA_CAPABILITY_MAP.md`
+- `docs/CAPABILITY_COLLISION_MATRIX.md`
 - ADR 0034 — state-first continuity
 - ADR 0036 — capability authority/reuse gate
 - ADR 0037 — Paperclip/Wandora/Mastra execution bridge
@@ -1293,6 +1330,10 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0120 — Paperclip -> Wandora/Mastra Production Execution Bridge Activation Preflight V2
 - ADR 0121 — Paperclip -> Wandora/Mastra Production Execution Bridge Pre-Mutation Recovery + Host Hygiene Gate
 - ADR 0122 — Paperclip -> Wandora/Mastra Production Execution Bridge Activation Execution V1 Partial Checkpoint
+- ADR 0123 — Paperclip -> Wandora/Mastra Production Execution Bridge Secret Custody Privilege-Drop Correction
+- ADR 0124 — Paperclip Bridge Wrapper Command Preservation Correction
+- ADR 0125 — Paperclip -> Wandora/Mastra Production Execution Bridge Activation Execution V1 Complete
+- ADR 0126 — Paperclip + Mastra Capability Canonicalization, Authority Collision Audit + Paperclip Upgrade Preflight V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
