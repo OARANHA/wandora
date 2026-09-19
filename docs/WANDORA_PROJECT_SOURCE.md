@@ -1022,11 +1022,30 @@ Therefore customer activation remains unavailable. The operator Board credential
 
 Human Send and Gateway outbound remain OFF and are not bundled into activation.
 
+## Paperclip -> Wandora/Mastra Production Execution Bridge — CODE/CI CANDIDATE
+
+ADR 0117 turns the ADR 0037 laboratory direction into a production-shaped but dormant bridge.
+
+```text
+canonical external adapter = @wandora/paperclip-adapter-mastra@0.1.0
+adapter type               = wandora_mastra
+Core private route         = /internal/v1/paperclip/execution
+Core bridge gate           = disabled by default
+migration 014              = repository source only / not live
+production adapter install = not performed
+```
+
+The adapter signs a minimized request with a dedicated file-backed HMAC and carries the Paperclip run token only in a secret header. Core independently validates that token back against private Paperclip `/api/agents/me` and requires exact company/agent plus `wandora.organization-adapter-v1 / ana-commercial-v1` managed identity.
+
+Only then does Core resolve the active Wandora organization, derive the existing stable managed provider ref and require the exact Wandora employee binding with `status=active / autonomy=supervised` before invoking the existing Agent Runtime/Mastra boundary. Provider IDs do not enter Mastra.
+
+No resume authority or outbound capability is added by this slice.
+
 ## Next executable slice
 
-**Paperclip -> Wandora/Mastra Production Execution Bridge Contract Implementation V1 — code/CI only.**
+After ADR 0117 is CI-green and merged: **Paperclip -> Wandora/Mastra Production Execution Bridge Activation Preflight V1.**
 
-Promote the ADR 0037 laboratory bridge direction into canonical production-installable code and prove it against the pinned Paperclip image plus the existing Wandora Agent Runtime/Mastra boundary. Do not install the adapter live, resume/activate Ana, grant `agents.resume` live, expose a customer activation route, enable Human Send or enable Gateway outbound.
+That preflight is no-effect. It must freeze migration 014, bridge HMAC custody, adapter artifact provenance/install, Core candidate/overlay promotion, rollback and synthetic proof without applying/installing/activating anything.
 
 ## Platform Admin
 
@@ -1132,6 +1151,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0114 — Customer Owner First Real Tenant Digital-Employee Hire Execution Preflight V1
 - ADR 0115 — Customer Owner First Real Tenant Digital-Employee Hire Execution V1
 - ADR 0116 — Customer Owner First Real Tenant Digital-Employee Activation Preflight V1
+- ADR 0117 — Paperclip -> Wandora/Mastra Production Execution Bridge Contract Implementation V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
