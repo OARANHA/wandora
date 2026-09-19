@@ -321,7 +321,7 @@ docker exec "$CORE" node --input-type=module -e '
     console.error(JSON.stringify({ status: response.status, payload }));
     process.exit(1);
   }
-  console.log("BRIDGE_READINESS_WITH_014_OK");
+  console.log("BRIDGE_READINESS_WITH_DISPOSABLE_RESOLVER_SHIM_OK");
 '
 
 issue_body="$(node -e '
