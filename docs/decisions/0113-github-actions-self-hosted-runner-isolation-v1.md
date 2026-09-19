@@ -1,6 +1,6 @@
 # ADR 0113 — GitHub Actions Self-Hosted Runner Isolation V1
 
-- Status: **Accepted implementation — host bootstrap live / repository registration pending**
+- Status: **Accepted / LIVE — isolated repository runner validated end-to-end**
 - Date: 2026-09-19
 - Scope: restore executable CI for the private Wandora repository without making the repository public and without granting workflow code control over the production Docker daemon.
 
@@ -155,3 +155,57 @@ wandora-traefik            = healthy
 PR #162 triggered seven workflows and all seven are currently `queued`, waiting for the custom `wandora-ci` label rather than failing before runner assignment.
 
 Repository registration remains intentionally pending because the GitHub repository runner registration token is ephemeral operator credential material and must not be placed in Git or chat. The next bounded effect is token staging under `/run`, one-time runner registration, token shredding and execution of the already-queued PR checks.
+
+
+## LIVE VALIDATION RESULT — 2026-09-19
+
+The repository-scoped runner is live on the correct Wandora host and the isolation contract is proven.
+
+```text
+runner name              = wandora-vps-01-ci
+runner version           = 2.337.0
+runner labels            = self-hosted, linux, x64, wandora-ci
+CI identity              = wandora-ci (uid/gid 1002)
+host docker group        = absent
+wandora-ops / sudo       = absent
+runner service           = active + enabled
+runner UMask             = 0022
+runner CPU quota         = 300%
+runner MemoryHigh        = 3 GiB
+runner MemoryMax         = 4 GiB
+runner TasksMax          = 4096
+registration token file  = absent after successful registration
+```
+
+The runner pre-job and post-job hooks emitted:
+
+```text
+WANDORA_CI_ROOTLESS_BOUNDARY_OK
+WANDORA_CI_CLEANUP_OK
+```
+
+The first live executions exposed a persistent-runner compatibility gap rather than product regressions: the runner service intentionally uses `PrivateTmp=yes`, while the rootless Docker daemon is a separate user service. Files created by workflow `mktemp` under the runner's private `/tmp` namespace therefore could not be bind-mounted by the Docker daemon. The final contract keeps `PrivateTmp=yes` and stages only Docker bind sources under `${RUNNER_TEMP:-/tmp}`, which is visible to both boundaries. Web smoke ports were also changed from a fixed host port to a Docker-assigned loopback port, avoiding collision with the live `wandora-first-day-v1` service.
+
+Implementation-validation head:
+
+```text
+fad8d64070663aea823325f8970a24b90004295e
+```
+
+All seven PR checks completed successfully on that head:
+
+```text
+Core Candidate Artifact           #47  success
+Core CI                            #452 success
+Messaging Gateway CI              #421 success
+Operator Consoles CI              #32  success
+Organization Adapter Plugin CI    #115 success
+Platform Admin CI                 #314 success
+Web CI                             #389 success
+```
+
+Core's full verifier chain passed, including the reproducible Ana Core verifier, Private Tenant Provisioning V2, Customer Hire Tenant Eligibility V1, Organization Adapter activation rehearsal and deterministic runtime/bridge overlays.
+
+The production Docker daemon remained separate from CI throughout validation. The critical production containers `supabase-auth`, `supabase-db`, `wandora-core`, `wandora-web`, `wandora-paperclip`, `wandora-messaging-gateway` and `wandora-traefik` remained `running|healthy` with restart count zero at the final host check.
+
+The implementation merge gate is therefore satisfied subject only to the normal final PR-head CI revalidation after this documentation-only closure commit.
