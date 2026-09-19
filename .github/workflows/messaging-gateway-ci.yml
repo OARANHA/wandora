@@ -17,7 +17,7 @@ concurrency:
 jobs:
   messaging-gateway-verifier:
     name: Messaging Gateway verifier
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, linux, x64, wandora-ci]
     timeout-minutes: 15
 
     steps:
