@@ -116,6 +116,28 @@ Before restore:
 
 The snapshot stays read-only.
 
+### Gate 3B — current external-adapter filesystem state
+
+The protected `11:07:52Z` DB/key pair was created before the final live `wandora_mastra` installation. The external adapter registration is filesystem state, not part of that logical DB dump.
+
+After runtime access is restored and **before** starting the lab, take read-only/hash-verifiable copies of the current live:
+
+```text
+/paperclip/adapter-plugins.json
+/paperclip/operator-packages/wandora-paperclip-adapter-mastra-v1/
+  0d2e77940c381bb36fc401bdf28080507227f081fe5e45a92f5b36723ed7604f/
+```
+
+Requirements:
+
+- read/copy only; do not edit the live store or package;
+- record SHA-256 for `adapter-plugins.json` and the retained `source.tgz` / package files;
+- prove the live store contains exactly one enabled/loaded `wandora_mastra` registration before copying;
+- never mount the live Paperclip volume into the v916 lab;
+- stage the copies into a disposable Paperclip home matching the same relative paths.
+
+This gate distinguishes **upgrade preservation** from **fresh adapter installation**. The candidate must first prove it can load the copied current store/package without reinstalling the adapter.
+
 ## Gate 4 — isolated PostgreSQL restore
 
 Reuse the proven ADR 0075/0109 recovery shape.
@@ -191,7 +213,9 @@ Connections migrations may add/transform connection state according to upstream 
 
 ## Gate 8 — external adapter compatibility
 
-Use a **copy** of the exact retained package:
+First start the candidate with the **copied current adapter store + copied exact package** from Gate 3B. Do not call the install route merely to make the candidate recognize the adapter.
+
+Use the exact retained package:
 
 ```text
 @wandora/paperclip-adapter-mastra@0.1.0
@@ -203,6 +227,7 @@ Do not alter the live package directory.
 
 Candidate proof must establish:
 
+- the copied store is accepted without reinstall;
 - adapter loads exactly once in the lab;
 - official adapter readback succeeds;
 - `supportsLocalAgentJwt = true`;
