@@ -937,13 +937,17 @@ One fresh official Paperclip logical backup was paired outside the Docker volume
 
 Disposable PG18 restore proved the current canary HMAC secret/config, the MEDICSPRO provider company, matching-key decryption/hash and wrong-key rejection. Proof-only state was removed.
 
-MEDICSPRO remains at zero HMAC/secret/config/binding/eligibility/employee/hire state.
+ADR 0110 now closes the wiring execution by reconciliation rather than replay. Live state had already advanced after the ADR 0109 checkpoint, and independent reads prove the exact desired state: one operator-owned Wandora control binding, one deterministic protected HMAC, one company-owned active `local_encrypted` secret and one company-scoped Organization Adapter `secret_ref` config. The HMAC file SHA-256 matches Paperclip version-1 `value_sha256`/fingerprint without plaintext exposure; plugin health is ready/healthy.
+
+MEDICSPRO remains at zero eligibility/employee/employee-binding/hire state, Paperclip agents remain zero, and Human Send/Gateway outbound remain OFF. No duplicate wiring effect was replayed.
+
+The protected ADR 0109 pair remains intact but is now a pre-wiring snapshot. A post-wiring logical backup exists inside the Paperclip volume, so the next separate effect is to refresh and restore-prove an out-of-volume current DB + `master.key` pair before any MEDICSPRO eligibility rollout.
 
 ## Next executable slice
 
-Next: **Customer Owner First Real Tenant Organization Adapter Custody + Config + Binding Execution V1.**
+Next: **Customer Owner First Real Tenant Paperclip Post-Wiring Local-Encrypted Recovery Snapshot Refresh Execution V1.**
 
-Reuse ADR 0108 exactly: operator-owned control binding -> one protected deterministic-path HMAC -> one company-owned Paperclip `local_encrypted` secret -> company-scoped `secret_ref` config last -> independent validation. Keep eligibility zero and do not create an employee/hire or enable outbound.
+Reuse ADR 0109's proven backup/custody/restore path. Do not change the live binding/HMAC/secret/config, enable MEDICSPRO eligibility, create an employee/hire operation, or enable Human Send/Gateway outbound.
 
 ## Platform Admin
 
@@ -1042,6 +1046,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0107 — Customer Owner First Real Tenant Paperclip Company Bootstrap Execution V1
 - ADR 0108 — Customer Owner First Real Tenant Organization Adapter Custody + Config + Binding Preflight V1
 - ADR 0109 — Customer Owner First Real Tenant Paperclip Local-Encrypted Recovery Snapshot Refresh Execution V1
+- ADR 0110 — Customer Owner First Real Tenant Organization Adapter Custody + Config + Binding Execution V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
