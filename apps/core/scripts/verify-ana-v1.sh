@@ -18,6 +18,7 @@ CORE_IMAGE="wandora/core:ci-$SUFFIX"
 CORE_SMOKE="wandora-core-smoke-$SUFFIX"
 CORE_DB_SMOKE="wandora-core-db-smoke-$SUFFIX"
 CORE_ORG_ADAPTER_SMOKE="wandora-core-org-adapter-smoke-$SUFFIX"
+CONTAINER_SECRET_GID="${WANDORA_CI_CONTAINER_SECRET_GID:-$(id -g)}"
 TMP_SECRET="$(mktemp)"
 TMP_OUTBOUND_SECRET="$(mktemp)"
 TMP_ORG_ADAPTER_DIR="$(mktemp -d)"
@@ -159,7 +160,7 @@ chmod 0640 "$TMP_SECRET" "$TMP_OUTBOUND_SECRET"
 chmod 0750 "$TMP_ORG_ADAPTER_DIR"
 
 docker run -d --name "$CORE_DB_SMOKE" --network "$NET" \
-  --group-add "$(id -g)" \
+  --group-add "$CONTAINER_SECRET_GID" \
   -v "$TMP_SECRET:/run/secrets/wandora_core_db_password:ro" \
   -e WANDORA_CORE_MODE=database \
   -e WANDORA_CORE_DB_HOST="$DB" \
@@ -182,7 +183,7 @@ test -z "$(docker port "$CORE_DB_SMOKE")"
 # The same candidate image with Organization Adapter enabled must fail closed
 # while the historical DB is intentionally still at inert migration 010.
 docker run -d --name "$CORE_ORG_ADAPTER_SMOKE" --network "$NET" \
-  --group-add "$(id -g)" \
+  --group-add "$CONTAINER_SECRET_GID" \
   -v "$TMP_SECRET:/run/secrets/wandora_core_db_password:ro" \
   -v "$TMP_ORG_ADAPTER_DIR:/run/secrets/wandora/organization-adapter:ro" \
   -e WANDORA_CORE_MODE=database \
