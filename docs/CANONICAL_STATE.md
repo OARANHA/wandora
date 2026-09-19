@@ -2022,11 +2022,84 @@ unfinished hires total     = 0
 
 Auth, DB, Web, Core, Paperclip and Messaging Gateway remain healthy with zero restarts. Human Send and Gateway outbound remain OFF.
 
+## Customer Owner First Real Tenant Organization Adapter Custody + Config + Binding Execution V1 — COMPLETE
+
+ADR 0110 closes the ADR 0108 wiring boundary through state-first reconciliation.
+
+The initial read-after-resume proved that production had already advanced beyond ADR 0109 before any write from the reconciliation session. The durable sequence matches the frozen order exactly:
+
+```text
+Wandora binding created_at = 2026-09-19 04:00:49.499424+00
+Core HMAC file mtime       = 2026-09-19 04:02:02.152699887+00
+Paperclip secret created   = 2026-09-19T04:03:58.217Z
+Paperclip config created   = 2026-09-19T04:04:35.940Z
+```
+
+Per the ambiguity/retry rules, none of those effects was replayed.
+
+Current MEDICSPRO wiring:
+
+```text
+control binding = exactly 1
+  organization = b3fa4d96-4e2d-4d5a-ab59-ffab0d3062e5
+  provider     = paperclip
+  company ref  = a63f27a8-dbac-4552-a456-b3a21302226b
+
+Core HMAC custody
+  deterministic path hash = 952c6872101f9b31d9950e6d9264dcbe242881c1b8161e79b4efc23cd45b421e
+  mode/owner/group         = 0640 / wandora-admin / wandora-ops
+  size                     = 64 bytes
+  Core readable            = true
+
+Paperclip secret
+  id             = 25fe4fd3-150d-4b9c-aeef-9d4e033098d2
+  key            = wandora.organization-adapter.hmac
+  provider       = local_encrypted
+  status         = active
+  managedMode    = paperclip_managed
+  latestVersion  = 1
+  referenceCount = 1
+
+Organization Adapter company config
+  secret_ref = 25fe4fd3-150d-4b9c-aeef-9d4e033098d2
+  lastError  = null
+
+plugin = ready / healthy
+local_encrypted = ok
+```
+
+Independent hash-only proof matches Core custody to Paperclip version 1 without exposing secret plaintext:
+
+```text
+SHA-256 = 238496e7b6750c0dd5bb2085b5751511e6e9d544a601fe0c6b93e09b49496726
+Core HMAC file = Paperclip value_sha256 = Paperclip fingerprint_sha256
+```
+
+Effect boundary remains closed:
+
+```text
+MEDICSPRO Paperclip agents      = 0
+MEDICSPRO digital employees     = 0
+MEDICSPRO employee bindings     = 0
+MEDICSPRO hire operations       = 0
+MEDICSPRO eligibility           = 0 / 0 enabled
+
+Customer Digital-Employee Hire  = ON
+Human Send                      = OFF
+Gateway outbound                = OFF
+```
+
+Auth, DB, Web, Core, Paperclip and Messaging Gateway remain healthy with zero restarts.
+
+The ADR 0109 snapshot remains intact and valid as the protected pre-wiring pair, but it predates the newly created MEDICSPRO secret/config. A newer logical backup `paperclip-20260919-040454.sql.gz` exists inside the Paperclip Docker volume and is newer than config creation, but it has not yet been copied/paired/restored outside the volume.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Owner First Real Tenant Organization Adapter Custody + Config + Binding Execution V1.**
+Next: **Customer Owner First Real Tenant Paperclip Post-Wiring Local-Encrypted Recovery Snapshot Refresh Execution V1.**
 
-Reuse ADR 0108 without redesign. Revalidate the exact pair and then execute only the operator-owned Wandora control binding, one deterministic-path protected MEDICSPRO HMAC, one company-owned Paperclip `local_encrypted` secret and one company-scoped Organization Adapter `secret_ref` config written last. Keep MEDICSPRO eligibility at zero and create no employee/hire operation. Do not enable Human Send or Gateway outbound.
+Reuse ADR 0109's proven process to create/choose a current post-wiring logical backup, pair it with the exact current `master.key` outside the Docker volume, and prove isolated restore + MEDICSPRO secret/config resolution by hash. Do not mutate Organization Adapter wiring, enable MEDICSPRO eligibility, create an employee/hire operation, or enable Human Send/Gateway outbound.
+
+After that recovery checkpoint is current, return to the first-real-tenant customer-hire eligibility rollout boundary.
 
 ## Operational safety
 
