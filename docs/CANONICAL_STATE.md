@@ -1777,55 +1777,52 @@ eligibility rows/enabled      = 0 / 0
 unfinished hires              = 0
 ```
 
-## Customer Owner First Real Tenant Provisioning Execution V1 — COMPLETE
+## Customer Owner First Real Tenant Access Validation V1 — COMPLETE
 
-ADR 0104 executes exactly the ADR 0103 Private Tenant Provisioning V2 request.
+ADR 0105 proves the first genuine owner customer session after ADR 0104.
 
-```text
-organization display name = MEDICSPRO
-organization slug         = medicspro
-owner display name        = Alessandro Aranha
-request key               = customer-owner-first-real:tenant-v2:medicspro:v1
-```
-
-The runtime-resolved owner subject matched the frozen SHA-256 gate and remained outside Git/log output. The transaction used only `supabase_admin -> SET LOCAL ROLE wandora_platform_provisioner -> V2 -> COMMIT`; no direct inserts or provider calls were used.
-
-Validated live state:
+Human-visible proof:
 
 ```text
-organizations         = 4
-wandora_users         = 2
-user_identities       = 2
-memberships           = 4
-digital_employees     = 4
-provisioning_requests = 2
-
-MEDICSPRO active orgs          = 1
-owner Supabase mappings       = 1
-active owner memberships      = 1
-MEDICSPRO employees           = 0
-exact V2 request rows         = 1
-provisioning_version          = 2
-employee_id                   = NULL
-
-control_bindings total / MEDICSPRO    = 2 / 0
-employee_bindings total / MEDICSPRO   = 2 / 0
-completed_hires total / MEDICSPRO     = 2 / 0
-unfinished_hires                      = 0
-eligibility rows / enabled            = 0 / 0
-messaging connections MEDICSPRO       = 0
-messaging provider bindings MEDICSPRO = 0
+organization = MEDICSPRO
+user = Alessandro Aranha
+customer surface = Trabalho
+state = Nada aguardando sua atenção
 ```
 
-Auth, DB, Web, Core, Paperclip and Gateway remain healthy with zero restarts. Customer Hire remains globally ON; Human Send and Gateway outbound remain OFF.
+Fresh login/API evidence:
 
-A fresh authenticated customer `/api/v1/me` read is deliberately not fabricated with a privileged JWT or extracted refresh token. That read-only proof remains separate.
+```text
+/api/v1/me                   = 200
+work attention read          = 200
+digital-employees/team read  = 200
+conversations read           = 200
+```
+
+An earlier request from an already-open `/approvals` navigation returned a transient 503 before recovering to 200. The actual fresh `/login` bootstrap returned 200 and subsequent tenant reads remained 200.
+
+Independent canonical reconciliation:
+
+```text
+target Auth rows                    = 1
+target confirmed/signed-in          = 1 / 1
+target Wandora mapping rows         = 1
+MEDICSPRO active orgs               = 1
+MEDICSPRO active owner memberships  = 1
+MEDICSPRO employees                 = 0
+MEDICSPRO control bindings          = 0
+MEDICSPRO employee bindings         = 0
+MEDICSPRO eligibility               = 0
+unfinished hires                    = 0
+```
+
+No customer token/password was shared or extracted. No privileged JWT impersonation was used. No Paperclip/provider, eligibility, hire or outbound mutation occurred.
 
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Owner First Real Tenant Access Validation V1.**
+Next: **Customer Owner First Real Tenant Paperclip Company Bootstrap Preflight V1.**
 
-Use a genuine normal owner session to prove `/api/v1/me` returns MEDICSPRO instead of `unlinked`. No Paperclip/provider bootstrap, eligibility, hire or outbound effect belongs in that validation.
+Freeze the exact MEDICSPRO Paperclip-company creation and ambiguity-reconciliation contract using the accepted Organization Adapter authority model and prior canary evidence. Do not create the company, binding, eligibility or employee during the preflight.
 
 ## Operational safety
 
