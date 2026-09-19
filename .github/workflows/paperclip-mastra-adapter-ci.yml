@@ -15,6 +15,7 @@ on:
       - 'apps/core/src/runtime/server.ts'
       - 'infra/stacks/core/compose.paperclip-execution-bridge.yaml'
       - 'infra/stacks/paperclip/compose.paperclip-execution-bridge.yaml'
+      - 'infra/stacks/paperclip/paperclip-bridge-secret-entrypoint.sh'
       - 'infra/stacks/supabase/migrations/20260919_014_paperclip_execution_binding_resolver_v1.sql'
       - 'infra/stacks/supabase/verifiers/VERIFY_20260919_PAPERCLIP_EXECUTION_BINDING_RESOLVER_V1.sql'
       - '.github/workflows/paperclip-mastra-adapter-ci.yml'
@@ -35,6 +36,7 @@ on:
       - 'apps/core/src/runtime/server.ts'
       - 'infra/stacks/core/compose.paperclip-execution-bridge.yaml'
       - 'infra/stacks/paperclip/compose.paperclip-execution-bridge.yaml'
+      - 'infra/stacks/paperclip/paperclip-bridge-secret-entrypoint.sh'
       - 'infra/stacks/supabase/migrations/20260919_014_paperclip_execution_binding_resolver_v1.sql'
       - 'infra/stacks/supabase/verifiers/VERIFY_20260919_PAPERCLIP_EXECUTION_BINDING_RESOLVER_V1.sql'
       - '.github/workflows/paperclip-mastra-adapter-ci.yml'
@@ -100,7 +102,13 @@ jobs:
           WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE_HOST: ${{ runner.temp }}/paperclip-execution-bridge.synthetic
         run: |
           set -euo pipefail
+          wrapper="infra/stacks/paperclip/paperclip-bridge-secret-entrypoint.sh"
           printf '%s\n' 'synthetic-disposable-only' > "$WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE_HOST"
+          chmod 0640 "$WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE_HOST"
+          sh -n "$wrapper"
+          grep -Fq 'cp "$src" "$dst.tmp"' "$wrapper"
+          grep -Fq 'chmod 0400 "$dst.tmp"' "$wrapper"
+          grep -Fq 'exec /usr/local/bin/docker-entrypoint.sh "$@"' "$wrapper"
           effective="$(docker compose \
             -f infra/stacks/paperclip/compose.yaml \
             -f infra/stacks/paperclip/compose.paperclip-execution-bridge.yaml \
@@ -108,7 +116,9 @@ jobs:
           grep -q 'WANDORA_PAPERCLIP_EXECUTION_BRIDGE_URL: http://wandora-core:8788/internal/v1/paperclip/execution' <<<"$effective"
           grep -q 'WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE: /run/secrets/wandora/paperclip-execution-bridge.hmac' <<<"$effective"
           grep -q "source: $WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE_HOST" <<<"$effective"
-          grep -q 'target: /run/secrets/wandora/paperclip-execution-bridge.hmac' <<<"$effective"
+          grep -q 'target: /run/secrets-root/wandora/paperclip-execution-bridge.hmac' <<<"$effective"
+          grep -q 'target: /run/wandora/paperclip-bridge-secret-entrypoint.sh' <<<"$effective"
+          grep -q '/run/secrets/wandora:rw,noexec,nosuid,size=64k' <<<"$effective"
           rm -f "$WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE_HOST"
 
       - name: Enforce migration 014 remains unapplied by disposable attestation
