@@ -29,7 +29,7 @@ concurrency:
 jobs:
   build-candidate:
     name: Build traceable Core candidate
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, linux, x64, wandora-ci]
     timeout-minutes: 25
 
     steps:
