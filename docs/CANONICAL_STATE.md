@@ -2396,11 +2396,41 @@ Important continuity rule: **migration 014 is no longer pending and must not be 
 
 Protected execution artifacts retained on the VPS include the fresh Paperclip recovery pair, the scoped Wandora backup and the exact hash-verified PR #169 adapter/Core artifacts.
 
+## Paperclip bridge secret wrapper correction — ADR 0123/0124 CURRENT
+
+ADR 0123 was merged in PR #173 and correctly preserved host HMAC custody through a root-only source bind plus node-owned `0400` tmpfs copy. Its first live promotion failed closed because Compose rendered the overridden Paperclip entrypoint with `Cmd=null`; the wrapper therefore reached `gosu node` without a server command and Paperclip restarted unhealthy.
+
+Production was immediately rolled back to the previous healthy direct-bind overlay. Current live state remains safe:
+
+```text
+Core candidate / bridge = live / healthy / readyz 200
+Paperclip = healthy / restart 0
+live Paperclip overlay = pre-wrapper blob 47f35c7c6ff50c433b95265ea8ba4423454c9891
+wandora_mastra = installed exactly once / loaded / 0.1.0
+Ana = paused + supervised
+Paperclip Ana = paused
+wakeups / heartbeat runs = 0 / 0
+agents.resume = absent
+Human Send = OFF
+Gateway outbound = OFF
+MEDICSPRO outbound attempts = 0
+```
+
+ADR 0124 corrects only command preservation: the bridge overlay now pins the exact `Config.Cmd` already present in the pinned Paperclip image, and CI fails unless Compose renders:
+
+```text
+node --import ./server/node_modules/tsx/dist/loader.mjs server/dist/index.js
+```
+
+A disposable proof is green: command preserved, final uid/gid 1000, tmpfs secret `0400`, secret readable without printing plaintext.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **resume Paperclip -> Wandora/Mastra Production Execution Bridge Activation Execution V1 at the dedicated HMAC custody gate.**
+Next: **merge/validate ADR 0124 command-preservation correction, then finish Activation Execution V1 without reinstalling the adapter.**
 
-Reconcile the real runtime first. Migration 014 is already live and verified; do **not** repeat it. If the dedicated bridge HMAC is still absent, create it only through an authorized secure execution path under ADR 0118/0120 custody. Then continue in order: exact Core candidate + bridge overlay/readiness -> Paperclip bridge overlay with adapter absent -> exact paused-state proof -> persistent exact adapter extraction -> single official local-directory install/readback/test -> final paused/no-outbound proof -> STOP.
+After the corrective PR is green and merged: reconcile `main`/runtime -> stage exact corrected Paperclip overlay + unchanged wrapper -> render and require the exact server command -> recreate only Paperclip -> require healthy/restart 0 -> prove server uid/gid 1000 and tmpfs HMAC `0400 node:node` with hash equal to the host HMAC -> adapter readback only -> run official `test-environment` exactly once and require pass -> prove Ana paused, wakeups/heartbeats zero, `agents.resume` absent, Human Send OFF, Gateway outbound OFF and outbound attempts zero -> STOP.
+
+Migration 014 is live and verified. The dedicated HMAC exists with canonical custody. `wandora_mastra` is already installed exactly once. Do not repeat any of those effects.
 
 ## Operational safety
 
