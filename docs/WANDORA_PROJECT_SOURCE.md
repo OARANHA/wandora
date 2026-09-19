@@ -1144,6 +1144,11 @@ outbound attempts       = 0
 
 Continuity rule: **never repeat migration 014 on resume merely because the HMAC/runtime portion remains incomplete.** Reconcile first and continue from the HMAC custody gate.
 
+## Privileged HMAC custody gate
+
+ADR 0123 records that ADR 0122 is canonical and migration 014 remains LIVE/verified, but the dedicated execution-bridge HMAC is still absent. The authorized Desktop Commander session is `wandora-admin`; ADR 0120 requires the file to be `root:wandora-ops / 0640`. The exact generation attempt stopped at interactive sudo authentication before OpenSSL ran, and the execution platform blocked sudo-capability enumeration. No alternate privilege channel was used.
+
+Do not repeat migration 014, downgrade custody, use Docker/CI as a root bypass, promote Core/Paperclip or install `wandora_mastra` before the canonical HMAC exists.
 ## Next executable slice
 
 **Resume Paperclip -> Wandora/Mastra Production Execution Bridge Activation Execution V1 at the dedicated HMAC custody gate.**
