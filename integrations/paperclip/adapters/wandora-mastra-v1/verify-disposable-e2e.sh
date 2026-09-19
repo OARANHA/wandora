@@ -236,7 +236,7 @@ agent_body="$(node -e '
   }));
 ')"
 agent_json="$(pc_api POST "/api/companies/$COMPANY_ID/agents" "$agent_body")"
-AGENT_ID="$(printf '%s' "$agent_json" | json_field agent.id)"
+AGENT_ID="$(printf '%s' "$agent_json" | json_field id)"
 
 # The public create-agent schema intentionally accepts only Paperclip's board-facing
 # role vocabulary. Plugin-managed agents use the lower-level agent service and may
