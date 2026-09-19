@@ -212,7 +212,7 @@ docker run --rm --network "$NET" "$NODE24_IMAGE" \
   node -e "fetch('http://wandora-paperclip:3100/not-allowed').then(r=>process.exit(r.status===404?0:1)).catch(()=>process.exit(1))" \
   >/dev/null
 
-adapter_install="$(pc_api POST /api/adapters '{"localPath":"/proof/wandora-adapter"}')"
+adapter_install="$(pc_api POST /api/adapters/install '{"packageName":"/proof/wandora-adapter","isLocalPath":true}')"
 test -n "$adapter_install"
 
 company_json="$(pc_api POST /api/companies '{"name":"Wandora Disposable Execution Attestation"}')"
