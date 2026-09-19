@@ -1,0 +1,8 @@
+services:
+  core:
+    environment:
+      WANDORA_PAPERCLIP_EXECUTION_BRIDGE_ENABLED: "true"
+      WANDORA_PAPERCLIP_AGENT_ME_URL: "http://wandora-paperclip:3100/api/agents/me"
+      WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE: "/run/secrets/wandora/paperclip-execution-bridge.hmac"
+    volumes:
+      - "${WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE_HOST:?required}:/run/secrets/wandora/paperclip-execution-bridge.hmac:ro"
