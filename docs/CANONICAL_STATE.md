@@ -1734,11 +1734,25 @@ Gateway outbound               = absent / OFF
 
 Auth, DB, Web, Core, Gateway and Paperclip all remain healthy with zero restarts. No invite, recovery or test e-mail was sent and no customer/business state was created.
 
+## Customer Owner First Real Invite Execution Preflight V1 — COMPLETE / CONTROLLED NO-GO
+
+ADR 0100 freezes the exact first real owner invite execution contract without sending mail or creating customer state.
+
+Live Auth remains healthy on GoTrue v2.196.0 + Resend SMTP. The no-effect baseline is still one confirmed Auth/Wandora user, zero invited users, zero Auth one-time tokens, three existing organizations, zero customer-hire eligibility rows and zero unfinished hires.
+
+The privileged provider path is proven as `POST /auth/v1/invite` behind GoTrue admin credentials with the dedicated redirect `https://app.wandora.com.br/accept-invite`. The existing service-role credential succeeds on read-only Admin API access and remains protected; it is not copied into Web/Core or documentation.
+
+The adversarial review proved that uncertain invite delivery cannot be retried blindly: GoTrue can hand the message to SMTP before the transaction persists `invited_at`/one-time-token state. A timeout with an existing invited Auth row is treated as applied; a timeout with no Auth row is externally ambiguous and requires provider/operator reconciliation before any retry.
+
+No genuine new customer owner e-mail has ever been explicitly authorized for this rollout. The current owner, proof identities, legacy tenants, synthetic aliases and contacts discovered without explicit authorization are invalid targets. Therefore the preflight is complete but the real invite execution is **NO-GO** until the operator/user supplies the intended new owner e-mail explicitly.
+
+No invite, recovery or test e-mail was sent; no Auth user/token, tenant, Paperclip resource, eligibility or outbound effect was created.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Owner First Real Invite Execution Preflight V1.**
+Next: **Customer Owner First Real Invite Execution V1 — BLOCKED pending authorized genuine owner target.**
 
-That preflight must identify one genuine new owner target rather than reuse a legacy/proof tenant, freeze the exact privileged Supabase Auth invite operation plus reconciliation/rollback behavior, and preserve the accepted sequence `invite -> /accept-invite -> first password -> normal password grant -> Private Tenant Provisioning V2 -> /api/v1/me`. It must **not** send an invite, recovery or test e-mail, must not provision the tenant, and must not enable customer-hire eligibility.
+Execution may begin only after the operator/user explicitly supplies the intended new owner's e-mail. It will send exactly one GoTrue invite using the ADR 0100 reconciliation contract, validate Auth/provider outcome, and stop before tenant provisioning or eligibility activation.
 
 ## Operational safety
 
