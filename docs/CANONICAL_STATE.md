@@ -1734,25 +1734,36 @@ Gateway outbound               = absent / OFF
 
 Auth, DB, Web, Core, Gateway and Paperclip all remain healthy with zero restarts. No invite, recovery or test e-mail was sent and no customer/business state was created.
 
-## Customer Owner First Real Invite Execution Preflight V1 — COMPLETE / CONTROLLED NO-GO
+## Customer Owner First Real Invite Execution V1 — COMPLETE / ACCEPTANCE PENDING
 
-ADR 0100 freezes the exact first real owner invite execution contract without sending mail or creating customer state.
+ADR 0101 executes exactly one real Supabase Auth invite for the explicitly authorized genuine new owner target. The target address is intentionally not stored in Git.
 
-Live Auth remains healthy on GoTrue v2.196.0 + Resend SMTP. The no-effect baseline is still one confirmed Auth/Wandora user, zero invited users, zero Auth one-time tokens, three existing organizations, zero customer-hire eligibility rows and zero unfinished hires.
+Before the effect, the target had zero Auth collision. A false-positive guard that assumed `wandora.users.id == auth.users.id` was stopped before mutation; the correct identity relationship was proven as `wandora.user_identities.provider_subject == auth.users.id::text`.
 
-The privileged provider path is proven as `POST /auth/v1/invite` behind GoTrue admin credentials with the dedicated redirect `https://app.wandora.com.br/accept-invite`. The existing service-role credential succeeds on read-only Admin API access and remains protected; it is not copied into Web/Core or documentation.
+The one allowed invite returned HTTP 200. Reconciliation proved exactly one pending target Auth user with `invited_at` and `confirmation_sent_at`, zero confirmation/login, and one one-time token. No retry occurred.
 
-The adversarial review proved that uncertain invite delivery cannot be retried blindly: GoTrue can hand the message to SMTP before the transaction persists `invited_at`/one-time-token state. A timeout with an existing invited Auth row is treated as applied; a timeout with no Auth row is externally ambiguous and requires provider/operator reconciliation before any retry.
+Post-effect:
 
-No genuine new customer owner e-mail has ever been explicitly authorized for this rollout. The current owner, proof identities, legacy tenants, synthetic aliases and contacts discovered without explicit authorization are invalid targets. Therefore the preflight is complete but the real invite execution is **NO-GO** until the operator/user supplies the intended new owner e-mail explicitly.
+```text
+auth_users               = 2
+auth_invited             = 1
+auth_unconfirmed_invited = 1
+one_time_tokens          = 1
+wandora_users            = 1
+organizations            = 3
+memberships              = 3
+eligibility_rows         = 0
+eligibility_enabled      = 0
+unfinished_hires         = 0
+```
 
-No invite, recovery or test e-mail was sent; no Auth user/token, tenant, Paperclip resource, eligibility or outbound effect was created.
+Auth remained healthy with zero restarts and all major services remained healthy. No tenant, Wandora membership, Paperclip resource, eligibility or outbound messaging effect was created.
 
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Owner First Real Invite Execution V1 — BLOCKED pending authorized genuine owner target.**
+Next: **Customer Owner First Invite Acceptance + First Password Validation V1.**
 
-Execution may begin only after the operator/user explicitly supplies the intended new owner's e-mail. It will send exactly one GoTrue invite using the ADR 0100 reconciliation contract, validate Auth/provider outcome, and stop before tenant provisioning or eligibility activation.
+The recipient must open the Wandora invite e-mail, follow the link to `/accept-invite`, and define the first password. Then validate normal password grant and `/api/v1/me`. Do not provision the tenant or enable eligibility until this owner-access validation is complete.
 
 ## Operational safety
 
