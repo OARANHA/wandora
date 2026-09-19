@@ -246,12 +246,19 @@ AGENT_ID="$(printf '%s' "$agent_json" | json_field id)"
 # representation instead of reinstalling/re-running that provider capability.
 docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d paperclip_attestation \
   -v agent="$AGENT_ID" -v company="$COMPANY_ID" <<'SQL' >/dev/null
-UPDATE agents
-   SET role = 'commercial-assistant',
-       updated_at = now()
- WHERE id = :'agent'::uuid
-   AND company_id = :'company'::uuid;
-\if :ROW_COUNT != 1
+WITH updated AS (
+  UPDATE agents
+     SET role = 'commercial-assistant',
+         updated_at = now()
+   WHERE id = :'agent'::uuid
+     AND company_id = :'company'::uuid
+  RETURNING 1
+)
+SELECT (count(*) = 1) AS patch_ok
+  FROM updated
+\gset
+\if :patch_ok
+\else
   \echo 'synthetic managed-agent role patch did not affect exactly one row'
   \quit 41
 \endif
