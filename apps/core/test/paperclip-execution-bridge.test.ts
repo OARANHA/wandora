@@ -118,8 +118,8 @@ test('Paperclip run identity is independently checked through the run-scoped tok
     agentMeUrl: 'http://wandora-paperclip:3100/api/agents/me',
     fetchImpl: async (_url, init) => {
       const headers = init?.headers as Record<string, string>;
-      seenAuthorization = headers.authorization;
-      seenRunId = headers['x-paperclip-run-id'];
+      seenAuthorization = headers.authorization ?? '';
+      seenRunId = headers['x-paperclip-run-id'] ?? '';
       return new Response(JSON.stringify({
         id: AGENT,
         companyId: COMPANY,
