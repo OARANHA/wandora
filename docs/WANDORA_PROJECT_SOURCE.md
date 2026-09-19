@@ -1022,9 +1022,9 @@ Therefore customer activation remains unavailable. The operator Board credential
 
 Human Send and Gateway outbound remain OFF and are not bundled into activation.
 
-## Paperclip -> Wandora/Mastra Production Execution Bridge — CODE/CI CANDIDATE
+## Paperclip -> Wandora/Mastra Production Execution Bridge — COMPLETE / MERGED
 
-ADR 0117 turns the ADR 0037 laboratory direction into a production-shaped but dormant bridge.
+ADR 0117 turns the ADR 0037 laboratory direction into a production-shaped but dormant bridge. PR #166 is merged in canonical `main` at `7bc8c4790e37b0410703bf58979458200810d5a9`.
 
 ```text
 canonical external adapter = @wandora/paperclip-adapter-mastra@0.1.0
@@ -1039,11 +1039,11 @@ The adapter signs a minimized request with a dedicated file-backed HMAC and carr
 
 Only then does Core resolve the active Wandora organization, derive the existing stable managed provider ref and require the exact Wandora employee binding with `status=active / autonomy=supervised` before invoking the existing Agent Runtime/Mastra boundary. Provider IDs do not enter Mastra.
 
-No resume authority or outbound capability is added by this slice.
+No resume authority or outbound capability is added by this slice. All seven PR workflows were green before merge, and post-merge live validation proves migration 014 remains absent, the live Paperclip adapter store still has no `wandora_mastra`, MEDICSPRO Ana remains `paused + supervised`, and Core bridge/Human Send/Gateway outbound remain OFF.
 
 ## Next executable slice
 
-After ADR 0117 is CI-green and merged: **Paperclip -> Wandora/Mastra Production Execution Bridge Activation Preflight V1.**
+**Paperclip -> Wandora/Mastra Production Execution Bridge Activation Preflight V1.**
 
 That preflight is no-effect. It must freeze migration 014, bridge HMAC custody, adapter artifact provenance/install, Core candidate/overlay promotion, rollback and synthetic proof without applying/installing/activating anything.
 
