@@ -1777,13 +1777,65 @@ eligibility rows/enabled      = 0 / 0
 unfinished hires              = 0
 ```
 
+## Customer Owner First Real Tenant Provisioning Preflight V1 — COMPLETE
+
+ADR 0103 freezes the first real customer tenant request without creating it.
+
+```text
+organization display name = MEDICSPRO
+organization slug         = medicspro
+owner display name        = Alessandro Aranha
+request key               = customer-owner-first-real:tenant-v2:medicspro:v1
+```
+
+The owner e-mail and raw Supabase subject remain outside Git. The runtime-resolved subject is gated by a frozen SHA-256. Live proof shows one confirmed/signed-in Auth target, zero Wandora identity rows and zero memberships for that target.
+
+Collision/idempotency proof:
+
+```text
+slug collision             = 0
+display-name CI collision  = 0
+request-key collision      = 0
+```
+
+Private Tenant Provisioning V2 remains live and least-privilege:
+
+```text
+V2 present                    = true
+platform provisioner executes = true
+Core executes V2              = false
+authenticated executes V2     = false
+platform direct ledger read   = false
+platform connection limit     = 0
+platform reusable credential  = absent
+```
+
+A no-effect transaction proved `supabase_admin -> SET LOCAL ROLE wandora_platform_provisioner`, V2 execute allowed, ledger read denied, then ROLLBACK.
+
+Current business baseline remains:
+
+```text
+organizations         = 3
+wandora_users         = 1
+user_identities       = 1
+memberships           = 3
+digital_employees     = 4
+provisioning_requests = 1
+control_bindings      = 2
+employee_bindings     = 2
+completed_hires       = 2
+unfinished_hires      = 0
+eligibility_rows      = 0
+eligibility_enabled   = 0
+```
+
+No tenant, Paperclip/provider state, eligibility or hire effect was created.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Owner First Real Tenant Provisioning Preflight V1.**
+Next: **Customer Owner First Real Tenant Provisioning Execution V1.**
 
-Use the already-live `wandora_private.provision_beta_organization_v2(...)` contract. Do not use direct inserts, do not create Paperclip/provider state, and do not enable eligibility in the same slice.
-
-Before execution, freeze the real organization display name, deterministic collision-free slug, owner display name, stable request key, runtime-resolved Auth subject and exact postconditions.
+Execute exactly the ADR 0103 V2 request. Any ambiguity must reconcile by the frozen request key and slug before replay. Stop after Wandora organization/user/identity/owner-membership/idempotency state; do not bootstrap Paperclip or enable eligibility/hire in the same slice.
 
 ## Operational safety
 

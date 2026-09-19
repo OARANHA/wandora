@@ -895,42 +895,17 @@ The recovery edge guard remains reachable normally after mitigation and direct-o
 
 No real invite/recovery has been sent.
 
-## First Real Customer Owner Access — E-MAIL FOUNDATION LIVE / TARGET STILL PENDING
+## First Real Customer Owner Access + Tenant — AUTH REAL / TENANT PREFLIGHT COMPLETE
 
-ADR 0095 revalidated the live owner-access Web, Auth boundary and recovery edge with no external effect and identified two gates: transactional Auth e-mail and one genuine new owner/customer target.
+ADR 0101 sent the first real owner invite. ADR 0102 proves invite consumption, first password and a fresh normal password login. The account is Auth-valid but remains unlinked until tenant provisioning.
 
-ADR 0096 selected Resend SMTP behind Supabase Auth. ADR 0097 made the sender-domain/credential foundation live at `notify.wandora.com.br` with the dedicated sending credential held only in reviewed host custody. ADR 0098 froze the exact Auth-only secret-file activation/rollback path.
-
-ADR 0099 now makes the GoTrue SMTP activation live:
-
-```text
-provider        = Resend SMTP
-relay           = smtp.resend.com:587 / STARTTLS
-sender          = Wandora <acesso@notify.wandora.com.br>
-Auth image      = supabase/gotrue:v2.196.0
-Auth health     = healthy / restarts 0
-final PID 1 UID = 1000
-```
-
-Only `supabase-auth` was recreated. DB, Web, Core, Gateway and Paperclip container identities were unchanged. The real SMTP secret remains absent from `.env`, Compose and container `Config.Env`; the runtime process receives it only through the reviewed startup wrapper. STARTTLS was proven from the recreated Auth namespace.
-
-No invite, recovery or test e-mail was sent. Auth/recovery counters remain unchanged, eligibility remains zero, unfinished hires remain zero, Customer Hire stays ON, and Human Send/Gateway outbound stay OFF.
-
-The remaining first-access gate is deliberate: no genuine new customer owner + real customer organization target has yet been selected. Existing legacy/canary/internal tenants are not repurposed merely to advance the proof.
-
-## First Real Customer Owner Access — REAL / UNLINKED
-
-ADR 0101 sent the first real owner invite. ADR 0102 now proves the recipient consumed it, established a first password, explicitly signed out, and completed a fresh normal password login.
-
-Provider/Auth evidence shows a confirmed user and a fresh Auth session created after confirmation. The customer Web then reached the canonical `/api/v1/me` unlinked boundary: the Auth subject has no Wandora identity or membership yet, so the account is authenticated but not authorized into any organization.
-
-No tenant, Paperclip provider state or eligibility was created by the access flow.
+ADR 0103 freezes the first real tenant as `MEDICSPRO` with slug `medicspro`, owner display name `Alessandro Aranha`, a stable V2 request key and a hashed runtime Auth-subject gate. Live collision checks are zero and the existing least-privilege Private Tenant Provisioning V2 path is ready. No tenant was created during the preflight.
 
 ## Next executable slice
 
-Next: **Customer Owner First Real Tenant Provisioning Preflight V1.**
+Next: **Customer Owner First Real Tenant Provisioning Execution V1.**
 
-Reuse the live Private Tenant Provisioning V2 contract and freeze the exact real organization identity before any production creation. Eligibility, Paperclip bootstrap/binding and employee hire remain later separate effects.
+Use only the frozen V2 request. Stop after Wandora tenant/owner/idempotency state. Paperclip bootstrap/binding, eligibility and employee hire remain later separate effects.
 
 ## Platform Admin
 
@@ -1022,6 +997,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0100 — Customer Owner First Real Invite Execution Preflight V1
 - ADR 0101 — Customer Owner First Real Invite Execution V1
 - ADR 0102 — Customer Owner First Invite Acceptance + First Password Validation V1
+- ADR 0103 — Customer Owner First Real Tenant Provisioning Preflight V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
