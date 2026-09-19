@@ -201,12 +201,16 @@ docker run -d --name "$PAPERCLIP_PROXY" \
   node /proof/paperclip-loopback-proxy.mjs >/dev/null
 
 for _ in $(seq 1 30); do
-  if docker exec "$PAPERCLIP_PROXY" node -e "fetch('http://$(hostname -i):3100/not-allowed').then(r=>process.exit(r.status===404?0:1)).catch(()=>process.exit(1))" >/dev/null 2>&1; then
+  if docker run --rm --network "$NET" "$NODE24_IMAGE" \
+    node -e "fetch('http://wandora-paperclip:3100/not-allowed').then(r=>process.exit(r.status===404?0:1)).catch(()=>process.exit(1))" \
+    >/dev/null 2>&1; then
     break
   fi
   sleep 1
 done
-docker exec "$PAPERCLIP_PROXY" node -e "fetch('http://$(hostname -i):3100/not-allowed').then(r=>process.exit(r.status===404?0:1)).catch(()=>process.exit(1))" >/dev/null
+docker run --rm --network "$NET" "$NODE24_IMAGE" \
+  node -e "fetch('http://wandora-paperclip:3100/not-allowed').then(r=>process.exit(r.status===404?0:1)).catch(()=>process.exit(1))" \
+  >/dev/null
 
 adapter_install="$(pc_api POST /api/adapters '{"localPath":"/proof/wandora-adapter"}')"
 test -n "$adapter_install"
