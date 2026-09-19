@@ -44,6 +44,7 @@ const organizationAdapterService = pool && config.organizationAdapter
 const checkReady = createRuntimeReadinessChecker(pool, {
   organizationAdapterEnabled: Boolean(organizationAdapterService),
   customerHireEnabled: Boolean(config.humanDigitalEmployeeHire),
+  paperclipExecutionBridgeEnabled: Boolean(config.paperclipExecutionBridge),
 });
 
 const handleGatewayInbound = pool && config.gatewayIngress

@@ -4,12 +4,39 @@ on:
   pull_request:
     paths:
       - 'integrations/paperclip/adapters/wandora-mastra-v1/**'
+      - 'apps/core/Dockerfile'
+      - 'apps/core/package.json'
+      - 'apps/core/package-lock.json'
+      - 'apps/core/src/agent-runtime/**'
+      - 'apps/core/src/paperclip-execution/**'
+      - 'apps/core/src/runtime/config.ts'
+      - 'apps/core/src/runtime/main.ts'
+      - 'apps/core/src/runtime/readiness.ts'
+      - 'apps/core/src/runtime/server.ts'
+      - 'infra/stacks/core/compose.paperclip-execution-bridge.yaml'
+      - 'infra/stacks/paperclip/compose.paperclip-execution-bridge.yaml'
+      - 'infra/stacks/supabase/migrations/20260919_014_paperclip_execution_binding_resolver_v1.sql'
+      - 'infra/stacks/supabase/verifiers/VERIFY_20260919_PAPERCLIP_EXECUTION_BINDING_RESOLVER_V1.sql'
       - '.github/workflows/paperclip-mastra-adapter-ci.yml'
       - 'docs/decisions/0117-paperclip-wandora-mastra-production-execution-bridge-contract-implementation-v1.md'
+      - 'docs/decisions/0119-paperclip-wandora-mastra-runtime-custody-readiness-attestation-v1.md'
   push:
     branches: [main]
     paths:
       - 'integrations/paperclip/adapters/wandora-mastra-v1/**'
+      - 'apps/core/Dockerfile'
+      - 'apps/core/package.json'
+      - 'apps/core/package-lock.json'
+      - 'apps/core/src/agent-runtime/**'
+      - 'apps/core/src/paperclip-execution/**'
+      - 'apps/core/src/runtime/config.ts'
+      - 'apps/core/src/runtime/main.ts'
+      - 'apps/core/src/runtime/readiness.ts'
+      - 'apps/core/src/runtime/server.ts'
+      - 'infra/stacks/core/compose.paperclip-execution-bridge.yaml'
+      - 'infra/stacks/paperclip/compose.paperclip-execution-bridge.yaml'
+      - 'infra/stacks/supabase/migrations/20260919_014_paperclip_execution_binding_resolver_v1.sql'
+      - 'infra/stacks/supabase/verifiers/VERIFY_20260919_PAPERCLIP_EXECUTION_BINDING_RESOLVER_V1.sql'
       - '.github/workflows/paperclip-mastra-adapter-ci.yml'
   workflow_dispatch:
 
@@ -23,7 +50,7 @@ concurrency:
 jobs:
   verify-package:
     runs-on: [self-hosted, linux, x64, wandora-ci]
-    timeout-minutes: 20
+    timeout-minutes: 40
     steps:
       - name: Checkout Wandora
         uses: actions/checkout@v4
@@ -63,6 +90,40 @@ jobs:
           WANDORA_ADAPTER_SOURCE_DIR: ${{ github.workspace }}/integrations/paperclip/adapters/wandora-mastra-v1
         run: |
           node --import "$PAPERCLIP_SOURCE_ROOT/server/node_modules/tsx/dist/loader.mjs"             integrations/paperclip/adapters/wandora-mastra-v1/verify-live-image.mjs
+
+      - name: Validate Paperclip bridge runtime overlay
+        shell: bash
+        env:
+          BETTER_AUTH_SECRET: synthetic-better-auth-secret
+          PAPERCLIP_AGENT_JWT_SECRET: synthetic-agent-jwt-secret
+          PAPERCLIP_TOOL_ACTION_SIGNING_SECRET: synthetic-tool-signing-secret
+          WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE_HOST: ${{ runner.temp }}/paperclip-execution-bridge.synthetic
+        run: |
+          set -euo pipefail
+          printf '%s\n' 'synthetic-disposable-only' > "$WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE_HOST"
+          effective="$(docker compose \
+            -f infra/stacks/paperclip/compose.yaml \
+            -f infra/stacks/paperclip/compose.paperclip-execution-bridge.yaml \
+            config)"
+          grep -q 'WANDORA_PAPERCLIP_EXECUTION_BRIDGE_URL: http://wandora-core:8788/internal/v1/paperclip/execution' <<<"$effective"
+          grep -q 'WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE: /run/secrets/wandora/paperclip-execution-bridge.hmac' <<<"$effective"
+          grep -q "source: $WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE_HOST" <<<"$effective"
+          grep -q 'target: /run/secrets/wandora/paperclip-execution-bridge.hmac' <<<"$effective"
+          rm -f "$WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE_HOST"
+
+      - name: Enforce migration 014 remains unapplied by disposable attestation
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -q '20260919_014_paperclip_execution_binding_resolver_v1.sql' \
+            integrations/paperclip/adapters/wandora-mastra-v1/verify-disposable-e2e.sh
+
+      - name: Disposable Paperclip to Core to Mastra E2E attestation
+        shell: bash
+        env:
+          PAPERCLIP_SOURCE_ROOT: ${{ github.workspace }}/.paperclip
+          WANDORA_ATTESTATION_TMP_ROOT: ${{ runner.temp }}/paperclip-wandora-mastra-e2e
+        run: bash integrations/paperclip/adapters/wandora-mastra-v1/verify-disposable-e2e.sh
 
       - name: Build deterministic private artifact
         working-directory: integrations/paperclip/adapters/wandora-mastra-v1

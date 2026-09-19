@@ -6,6 +6,7 @@ export function createRuntimeReadinessChecker(
   options: {
     organizationAdapterEnabled?: boolean;
     customerHireEnabled?: boolean;
+    paperclipExecutionBridgeEnabled?: boolean;
   } = {},
 ): () => Promise<RuntimeReadiness> {
   return async (): Promise<RuntimeReadiness> => {
@@ -53,6 +54,21 @@ export function createRuntimeReadinessChecker(
         return {
           ready: false,
           reason: 'customer-hire-eligibility-database-boundary-unavailable',
+        };
+      }
+    }
+
+    if (options.paperclipExecutionBridgeEnabled) {
+      try {
+        await pool.query(`
+          SELECT wandora_private.resolve_paperclip_execution_organization(
+            'wandora-readiness-probe:paperclip-execution-bridge:v1'
+          )::text AS organization_id;
+        `);
+      } catch {
+        return {
+          ready: false,
+          reason: 'paperclip-execution-bridge-database-boundary-unavailable',
         };
       }
     }
