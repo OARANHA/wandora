@@ -76,6 +76,7 @@ jobs:
         run: |
           set -euo pipefail
           tmp="$(mktemp -d)"
+          chmod 0750 "$tmp"
           network="wandora-gateway-ci-${GITHUB_RUN_ID}"
           container="wandora-gateway-ci-${GITHUB_RUN_ID}"
           cleanup() {
