@@ -1185,6 +1185,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0116 — Customer Owner First Real Tenant Digital-Employee Activation Preflight V1
 - ADR 0117 — Paperclip -> Wandora/Mastra Production Execution Bridge Contract Implementation V1
 - ADR 0118 — Paperclip -> Wandora/Mastra Production Execution Bridge Activation Preflight V1
+- ADR 0119 — Paperclip -> Wandora/Mastra Production Execution Bridge Runtime Custody + Readiness + Disposable E2E Attestation Implementation V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
