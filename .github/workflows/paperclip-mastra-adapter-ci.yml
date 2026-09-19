@@ -106,6 +106,7 @@ jobs:
           printf '%s\n' 'synthetic-disposable-only' > "$WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE_HOST"
           chmod 0640 "$WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE_HOST"
           sh -n "$wrapper"
+          grep -Fq 'test "$#" -gt 0' "$wrapper"
           grep -Fq 'cp "$src" "$dst.tmp"' "$wrapper"
           grep -Fq 'chmod 0400 "$dst.tmp"' "$wrapper"
           grep -Fq 'exec /usr/local/bin/docker-entrypoint.sh "$@"' "$wrapper"
@@ -119,6 +120,11 @@ jobs:
           grep -q 'target: /run/secrets-root/wandora/paperclip-execution-bridge.hmac' <<<"$effective"
           grep -q 'target: /run/wandora/paperclip-bridge-secret-entrypoint.sh' <<<"$effective"
           grep -q '/run/secrets/wandora:rw,noexec,nosuid,size=64k' <<<"$effective"
+          grep -q '^    command:' <<<"$effective"
+          grep -q '^      - node$' <<<"$effective"
+          grep -q '^      - --import$' <<<"$effective"
+          grep -q '^      - ./server/node_modules/tsx/dist/loader.mjs$' <<<"$effective"
+          grep -q '^      - server/dist/index.js$' <<<"$effective"
           rm -f "$WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE_HOST"
 
       - name: Enforce migration 014 remains unapplied by disposable attestation
