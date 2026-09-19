@@ -229,18 +229,24 @@ production upgrade               = NO-GO
 
 Do **not** hand-add only `tool_connections_transport_check`.
 
-The next proof attempt must use a fresh restore plus a deterministic schema-fidelity supplement generated wholesale from the live v831 catalog:
+The second adversarial review strengthens the next proof attempt beyond a CHECK-only supplement.
+
+Use a fresh, schema-faithful **proof-only PostgreSQL custom-format dump** of current live v831:
 
 1. preserve first-attempt logs/evidence;
-2. discard only the partially migrated disposable DB/app;
-3. restore the protected snapshot into a fresh PostgreSQL 18.1 target;
-4. read every non-system CHECK constraint from live v831 using `pg_constraint` + `pg_get_constraintdef()`;
-5. generate/hash a complete supplement;
-6. apply it only to the fresh disposable restore;
-7. compare canonical live-vs-proof fingerprints for columns/defaults/nullability, all constraints, indexes, non-internal triggers and enum labels;
-8. continue to v916 only if those fingerprints match.
+2. keep the protected official `paperclip-db.sql.gz + master.key` pair as the canonical recovery proof already validated by Gates 3/5;
+3. create a temporary protected output directory outside the live Paperclip volume;
+4. run `pg_dump -Fc` from an ephemeral PostgreSQL 18.1 helper that shares only the live Paperclip container's **network namespace**;
+5. do not mount the live Paperclip filesystem/volume into the helper;
+6. write/hash the proof-only dump on the host;
+7. restore it into a fresh isolated PostgreSQL 18.1 proof target;
+8. compare canonical live-vs-proof fingerprints for columns/defaults/nullability, all constraints, indexes, non-internal triggers and enum labels;
+9. continue to v916 only if those fingerprints match;
+10. delete the proof-only full dump during final cleanup.
 
-This is not a targeted migration patch. It recreates schema state that exists in production but is omitted by the normal recovery backup format.
+The CHECK-only supplement remains useful diagnostic evidence but is superseded as the preferred execution method because it assumes CHECK constraints are the only schema class omitted by the normal Paperclip recovery serializer.
+
+The full `pg_dump -Fc` is **not** adopted as a new production recovery mechanism. It is a temporary migration-compatibility artifact whose only purpose is to reproduce current production schema faithfully without mutating production.
 
 ## SECOND ADVERSARIAL REVIEW
 
