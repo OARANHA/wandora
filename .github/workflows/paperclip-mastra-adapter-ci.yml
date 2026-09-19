@@ -30,17 +30,39 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Checkout pinned Paperclip source
+        uses: actions/checkout@v4
+        with:
+          repository: paperclipai/paperclip
+          ref: 65ec059bde30d98c92165b24a30a540800dd1f6f
+          path: .paperclip
+          persist-credentials: false
+
       - name: Set up Node 24.21.0
         uses: actions/setup-node@v4
         with:
           node-version: 24.21.0
 
+      - name: Set up pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.4 --activate
+          pnpm --version
+
+      - name: Install pinned Paperclip dependencies
+        working-directory: .paperclip
+        run: pnpm install --frozen-lockfile
+
       - name: Unit contract tests
         working-directory: integrations/paperclip/adapters/wandora-mastra-v1
         run: node --test test/*.test.mjs
 
-      - name: Prove loader contract against pinned live Paperclip image
-        run: bash integrations/paperclip/adapters/wandora-mastra-v1/verify-live-image.sh
+      - name: Prove loader contract against pinned Paperclip source
+        env:
+          PAPERCLIP_SOURCE_ROOT: ${{ github.workspace }}/.paperclip
+          WANDORA_ADAPTER_SOURCE_DIR: ${{ github.workspace }}/integrations/paperclip/adapters/wandora-mastra-v1
+        run: |
+          node --import "$PAPERCLIP_SOURCE_ROOT/server/node_modules/tsx/dist/loader.mjs"             integrations/paperclip/adapters/wandora-mastra-v1/verify-live-image.mjs
 
       - name: Build deterministic private artifact
         working-directory: integrations/paperclip/adapters/wandora-mastra-v1
