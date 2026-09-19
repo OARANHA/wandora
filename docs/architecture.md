@@ -587,3 +587,29 @@ normal MEDICSPRO owner browser session
 ```
 
 Hire does not imply activation. No resume/activation, Mastra execution, Human Send or Gateway outbound is part of that effect. Provider ambiguity is reconciled under the original idempotency key; a new key is never a recovery mechanism.
+
+
+## Customer Owner First Real Tenant Digital-Employee Hire Execution V1 — COMPLETE
+
+ADR 0115 completes the first genuine MEDICSPRO customer hire through the normal owner browser route.
+
+```text
+Wandora employee           = Ana / commercial-assistant
+Wandora status/autonomy    = paused / supervised
+employee provider binding  = exactly 1
+hire operation             = exactly 1 / completed
+Paperclip managed Ana      = exactly 1 / paused
+Paperclip adapter          = wandora_mastra
+customer hire projection   = already-hired
+outbound attempts/messages = 0 / 0
+```
+
+Paperclip reports the explicit pause reason requiring separate activation, zero budget and no heartbeat. The customer effect did not resume the provider agent, run Mastra, enable Human Send or enable Gateway outbound.
+
+The completed hire operation remains the durable idempotency/reconciliation evidence. Eligibility remains a policy row and may stay enabled; the completed same-catalog state closes availability.
+
+## NEXT EXECUTABLE SLICE
+
+Next: **Customer Owner First Real Tenant Digital-Employee Activation Preflight V1.**
+
+Activation remains a separate effect under ADR 0063. The preflight must prove the production execution bridge, mapped employee compatibility, least-privilege provider resume authority, provider/Wandora transition ordering, replay/ambiguity semantics and integration readiness before any activation route/effect is allowed. Human Send and Gateway outbound remain separate and OFF.
