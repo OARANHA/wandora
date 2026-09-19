@@ -1734,36 +1734,56 @@ Gateway outbound               = absent / OFF
 
 Auth, DB, Web, Core, Gateway and Paperclip all remain healthy with zero restarts. No invite, recovery or test e-mail was sent and no customer/business state was created.
 
-## Customer Owner First Real Invite Execution V1 — COMPLETE / ACCEPTANCE PENDING
+## Customer Owner First Real Invite Execution V1 — COMPLETE
 
-ADR 0101 executes exactly one real Supabase Auth invite for the explicitly authorized genuine new owner target. The target address is intentionally not stored in Git.
+ADR 0101 sent exactly one real Supabase Auth invite to the explicitly authorized genuine new owner target. The target address remains intentionally absent from Git.
 
-Before the effect, the target had zero Auth collision. A false-positive guard that assumed `wandora.users.id == auth.users.id` was stopped before mutation; the correct identity relationship was proven as `wandora.user_identities.provider_subject == auth.users.id::text`.
+## Customer Owner First Invite Acceptance + First Password Validation V1 — COMPLETE
 
-The one allowed invite returned HTTP 200. Reconciliation proved exactly one pending target Auth user with `invited_at` and `confirmation_sent_at`, zero confirmation/login, and one one-time token. No retry occurred.
+ADR 0102 closes the first real owner authentication path.
 
-Post-effect:
+Production evidence proves:
 
 ```text
-auth_users               = 2
-auth_invited             = 1
-auth_unconfirmed_invited = 1
-one_time_tokens          = 1
-wandora_users            = 1
-organizations            = 3
-memberships              = 3
-eligibility_rows         = 0
-eligibility_enabled      = 0
-unfinished_hires         = 0
+Auth user confirmed           = yes
+first password present        = yes
+invite one-time token         = consumed / 0 rows
+confirmed_at                  = 2026-09-19 02:10:52 UTC
+fresh normal last_sign_in_at  = 2026-09-19 02:12:14 UTC
+active Auth sessions          = 1
+latest session created        = 2026-09-19 02:12:14 UTC
+target Wandora identity rows  = 0
+target membership rows        = 0
+eligibility rows              = 0
+eligibility enabled           = 0
 ```
 
-Auth remained healthy with zero restarts and all major services remained healthy. No tenant, Wandora membership, Paperclip resource, eligibility or outbound messaging effect was created.
+The recipient explicitly signed out and logged in again with e-mail + the newly created password. Current Web code reaches `/api/v1/me` only after a successful Supabase password grant; the observed “Conta ainda não vinculada” state is the canonical `403 unlinked` result for a valid Auth identity that has no Wandora organization membership yet.
+
+Therefore invite acceptance, first password, normal repeat login and authenticated bootstrap are proven. No tenant or eligibility effect was created.
+
+Read-only readiness for the next slice also reconfirmed:
+
+```text
+organizations                 = 3
+tenant provisioning requests  = 1
+Private Tenant Provisioning V2= present
+platform provisioner EXECUTE  = true
+Core EXECUTE V2               = false
+authenticated EXECUTE V2      = false
+platform provisioner password = absent
+platform provisioner connlimit= 0
+eligibility rows/enabled      = 0 / 0
+unfinished hires              = 0
+```
 
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Owner First Invite Acceptance + First Password Validation V1.**
+Next: **Customer Owner First Real Tenant Provisioning Preflight V1.**
 
-The recipient must open the Wandora invite e-mail, follow the link to `/accept-invite`, and define the first password. Then validate normal password grant and `/api/v1/me`. Do not provision the tenant or enable eligibility until this owner-access validation is complete.
+Use the already-live `wandora_private.provision_beta_organization_v2(...)` contract. Do not use direct inserts, do not create Paperclip/provider state, and do not enable eligibility in the same slice.
+
+Before execution, freeze the real organization display name, deterministic collision-free slug, owner display name, stable request key, runtime-resolved Auth subject and exact postconditions.
 
 ## Operational safety
 

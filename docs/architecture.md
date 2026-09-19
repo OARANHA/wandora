@@ -508,7 +508,7 @@ authorized real owner e-mail
   -> later Private Tenant Provisioning V2
 ```
 
-ADR 0101 has now executed exactly one real invite for an explicitly authorized genuine new owner target. The Auth invite is pending recipient acceptance; no tenant, Paperclip resource or eligibility was created by that effect.
+ADR 0101 executed exactly one real invite for an explicitly authorized genuine new owner target. ADR 0102 then proved invite consumption, first-password establishment and a fresh normal password login. The authenticated subject reaches `/api/v1/me` and fails closed as `unlinked` because no Wandora identity/membership exists yet; no tenant, Paperclip resource or eligibility was created by the access flow.
 
 The effect boundary is conservative: no blind retry after timeout or ambiguous provider result. In GoTrue v2.196.0 the SMTP send occurs before the surrounding invite transaction has necessarily committed `invited_at` and its one-time-token state, so database absence alone cannot prove that no e-mail left the system. Reconcile Auth plus Resend/operator evidence first.
 
@@ -517,4 +517,4 @@ Pre-accept revocation, if ever required, uses the provider-native Admin API dele
 Tenant provisioning and eligibility activation remain separate later effects.
 
 
-Customer Owner First Real Invite Execution V1 is now applied under ADR 0101. The next boundary is invite acceptance + first-password validation; only after normal authenticated owner access is proven may Private Tenant Provisioning V2 be considered.
+Customer Owner First Real Invite Execution V1 is applied under ADR 0101 and normal owner authentication is proven under ADR 0102. The next boundary is the first real tenant provisioning preflight using the existing Private Tenant Provisioning V2 capability; direct identity/membership inserts remain rejected.
