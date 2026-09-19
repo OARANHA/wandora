@@ -1670,11 +1670,75 @@ GOTRUE_SMTP_SENDER_NAME = fake_sender
 
 No Auth service recreation occurred and no invite, recovery or test e-mail was sent.
 
+## Customer Owner Transactional E-mail GoTrue SMTP Activation Execution V1 — COMPLETE
+
+ADR 0099 executes the exact ADR 0098 activation contract in production.
+
+Pre-execution drift checks matched the frozen evidence byte-for-byte. The canonical overlay was materialized at:
+
+```text
+2d35d6ea292c0749d4edb3654cec007a6e5ffc6086d8f44516e53742abfaa280
+```
+
+A fresh protected execution snapshot was created at:
+
+```text
+/home/wandora-admin/backups/gotrue-smtp-activation-execution-v1-20260919T013658Z
+```
+
+The live non-secret SMTP source is now:
+
+```text
+SMTP_HOST=smtp.resend.com
+SMTP_PORT=587
+SMTP_USER=resend
+SMTP_PASS=
+SMTP_ADMIN_EMAIL=acesso@notify.wandora.com.br
+SMTP_SENDER_NAME=Wandora
+```
+
+The actual SMTP credential remains only in the reviewed file secret. The live render proved the real secret absent, `GOTRUE_SMTP_PASS` absent from container `Config.Env`, and only Auth mounting the secret. The dry-run again proposed only the Auth recreation.
+
+The approved command recreated **only** `supabase-auth`. DB, Web, Core, Gateway and Paperclip container identities remained unchanged.
+
+Live Auth is now:
+
+```text
+image              = supabase/gotrue:v2.196.0
+health             = healthy
+restarts           = 0
+PID 1 UID          = 1000
+SMTP host/port     = smtp.resend.com:587
+SMTP user          = resend
+sender             = Wandora <acesso@notify.wandora.com.br>
+```
+
+An SMTP dialogue from the recreated Auth namespace resolved the relay, received the normal `220` greeting, advertised `AUTH PLAIN LOGIN` and `STARTTLS`, and returned `220 Ready to start TLS`. No AUTH, MAIL FROM, RCPT TO or DATA was issued by this activation slice.
+
+Post-activation no-effect proof:
+
+```text
+auth_users          = 1
+recovery_sent       = 0
+recovery_token      = 0
+one_time_tokens     = 0
+
+eligibility_rows    = 0
+eligibility_enabled = 0
+unfinished_hires    = 0
+
+Customer Digital-Employee Hire = ON
+Human Send                     = absent / OFF
+Gateway outbound               = absent / OFF
+```
+
+Auth, DB, Web, Core, Gateway and Paperclip all remain healthy with zero restarts. No invite, recovery or test e-mail was sent and no customer/business state was created.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Owner Transactional E-mail GoTrue SMTP Activation Execution V1.**
+Next: **Customer Owner First Real Invite Execution Preflight V1.**
 
-That execution may install the accepted non-secret SMTP values plus the canonical Auth overlay and recreate **only** `supabase-auth` using `--no-deps --force-recreate auth`. It must prove health, UID 1000 final process, STARTTLS and optionally AUTH+QUIT, then re-check no-effect counters. It must **not** send an invite, recovery or e-mail test.
+That preflight must identify one genuine new owner target rather than reuse a legacy/proof tenant, freeze the exact privileged Supabase Auth invite operation plus reconciliation/rollback behavior, and preserve the accepted sequence `invite -> /accept-invite -> first password -> normal password grant -> Private Tenant Provisioning V2 -> /api/v1/me`. It must **not** send an invite, recovery or test e-mail, must not provision the tenant, and must not enable customer-hire eligibility.
 
 ## Operational safety
 

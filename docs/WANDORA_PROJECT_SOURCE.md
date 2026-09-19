@@ -2,7 +2,7 @@
 
 Snapshot date: **2026-09-18**
 Repository: `OARANHA/wandora`
-Canonical main entering ADR 0090 preflight: `5f135e9070380e28c64f244c8a7126644cfa793c`
+Canonical main entering ADR 0099 execution: `1e96c04458750210cf237b7c7b11e48167717e25`
 
 > **Purpose:** compact bootstrap for ChatGPT Project Sources and future development sessions. It prevents architectural drift, accidental reinvention and stale workflow assumptions.
 >
@@ -895,21 +895,34 @@ The recovery edge guard remains reachable normally after mitigation and direct-o
 
 No real invite/recovery has been sent.
 
-## First Real Customer Owner Access Preflight — COMPLETE / BLOCKED
+## First Real Customer Owner Access — E-MAIL FOUNDATION LIVE / TARGET STILL PENDING
 
-ADR 0095 revalidated the live owner-access Web, Auth boundary and recovery edge with no external effect.
+ADR 0095 revalidated the live owner-access Web, Auth boundary and recovery edge with no external effect and identified two gates: transactional Auth e-mail and one genuine new owner/customer target.
 
-The browser/edge foundation is ready, but the live Auth SMTP target is still the development/default `supabase-mail:2500`. That hostname does not resolve from the Auth container and no `supabase-mail` service exists in the production Supabase Compose. Transactional invitation e-mail is therefore not operational.
+ADR 0096 selected Resend SMTP behind Supabase Auth. ADR 0097 made the sender-domain/credential foundation live at `notify.wandora.com.br` with the dedicated sending credential held only in reviewed host custody. ADR 0098 froze the exact Auth-only secret-file activation/rollback path.
 
-The other gate remains deliberate: no genuine new customer owner + real customer organization target exists yet. Existing legacy/canary/internal tenants are not repurposed merely to advance the proof.
+ADR 0099 now makes the GoTrue SMTP activation live:
 
-No invite/recovery, Auth user, tenant, provider state, eligibility or outbound effect was created.
+```text
+provider        = Resend SMTP
+relay           = smtp.resend.com:587 / STARTTLS
+sender          = Wandora <acesso@notify.wandora.com.br>
+Auth image      = supabase/gotrue:v2.196.0
+Auth health     = healthy / restarts 0
+final PID 1 UID = 1000
+```
+
+Only `supabase-auth` was recreated. DB, Web, Core, Gateway and Paperclip container identities were unchanged. The real SMTP secret remains absent from `.env`, Compose and container `Config.Env`; the runtime process receives it only through the reviewed startup wrapper. STARTTLS was proven from the recreated Auth namespace.
+
+No invite, recovery or test e-mail was sent. Auth/recovery counters remain unchanged, eligibility remains zero, unfinished hires remain zero, Customer Hire stays ON, and Human Send/Gateway outbound stay OFF.
+
+The remaining first-access gate is deliberate: no genuine new customer owner + real customer organization target has yet been selected. Existing legacy/canary/internal tenants are not repurposed merely to advance the proof.
 
 ## Next executable slice
 
-Next: **Customer Owner Transactional E-mail Delivery Foundation Preflight V1.**
+Next: **Customer Owner First Real Invite Execution Preflight V1.**
 
-No-effect preflight only. Select and prove the production SMTP provider, secret custody, sender-domain requirements, exact GoTrue configuration delta and rollback without sending invite/recovery/test mail or creating customer state.
+No-effect preflight only. Identify one genuine new owner target, freeze the exact privileged Supabase Auth invite operation plus reconciliation/rollback behavior, and preserve the accepted sequence `invite -> /accept-invite -> first password -> normal password grant -> Private Tenant Provisioning V2 -> /api/v1/me`. Do not send invite/recovery/test mail, provision the tenant or enable customer-hire eligibility during the preflight.
 
 ## Platform Admin
 
@@ -994,6 +1007,10 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0093 — Customer Owner Recovery Edge Anti-Abuse Credential + Activation Execution V1
 - ADR 0094 — Customer Owner Invite + Recovery Web Production Activation Execution V1
 - ADR 0095 — Customer Owner First Real Access End-to-End Validation Preflight V1
+- ADR 0096 — Customer Owner Transactional E-mail Delivery Foundation Preflight V1
+- ADR 0097 — Customer Owner Transactional E-mail Sender Domain + Credential Provisioning Execution V1
+- ADR 0098 — Customer Owner Transactional E-mail GoTrue SMTP Activation Preflight V1
+- ADR 0099 — Customer Owner Transactional E-mail GoTrue SMTP Activation Execution V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
