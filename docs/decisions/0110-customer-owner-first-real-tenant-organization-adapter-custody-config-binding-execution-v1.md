@@ -252,6 +252,22 @@ Human Send       = OFF
 Gateway outbound = OFF
 ```
 
+## GITHUB ACTIONS
+
+PR #158 triggered all five standard workflows on the documentation head:
+
+```text
+Core CI
+Web CI
+Platform Admin CI
+Messaging Gateway CI
+Organization Adapter Plugin CI
+```
+
+All five completed with GitHub conclusion `failure` before executing any workflow step. Independent job inspection returned an empty step list for every job. This is the same pre-runner infrastructure failure already documented in recent canonical slices.
+
+These checks are **not called green**. The PR diff is documentation-only, and the production mutation/validation in this ADR was independently proven directly against the live runtime before documentation merge.
+
 ## RESULT
 
 **Customer Owner First Real Tenant Organization Adapter Custody + Config + Binding Execution V1 is GREEN.**
