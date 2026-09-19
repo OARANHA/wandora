@@ -2292,11 +2292,42 @@ The disposable proof uses Paperclip's native managed-agent service for synthetic
 
 Production remains dormant by contract: no live bridge secret, no live adapter install, no Core/Paperclip bridge promotion/recreation, no `agents.resume`, no Ana activation/resume, Human Send OFF and Gateway outbound OFF.
 
+## Paperclip -> Wandora/Mastra Production Execution Bridge Activation Preflight V2 — COMPLETE / GO
+
+ADR 0120 revalidates the merged ADR 0119 implementation against canonical Git, final CI artifacts and the actual dormant production runtime.
+
+```text
+main entering preflight = cb52b601d440b5abb9412005fc6503c7b8065adc
+open PRs               = 0
+
+migration 014          = ABSENT
+live bridge HMAC       = ABSENT
+Core bridge            = OFF
+Paperclip bridge       = ABSENT live
+wandora_mastra store   = []
+agents.resume           = absent
+
+MEDICSPRO Ana / Wandora   = exactly 1 / paused + supervised
+MEDICSPRO Ana / Paperclip = exactly 1 / paused
+Ana wakeups / runs         = 0 / 0
+Human Send                 = OFF
+Gateway outbound           = OFF
+outbound attempts          = 0
+```
+
+The final PR #169 adapter artifact ZIP is `ad82c276239e091779aadade7a7067175505f5c4a3f9aa0b0d4e5b0024163952`; the contained tgz remains exactly `0d2e77940c381bb36fc401bdf28080507227f081fe5e45a92f5b36723ed7604f`.
+
+The final bridge-aware Core candidate is frozen as archive `b101033ac47b7f1e4695d5e2a15d288558682d38e0e508cd7d059abd0aae902d`, OCI config `1a4f06bc...`, OCI manifest `1fd3f3d7...`, source tree `abacb9da0949a63210080a01bdd95b087e98d02e`. The PR merge-ref, PR head and canonical `main@cb52b601...` all share that exact source tree.
+
+Live Core/Paperclip base Compose files remain byte-identical to Git. The bridge overlays exist only in Git. HMAC custody remains viable with `0640 root:wandora-ops`: Core already receives the `wandora-ops` GID and Paperclip runs as root.
+
+The V2 decision is GO only for a separately executed bridge-foundation activation transaction. It does not authorize `agents.resume`, Ana activation/resume, Human Send or Gateway outbound. If the short-lived Actions artifacts expire or cannot be retrieved, provenance must be re-established before any production effect.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Paperclip -> Wandora/Mastra Production Execution Bridge Activation Preflight V2.**
+Next: **Paperclip -> Wandora/Mastra Production Execution Bridge Activation Execution V1.**
 
-Fresh no-effect preflight only. Re-freeze merged artifact provenance and the dormant live baseline before any migration 014, live bridge secret, live adapter install, Core/Paperclip recreation, `agents.resume`, Ana activation/resume, Human Send or Gateway outbound effect.
+Execute only the bridge foundation under ADR 0118 + ADR 0120: fresh reconcile/backup/rehearsal, migration 014 + verifier, dedicated HMAC custody, exact bridge-aware Core promotion/readiness, Paperclip bridge overlay, exact persistent adapter install/readback, then STOP. Ana must remain paused, `agents.resume` absent, Human Send OFF and Gateway outbound OFF.
 
 ## Operational safety
 

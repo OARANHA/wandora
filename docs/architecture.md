@@ -701,8 +701,56 @@ reconcile real state
 
 No customer activation/resume is part of that sequence.
 
+## Paperclip -> Wandora/Mastra Runtime Custody + Readiness + Disposable E2E Attestation — COMPLETE
+
+ADR 0119 closes the three readiness gaps identified by ADR 0118 while preserving the dormant production boundary.
+
+The repository now owns both reviewed bridge overlays, Core readiness fails closed on the migration-014 resolver when the bridge is enabled, and CI proves a disposable native Paperclip managed-agent run with a real Paperclip run-scoped token through the private Core boundary into the existing deterministic Agent Runtime/Mastra implementation.
+
+The disposable resolver shim is proof-only. Production still requires the real migration 014 before the bridge-aware Core can become ready.
+
+## Paperclip -> Wandora/Mastra Production Execution Bridge Activation Preflight V2 — COMPLETE / GO
+
+ADR 0120 proves the merged ADR 0119 artifacts are suitable for a separately reviewed bridge-foundation activation transaction.
+
+The selected adapter package remains byte-identical to ADR 0118:
+
+```text
+tgz sha256 = 0d2e77940c381bb36fc401bdf28080507227f081fe5e45a92f5b36723ed7604f
+```
+
+The selected bridge-aware Core candidate is from the exact current-main source tree:
+
+```text
+source tree    = abacb9da0949a63210080a01bdd95b087e98d02e
+archive sha256 = b101033ac47b7f1e4695d5e2a15d288558682d38e0e508cd7d059abd0aae902d
+OCI config     = sha256:1a4f06bcc63491d87e8f91532db6b2f042f9117a4f00d560af6de9bbebb7553b
+OCI manifest   = sha256:1fd3f3d7e63d77a9dc80bb903e85ceba77d14aaa8739464133523d54872f5b14
+```
+
+Production is still deliberately dormant: migration 014 absent, no live bridge secret, bridge overlays absent live, adapter store empty, Core bridge OFF, Ana paused, no wakeups/runs, `agents.resume` absent, Human Send OFF and Gateway outbound OFF.
+
+The architecture therefore allows the next bridge-foundation execution only in this order:
+
+```text
+fresh state reconciliation
+-> scoped DB backup + disposable restore/rehearsal
+-> migration 014 + verifier + independent mapping postverify
+-> dedicated file-backed HMAC
+-> exact bridge-aware Core candidate + bridge overlay
+-> health + resolver-aware readiness
+-> Paperclip bridge overlay, adapter still absent
+-> persistent hash-addressed adapter staging
+-> exact local-directory adapter install/readback
+-> prove Ana still paused + no wakeups/runs
+-> prove agents.resume absent + outbound OFF
+-> STOP
+```
+
+Bridge foundation activation is not employee activation. Provider resume and Wandora `paused -> active` remain a distinct later effect boundary.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Paperclip -> Wandora/Mastra Production Execution Bridge Runtime Custody + Readiness + Disposable E2E Attestation Implementation V1.**
+Next: **Paperclip -> Wandora/Mastra Production Execution Bridge Activation Execution V1.**
 
-That slice is repository/CI/disposable-proof only: add the Paperclip bridge runtime overlay, make Core readiness fail closed on missing migration 014, and prove one integrated synthetic Paperclip run through the existing Core/Mastra boundary. Production migration, live secrets, live adapter install, runtime recreation, `agents.resume`, Ana activation, Human Send and Gateway outbound remain forbidden.
+The execution must obey ADR 0118 + ADR 0120 exactly and must stop before `agents.resume`, Ana activation/resume, Human Send or Gateway outbound.
