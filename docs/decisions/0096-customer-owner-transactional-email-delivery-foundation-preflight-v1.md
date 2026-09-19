@@ -343,6 +343,22 @@ No Auth user, tenant, Resend account/domain/key, Cloudflare DNS record, provider
 
 No Auth/Core/Web/Gateway runtime configuration changed.
 
+## GITHUB ACTIONS INFRASTRUCTURE EXCEPTION
+
+The corrected documentation head `0b2307a1dd8f6d0d17bc1e8a42f21f5ba3004544` triggered the five normal repository workflows:
+
+```text
+Web CI #334 / run 35408097934
+Organization Adapter Plugin CI #77 / run 35408097995
+Platform Admin CI #259 / run 35408098091
+Core CI #397 / run 35408098010
+Messaging Gateway CI #366 / run 35408097999
+```
+
+Every job completed as `failure` before runner execution, with no logs and `steps=null`. These checks are **not** classified green and are not treated as code/test failures.
+
+The PR diff is limited to canonical documentation and the Supabase README. No code, Compose, environment file, migration or runtime manifest is changed. The provider/network/DNS/runtime evidence in this ADR was collected independently.
+
 ## RESULT
 
 **Customer Owner Transactional E-mail Delivery Foundation Preflight V1 is complete.**
