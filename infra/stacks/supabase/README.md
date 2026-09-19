@@ -35,6 +35,12 @@ The deployment is based on the official `docker/` self-hosted tree from the pinn
 - Google/social OAuth intentionally deferred until the application login flow and callbacks are ready.
 - Supabase Auth owns identity/session issuance; Wandora Core owns business authorization and tenant membership.
 
+### Transactional Auth e-mail
+
+ADR 0096 selects Resend SMTP as the initial production delivery provider behind Supabase Auth, but **provider wiring and live Auth SMTP activation are not active yet**. The future sender domain is `notify.wandora.com.br` in Resend `sa-east-1`, using `Wandora <acesso@notify.wandora.com.br>` and a sending-only credential restricted to that domain.
+
+The future SMTP password must not live in this repository or in the Supabase `.env`. The reviewed direction is a host-owned Docker secret file mounted only into `auth`, with the GoTrue startup wrapper reading it inside the container before `exec /usr/local/bin/auth`. See ADR 0096 before changing SMTP configuration.
+
 ## Wandora migrations
 
 Reviewed Wandora domain migrations live under `infra/stacks/supabase/migrations/`. Their falsifiable database checks live under `infra/stacks/supabase/verifiers/`.
