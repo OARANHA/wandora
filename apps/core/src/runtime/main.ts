@@ -4,6 +4,9 @@ import { PostgresAnaRepository } from '../ana/postgres-repository.js';
 import { AnaSupervisedIngressService } from '../ana/supervised-ingress.js';
 import { Es256JwksHumanTokenVerifier } from '../human-auth/es256-jwks.js';
 import { createPrivateGatewayClient } from '../messaging/private-gateway.js';
+import { createPaperclipExecutionHandler } from '../paperclip-execution/handler.js';
+import { createPaperclipRunIdentityClient } from '../paperclip-execution/paperclip-run-identity.js';
+import { PaperclipExecutionService } from '../paperclip-execution/service.js';
 import { HumanDigitalEmployeesReadService } from '../supervision/human-digital-employees-read.js';
 import { HumanSupervisionReadService } from '../supervision/human-read.js';
 import { HumanSendProposalService } from '../supervision/human-send-proposal.js';
@@ -54,6 +57,18 @@ const handleGatewayInbound = pool && config.gatewayIngress
         });
         return (organizationId, event) => service.handle(organizationId, event);
       })(),
+    })
+  : undefined;
+
+const handlePaperclipExecution = pool
+  && agentRuntime
+  && config.paperclipExecutionBridge
+  ? createPaperclipExecutionHandler({
+      secret: config.paperclipExecutionBridge.secret,
+      verifyRunIdentity: createPaperclipRunIdentityClient({
+        agentMeUrl: config.paperclipExecutionBridge.agentMeUrl,
+      }),
+      service: new PaperclipExecutionService(pool, agentRuntime),
     })
   : undefined;
 
@@ -109,6 +124,7 @@ const server = createRuntimeServer({
   mode: config.mode,
   checkReady,
   ...(handleGatewayInbound ? { handleGatewayInbound } : {}),
+  ...(handlePaperclipExecution ? { handlePaperclipExecution } : {}),
   ...(handleHumanSupervision ? { handleHumanSupervision } : {}),
 });
 server.listen(config.port, '0.0.0.0', () => {
@@ -117,6 +133,7 @@ server.listen(config.port, '0.0.0.0', () => {
     mode: config.mode,
     port: config.port,
     gatewayIngress: Boolean(handleGatewayInbound),
+    paperclipExecutionBridge: Boolean(handlePaperclipExecution),
     humanApi: Boolean(handleHumanSupervision),
     humanSendProposal: Boolean(humanSendProposalService),
     humanDigitalEmployeeHire: Boolean(humanDigitalEmployeeHireService),
