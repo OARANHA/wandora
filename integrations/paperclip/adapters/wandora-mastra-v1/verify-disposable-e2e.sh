@@ -52,7 +52,25 @@ stage_tree "$ROOT/integrations/paperclip/adapters/wandora-mastra-v1" "$TMP/wando
 printf '%s\n' 'paperclip-execution-bridge-disposable-hmac-0123456789abcdef0123456789abcdef' > "$TMP/bridge.hmac"
 printf '%s\n' "$CORE_PASSWORD" > "$TMP/core-db-password"
 printf '%s\n' 'gateway-ingress-disposable-hmac-0123456789abcdef0123456789abcdef' > "$TMP/gateway.hmac"
-chmod 0644 "$TMP/bridge.hmac" "$TMP/core-db-password" "$TMP/gateway.hmac"
+cat > "$TMP/paperclip-loopback-proxy.mjs" <<'PROXY'
+import net from 'node:net';
+import os from 'node:os';
+
+const address = Object.values(os.networkInterfaces())
+  .flat()
+  .find((entry) => entry?.family === 'IPv4' && !entry.internal)?.address;
+if (!address) throw new Error('paperclip_disposable_network_address_unavailable');
+
+const server = net.createServer((client) => {
+  const upstream = net.createConnection({ host: '127.0.0.1', port: 3100 });
+  client.pipe(upstream);
+  upstream.pipe(client);
+  client.on('error', () => upstream.destroy());
+  upstream.on('error', () => client.destroy());
+});
+server.listen(3100, address);
+PROXY
+chmod 0644 "$TMP/bridge.hmac" "$TMP/core-db-password" "$TMP/gateway.hmac" "$TMP/paperclip-loopback-proxy.mjs"
 
 docker network create "$NET" >/dev/null
 
@@ -97,7 +115,7 @@ pc_api() {
       const method = process.env.METHOD;
       const path = process.env.API_PATH;
       const body = process.env.API_BODY || "";
-      const response = await fetch(`http://wandora-paperclip:3100${path}`, {
+      const response = await fetch(`http://127.0.0.1:3100${path}`, {
         method,
         headers: body ? { "content-type": "application/json" } : undefined,
         body: body || undefined,
