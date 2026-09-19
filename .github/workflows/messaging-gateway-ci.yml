@@ -115,7 +115,11 @@ jobs:
             fi
             sleep 1
           done
-          test "$ready" -eq 1
+          if [ "$ready" -ne 1 ]; then
+            docker inspect "$container" --format 'state={{.State.Status}} exit={{.State.ExitCode}} error={{.State.Error}}' || true
+            docker logs "$container" || true
+            exit 1
+          fi
           docker run --rm --network "$network" \
             node:22.23.2-bookworm-slim@sha256:83f487e0a63425e5b4d146fb5e5be574bcbe1b7b843d3ebafdd95eaf7767a7e5 \
             node -e "fetch('http://${container}:8787/internal/v1/core/outbound/text',{method:'POST'}).then(r=>{if(r.status!==404)process.exit(1)}).catch(()=>process.exit(1))"
