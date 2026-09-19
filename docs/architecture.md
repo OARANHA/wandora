@@ -544,3 +544,5 @@ ADR 0110 executes that wiring boundary: MEDICSPRO now has exactly one operator-o
 
 
 ADR 0111 accepts MEDICSPRO as the first real tenant-scoped customer-hire eligibility target. The target is active with one genuine confirmed owner path, zero employees/hire operations, exact Paperclip binding/config/custody and no provider agent. Eligibility remains operator-only state: the future first rollout uses the ADR 0085 exclusive-lock + `SET LOCAL ROLE wandora_customer_hire_operator` transaction and remains separate from the actual employee hire, activation and outbound effects.
+
+ADR 0112 executes that first real tenant policy transition. Exactly one eligibility row is now enabled for MEDICSPRO + `ana-commercial-v1`; the operator-only setter ran under the frozen exclusive-lock transaction and post-commit validation proves MEDICSPRO still has zero employees, employee-provider bindings, hire operations and Paperclip agents. Human Send and Gateway outbound remain OFF, so eligibility remains policy only and is not itself a hire or activation effect.

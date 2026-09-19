@@ -949,28 +949,29 @@ eligibility                = 0 / 0 enabled
 
 The final current secret version is version 2. The adversarial review rotated the initial value to an exact 32-byte `crypto.randomBytes(32)` value before closure; hash-only proof matches Core custody to Paperclip `value_sha256` and `fingerprint_sha256`. No plaintext was exposed. Temporary staging was removed, runtime health is green and outbound remains OFF.
 
-## MEDICSPRO First Real Tenant Eligibility Rollout — PREFLIGHT COMPLETE
+## MEDICSPRO First Real Tenant Eligibility Rollout — LIVE
 
-ADR 0111 proves MEDICSPRO is now the clean real target that ADR 0085 previously lacked:
+ADR 0111 accepted MEDICSPRO as the clean real target; ADR 0112 executed the serialized operator transition.
 
 ```text
-real confirmed owner path = green
-employees / legacy Ana    = 0 / 0
-control binding           = exactly 1
-employee bindings         = 0
-ana-commercial-v1 hires   = 0
-Paperclip agents          = 0
-HMAC/config/secret        = exact + healthy
-eligibility rows/enabled  = 0 / 0
+eligibility rows/enabled   = 1 / 1
+enabled target             = MEDICSPRO + ana-commercial-v1
+MEDICSPRO employees        = 0
+employee bindings          = 0
+MEDICSPRO hire operations  = 0
+Paperclip agents           = 0
+Organization Adapter       = exact + ready
+Human Send                 = OFF
+Gateway outbound           = OFF
 ```
 
-The operator authority is unchanged and a no-effect production rehearsal proved the exclusive-lock + local-role path without calling the setter. No eligibility row was created.
+The dedicated setter ran only under `SET LOCAL ROLE wandora_customer_hire_operator` after the exclusive lock and zero-enabled check. Independent post-commit validation confirmed no employee, provider-agent, activation or outbound side effect.
 
 ## Next executable slice
 
-Next: **Customer Owner First Real Tenant Eligibility Rollout Execution V1.**
+Next: **Customer Owner First Real Tenant Digital-Employee Hire Execution Preflight V1.**
 
-Execute only the frozen serialized setter transaction for MEDICSPRO + `ana-commercial-v1`, validate exactly one enabled eligibility row and stop before employee hire/activation/outbound.
+Revalidate the real owner/browser path, customer availability projection, idempotency contract and zero target employee/hire/provider-agent state. Preflight only: do not hire/activate Ana or enable Human Send/Gateway outbound.
 
 ## Platform Admin
 
@@ -1070,6 +1071,8 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0108 — Customer Owner First Real Tenant Organization Adapter Custody + Config + Binding Preflight V1
 - ADR 0109 — Customer Owner First Real Tenant Paperclip Local-Encrypted Recovery Snapshot Refresh Execution V1
 - ADR 0110 — Customer Owner First Real Tenant Organization Adapter Custody + Config + Binding Execution V1
+- ADR 0111 — Customer Owner First Real Tenant Eligibility Rollout Preflight V1
+- ADR 0112 — Customer Owner First Real Tenant Eligibility Rollout Execution V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
