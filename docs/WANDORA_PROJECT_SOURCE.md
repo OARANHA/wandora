@@ -1144,21 +1144,39 @@ outbound attempts       = 0
 
 Continuity rule: **never repeat migration 014 on resume merely because the HMAC/runtime portion remains incomplete.** Reconcile first and continue from the HMAC custody gate.
 
-## Paperclip bridge wrapper command-preservation correction gate
+## Paperclip -> Wandora/Mastra Production Execution Bridge — ACTIVATION V1 COMPLETE
 
-ADR 0123 is canonical on `main@2710f3e9100e93214b202953432a74d513ee5739`. Its root-custody -> tmpfs secret-copy design remains selected, but the first live promotion exposed an independent Compose bug: the custom entrypoint rendered with `Cmd=null`. Paperclip therefore entered a restart loop before application startup.
+ADR 0125 closes the production bridge-foundation activation after the ADR 0123/0124 corrections.
 
-The failed recreate was rolled back immediately to the prior bridge overlay. Paperclip is healthy again; `wandora_mastra` remains installed exactly once; Ana remains paused with zero wakeups/heartbeats; `agents.resume` remains absent; Human Send and Gateway outbound remain OFF.
+Canonical implementation state:
 
-ADR 0124 corrects the deployment contract by preserving the exact pinned Paperclip image command explicitly in the bridge overlay and requiring the wrapper to fail closed when it receives zero arguments. CI is hardened to detect both conditions.
+```text
+main = 72bcd60eb8428f6210bd2aae0532edabd2c75c5f
+migration 014 = LIVE / verified
+Core bridge = live / healthy / ready
+Paperclip bridge = live / healthy
+dedicated host HMAC = root:wandora-ops / 0640
+Paperclip adapter-visible HMAC = tmpfs / 0400 node:node / hash-equal
+wandora_mastra = installed exactly once / loaded / enabled / 0.1.0
+official test-environment = PASS
+Ana = exactly 1 / paused + supervised
+Paperclip Ana = paused
+wakeups / heartbeat runs = 0 / 0
+agents.resume = absent
+Human Send = OFF
+Gateway outbound = OFF
+MEDICSPRO outbound attempts = 0
+```
 
-Do not reinstall the adapter, change host HMAC ownership/mode, repeat migration 014, resume Ana, grant `agents.resume`, enable Human Send or enable Gateway outbound.
+The live execution discovered and safely reconciled two defects: HMAC readability across Paperclip's privilege drop, then loss of the image command when the custom entrypoint rendered with `Cmd=null`. The failed wrapper promotion was rolled back immediately; ADR 0124 preserved the exact pinned application command and hardened CI; the final retry is healthy with restart count zero.
+
+Do not repeat migration 014 or reinstall `wandora_mastra`. Do not resume Ana, grant `agents.resume`, enable Human Send/Gateway outbound or send to a customer without a new explicit reviewed slice.
 
 ## Next executable slice
 
-**Complete ADR 0124, then finish Activation Execution V1.**
+**STOP after Activation Execution V1.** The bridge foundation is live, but employee execution remains deliberately dormant.
 
-After the ADR 0124 correction is merged and green: stage exact overlay/wrapper -> prove Git blobs + rendered explicit command -> recreate only Paperclip -> prove healthy/restart 0, final app UID/GID 1000, tmpfs HMAC `0400 node:node` and hash equality -> adapter readback without reinstall -> official `test-environment` once and require pass -> prove Ana paused, zero wakeups/heartbeats, `agents.resume` absent, Human Send OFF, Gateway outbound OFF and outbound attempts zero -> STOP.
+Any next slice involving Ana activation/resume or real outbound must begin again with REAL NOW -> PROVEN EVIDENCE -> GAPS -> CAPABILITY AUTHORITY / REUSE GATE -> DECISION -> SECOND ADVERSARIAL REVIEW -> EXECUTION -> VALIDATION.
 
 ## Platform Admin
 
