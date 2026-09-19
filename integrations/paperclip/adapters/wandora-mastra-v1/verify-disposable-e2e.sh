@@ -227,12 +227,16 @@ test -n "$adapter_install"
 company_json="$(pc_api POST /api/companies '{"name":"Wandora Disposable Execution Attestation"}')"
 COMPANY_ID="$(printf '%s' "$company_json" | json_field id)"
 
-AGENT_ID="$(docker exec \
+fixture_output="$(docker exec \
   -e WANDORA_DISPOSABLE_COMPANY_ID="$COMPANY_ID" \
   "$PAPERCLIP" \
   node --import /app/server/node_modules/tsx/dist/loader.mjs \
   /proof/wandora-adapter/disposable-managed-agent-fixture.ts)"
-test -n "$AGENT_ID"
+AGENT_ID="$(printf '%s\n' "$fixture_output" | sed -n 's/^WANDORA_MANAGED_AGENT_ID=//p' | tail -n 1)"
+if ! [[ "$AGENT_ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]]; then
+  printf 'Disposable managed-agent fixture did not emit a valid id.\n%s\n' "$fixture_output" >&2
+  exit 42
+fi
 
 agent_identity="$(pc_api GET "/api/agents/$AGENT_ID")"
 test "$(printf '%s' "$agent_identity" | json_field name)" = "Ana"
