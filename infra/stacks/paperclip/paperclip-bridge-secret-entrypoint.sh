@@ -5,6 +5,7 @@ src=/run/secrets-root/wandora/paperclip-execution-bridge.hmac
 dst_dir=/run/secrets/wandora
 dst="$dst_dir/paperclip-execution-bridge.hmac"
 
+test "$#" -gt 0
 test -r "$src"
 mkdir -p "$dst_dir"
 chown node:node "$dst_dir"
