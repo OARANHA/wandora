@@ -518,3 +518,10 @@ Tenant provisioning and eligibility activation remain separate later effects.
 
 
 Customer Owner First Real Invite Execution V1 is applied under ADR 0101 and normal owner authentication is proven under ADR 0102. The next boundary is the first real tenant provisioning preflight using the existing Private Tenant Provisioning V2 capability; direct identity/membership inserts remain rejected.
+
+
+## Customer Owner First Real Tenant Provisioning
+
+ADR 0103 freezes the first real tenant as `MEDICSPRO` / `medicspro` and reuses the already-live Private Tenant Provisioning V2 capability. The execution identity remains the disabled-by-default `wandora_platform_provisioner` assumed only transaction-locally by an operator maintenance session. The raw Auth subject is runtime-resolved and hash-gated; direct identity/membership inserts remain rejected.
+
+Tenant provisioning is intentionally employee-free and provider-free. Paperclip company/bootstrap, provider bindings, customer-hire eligibility and employee hire remain separate later effects.
