@@ -12,6 +12,7 @@ TMP="${TMP_PARENT%/}/$SUFFIX"
 NET="wandora-paperclip-core-e2e-$SUFFIX"
 DB="wandora-paperclip-core-e2e-db-$SUFFIX"
 PAPERCLIP="wandora-paperclip-core-e2e-paperclip-$SUFFIX"
+PAPERCLIP_PROXY="wandora-paperclip-core-e2e-proxy-$SUFFIX"
 CORE="wandora-paperclip-core-e2e-core-$SUFFIX"
 CORE_IMAGE="wandora/core:paperclip-e2e-$SUFFIX"
 WANDORA_DB="wandora_test"
@@ -22,7 +23,7 @@ ORG_ID="11111111-1111-4111-8111-111111111111"
 EMPLOYEE_ID="22222222-2222-4222-8222-222222222222"
 
 cleanup() {
-  docker rm -f "$CORE" "$PAPERCLIP" "$DB" >/dev/null 2>&1 || true
+  docker rm -f "$CORE" "$PAPERCLIP_PROXY" "$PAPERCLIP" "$DB" >/dev/null 2>&1 || true
   docker network rm "$NET" >/dev/null 2>&1 || true
   docker image rm -f "$CORE_IMAGE" >/dev/null 2>&1 || true
   rm -rf "$TMP"
@@ -137,7 +138,7 @@ done
 
 docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$WANDORA_DB" -c   "ALTER ROLE wandora_core_runtime CONNECTION LIMIT 4 PASSWORD '$CORE_PASSWORD';" >/dev/null
 
-docker run -d --name "$PAPERCLIP"   --network "$NET" --network-alias wandora-paperclip   --read-only   --tmpfs /tmp:rw,nosuid,size=64m   --tmpfs /paperclip:rw,nosuid,size=256m   -v "$TMP/paperclip-source:/app:ro"   -v "$TMP/wandora-adapter:/proof/wandora-adapter:ro"   -v "$TMP/bridge.hmac:/proof/bridge.hmac:ro"   -v "$TMP/paperclip-loopback-proxy.mjs:/proof/paperclip-loopback-proxy.mjs:ro"   -e HOST=127.0.0.1   -e PORT=3100   -e SERVE_UI=false   -e PAPERCLIP_HOME=/paperclip   -e PAPERCLIP_INSTANCE_ID=wandora-disposable-attestation   -e PAPERCLIP_DEPLOYMENT_MODE=local_trusted   -e PAPERCLIP_DEPLOYMENT_EXPOSURE=private   -e PAPERCLIP_PUBLIC_URL=http://wandora-paperclip:3100   -e PAPERCLIP_ALLOWED_HOSTNAMES=wandora-paperclip   -e PAPERCLIP_TELEMETRY_DISABLED=1   -e DO_NOT_TRACK=1   -e PAPERCLIP_BUILD_VERSION=v2026.831.1   -e PAPERCLIP_BUILD_COMMIT="$EXPECTED_PAPERCLIP_COMMIT"   -e PAPERCLIP_MIGRATION_AUTO_APPLY=true   -e PAPERCLIP_MIGRATION_PROMPT=never   -e DATABASE_URL="postgresql://paperclip_attestation:$PAPERCLIP_DB_PASSWORD@$DB:5432/paperclip_attestation"   -e BETTER_AUTH_SECRET=disposable-better-auth-secret-0123456789abcdef   -e PAPERCLIP_AGENT_JWT_SECRET=disposable-agent-jwt-secret-0123456789abcdef0123456789abcdef   -e PAPERCLIP_TOOL_ACTION_SIGNING_SECRET=disposable-tool-secret-0123456789abcdef0123456789abcdef   -e WANDORA_PAPERCLIP_EXECUTION_BRIDGE_URL=http://wandora-core:8788/internal/v1/paperclip/execution   -e WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE=/proof/bridge.hmac   "$NODE24_IMAGE"   sh -lc 'node /proof/paperclip-loopback-proxy.mjs & exec node --import /app/server/node_modules/tsx/dist/loader.mjs /app/server/src/index.ts' >/dev/null
+docker run -d --name "$PAPERCLIP"   --network "$NET" --network-alias wandora-paperclip   --read-only   --tmpfs /tmp:rw,nosuid,size=64m   --tmpfs /paperclip:rw,nosuid,size=256m   -v "$TMP/paperclip-source:/app:ro"   -v "$TMP/wandora-adapter:/proof/wandora-adapter:ro"   -v "$TMP/bridge.hmac:/proof/bridge.hmac:ro"   -e HOST=127.0.0.1   -e PORT=3100   -e SERVE_UI=false   -e PAPERCLIP_HOME=/paperclip   -e PAPERCLIP_INSTANCE_ID=wandora-disposable-attestation   -e PAPERCLIP_DEPLOYMENT_MODE=local_trusted   -e PAPERCLIP_DEPLOYMENT_EXPOSURE=private   -e PAPERCLIP_PUBLIC_URL=http://wandora-paperclip:3100   -e PAPERCLIP_ALLOWED_HOSTNAMES=wandora-paperclip   -e PAPERCLIP_TELEMETRY_DISABLED=1   -e DO_NOT_TRACK=1   -e PAPERCLIP_BUILD_VERSION=v2026.831.1   -e PAPERCLIP_BUILD_COMMIT="$EXPECTED_PAPERCLIP_COMMIT"   -e PAPERCLIP_MIGRATION_AUTO_APPLY=true   -e PAPERCLIP_MIGRATION_PROMPT=never   -e DATABASE_URL="postgresql://paperclip_attestation:$PAPERCLIP_DB_PASSWORD@$DB:5432/paperclip_attestation"   -e BETTER_AUTH_SECRET=disposable-better-auth-secret-0123456789abcdef   -e PAPERCLIP_AGENT_JWT_SECRET=disposable-agent-jwt-secret-0123456789abcdef0123456789abcdef   -e PAPERCLIP_TOOL_ACTION_SIGNING_SECRET=disposable-tool-secret-0123456789abcdef0123456789abcdef   -e WANDORA_PAPERCLIP_EXECUTION_BRIDGE_URL=http://wandora-core:8788/internal/v1/paperclip/execution   -e WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE=/proof/bridge.hmac   "$NODE24_IMAGE"   node --import /app/server/node_modules/tsx/dist/loader.mjs /app/server/src/index.ts >/dev/null
 
 pc_api() {
   local method="$1" path="$2" body="${3:-}"
@@ -188,6 +189,24 @@ if ! pc_api GET /api/health >/dev/null 2>&1; then
   docker logs "$PAPERCLIP" >&2 || true
   exit 1
 fi
+
+docker run -d --name "$PAPERCLIP_PROXY" \
+  --network "container:$PAPERCLIP" \
+  --read-only \
+  --tmpfs /tmp:rw,noexec,nosuid,size=8m \
+  --security-opt no-new-privileges:true \
+  --cap-drop ALL \
+  -v "$TMP/paperclip-loopback-proxy.mjs:/proof/paperclip-loopback-proxy.mjs:ro" \
+  "$NODE24_IMAGE" \
+  node /proof/paperclip-loopback-proxy.mjs >/dev/null
+
+for _ in $(seq 1 30); do
+  if docker exec "$PAPERCLIP_PROXY" node -e "fetch('http://$(hostname -i):3100/not-allowed').then(r=>process.exit(r.status===404?0:1)).catch(()=>process.exit(1))" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 1
+done
+docker exec "$PAPERCLIP_PROXY" node -e "fetch('http://$(hostname -i):3100/not-allowed').then(r=>process.exit(r.status===404?0:1)).catch(()=>process.exit(1))" >/dev/null
 
 adapter_install="$(pc_api POST /api/adapters '{"localPath":"/proof/wandora-adapter"}')"
 test -n "$adapter_install"
