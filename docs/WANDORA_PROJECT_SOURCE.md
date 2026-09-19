@@ -981,11 +981,19 @@ Gateway outbound           = OFF
 
 The dedicated setter ran only under `SET LOCAL ROLE wandora_customer_hire_operator` after the exclusive lock and zero-enabled check. Independent post-commit validation confirmed no employee, provider-agent, activation or outbound side effect.
 
+## MEDICSPRO First Real Digital-Employee Hire Execution Preflight — COMPLETE
+
+ADR 0114 proves the first real MEDICSPRO customer-hire path is ready without performing the hire. Live state remains one enabled `ana-commercial-v1` eligibility, one control binding, zero MEDICSPRO employees, zero employee-provider bindings, zero hire operations, zero Paperclip agents and zero unfinished hires. Human Send and Gateway outbound remain OFF.
+
+The running Core's packaged eligibility/reconciliation code was inspected directly and a no-effect invocation of its actual live read service projects `hire.available=true / state=available` for MEDICSPRO. The deployed Web is still source-equivalent to current `apps/web/`; it persists one organization-scoped UUIDv4 idempotency key before the POST, reuses it for safe ambiguity recovery and clears it only after validated success.
+
+Capability Reuse Gate: no new capability/state is needed. The future hire reuses the existing Wandora customer contract -> Organization Adapter -> Paperclip managed-agent capability and must finalize Ana as `paused + supervised` only.
+
 ## Next executable slice
 
-Next: **Customer Owner First Real Tenant Digital-Employee Hire Execution Preflight V1.**
+**Customer Owner First Real Tenant Digital-Employee Hire Execution V1.**
 
-Revalidate the real owner/browser path, customer availability projection, idempotency contract and zero target employee/hire/provider-agent state. Preflight only: do not hire/activate Ana or enable Human Send/Gateway outbound.
+Use a fresh normal MEDICSPRO owner browser session, require `/api/v1/me` + customer `hire.available=true`, initiate exactly one `Contratar Ana` operation, then independently reconcile one Wandora employee, one employee-provider binding, one completed hire operation and one paused Paperclip managed Ana. Do not activate/resume Ana. Keep Human Send and Gateway outbound OFF. On ambiguous outcome, reconcile/retry only with the original browser idempotency key.
 
 ## Platform Admin
 
@@ -1087,6 +1095,8 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0110 — Customer Owner First Real Tenant Organization Adapter Custody + Config + Binding Execution V1
 - ADR 0111 — Customer Owner First Real Tenant Eligibility Rollout Preflight V1
 - ADR 0112 — Customer Owner First Real Tenant Eligibility Rollout Execution V1
+- ADR 0113 — GitHub Actions Self-Hosted Runner Isolation V1
+- ADR 0114 — Customer Owner First Real Tenant Digital-Employee Hire Execution Preflight V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 

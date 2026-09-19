@@ -566,3 +566,24 @@ ADR 0110 executes that wiring boundary: MEDICSPRO now has exactly one operator-o
 ADR 0111 accepts MEDICSPRO as the first real tenant-scoped customer-hire eligibility target. The target is active with one genuine confirmed owner path, zero employees/hire operations, exact Paperclip binding/config/custody and no provider agent. Eligibility remains operator-only state: the future first rollout uses the ADR 0085 exclusive-lock + `SET LOCAL ROLE wandora_customer_hire_operator` transaction and remains separate from the actual employee hire, activation and outbound effects.
 
 ADR 0112 executes that first real tenant policy transition. Exactly one eligibility row is now enabled for MEDICSPRO + `ana-commercial-v1`; the operator-only setter ran under the frozen exclusive-lock transaction and post-commit validation proves MEDICSPRO still has zero employees, employee-provider bindings, hire operations and Paperclip agents. Human Send and Gateway outbound remain OFF, so eligibility remains policy only and is not itself a hire or activation effect.
+
+
+## Customer Owner First Real Tenant Digital-Employee Hire Execution Preflight
+
+ADR 0114 closes the final no-effect gate before the first real MEDICSPRO employee hire. MEDICSPRO has one enabled `ana-commercial-v1` eligibility, one healthy Organization Adapter control binding and zero Wandora employees/hire operations/provider employee bindings; Paperclip independently still has zero agents for the MEDICSPRO company.
+
+The currently running Core's packaged implementation was inspected directly and its live customer read model projects `items=[]` plus `hire.available=true / state=available`. The deployed Web remains source-equivalent to current `apps/web/` and owns the browser-side organization-scoped UUIDv4 idempotency key, while Core remains authoritative for session, membership, eligibility, collision, binding and reconciliation checks.
+
+The frozen next effect is deliberately narrow:
+
+```text
+normal MEDICSPRO owner browser session
+  -> GET customer availability = available
+  -> Contratar Ana
+  -> one persisted idempotency key
+  -> Organization Adapter
+  -> Paperclip managed-agent reconcile
+  -> Wandora Ana = paused + supervised
+```
+
+Hire does not imply activation. No resume/activation, Mastra execution, Human Send or Gateway outbound is part of that effect. Provider ambiguity is reconciled under the original idempotency key; a new key is never a recovery mechanism.
