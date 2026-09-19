@@ -116,7 +116,13 @@ The following remain mandatory before production promotion:
 11. rollback evidence;
 12. independent post-proof production invariants.
 
-Until those gates are green, production remains pinned to `v2026.831.1`.
+ADR 0128 completed those disposable gates GREEN.
+
+This means `v2026.916.0` is **eligible for a separately reviewed production-upgrade preflight**. It does not authorize promotion.
+
+Production remains pinned to `v2026.831.1` until a later reviewed production-upgrade execution explicitly changes it.
+
+The proof also established an upgrade/rollback constraint: Paperclip's normal logical backup does not serialize PostgreSQL CHECK constraints. A future production upgrade must therefore protect both the official Paperclip backup + matching `master.key` and a fresh schema-faithful PostgreSQL 18.1 `pg_dump -Fc`.
 
 ## Provider references
 
