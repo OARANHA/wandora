@@ -18,9 +18,10 @@ CORE_IMAGE="wandora/core:ci-$SUFFIX"
 CORE_SMOKE="wandora-core-smoke-$SUFFIX"
 CORE_DB_SMOKE="wandora-core-db-smoke-$SUFFIX"
 CORE_ORG_ADAPTER_SMOKE="wandora-core-org-adapter-smoke-$SUFFIX"
-TMP_SECRET="$(mktemp)"
-TMP_OUTBOUND_SECRET="$(mktemp)"
-TMP_ORG_ADAPTER_DIR="$(mktemp -d)"
+CONTAINER_SECRET_GID="${WANDORA_CI_CONTAINER_SECRET_GID:-$(id -g)}"
+TMP_SECRET="$(mktemp -p "${RUNNER_TEMP:-/tmp}" wandora-core-db-secret.XXXXXX)"
+TMP_OUTBOUND_SECRET="$(mktemp -p "${RUNNER_TEMP:-/tmp}" wandora-core-outbound-secret.XXXXXX)"
+TMP_ORG_ADAPTER_DIR="$(mktemp -d -p "${RUNNER_TEMP:-/tmp}" wandora-core-org-adapter.XXXXXX)"
 
 cleanup() {
   docker rm -f "$CORE_ORG_ADAPTER_SMOKE" >/dev/null 2>&1 || true
@@ -129,11 +130,27 @@ docker run --rm --network "$NET" -v "$CORE:/app" -w /app \
 docker build -t "$CORE_IMAGE" "$CORE" >/dev/null
 docker run -d --name "$CORE_SMOKE" --network none \
   -e WANDORA_CORE_MODE=standby -e PORT=8788 "$CORE_IMAGE" >/dev/null
+core_smoke_ready=0
 for _ in $(seq 1 30); do
+  if [ "$(docker inspect -f '{{.State.Running}}' "$CORE_SMOKE" 2>/dev/null || echo false)" != "true" ]; then
+    docker inspect -f 'core_smoke_status={{.State.Status}} exit={{.State.ExitCode}} oom={{.State.OOMKilled}} error={{json .State.Error}}' "$CORE_SMOKE" >&2 || true
+    docker logs "$CORE_SMOKE" >&2 || true
+    echo 'wandora_core_standby_smoke_exited_before_health' >&2
+    exit 1
+  fi
   if docker exec "$CORE_SMOKE" node -e \
-    "fetch('http://127.0.0.1:8788/healthz').then(r=>process.exit(r.status===200?0:1)).catch(()=>process.exit(1))"; then break; fi
+    "fetch('http://127.0.0.1:8788/healthz').then(r=>process.exit(r.status===200?0:1)).catch(()=>process.exit(1))"; then
+    core_smoke_ready=1
+    break
+  fi
   sleep 1
 done
+if [ "$core_smoke_ready" -ne 1 ]; then
+  docker inspect -f 'core_smoke_status={{.State.Status}} exit={{.State.ExitCode}} oom={{.State.OOMKilled}} error={{json .State.Error}}' "$CORE_SMOKE" >&2 || true
+  docker logs "$CORE_SMOKE" >&2 || true
+  echo 'wandora_core_standby_smoke_health_timeout' >&2
+  exit 1
+fi
 docker exec "$CORE_SMOKE" node -e \
   "fetch('http://127.0.0.1:8788/readyz').then(r=>process.exit(r.status===503?0:1)).catch(()=>process.exit(1))"
 test -z "$(docker port "$CORE_SMOKE")"
@@ -144,7 +161,7 @@ chmod 0640 "$TMP_SECRET" "$TMP_OUTBOUND_SECRET"
 chmod 0750 "$TMP_ORG_ADAPTER_DIR"
 
 docker run -d --name "$CORE_DB_SMOKE" --network "$NET" \
-  --group-add "$(id -g)" \
+  --group-add "$CONTAINER_SECRET_GID" \
   -v "$TMP_SECRET:/run/secrets/wandora_core_db_password:ro" \
   -e WANDORA_CORE_MODE=database \
   -e WANDORA_CORE_DB_HOST="$DB" \
@@ -167,7 +184,7 @@ test -z "$(docker port "$CORE_DB_SMOKE")"
 # The same candidate image with Organization Adapter enabled must fail closed
 # while the historical DB is intentionally still at inert migration 010.
 docker run -d --name "$CORE_ORG_ADAPTER_SMOKE" --network "$NET" \
-  --group-add "$(id -g)" \
+  --group-add "$CONTAINER_SECRET_GID" \
   -v "$TMP_SECRET:/run/secrets/wandora_core_db_password:ro" \
   -v "$TMP_ORG_ADAPTER_DIR:/run/secrets/wandora/organization-adapter:ro" \
   -e WANDORA_CORE_MODE=database \

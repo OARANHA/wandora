@@ -1,8 +1,9 @@
 # Wandora — Project Source / Continuity Bootstrap
 
-Snapshot date: **2026-09-18**
+Snapshot date: **2026-09-19**
 Repository: `OARANHA/wandora`
-Canonical main entering ADR 0099 execution: `1e96c04458750210cf237b7c7b11e48167717e25`
+Canonical main entering the self-hosted CI restoration slice: `90ce29465816e4b91fb7bf2d516e0119a6404731`
+Active infrastructure PR at this snapshot: **#162** (`ci: add isolated Wandora self-hosted runner`); implementation-validation head `fad8d64070663aea823325f8970a24b90004295e`.
 
 > **Purpose:** compact bootstrap for ChatGPT Project Sources and future development sessions. It prevents architectural drift, accidental reinvention and stale workflow assumptions.
 >
@@ -21,6 +22,19 @@ Before a material product, architecture, code, database or infrastructure decisi
 7. this file only as continuity/bootstrap context.
 
 Mutable facts such as branch, container image, feature flags, database counts and deployment status must be reverified.
+
+
+## Current CI execution boundary
+
+The repository remains private. GitHub-hosted Actions quota exhaustion is treated as an unavailable hosted-runner allowance, not as a failed code/test result.
+
+Normal Wandora CI now uses the repository-scoped runner `wandora-vps-01-ci` on the existing Wandora VPS. The runner uses the dedicated `wandora-ci` identity and a separate rootless Docker daemon; it is not in the host `docker`, `wandora-ops` or `sudo` groups and has no production Docker socket authority.
+
+The live runner service is bounded to 300% CPU, 3 GiB `MemoryHigh`, 4 GiB `MemoryMax` and 4096 tasks, with `UMask=0022` and `PrivateTmp=yes`. Pre/post job hooks prove the rootless boundary and clean CI Docker state.
+
+Important continuity rule: bind sources needed by rootless Docker must be staged in `RUNNER_TEMP`, not runner-private `/tmp`, because the Docker daemon is a separate user service and therefore does not share the runner service's private tmp namespace.
+
+The implementation-validation head passed all seven repository CI workflows while critical production containers remained healthy with zero restarts. See ADR 0113 for the evidence chain.
 
 ## Mandatory development discipline
 

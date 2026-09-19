@@ -6,6 +6,26 @@ This document describes the current Wandora architecture for the laboratory / ea
 
 Authority order is `AGENTS.md` → accepted ADRs → `docs/CAPABILITY_AUTHORITY.md` → this document → `docs/CANONICAL_STATE.md` → component README/runbook.
 
+
+## CI execution boundary
+
+GitHub Actions remains the CI control plane. The private repository's normal Linux/Docker workflows execute on the repository-scoped runner `wandora-vps-01-ci`, labeled `[self-hosted, linux, x64, wandora-ci]`.
+
+The runner shares the Wandora VPS kernel but not the production Docker authority:
+
+- dedicated host identity `wandora-ci`;
+- no host `docker`, `wandora-ops` or `sudo` membership;
+- separate rootless Docker daemon, socket and image store;
+- no mount or access to the production Docker socket;
+- systemd denial for `/opt/wandora`, operator/root homes and production Docker socket paths;
+- `NoNewPrivileges`, `PrivateDevices`, `ProtectSystem=strict`, `PrivateTmp=yes` and namespace restrictions;
+- one repository runner job at a time;
+- 300% CPU, 3 GiB memory-high, 4 GiB memory-max and 4096-task ceilings.
+
+Because `PrivateTmp=yes` isolates the runner's `/tmp` namespace from the separate rootless Docker user service, any workflow file/directory that will be bind-mounted into CI Docker must be staged under GitHub's `RUNNER_TEMP` (with a non-GitHub `/tmp` fallback), not created in runner-private `/tmp`.
+
+CI is never authorized to manage or introspect the production Docker control plane. Production deployment remains an explicit, separately reviewed operator effect.
+
 ## Product model
 
 The customer should perceive a company operating with human and digital employees. Technical implementation details are intentionally hidden.

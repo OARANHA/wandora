@@ -1,6 +1,6 @@
 # Wandora — Canonical State / Handoff
 
-Last synchronized: **2026-09-17**
+Last synchronized: **2026-09-19**
 
 Canonical Git base before this canary-completion checkpoint:
 
@@ -12,6 +12,32 @@ PR #103 = merged
 ADR 0059 now records the completed internal canary, including the private-hostname correction, successful same-key recovery and the bounded post-canary runtime state. Mutable Git/runtime state must still be reverified before execution.
 
 Authority order: `AGENTS.md` → accepted ADRs → `docs/CAPABILITY_AUTHORITY.md` → `docs/architecture.md` → this file → component README/runbook.
+
+
+## 2026-09-19 CI execution checkpoint — LIVE
+
+This section is the newest mutable infrastructure checkpoint and supersedes older Git/CI mutable-state lines below where they conflict.
+
+```text
+main entering CI slice                     = 90ce29465816e4b91fb7bf2d516e0119a6404731
+PR                                          = #162 ci: add isolated Wandora self-hosted runner
+implementation-validation head             = fad8d64070663aea823325f8970a24b90004295e
+repository                                  = private
+runner                                      = wandora-vps-01-ci
+runner host                                 = wandora-vps-01 / 13.140.190.149
+runner identity                             = wandora-ci
+Docker boundary                             = dedicated rootless daemon
+production Docker socket access             = none
+validated PR checks                         = 7/7 success
+```
+
+GitHub-hosted Actions quota exhaustion is an external billing/quota condition, not a code failure. Normal repository CI now targets `[self-hosted, linux, x64, wandora-ci]`.
+
+The runner is deliberately hosted on the existing Wandora VPS but is isolated from production through a dedicated unprivileged identity, no host `docker`/operator/sudo groups, a separate rootless Docker daemon/store, explicit systemd path restrictions, pre/post rootless-boundary hooks and resource ceilings of 300% CPU, 3 GiB `MemoryHigh`, 4 GiB `MemoryMax` and 4096 tasks. The runner service keeps `PrivateTmp=yes`; workflow files that must be bind-mounted into rootless Docker must be staged under `RUNNER_TEMP`, not the runner-private `/tmp`.
+
+Final validation on the implementation head proved Core Candidate, Core, Messaging Gateway, Operator Consoles, Organization Adapter Plugin, Platform Admin and Web CI green while critical production containers remained healthy with zero restarts.
+
+The next functional product slice remains **Customer Owner First Real Tenant Digital-Employee Hire Execution Preflight V1**. This CI restoration slice does not hire or activate Ana, enable Human Send, enable Gateway outbound, or change the MEDICSPRO Organization Adapter binding/HMAC/secret.
 
 This file is a compact current-state handoff. Historical evidence belongs in accepted ADRs and infra proof documents. Mutable runtime facts must be re-verified before a later production action.
 

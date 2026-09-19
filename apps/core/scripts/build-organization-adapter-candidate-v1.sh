@@ -40,6 +40,7 @@ rm -rf "$OUT_DIR"
 mkdir -p "$OUT_DIR"
 
 docker build \
+  --provenance=false \
   --label "org.opencontainers.image.revision=$SOURCE_SHA" \
   --label 'io.wandora.candidate=organization-adapter-core-v1' \
   -t "$IMAGE" \

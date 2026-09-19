@@ -17,8 +17,10 @@ concurrency:
 jobs:
   messaging-gateway-verifier:
     name: Messaging Gateway verifier
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, linux, x64, wandora-ci]
     timeout-minutes: 15
+    env:
+      WANDORA_CI_CONTAINER_SECRET_GID: "0"
 
     steps:
       - name: Checkout repository
@@ -34,21 +36,21 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          tmp="$(mktemp -d)"
+          tmp="$(mktemp -d -p "${RUNNER_TEMP:-/tmp}" wandora-gateway-ci.XXXXXX)"
           trap 'rm -rf "$tmp"' EXIT
           printf '%s\n' 'synthetic-evolution-jwt-secret-01234567890123456789' > "$tmp/evolution-jwt"
           printf '%s\n' 'synthetic-gateway-core-secret-012345678901234567890' > "$tmp/core-hmac"
           printf '%s\n' 'synthetic-core-outbound-secret-01234567890123456789' > "$tmp/core-outbound-hmac"
           printf '%s\n' 'synthetic-evolution-api-key-012345678901234567890' > "$tmp/evolution-api-key"
           printf '%s\n' 'synthetic-core-db-secret-012345678901234567890123' > "$tmp/core-db"
-          WANDORA_GATEWAY_SECRET_GID="$(id -g)" \
+          WANDORA_GATEWAY_SECRET_GID="$WANDORA_CI_CONTAINER_SECRET_GID" \
           WANDORA_EVOLUTION_INSTANCE=wandora-ci-01 \
           WANDORA_ORGANIZATION_ID=11111111-1111-1111-1111-111111111111 \
           WANDORA_CONNECTION_ID=22222222-2222-2222-2222-222222222222 \
           WANDORA_EVOLUTION_WEBHOOK_JWT_KEY_FILE="$tmp/evolution-jwt" \
           WANDORA_GATEWAY_CORE_INGRESS_SECRET_FILE="$tmp/core-hmac" \
           docker compose -f infra/stacks/messaging-gateway/compose.yaml config >/dev/null
-          WANDORA_GATEWAY_SECRET_GID="$(id -g)" \
+          WANDORA_GATEWAY_SECRET_GID="$WANDORA_CI_CONTAINER_SECRET_GID" \
           WANDORA_EVOLUTION_INSTANCE=wandora-ci-01 \
           WANDORA_ORGANIZATION_ID=11111111-1111-1111-1111-111111111111 \
           WANDORA_CONNECTION_ID=22222222-2222-2222-2222-222222222222 \
@@ -60,7 +62,7 @@ jobs:
             -f infra/stacks/messaging-gateway/compose.yaml \
             -f infra/stacks/messaging-gateway/compose.outbound-evolution.yaml \
             config >/dev/null
-          WANDORA_CORE_SECRET_GID="$(id -g)" \
+          WANDORA_CORE_SECRET_GID="$WANDORA_CI_CONTAINER_SECRET_GID" \
           WANDORA_CORE_DB_PASSWORD_FILE="$tmp/core-db" \
           WANDORA_GATEWAY_CORE_INGRESS_SECRET_FILE="$tmp/core-hmac" \
           docker compose \
@@ -73,7 +75,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          tmp="$(mktemp -d)"
+          tmp="$(mktemp -d -p "${RUNNER_TEMP:-/tmp}" wandora-gateway-ci.XXXXXX)"
+          chmod 0750 "$tmp"
           network="wandora-gateway-ci-${GITHUB_RUN_ID}"
           container="wandora-gateway-ci-${GITHUB_RUN_ID}"
           cleanup() {
@@ -93,7 +96,7 @@ jobs:
             --tmpfs /tmp:rw,noexec,nosuid,size=16m \
             --cap-drop ALL \
             --security-opt no-new-privileges \
-            --group-add "$(id -g)" \
+            --group-add "$WANDORA_CI_CONTAINER_SECRET_GID" \
             -e PORT=8787 \
             -e WANDORA_EVOLUTION_INSTANCE=wandora-ci-01 \
             -e WANDORA_ORGANIZATION_ID=11111111-1111-1111-1111-111111111111 \
@@ -113,7 +116,11 @@ jobs:
             fi
             sleep 1
           done
-          test "$ready" -eq 1
+          if [ "$ready" -ne 1 ]; then
+            docker inspect "$container" --format 'state={{.State.Status}} exit={{.State.ExitCode}} error={{.State.Error}}' || true
+            docker logs "$container" || true
+            exit 1
+          fi
           docker run --rm --network "$network" \
             node:22.23.2-bookworm-slim@sha256:83f487e0a63425e5b4d146fb5e5be574bcbe1b7b843d3ebafdd95eaf7767a7e5 \
             node -e "fetch('http://${container}:8787/internal/v1/core/outbound/text',{method:'POST'}).then(r=>{if(r.status!==404)process.exit(1)}).catch(()=>process.exit(1))"

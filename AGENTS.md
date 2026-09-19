@@ -17,6 +17,23 @@ Do not silently reopen, reinterpret or override an accepted decision. If new evi
 
 **Urgent architecture rule:** a missing local Wandora table/service/workflow is never, by itself, evidence that Wandora should implement that capability. Before any material new domain state or subsystem is designed, apply ADR 0036's Capability Authority / Reuse Gate.
 
+
+## 1.1 Self-hosted CI safety boundary
+
+The private Wandora repository uses the repository-scoped self-hosted runner `wandora-vps-01-ci` on the Wandora VPS. Treat its isolation contract as production safety infrastructure:
+
+- workflows must target `[self-hosted, linux, x64, wandora-ci]` unless an accepted ADR explicitly changes the runner strategy;
+- never add the CI identity to host `docker`, `wandora-ops` or `sudo`;
+- never mount or expose the production Docker socket to CI;
+- Docker-based CI must use the dedicated rootless Docker daemon;
+- do not remove `PrivateTmp=yes` merely to make bind mounts work;
+- any host path that a CI container must bind-mount must be staged under `RUNNER_TEMP` (fallback `/tmp` only outside the self-hosted GitHub environment);
+- do not weaken the runner CPU/memory/task ceilings merely to make a heavy job pass; first prove the resource requirement and review production impact;
+- pre/post hooks and the `WANDORA_CI_ROOTLESS_BOUNDARY_OK` / `WANDORA_CI_CLEANUP_OK` evidence are part of the runner contract;
+- CI passing never authorizes deployment, migrations, outbound effects or production Docker changes.
+
+See ADR 0113.
+
 ## 2. Project identity
 
 Wandora is a standalone product for businesses to hire, train, govern and measure digital employees alongside human teams.
