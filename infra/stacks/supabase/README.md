@@ -37,9 +37,9 @@ The deployment is based on the official `docker/` self-hosted tree from the pinn
 
 ### Transactional Auth e-mail
 
-ADR 0096 selects Resend SMTP as the initial production delivery provider behind Supabase Auth, but **provider wiring and live Auth SMTP activation are not active yet**. The future sender domain is `notify.wandora.com.br` in Resend `sa-east-1`, using `Wandora <acesso@notify.wandora.com.br>` and a sending-only credential restricted to that domain.
+ADR 0096 selects Resend SMTP as the initial production delivery provider behind Supabase Auth. ADR 0097 completes provider-side provisioning: `notify.wandora.com.br` is verified in Resend `sa-east-1`; provider DKIM/sending CNAMEs are live; `_dmarc.notify.wandora.com.br` is live at monitoring-only `p=none`; and the dedicated sending credential authenticates successfully over SMTP STARTTLS without issuing MAIL/RCPT/DATA.
 
-The future SMTP password must not live in this repository or in the Supabase `.env`. The reviewed direction is a host-owned Docker secret file mounted only into `auth`, with the GoTrue startup wrapper reading it inside the container before `exec /usr/local/bin/auth`. See ADR 0096 before changing SMTP configuration.
+The SMTP credential exists only at `/opt/wandora/data/supabase/secrets/gotrue_smtp_pass` with `root:wandora-ops/0640` custody. It must not live in this repository, the Supabase `.env`, Compose text, browser-visible configuration or another service environment. **Live GoTrue SMTP is still not activated** and remains on the previous `supabase-mail:2500` settings. The next slice is an activation preflight; do not recreate Auth or send e-mail merely because the provider foundation is ready.
 
 ## Wandora migrations
 
