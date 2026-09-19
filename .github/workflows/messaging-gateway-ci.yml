@@ -36,7 +36,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          tmp="$(mktemp -d)"
+          tmp="$(mktemp -d -p "${RUNNER_TEMP:-/tmp}" wandora-gateway-ci.XXXXXX)"
           trap 'rm -rf "$tmp"' EXIT
           printf '%s\n' 'synthetic-evolution-jwt-secret-01234567890123456789' > "$tmp/evolution-jwt"
           printf '%s\n' 'synthetic-gateway-core-secret-012345678901234567890' > "$tmp/core-hmac"
@@ -75,7 +75,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          tmp="$(mktemp -d)"
+          tmp="$(mktemp -d -p "${RUNNER_TEMP:-/tmp}" wandora-gateway-ci.XXXXXX)"
           chmod 0750 "$tmp"
           network="wandora-gateway-ci-${GITHUB_RUN_ID}"
           container="wandora-gateway-ci-${GITHUB_RUN_ID}"
