@@ -493,3 +493,25 @@ ADR 0079 selected an additional Wandora-owned organization+catalog eligibility f
 - generic customer prompt/workflow builder;
 - customer access to provider consoles;
 - requesting a model token before it is needed.
+
+
+## Customer Owner First Real Invite Execution Preflight V1
+
+ADR 0100 freezes the first real customer-owner Auth effect at the Supabase boundary:
+
+```text
+authorized real owner e-mail
+  -> one service-role POST /auth/v1/invite
+  -> redirect to /accept-invite
+  -> first password
+  -> normal password grant
+  -> later Private Tenant Provisioning V2
+```
+
+Invite execution is currently blocked because no genuine new owner target has been explicitly authorized. Existing/proof/legacy identities are not substitutes.
+
+The effect boundary is conservative: no blind retry after timeout or ambiguous provider result. In GoTrue v2.196.0 the SMTP send occurs before the surrounding invite transaction has necessarily committed `invited_at` and its one-time-token state, so database absence alone cannot prove that no e-mail left the system. Reconcile Auth plus Resend/operator evidence first.
+
+Pre-accept revocation, if ever required, uses the provider-native Admin API delete only after proving the invite was not accepted and no Wandora/provider business state exists. Delivery itself is irreversible.
+
+Tenant provisioning and eligibility activation remain separate later effects.
