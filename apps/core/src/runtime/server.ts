@@ -9,6 +9,10 @@ import type {
   GatewayIngressRequest,
   GatewayIngressResponse,
 } from './gateway-ingress.js';
+import type {
+  PaperclipExecutionRequest,
+  PaperclipExecutionResponse,
+} from '../paperclip-execution/handler.js';
 import {
   isHumanDigitalEmployeeHirePath,
   isHumanSendProposalPath,
@@ -33,6 +37,7 @@ export type RuntimeServerDeps = {
   mode: RuntimeMode;
   checkReady: () => Promise<RuntimeReadiness>;
   handleGatewayInbound?: (request: GatewayIngressRequest) => Promise<GatewayIngressResponse>;
+  handlePaperclipExecution?: (request: PaperclipExecutionRequest) => Promise<PaperclipExecutionResponse>;
   handleHumanSupervision?: (request: HumanSupervisionRequest) => Promise<HumanSupervisionResponse>;
 };
 
@@ -87,6 +92,34 @@ export function createRuntimeServer(deps: RuntimeServerDeps): Server {
           rawBody,
           timestamp: header(request, 'x-wandora-timestamp'),
           signature: header(request, 'x-wandora-signature'),
+        });
+        writeJson(response, result.status, result.body);
+      } catch (error) {
+        if (error instanceof PayloadTooLargeError) {
+          writeJson(response, 413, { error: 'payload-too-large' });
+        } else {
+          writeJson(response, 500, { error: 'internal-error' });
+        }
+      }
+      return;
+    }
+
+    if (url.pathname === '/internal/v1/paperclip/execution') {
+      if (request.method !== 'POST') {
+        writeJson(response, 405, { error: 'method-not-allowed' });
+        return;
+      }
+      if (!deps.handlePaperclipExecution) {
+        writeJson(response, 404, { error: 'not-found' });
+        return;
+      }
+      try {
+        const rawBody = await readBody(request, 32_768);
+        const result = await deps.handlePaperclipExecution({
+          rawBody,
+          timestamp: header(request, 'x-wandora-paperclip-timestamp'),
+          signature: header(request, 'x-wandora-paperclip-signature'),
+          runToken: header(request, 'x-wandora-paperclip-run-token'),
         });
         writeJson(response, result.status, result.body);
       } catch (error) {
