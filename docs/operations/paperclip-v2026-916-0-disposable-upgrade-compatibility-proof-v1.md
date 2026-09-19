@@ -360,6 +360,7 @@ Therefore the future production-upgrade rollback contract must include:
 
 - protected pre-upgrade Paperclip DB backup;
 - matching `master.key`;
+- a fresh protected PostgreSQL 18.1 schema-faithful `pg_dump -Fc` retained through the rollback window;
 - previous exact image/source;
 - previous exact bridge wrapper/overlay;
 - retained exact external adapter package;
@@ -385,6 +386,36 @@ Retain:
 - protected official recovery snapshot;
 - exact source/image provenance evidence needed for a future reviewed production upgrade;
 - canonical documentation/ADR checkpoint.
+
+## Execution result — GREEN / ADR 0128
+
+The 2026-09-19 execution completed every gate.
+
+Key final evidence:
+
+```text
+exact candidate       = v2026.916.0 / dffc2b3... / sha256:4fb5073...
+schema canonical hash = 379673af39dc3d8d0dfcbd7bf5c751bde96ef6fae6bb88079c13e956959f8356
+live == proof schema  = true
+migrations 0231..0279 = PASS
+local_encrypted       = decrypt PASS / hash PASS / wrong-key reject PASS
+wandora_mastra        = copied current package / load PASS / official test PASS
+run-scoped JWT        = /api/agents/me 200 / tampered token 401
+Core + Mastra         = mapped run PASS / mastra-deterministic invoked
+unknown mapping       = fail-closed / Mastra not invoked
+bad HMAC              = 401
+production drift      = none
+v831 rollback lab     = PASS before cleanup
+cleanup               = zero proof containers/network/volumes/state
+```
+
+Important backup/rollback finding:
+
+- the normal Paperclip logical backup does not serialize PostgreSQL CHECK constraints;
+- it remains the official logical data + `local_encrypted` recovery artifact;
+- upgrade rehearsals and a future production-upgrade rollback must additionally use a schema-faithful PostgreSQL 18.1 `pg_dump -Fc`.
+
+The disposable proof does not authorize production mutation. It only makes v2026.916.0 eligible for a separately reviewed **Production Upgrade Preflight V1**.
 
 ## GO / NO-GO rule
 
