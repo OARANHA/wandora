@@ -2119,11 +2119,42 @@ Gateway outbound              = OFF
 
 The setter ran only under `SET LOCAL ROLE wandora_customer_hire_operator` inside the ADR 0111 exclusive-lock transaction. The postcondition assertions passed before COMMIT, then an independent connection and Paperclip read proved that eligibility alone created no employee/provider/outbound effect.
 
+## Customer Owner First Real Tenant Digital-Employee Hire Execution Preflight V1 — COMPLETE
+
+ADR 0114 revalidates the first real MEDICSPRO hire boundary after eligibility became live.
+
+Fresh production evidence:
+
+```text
+MEDICSPRO active owner path       = 1
+MEDICSPRO eligibility            = 1 enabled
+MEDICSPRO control binding        = 1
+MEDICSPRO employees              = 0
+employee-provider bindings       = 0
+MEDICSPRO hire operations        = 0
+global unfinished hires          = 0
+MEDICSPRO Paperclip agents       = 0
+Human Send                       = OFF
+Gateway outbound                 = OFF
+```
+
+The running Core image's packaged JS was inspected rather than trusting its OCI revision label alone and contains the tenant-eligibility/reconciliation contract. A no-effect call through the actual live Core read service against the live database projects MEDICSPRO as:
+
+```json
+{"itemCount":0,"hire":{"catalogKey":"ana-commercial-v1","available":true,"state":"available"}}
+```
+
+The deployed Web has no `apps/web/` delta from its source revision to current main. It persists one organization-scoped UUIDv4 idempotency key in session storage before the canonical POST, retains it on ambiguous outcome and clears it only after validated success. The customer route remains normal human session -> active owner/admin -> eligibility -> collision/binding checks -> one durable hire operation -> Paperclip reconciliation -> paused/supervised finalization.
+
+Capability Reuse Gate passes with no new domain code: Paperclip remains the employee control-plane authority behind the existing Organization Adapter; Wandora keeps only policy, stable projection, binding and idempotency/reconciliation state.
+
+A fresh normal owner browser session is deliberately an execution-time pre-dispatch gate. No bearer token was extracted or manufactured during preflight.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Owner First Real Tenant Digital-Employee Hire Execution Preflight V1.**
+Next: **Customer Owner First Real Tenant Digital-Employee Hire Execution V1.**
 
-Revalidate the real owner/browser path, customer availability projection, exact idempotency contract, MEDICSPRO wiring and zero target employee/hire/provider-agent state. Do not hire or activate Ana and do not enable Human Send or Gateway outbound during the preflight.
+Execute one normal-owner browser `Contratar Ana` operation only after fresh zero-state + `hire.available=true` validation. Reconcile exactly one paused/supervised Wandora Ana, one employee-provider binding, one completed hire operation and one paused Paperclip managed Ana. Never use a new idempotency key to escape ambiguity. Do not activate/resume Ana and keep Human Send and Gateway outbound OFF.
 
 ## Operational safety
 
