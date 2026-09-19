@@ -67,7 +67,7 @@ done
 docker exec "$DB" pg_isready -U postgres -d "$WANDORA_DB" >/dev/null
 sleep 5
 
-docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$WANDORA_DB" <<SQL >/dev/null
+docker exec -i "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$WANDORA_DB" <<SQL >/dev/null
 DO \$\$ BEGIN
   CREATE ROLE authenticated NOLOGIN;
   CREATE ROLE anon NOLOGIN;
