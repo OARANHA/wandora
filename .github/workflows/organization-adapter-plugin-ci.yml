@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   verify-package:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, wandora-ci]
     timeout-minutes: 30
     steps:
       - name: Checkout Wandora
