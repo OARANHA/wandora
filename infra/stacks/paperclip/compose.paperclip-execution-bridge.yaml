@@ -1,7 +1,15 @@
 services:
   paperclip:
+    entrypoint:
+      - "/usr/bin/tini"
+      - "--"
+      - "/bin/sh"
+      - "/run/wandora/paperclip-bridge-secret-entrypoint.sh"
     environment:
       WANDORA_PAPERCLIP_EXECUTION_BRIDGE_URL: "http://wandora-core:8788/internal/v1/paperclip/execution"
       WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE: "/run/secrets/wandora/paperclip-execution-bridge.hmac"
     volumes:
-      - "${WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE_HOST:?required}:/run/secrets/wandora/paperclip-execution-bridge.hmac:ro"
+      - "${WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE_HOST:?required}:/run/secrets-root/wandora/paperclip-execution-bridge.hmac:ro"
+      - "./paperclip-bridge-secret-entrypoint.sh:/run/wandora/paperclip-bridge-secret-entrypoint.sh:ro"
+    tmpfs:
+      - "/run/secrets/wandora:rw,noexec,nosuid,size=64k"
