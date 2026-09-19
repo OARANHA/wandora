@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import { writeFile } from 'node:fs/promises';
-import { loadExternalAdapterPackage } from '/app/server/src/adapters/plugin-loader.ts';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+
+const paperclipRoot = resolve(process.env.PAPERCLIP_SOURCE_ROOT || '/app');
+const adapterRoot = resolve(process.env.WANDORA_ADAPTER_SOURCE_DIR || '/app/tmp/wandora-mastra-adapter');
+const loaderUrl = pathToFileURL(resolve(paperclipRoot, 'server/src/adapters/plugin-loader.ts')).href;
+const { loadExternalAdapterPackage } = await import(loaderUrl);
 
 await writeFile('/tmp/wandora-bridge.hmac', 'synthetic-bridge-secret-0123456789abcdef0123456789abcdef\n');
 process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_URL =
@@ -19,7 +25,7 @@ globalThis.fetch = async (url, init) => {
 
 const adapter = await loadExternalAdapterPackage(
   '@wandora/paperclip-adapter-mastra',
-  '/app/tmp/wandora-mastra-adapter',
+  adapterRoot,
 );
 assert.equal(adapter.type, 'wandora_mastra');
 assert.equal(adapter.supportsLocalAgentJwt, true);
