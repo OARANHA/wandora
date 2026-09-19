@@ -193,11 +193,14 @@ The live external-adapter registration is held in persistent Paperclip filesyste
 /paperclip/adapter-plugins.json
 /paperclip/operator-packages/wandora-paperclip-adapter-mastra-v1/
 0d2e77940c381bb36fc401bdf28080507227f081fe5e45a92f5b36723ed7604f/
+
+/paperclip/operator-packages/wandora-organization-adapter-v1/
+<current hash-addressed package path>
 ```
 
 Therefore a DB/key-only restore would not faithfully test the actual production upgrade path.
 
-The disposable proof must read/hash/copy the **current live store and exact package without modifying them**, stage those copies into the isolated candidate Paperclip home and prove v916 loads the existing registration **without reinstalling the adapter**.
+The disposable proof must read/hash/copy the **current live external-adapter store plus both exact Wandora extension packages without modifying them**, stage those byte-identical copies into the isolated candidate Paperclip home and prove v916 loads the existing Organization Adapter and `wandora_mastra` registration **without reinstalling or rebuilding either extension**.
 
 ## GAPS
 
@@ -212,7 +215,7 @@ Required disposable gates still include:
 5. Organization Adapter plugin/config/secret-ref preservation;
 6. successful decrypt with the protected recovery key and wrong-key rejection;
 7. Ana remains exactly one and paused;
-8. current `adapter-plugins.json` + exact operator package copied/hash-verified from live read-only state;
+8. current `adapter-plugins.json` + exact `wandora_mastra` package + exact Organization Adapter package copied/hash-verified from live read-only state;
 9. v916 accepts the copied existing `wandora_mastra` registration without reinstall;
 10. official adapter readback/test-environment PASS;
 11. run-scoped JWT `/api/agents/me` behavior;
