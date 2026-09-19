@@ -30,7 +30,7 @@ jobs:
         run: docker compose -f infra/stacks/operator-consoles/compose.yaml config >/tmp/operator-consoles.yaml
       - name: Validate Paperclip bridge Nginx config
         run: |
-          tmp="$(mktemp)"
+          tmp="$(mktemp -p "${RUNNER_TEMP:-/tmp}" wandora-operator-nginx.XXXXXX)"
           trap 'rm -f "$tmp"' EXIT
           install -m 0644 infra/stacks/operator-consoles/control-nginx.conf "$tmp"
           docker run --rm \
