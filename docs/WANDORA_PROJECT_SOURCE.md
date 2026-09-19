@@ -1152,11 +1152,21 @@ The official adapter readback is green, but its no-effect `test-environment` ret
 
 Do not reinstall the adapter, change host HMAC ownership/mode, repeat migration 014, resume Ana, grant `agents.resume`, enable Human Send or enable Gateway outbound.
 
+## Paperclip bridge wrapper command-preservation correction — ACTIVE
+
+ADR 0123's root-custody wrapper was merged and then promoted once. The live attempt failed closed before Paperclip became available because Compose materialized the custom entrypoint with `Cmd=null`; logs showed `gosu` invoked without a command. Paperclip was immediately restored to the prior healthy direct-bind overlay.
+
+ADR 0124 fixes that exact deployment-contract gap by pinning the current Paperclip image server command in the bridge overlay and adding a CI assertion on the rendered Compose JSON. Disposable proof is green with final uid/gid 1000 and `0400` tmpfs secret.
+
+Current production remains bounded: Core bridge ON/ready, Paperclip healthy on the pre-wrapper overlay, `wandora_mastra` installed exactly once and loaded, Ana paused + supervised, zero wakeups/heartbeat runs, `agents.resume` absent, Human Send OFF, Gateway outbound OFF and outbound attempts zero.
+
+Do not reinstall `wandora_mastra`, repeat migration 014, recreate Core, resume Ana or weaken HMAC custody.
+
 ## Next executable slice
 
-**Complete the Paperclip bridge secret privilege-drop correction, then finish Activation Execution V1.**
+**Merge/validate ADR 0124 command preservation, then finish Activation Execution V1.**
 
-After PR #173 is green and merged: stage the exact corrected wrapper/overlay -> recreate only Paperclip -> prove final app UID/GID 1000 and tmpfs HMAC hash == host HMAC -> adapter readback without reinstall -> official `test-environment` must pass -> prove Ana paused, zero wakeups/heartbeats, `agents.resume` absent, Human Send OFF, Gateway outbound OFF and outbound attempts zero -> STOP.
+After the corrective PR is green and merged: reconcile -> stage exact corrected overlay + unchanged wrapper -> render exact Paperclip server command -> recreate only Paperclip -> prove healthy/restart 0 + uid/gid 1000 + tmpfs HMAC `0400 node:node` and hash equality -> adapter readback without reinstall -> official `test-environment` exactly once and require pass -> final paused/no-outbound proof -> STOP.
 
 ## Platform Admin
 
@@ -1268,6 +1278,8 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0120 — Paperclip -> Wandora/Mastra Production Execution Bridge Activation Preflight V2
 - ADR 0121 — Paperclip -> Wandora/Mastra Production Execution Bridge Pre-Mutation Recovery + Host Hygiene Gate
 - ADR 0122 — Paperclip -> Wandora/Mastra Production Execution Bridge Activation Execution V1 Partial Checkpoint
+- ADR 0123 — Paperclip -> Wandora/Mastra Production Execution Bridge Secret Custody Privilege-Drop Correction
+- ADR 0124 — Paperclip Execution Bridge Wrapper Command Preservation Correction
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
