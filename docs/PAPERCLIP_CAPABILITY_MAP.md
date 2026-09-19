@@ -80,6 +80,21 @@ Direct source inspection of the exact production tag found existing schema/docs 
 
 Therefore **absence of a Wandora implementation is not a capability gap** for these areas.
 
+## v831.1 -> v916 migration audit
+
+All upstream migrations after the production baseline were statically reviewed through `0279`.
+
+The audit does **not** authorize production promotion, but it narrows the expected risk:
+
+- no reviewed migration drops the external adapter registry, `wandora_mastra` registration contract or Organization Adapter plugin configuration as a migration target;
+- `0231`, `0232`, `0233`, `0239`, `0255`, `0272`, `0276` and `0277` materially evolve Connections, grants, transports, runtime credentials and AI connection defaults;
+- `0236_remove_cheap_model_profiles.sql` deliberately removes retired `modelProfiles` / `modelProfile` state; the retained production-derived recovery snapshot contains zero observed occurrences of those keys;
+- `0232` treats legacy personal credential migration conservatively: secrets that also serve organization grants, tool connections, company secret bindings or routine triggers stay company-scoped; ambiguous personal grants are marked for reauthorization instead of silently reassigning the secret;
+- `0276` migrates only active **user-scoped** recognized AI credentials declared for supported agent env keys. Its migration contract explicitly leaves host auth homes and company secrets untouched and performs no agent-binding rewrite;
+- later wakeup/chat migrations mutate idempotency/provenance and conversation structures, so the disposable proof must still confirm Ana has zero unexpected wakeup/heartbeat drift.
+
+This is source-level evidence only. Actual production-derived restore/migration/runtime proof remains mandatory.
+
 ## v916 upgrade relevance
 
 The current upstream stable `v2026.916.0` is materially interesting because the Connections train is substantially more mature: runtime credentials, per-person/organization/agent grants, responsible-user routing and in-task connection repair/intents are promoted as headline capabilities.
