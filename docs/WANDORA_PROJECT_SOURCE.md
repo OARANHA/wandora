@@ -1144,16 +1144,19 @@ outbound attempts       = 0
 
 Continuity rule: **never repeat migration 014 on resume merely because the HMAC/runtime portion remains incomplete.** Reconcile first and continue from the HMAC custody gate.
 
-## Privileged HMAC custody gate
+## Paperclip privilege-drop bridge-secret correction gate
 
-ADR 0123 records that ADR 0122 is canonical and migration 014 remains LIVE/verified, but the dedicated execution-bridge HMAC is still absent. The authorized Desktop Commander session is `wandora-admin`; ADR 0120 requires the file to be `root:wandora-ops / 0640`. The exact generation attempt stopped at interactive sudo authentication before OpenSSL ran, and the execution platform blocked sudo-capability enumeration. No alternate privilege channel was used.
+ADR 0123 records a new fail-closed production finding after ADR 0122. Migration 014 remains LIVE/verified and must not be repeated. The dedicated HMAC now exists with canonical `root:wandora-ops / 0640` custody; the exact Core candidate is live and bridge-ready; Paperclip has the bridge overlay; and `wandora_mastra` was installed exactly once from the persistent hash-addressed local path.
 
-Do not repeat migration 014, downgrade custody, use Docker/CI as a root bypass, promote Core/Paperclip or install `wandora_mastra` before the canonical HMAC exists.
+The official adapter readback is green, but its no-effect `test-environment` returned EACCES because Paperclip's original entrypoint drops the application to UID/GID 1000 via `gosu node`. A disposable proof showed Docker `group_add` is also discarded. PR #173 therefore versions a startup wrapper that copies only the root-readable bind into an in-container tmpfs as `0400 node:node` and then execs the original entrypoint. The pinned image passed this proof with final UID/GID 1000.
+
+Do not reinstall the adapter, change host HMAC ownership/mode, repeat migration 014, resume Ana, grant `agents.resume`, enable Human Send or enable Gateway outbound.
+
 ## Next executable slice
 
-**Resume Paperclip -> Wandora/Mastra Production Execution Bridge Activation Execution V1 at the dedicated HMAC custody gate.**
+**Complete the Paperclip bridge secret privilege-drop correction, then finish Activation Execution V1.**
 
-Migration 014 is already live/verified. After fresh reconciliation, continue only with: dedicated HMAC -> exact Core candidate/overlay/readiness -> Paperclip overlay -> paused-state proof -> persistent exact adapter extraction -> one official local-directory install/readback/test -> final paused/no-outbound proof -> STOP.
+After PR #173 is green and merged: stage the exact corrected wrapper/overlay -> recreate only Paperclip -> prove final app UID/GID 1000 and tmpfs HMAC hash == host HMAC -> adapter readback without reinstall -> official `test-environment` must pass -> prove Ana paused, zero wakeups/heartbeats, `agents.resume` absent, Human Send OFF, Gateway outbound OFF and outbound attempts zero -> STOP.
 
 ## Platform Admin
 
