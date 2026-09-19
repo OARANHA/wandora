@@ -1039,7 +1039,8 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0104 — Customer Owner First Real Tenant Provisioning Execution V1
 - ADR 0105 — Customer Owner First Real Tenant Access Validation V1
 - ADR 0106 — Customer Owner First Real Tenant Paperclip Company Bootstrap Preflight V1
-- ADR 0107 — Customer Owner First Real Tenant Paperclip Company Bootstrap Execution V1\n- ADR 0108 — Customer Owner First Real Tenant Organization Adapter Custody + Config + Binding Preflight V1
+- ADR 0107 — Customer Owner First Real Tenant Paperclip Company Bootstrap Execution V1
+- ADR 0108 — Customer Owner First Real Tenant Organization Adapter Custody + Config + Binding Preflight V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
