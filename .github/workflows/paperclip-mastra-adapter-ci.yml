@@ -111,6 +111,13 @@ jobs:
           grep -q 'target: /run/secrets/wandora/paperclip-execution-bridge.hmac' <<<"$effective"
           rm -f "$WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE_HOST"
 
+      - name: Enforce migration 014 remains unapplied by disposable attestation
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -q '20260919_014_paperclip_execution_binding_resolver_v1.sql' \
+            integrations/paperclip/adapters/wandora-mastra-v1/verify-disposable-e2e.sh
+
       - name: Disposable Paperclip to Core to Mastra E2E attestation
         shell: bash
         env:
