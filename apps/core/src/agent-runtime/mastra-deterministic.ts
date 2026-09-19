@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { AgentRuntime, EmployeeProposal, PlannerInput } from '../ana/contracts.js';
+import type { AgentTaskRuntime, AssignedTaskInput, AssignedTaskResult } from './task-runtime.js';
 
 // Wandora does not allow framework telemetry from the customer-processing runtime.
 // This must execute before any Mastra module is loaded.
@@ -54,9 +55,9 @@ async function createMastraRuntime() {
 let mastraPromise: ReturnType<typeof createMastraRuntime> | undefined;
 const getMastra = () => (mastraPromise ??= createMastraRuntime());
 
-export class MastraDeterministicAgentRuntime implements AgentRuntime {
-  async proposeCommercialReply(input: PlannerInput): Promise<EmployeeProposal> {
-    if (input.employee.role !== 'commercial-assistant' || input.employee.autonomyMode !== 'supervised') {
+export class MastraDeterministicAgentRuntime implements AgentRuntime, AgentTaskRuntime {
+  private async generateProposal(employee: PlannerInput['employee'], customerText: string): Promise<EmployeeProposal> {
+    if (employee.role !== 'commercial-assistant' || employee.autonomyMode !== 'supervised') {
       throw new Error('Deterministic Ana runtime requires a supervised commercial-assistant employee.');
     }
 
@@ -64,7 +65,7 @@ export class MastraDeterministicAgentRuntime implements AgentRuntime {
     const workflow = mastra.getWorkflow('anaDeterministicSupervisedProposal');
     const run = await workflow.createRun();
     const result = await run.start({
-      inputData: deterministicInputSchema.parse({ customerText: input.customerText }),
+      inputData: deterministicInputSchema.parse({ customerText }),
     });
 
     if (result.status !== 'success') {
@@ -72,5 +73,18 @@ export class MastraDeterministicAgentRuntime implements AgentRuntime {
     }
 
     return deterministicProposalSchema.parse(result.result);
+  }
+
+  async proposeCommercialReply(input: PlannerInput): Promise<EmployeeProposal> {
+    return this.generateProposal(input.employee, input.customerText);
+  }
+
+  async executeAssignedTask(input: AssignedTaskInput): Promise<AssignedTaskResult> {
+    const customerText = input.task.description?.trim() || input.task.title.trim();
+    const proposal = await this.generateProposal(input.employee, customerText);
+    return {
+      model: 'mastra-deterministic',
+      summary: proposal.text,
+    };
   }
 }
