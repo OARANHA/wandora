@@ -508,10 +508,13 @@ authorized real owner e-mail
   -> later Private Tenant Provisioning V2
 ```
 
-Invite execution is currently blocked because no genuine new owner target has been explicitly authorized. Existing/proof/legacy identities are not substitutes.
+ADR 0101 has now executed exactly one real invite for an explicitly authorized genuine new owner target. The Auth invite is pending recipient acceptance; no tenant, Paperclip resource or eligibility was created by that effect.
 
 The effect boundary is conservative: no blind retry after timeout or ambiguous provider result. In GoTrue v2.196.0 the SMTP send occurs before the surrounding invite transaction has necessarily committed `invited_at` and its one-time-token state, so database absence alone cannot prove that no e-mail left the system. Reconcile Auth plus Resend/operator evidence first.
 
 Pre-accept revocation, if ever required, uses the provider-native Admin API delete only after proving the invite was not accepted and no Wandora/provider business state exists. Delivery itself is irreversible.
 
 Tenant provisioning and eligibility activation remain separate later effects.
+
+
+Customer Owner First Real Invite Execution V1 is now applied under ADR 0101. The next boundary is invite acceptance + first-password validation; only after normal authenticated owner access is proven may Private Tenant Provisioning V2 be considered.
