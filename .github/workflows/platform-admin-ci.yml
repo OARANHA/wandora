@@ -16,13 +16,18 @@ concurrency:
 
 jobs:
   platform-admin-verifier:
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, linux, x64, wandora-ci]
     timeout-minutes: 15
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      - name: Set up Node 22.23.2
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.2
 
       - name: Verify runtime
         working-directory: apps/platform-admin
