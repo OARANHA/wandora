@@ -53,7 +53,7 @@ printf '%s\n' 'paperclip-execution-bridge-disposable-hmac-0123456789abcdef012345
 printf '%s\n' "$CORE_PASSWORD" > "$TMP/core-db-password"
 printf '%s\n' 'gateway-ingress-disposable-hmac-0123456789abcdef0123456789abcdef' > "$TMP/gateway.hmac"
 cat > "$TMP/paperclip-loopback-proxy.mjs" <<'PROXY'
-import net from 'node:net';
+import http from 'node:http';
 import os from 'node:os';
 
 const address = Object.values(os.networkInterfaces())
@@ -61,12 +61,39 @@ const address = Object.values(os.networkInterfaces())
   .find((entry) => entry?.family === 'IPv4' && !entry.internal)?.address;
 if (!address) throw new Error('paperclip_disposable_network_address_unavailable');
 
-const server = net.createServer((client) => {
-  const upstream = net.createConnection({ host: '127.0.0.1', port: 3100 });
-  client.pipe(upstream);
-  upstream.pipe(client);
-  client.on('error', () => upstream.destroy());
-  upstream.on('error', () => client.destroy());
+const server = http.createServer(async (request, response) => {
+  const authorization = request.headers.authorization ?? '';
+  const runId = request.headers['x-paperclip-run-id'] ?? '';
+  if (
+    request.method !== 'GET'
+    || request.url !== '/api/agents/me'
+    || !authorization.toLowerCase().startsWith('bearer ')
+    || typeof runId !== 'string'
+    || !runId
+  ) {
+    response.writeHead(404, { 'content-type': 'application/json' });
+    response.end('{"error":"not_found"}');
+    return;
+  }
+
+  try {
+    const upstream = await fetch('http://127.0.0.1:3100/api/agents/me', {
+      method: 'GET',
+      headers: {
+        authorization,
+        'x-paperclip-run-id': runId,
+        accept: 'application/json',
+      },
+    });
+    const body = await upstream.text();
+    response.writeHead(upstream.status, {
+      'content-type': upstream.headers.get('content-type') ?? 'application/json',
+    });
+    response.end(body);
+  } catch {
+    response.writeHead(502, { 'content-type': 'application/json' });
+    response.end('{"error":"upstream_unavailable"}');
+  }
 });
 server.listen(3100, address);
 PROXY
