@@ -608,8 +608,40 @@ Paperclip reports the explicit pause reason requiring separate activation, zero 
 
 The completed hire operation remains the durable idempotency/reconciliation evidence. Eligibility remains a policy row and may stay enabled; the completed same-catalog state closes availability.
 
+## Customer Owner First Real Tenant Digital-Employee Activation Preflight V1 — COMPLETE / NO-GO
+
+ADR 0116 proves that the first real MEDICSPRO hire is correctly mapped end-to-end, but activation infrastructure is not yet complete.
+
+The exact live Paperclip employee remains `paused`, company-matched, managed as `ana-commercial-v1`, org-chain healthy and configured with `adapterType=wandora_mastra`. However, live Paperclip does not have a registered `wandora_mastra` adapter; an exact adapter read returns 404.
+
+The live Organization Adapter plugin is ready but still declares only:
+
+```text
+agents.managed
+webhooks.receive
+secrets.read-ref
+```
+
+It does not hold `agents.resume`. The pinned Paperclip SDK already supplies the specialist lifecycle primitive: `ctx.agents.resume(agentId, companyId)` requires `agents.resume` and converges provider status from `paused` to `idle`. Wandora therefore must reuse that capability behind the company-scoped Organization Adapter rather than use an operator Board credential or create its own provider lifecycle.
+
+The future activation architecture is frozen as provider-first:
+
+```text
+customer owner/admin Ativar
+  -> Wandora auth + exact tenant/employee mapping + runtime readiness
+  -> company-scoped Organization Adapter
+  -> exact managed Paperclip agent
+  -> Paperclip resume: paused -> idle
+  -> provider confirmation/readback
+  -> only then Wandora paused -> active projection
+```
+
+An ambiguous provider result never becomes invented success and is never blindly retried. Human Send and Gateway outbound remain separate effects and stay OFF; activation alone grants no external-send authority.
+
+No new Wandora lifecycle/task/control-plane subsystem is approved. Existing `paused|active` remains the customer projection; a later implementation may add only minimum external-effect operation state if it proves necessary for concurrency/idempotency after reuse of provider reconciliation is exhausted.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Owner First Real Tenant Digital-Employee Activation Preflight V1.**
+Next: **Paperclip -> Wandora/Mastra Production Execution Bridge Contract Implementation V1 — code/CI only.**
 
-Activation remains a separate effect under ADR 0063. The preflight must prove the production execution bridge, mapped employee compatibility, least-privilege provider resume authority, provider/Wandora transition ordering, replay/ambiguity semantics and integration readiness before any activation route/effect is allowed. Human Send and Gateway outbound remain separate and OFF.
+Promote the ADR 0037 laboratory bridge into canonical production-installable code and prove the private execution contract against the pinned Paperclip image and existing Wandora Agent Runtime/Mastra boundary. Production install, resume authority, customer activation and all outbound effects remain separate later gates.
