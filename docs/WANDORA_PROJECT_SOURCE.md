@@ -1041,11 +1041,43 @@ Only then does Core resolve the active Wandora organization, derive the existing
 
 No resume authority or outbound capability is added by this slice. All seven PR workflows were green before merge, and post-merge live validation proves migration 014 remains absent, the live Paperclip adapter store still has no `wandora_mastra`, MEDICSPRO Ana remains `paused + supervised`, and Core bridge/Human Send/Gateway outbound remain OFF.
 
+## Paperclip -> Wandora/Mastra Production Execution Bridge Activation Preflight — COMPLETE / NO-GO
+
+ADR 0118 revalidated the dormant production state after the bridge implementation and froze the future activation transaction.
+
+Still true:
+
+```text
+migration 014              = absent
+live wandora_mastra        = absent / exact read 404
+Core execution bridge      = OFF
+Organization Adapter       = ready
+agents.resume              = absent
+
+MEDICSPRO Ana / Wandora    = exactly 1 / paused + supervised
+MEDICSPRO binding          = exactly 1
+MEDICSPRO hire             = exactly 1 / completed
+MEDICSPRO Ana / Paperclip  = exactly 1 / paused / no heartbeat
+
+Human Send                 = OFF
+Gateway outbound           = OFF
+```
+
+The adapter and Core candidate are now exact-artifact frozen. The selected adapter tgz SHA-256 is `0d2e77940c381bb36fc401bdf28080507227f081fe5e45a92f5b36723ed7604f`. The selected Core archive SHA-256 is `b4acc5bac69743493865a69fa51757d32d2ab5bc738d9b277fccd62c3e3a7287`; its source tree is byte-identical to the canonical bridge-code squash merge.
+
+Production activation is **not** authorized yet because three readiness contracts are missing:
+
+1. canonical Paperclip execution-bridge runtime overlay for the shared read-only dedicated HMAC and exact Core URL;
+2. Core bridge-specific `/readyz` proof for migration 014;
+3. one disposable integrated Paperclip run-token -> Core -> Agent Runtime/Mastra attestation.
+
+The future activation order and rollback are frozen in ADR 0118. The adapter must be extracted into a restart-stable path under persistent `/paperclip/operator-packages` and installed through the official local-directory adapter route; never install it from `/tmp`, a CI workspace or an unverified registry package.
+
 ## Next executable slice
 
-**Paperclip -> Wandora/Mastra Production Execution Bridge Activation Preflight V1.**
+**Paperclip -> Wandora/Mastra Production Execution Bridge Runtime Custody + Readiness + Disposable E2E Attestation Implementation V1.**
 
-That preflight is no-effect. It must freeze migration 014, bridge HMAC custody, adapter artifact provenance/install, Core candidate/overlay promotion, rollback and synthetic proof without applying/installing/activating anything.
+Repository/CI/disposable-proof only. No migration 014 application, live secret, live adapter install, live Core/Paperclip recreation, `agents.resume`, Ana activation, Human Send or Gateway outbound effect.
 
 ## Platform Admin
 
@@ -1152,6 +1184,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0115 — Customer Owner First Real Tenant Digital-Employee Hire Execution V1
 - ADR 0116 — Customer Owner First Real Tenant Digital-Employee Activation Preflight V1
 - ADR 0117 — Paperclip -> Wandora/Mastra Production Execution Bridge Contract Implementation V1
+- ADR 0118 — Paperclip -> Wandora/Mastra Production Execution Bridge Activation Preflight V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 

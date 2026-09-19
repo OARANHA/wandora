@@ -668,8 +668,41 @@ Migration 014 adds only the least-privilege Paperclip-company -> active-Wandora-
 
 The external adapter package, Core runtime gate and Compose overlay are artifacts only. PR #166 is merged in canonical `main` at `7bc8c4790e37b0410703bf58979458200810d5a9`; merge did not install `wandora_mastra`, enable the private bridge, apply migration 014, activate Ana or alter Human Send/Gateway outbound. Independent post-merge validation confirmed those production boundaries remain unchanged.
 
+## Paperclip -> Wandora/Mastra Production Execution Bridge Activation Preflight V1 — COMPLETE / NO-GO
+
+ADR 0118 revalidates the exact dormant production state and freezes the bridge activation transaction without applying it.
+
+The reviewed adapter and Core artifacts are now hash-pinned, migration 014 and its verifier are frozen, the current seven-file live Core composition matches Git, and the exact future migration/HMAC/Core/Paperclip/adapter order plus rollback rules are documented.
+
+The preflight also finds three production-readiness gaps:
+
+1. live/canonical Paperclip has no execution-bridge overlay carrying the dedicated HMAC mount and canonical Core URL;
+2. current Core `/readyz` does not independently attest the migration-014 resolver when the execution bridge is enabled;
+3. CI proves the adapter, Core binding service and Mastra runtime separately, but there is not yet one disposable integrated proof using an actual pinned Paperclip run-scoped token through Paperclip -> Core -> Agent Runtime/Mastra.
+
+Therefore the bridge remains dormant and MEDICSPRO Ana remains paused. `agents.resume`, Human Send and Gateway outbound are still outside this bridge-foundation activation.
+
+The frozen future activation order is:
+
+```text
+reconcile real state
+-> exact artifact/provenance + disposable integrated attestation
+-> fresh scoped DB backup + restore/rehearsal
+-> migration 014 + canonical verifier + read-only postverify
+-> create one dedicated execution-bridge HMAC
+-> promote reviewed Core candidate with bridge overlay
+-> validate health/readiness/private bridge boundary
+-> recreate Paperclip with reviewed bridge runtime overlay, adapter still absent
+-> stage verified package into persistent /paperclip storage
+-> install/read back/test wandora_mastra exactly once
+-> prove MEDICSPRO Ana still paused/no-heartbeat and outbound still OFF
+-> STOP
+```
+
+No customer activation/resume is part of that sequence.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Paperclip -> Wandora/Mastra Production Execution Bridge Activation Preflight V1.**
+Next: **Paperclip -> Wandora/Mastra Production Execution Bridge Runtime Custody + Readiness + Disposable E2E Attestation Implementation V1.**
 
-That preflight must remain no-effect and freeze the live artifact/migration/HMAC/Core promotion order and rollback. Resume authority, customer activation and outbound remain separate later gates.
+That slice is repository/CI/disposable-proof only: add the Paperclip bridge runtime overlay, make Core readiness fail closed on missing migration 014, and prove one integrated synthetic Paperclip run through the existing Core/Mastra boundary. Production migration, live secrets, live adapter install, runtime recreation, `agents.resume`, Ana activation, Human Send and Gateway outbound remain forbidden.
