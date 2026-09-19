@@ -1,6 +1,6 @@
 # ADR 0113 — GitHub Actions Self-Hosted Runner Isolation V1
 
-- Status: **Accepted implementation — host bootstrap and repository registration pending**
+- Status: **Accepted implementation — host bootstrap live / repository registration pending**
 - Date: 2026-09-19
 - Scope: restore executable CI for the private Wandora repository without making the repository public and without granting workflow code control over the production Docker daemon.
 
@@ -122,4 +122,36 @@ The slice is not complete until all are true:
 
 ## CURRENT RESULT
 
-Implementation is versioned on the infrastructure branch. Host bootstrap/registration are intentionally separate effects and must be validated before this ADR is closed as live.
+The host bootstrap is now live on the correct Wandora VPS and independently reconciled:
+
+```text
+host                        = wandora-vps-01
+public IPv4                 = 13.140.190.149
+CI identity                 = wandora-ci (uid/gid 1002)
+forbidden groups            = absent (docker / wandora-ops / sudo)
+rootless Docker user daemon = active
+CI CPU quota                = 300%
+CI MemoryHigh               = 3 GiB
+CI MemoryMax                = 4 GiB
+CI TasksMax                 = 4096
+runner service              = installed / inactive / disabled
+runner registration         = absent
+```
+
+The hardened runner unit explicitly sets the rootless `DOCKER_HOST`, uses `NoNewPrivileges`, `PrivateTmp`, `PrivateDevices`, `ProtectSystem=strict`, `RestrictNamespaces=yes`, and makes `/opt/wandora`, `/home/wandora-admin`, `/root` and both production Docker socket paths inaccessible.
+
+Production remained healthy after bootstrap:
+
+```text
+supabase-auth              = healthy
+supabase-db                = healthy
+wandora-core               = healthy
+wandora-web                = healthy
+wandora-paperclip          = healthy
+wandora-messaging-gateway  = healthy
+wandora-traefik            = healthy
+```
+
+PR #162 triggered seven workflows and all seven are currently `queued`, waiting for the custom `wandora-ci` label rather than failing before runner assignment.
+
+Repository registration remains intentionally pending because the GitHub repository runner registration token is ephemeral operator credential material and must not be placed in Git or chat. The next bounded effect is token staging under `/run`, one-time runner registration, token shredding and execution of the already-queued PR checks.
