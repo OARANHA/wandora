@@ -5,6 +5,11 @@ services:
       - "--"
       - "/bin/sh"
       - "/run/wandora/paperclip-bridge-secret-entrypoint.sh"
+    command:
+      - "node"
+      - "--import"
+      - "./server/node_modules/tsx/dist/loader.mjs"
+      - "server/dist/index.js"
     environment:
       WANDORA_PAPERCLIP_EXECUTION_BRIDGE_URL: "http://wandora-core:8788/internal/v1/paperclip/execution"
       WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE: "/run/secrets/wandora/paperclip-execution-bridge.hmac"
