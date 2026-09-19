@@ -2337,11 +2337,42 @@ then: Wandora DB backup/rehearsal -> migration 014 -> HMAC -> Core -> Paperclip 
 ```
 
 No bridge mutation, employee resume or outbound effect is authorized until these gates pass.
+## Paperclip -> Wandora/Mastra Production Execution Bridge Activation Execution V1 — PARTIAL / STOP AT HMAC GATE
+
+ADR 0122 records the production execution checkpoint after ADR 0121 Gates A-C and the Wandora DB rehearsal completed successfully.
+
+```text
+Gate A host hygiene/headroom                  = GREEN
+fresh Paperclip DB + master.key recovery proof = GREEN
+PR #169 exact artifact provenance             = GREEN
+Wandora scoped backup/restore/rehearsal        = GREEN
+
+migration 014                                  = LIVE / verified
+canonical verifier                             = GREEN
+MEDICSPRO resolver postverify                  = GREEN
+unknown provider-company mapping               = fail-closed / NULL
+
+dedicated bridge HMAC                          = NOT created
+Core bridge promotion                          = NOT executed
+Paperclip bridge recreation                    = NOT executed
+wandora_mastra live install                    = NOT executed
+
+Ana                                             = exactly 1 / paused + supervised
+agents.resume                                   = absent
+Human Send                                      = OFF
+Gateway outbound                                = OFF
+MEDICSPRO outbound attempts                     = 0
+```
+
+Important continuity rule: **migration 014 is no longer pending and must not be re-applied on resume.** The execution platform blocked the canonical HMAC-generation operation before remote dispatch. No bypass/alternate generator was attempted, and the runtime activation sequence stopped before Core/Paperclip/adapter effects.
+
+Protected execution artifacts retained on the VPS include the fresh Paperclip recovery pair, the scoped Wandora backup and the exact hash-verified PR #169 adapter/Core artifacts.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Paperclip -> Wandora/Mastra Production Execution Bridge Activation Execution V1.**
+Next: **resume Paperclip -> Wandora/Mastra Production Execution Bridge Activation Execution V1 at the dedicated HMAC custody gate.**
 
-Execute only the bridge foundation under ADR 0118 + ADR 0120: fresh reconcile/backup/rehearsal, migration 014 + verifier, dedicated HMAC custody, exact bridge-aware Core promotion/readiness, Paperclip bridge overlay, exact persistent adapter install/readback, then STOP. Ana must remain paused, `agents.resume` absent, Human Send OFF and Gateway outbound OFF.
+Reconcile the real runtime first. Migration 014 is already live and verified; do **not** repeat it. If the dedicated bridge HMAC is still absent, create it only through an authorized secure execution path under ADR 0118/0120 custody. Then continue in order: exact Core candidate + bridge overlay/readiness -> Paperclip bridge overlay with adapter absent -> exact paused-state proof -> persistent exact adapter extraction -> single official local-directory install/readback/test -> final paused/no-outbound proof -> STOP.
 
 ## Operational safety
 
