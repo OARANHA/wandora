@@ -918,23 +918,19 @@ No invite, recovery or test e-mail was sent. Auth/recovery counters remain uncha
 
 The remaining first-access gate is deliberate: no genuine new customer owner + real customer organization target has yet been selected. Existing legacy/canary/internal tenants are not repurposed merely to advance the proof.
 
-## First Real Customer Owner Invite — PREFLIGHT COMPLETE / EXECUTION BLOCKED
+## First Real Customer Owner Invite — LIVE / ACCEPTANCE PENDING
 
-ADR 0100 closes **Customer Owner First Real Invite Execution Preflight V1** as a controlled NO-GO.
+ADR 0100 froze the safe invite/reconciliation contract. ADR 0101 then executed exactly one real GoTrue invite after the operator/user explicitly authorized a genuine new owner target; the target address is intentionally omitted from Git.
 
-The exact GoTrue v2.196.0 admin invite path, dedicated `/accept-invite` redirect, collision checks, ambiguity reconciliation and pre-accept revocation boundary are frozen. The protected service-role credential is valid for live Admin API reads and remains outside Web/Core.
+The request returned HTTP 200 and read-back proves one pending unconfirmed invited Auth user with one one-time token. No retry occurred. Auth remains healthy and unchanged operationally; tenant provisioning, membership creation, Paperclip wiring and eligibility remain untouched.
 
-The adversarial finding is critical: GoTrue may hand an invite to SMTP before the surrounding DB transaction has committed its invite timestamps/token. Therefore an uncertain HTTP result is never blindly retried. Existing invited Auth state means “treat as applied”; absent Auth state after an uncertain request remains externally ambiguous until Resend/operator evidence is reviewed.
-
-No genuine new customer owner e-mail has been explicitly authorized. Existing internal/proof/legacy identities, synthetic aliases, or people discovered from unrelated contacts/mail are not valid substitutes.
-
-No invite, recovery or test e-mail was sent. No Auth user/token, tenant, Paperclip resource, eligibility or outbound effect was created.
+The next human step is to consume the Wandora invite and define the first password through the already-live `/accept-invite` flow.
 
 ## Next executable slice
 
-Next: **Customer Owner First Real Invite Execution V1 — BLOCKED pending authorized genuine owner target.**
+Next: **Customer Owner First Invite Acceptance + First Password Validation V1.**
 
-Execution may begin only after the operator/user explicitly supplies the intended new owner's e-mail. It sends exactly one GoTrue invite under ADR 0100 reconciliation rules, validates the Auth/provider outcome, and stops before tenant provisioning or eligibility activation.
+Validate invite consumption, confirmed Auth state, first password, normal password grant and `/api/v1/me` before Private Tenant Provisioning V2. Do not provision the tenant or enable eligibility earlier.
 
 ## Platform Admin
 
@@ -1024,6 +1020,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0098 — Customer Owner Transactional E-mail GoTrue SMTP Activation Preflight V1
 - ADR 0099 — Customer Owner Transactional E-mail GoTrue SMTP Activation Execution V1
 - ADR 0100 — Customer Owner First Real Invite Execution Preflight V1
+- ADR 0101 — Customer Owner First Real Invite Execution V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
