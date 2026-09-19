@@ -895,19 +895,21 @@ The recovery edge guard remains reachable normally after mitigation and direct-o
 
 No real invite/recovery has been sent.
 
-## First Real Customer Owner Access + Tenant — TENANT LIVE / CUSTOMER READ VALIDATION NEXT
+## First Real Customer Owner Access + Tenant — REAL
 
 ADR 0101 sent the first real owner invite. ADR 0102 proves invite consumption, first password and a fresh normal password login.
 
-ADR 0103 froze the first real tenant request. ADR 0104 now makes `MEDICSPRO` / `medicspro` live through the exact Private Tenant Provisioning V2 path: one active organization, one owner mapping/membership, zero employees, and one V2 idempotency request. Paperclip/provider bindings, eligibility, hire state and messaging remain absent for MEDICSPRO.
+ADR 0103 froze the first real tenant request and ADR 0104 made `MEDICSPRO` / `medicspro` live through Private Tenant Provisioning V2.
 
-The owner e-mail and raw Auth subject remain outside Git. The execution did not extract a user refresh token or mint a privileged customer JWT merely to simulate access.
+ADR 0105 now proves the customer product end-to-end with a genuine normal owner session: MEDICSPRO renders as the active organization, `/api/v1/me` returns 200 from the fresh login flow, and tenant-authorized Trabalho/Equipe/Conversas reads return 200. No customer secret/session extraction or privileged JWT impersonation was used.
+
+MEDICSPRO remains intentionally employee-free and provider-unwired: no Paperclip/control binding, employee binding, eligibility or hire state exists for it.
 
 ## Next executable slice
 
-Next: **Customer Owner First Real Tenant Access Validation V1.**
+Next: **Customer Owner First Real Tenant Paperclip Company Bootstrap Preflight V1.**
 
-Use a genuine normal owner session to prove `/api/v1/me` now returns MEDICSPRO instead of `unlinked`. Keep the proof read-only; Paperclip bootstrap/binding, eligibility and employee hire remain later separate effects.
+Reuse the accepted Paperclip Organization Adapter authority model and canary bootstrap evidence to freeze exact MEDICSPRO company creation/reconciliation. Do not create provider state, eligibility or an employee during the preflight.
 
 ## Platform Admin
 
@@ -1001,6 +1003,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0102 — Customer Owner First Invite Acceptance + First Password Validation V1
 - ADR 0103 — Customer Owner First Real Tenant Provisioning Preflight V1
 - ADR 0104 — Customer Owner First Real Tenant Provisioning Execution V1
+- ADR 0105 — Customer Owner First Real Tenant Access Validation V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
