@@ -126,15 +126,20 @@ After runtime access is restored and **before** starting the lab, take read-only
 /paperclip/adapter-plugins.json
 /paperclip/operator-packages/wandora-paperclip-adapter-mastra-v1/
   0d2e77940c381bb36fc401bdf28080507227f081fe5e45a92f5b36723ed7604f/
+/paperclip/operator-packages/wandora-organization-adapter-v1/
+  <current hash-addressed package path read from live state>
 ```
 
 Requirements:
 
 - read/copy only; do not edit the live store or package;
-- record SHA-256 for `adapter-plugins.json` and the retained `source.tgz` / package files;
+- record SHA-256 for `adapter-plugins.json`, the retained `wandora_mastra` `source.tgz` / package files and the current Organization Adapter package files;
 - prove the live store contains exactly one enabled/loaded `wandora_mastra` registration before copying;
+- prove the current Organization Adapter package path resolves to the already-registered `wandora.organization-adapter-v1@0.1.0` plugin expected by the restored DB/config;
 - never mount the live Paperclip volume into the v916 lab;
 - stage the copies into a disposable Paperclip home matching the same relative paths.
+
+The upgrade proof is invalid if it reconstructs either Wandora extension from source or installs a fresh substitute instead of using byte-identical copies of current production artifacts.
 
 This gate distinguishes **upgrade preservation** from **fresh adapter installation**. The candidate must first prove it can load the copied current store/package without reinstalling the adapter.
 
