@@ -829,22 +829,54 @@ This resolves the principal collisions:
 - Paperclip Decision Training is decision evidence; Mastra Evals are execution-quality evidence.
 - Paperclip Connections is the leading candidate for organizational connection/grant authority. Mastra `@mastra/connect` is not adopted as a competing authority.
 
-## Paperclip v2026.916.0 upgrade boundary
+## Paperclip v2026.916.0 compatibility boundary — QUALIFIED / NOT PROMOTED
 
-Production remains pinned to `wandora/paperclip:v2026.831.1`.
+ADR 0128 completed the production-derived disposable compatibility proof GREEN.
 
-Upstream stable `v2026.916.0` is materially interesting, especially for its Connections train, but ADR 0126 does **not** authorize promotion.
-
-The exact candidate is source-pinned to:
+Production remains pinned to:
 
 ```text
-tag    = v2026.916.0
-commit = dffc2b3ca1b9e88fa21cb17493083e682dffd1ca
+wandora/paperclip:v2026.831.1
+65ec059bde30d98c92165b24a30a540800dd1f6f
 ```
 
-Before any production upgrade, a production-derived disposable lab must prove migrations, company/membership, Organization Adapter, local-encrypted secrets, Ana paused state, `wandora_mastra`, run-scoped JWT, private bridge E2E, fail-closed unknown mappings, zero wakeup/outbound drift and rollback.
+Qualified candidate:
 
-The candidate build and PostgreSQL 18.1 proof-image pull were dispatched during ADR 0126, but the remote VPS execution channel became unavailable before their completion could be reconciled. Their state must be read before any retry.
+```text
+v2026.916.0
+dffc2b3ca1b9e88fa21cb17493083e682dffd1ca
+sha256:4fb5073ff0b09ea50527cfeafe5bcaff4f9dae2b0f508fd06c0dc58661735ced
+```
+
+The disposable proof established:
+
+- schema-faithful production-derived restore equality;
+- all 49 migrations `0231..0279` pass;
+- MEDICSPRO / owner / paused Ana survive unchanged;
+- Organization Adapter and exact copied `wandora_mastra` remain compatible;
+- `local_encrypted` secret recovery survives;
+- real v916 run-scoped JWT identity works through `/api/agents/me`;
+- the real current Wandora Core image reaches `MastraDeterministicAgentRuntime`;
+- unknown managed mappings fail closed before Mastra;
+- bad HMAC and tampered run tokens fail closed;
+- production remains unchanged and outbound dormant;
+- v831 rollback was proven in disposable state.
+
+### Backup / rollback architecture amendment
+
+Paperclip's normal logical backup does not serialize PostgreSQL CHECK constraints.
+
+Therefore a future production upgrade must capture two complementary pre-upgrade database artifacts:
+
+```text
+official Paperclip logical backup + matching master.key
++
+schema-faithful PostgreSQL 18.1 pg_dump -Fc
+```
+
+The first remains canonical for Paperclip logical data + `local_encrypted` recovery. The second is required for exact schema rollback across upgrades.
+
+Compatibility qualification is not promotion. A separately reviewed production-upgrade preflight and execution are still required.
 
 ## Mastra version boundary
 
@@ -856,9 +888,11 @@ Do not combine a Paperclip production upgrade with a Mastra dependency upgrade.
 
 ## NEXT EXECUTABLE SLICE
 
-Next: **Paperclip v2026.916.0 Disposable Upgrade Compatibility Proof V1**.
+Next: **Paperclip v2026.916.0 Production Upgrade Preflight V1**.
 
-Start by reconciling the already-dispatched candidate build and PostgreSQL 18.1 pull. Do not repeat an operation merely because the previous execution channel disappeared.
+The preflight must refresh REAL NOW evidence, re-attest `wandora_mastra` compatibility for v916, capture both rollback artifacts, freeze the exact v831 image/wrapper/extensions and define the production migration + rollback trigger.
 
-Production Paperclip upgrade, `agents.resume`, Ana activation/resume, Human Send and Gateway outbound remain prohibited until separately reviewed execution slices.
+It must STOP before production mutation.
+
+Production Paperclip upgrade, Mastra upgrade, `agents.resume`, Ana activation/resume, Human Send and Gateway outbound remain prohibited until separately reviewed execution slices.
 
