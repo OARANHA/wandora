@@ -522,6 +522,8 @@ Customer Owner First Real Invite Execution V1 is applied under ADR 0101 and norm
 
 ## Customer Owner First Real Tenant Provisioning
 
-ADR 0103 freezes the first real tenant as `MEDICSPRO` / `medicspro` and reuses the already-live Private Tenant Provisioning V2 capability. The execution identity remains the disabled-by-default `wandora_platform_provisioner` assumed only transaction-locally by an operator maintenance session. The raw Auth subject is runtime-resolved and hash-gated; direct identity/membership inserts remain rejected.
+ADR 0103 froze the first real tenant request as `MEDICSPRO` / `medicspro`. ADR 0104 executed it through the already-live Private Tenant Provisioning V2 capability using only transaction-local `wandora_platform_provisioner` authority. MEDICSPRO is now one active employee-free Wandora organization with one active owner and exact V2 idempotency state.
 
-Tenant provisioning is intentionally employee-free and provider-free. Paperclip company/bootstrap, provider bindings, customer-hire eligibility and employee hire remain separate later effects.
+Tenant provisioning remains provider-free: MEDICSPRO has no Paperclip/control binding, employee binding, eligibility, hire state or messaging connection. Paperclip company/bootstrap, provider bindings, customer-hire eligibility and employee hire remain separate later effects.
+
+The remaining owner-access proof is intentionally read-only: a genuine normal owner session must show `/api/v1/me` returning MEDICSPRO. Privileged JWT/session extraction is not an acceptable substitute.
