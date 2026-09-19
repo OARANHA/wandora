@@ -208,6 +208,25 @@ The supplement must be generated wholesale from live catalog state and hash-reta
 
 This gate does not modify production. It exists only because an upgrade proof requires a schema-faithful production-derived clone, while the normal recovery backup is sufficient for data/secret recovery but not by itself for migration-compatibility testing.
 
+#### Second adversarial review — prefer a full schema-faithful proof dump
+
+The complete-CHECK supplement above is safe, but it still assumes CHECK constraints are the only schema object class omitted by the normal Paperclip recovery serializer.
+
+For this upgrade proof, prefer a stronger production-derived baseline:
+
+1. use an ephemeral PostgreSQL 18.1 client container with **network namespace only** shared with the live Paperclip container;
+2. do not mount the live Paperclip volume or filesystem;
+3. run `pg_dump -Fc` against live embedded PostgreSQL in a consistent read-only dump operation;
+4. write the custom-format dump only to the protected proof directory on the host (`0700` directory / `0600` file);
+5. record its SHA-256;
+6. restore it into a fresh isolated PostgreSQL 18.1 proof target with zero published ports;
+7. compare canonical live-vs-proof schema fingerprints before starting v916;
+8. delete this proof-only full dump during cleanup.
+
+The protected official `paperclip-db.sql.gz + master.key` pair remains the canonical recovery artifact and must still pass Gate 3/Gate 5. The schema-faithful `pg_dump -Fc` is **not** promoted as a new recovery mechanism; it exists only to make the migration-compatibility lab faithfully represent current production schema.
+
+If the full-dump restored schema fingerprint is not equal to live for the catalog classes required by migrations, STOP. Do not fall back to targeted schema patches.
+
 ## Gate 5 — pre-migration secret recovery
 
 Reuse Paperclip's own local-encrypted resolution code, as in ADR 0109.
