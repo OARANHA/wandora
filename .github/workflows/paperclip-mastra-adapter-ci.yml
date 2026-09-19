@@ -80,14 +80,6 @@ jobs:
         working-directory: .paperclip
         run: pnpm install --frozen-lockfile
 
-      - name: Build pinned Paperclip server runtime for disposable attestation
-        working-directory: .paperclip
-        env:
-          PAPERCLIP_BUILD_COMMIT: 65ec059bde30d98c92165b24a30a540800dd1f6f
-        run: |
-          pnpm --filter @paperclipai/plugin-sdk build
-          pnpm --filter @paperclipai/server build
-
       - name: Unit contract tests
         working-directory: integrations/paperclip/adapters/wandora-mastra-v1
         run: node --test test/*.test.mjs
