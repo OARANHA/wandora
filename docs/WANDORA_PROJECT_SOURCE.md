@@ -913,11 +913,27 @@ The exact future payload is `{"name":"MEDICSPRO"}` (SHA-256 `6320780ded5fe0976fd
 
 MEDICSPRO remains at zero employees, control bindings, employee bindings, hire operations and eligibility. No HMAC/secret/plugin config was created.
 
+## MEDICSPRO Paperclip Company Bootstrap — LIVE
+
+ADR 0107 executed exactly one official Paperclip company create for MEDICSPRO after revalidating the ADR 0106 gates.
+
+```text
+provider company id = a63f27a8-dbac-4552-a456-b3a21302226b
+name                = MEDICSPRO
+status              = active
+owner membership    = active
+agents              = 0
+company secrets     = 0
+plugin config       = null
+```
+
+Wandora remains intentionally unwired for MEDICSPRO: control binding, employee-provider binding, eligibility and hire state are all zero. The deterministic future HMAC file is also absent. No runtime was recreated and no outbound effect was enabled.
+
 ## Next executable slice
 
-Next: **Customer Owner First Real Tenant Paperclip Company Bootstrap Execution V1.**
+Next: **Customer Owner First Real Tenant Organization Adapter Custody + Config + Binding Preflight V1.**
 
-Create exactly one Paperclip company named MEDICSPRO through the frozen one-shot official CLI path and stop before HMAC/secret/config, Wandora provider binding, eligibility or employee hire.
+Revalidate and freeze the ADR 0073–0076 wiring pattern for the exact MEDICSPRO↔Paperclip pair, including the protected local-encrypted recovery prerequisite, deterministic HMAC custody, operator-owned binding insert, Paperclip company secret/config order and ambiguity/rollback rules. Do not create wiring, eligibility or an employee during the preflight.
 
 ## Platform Admin
 
@@ -1013,6 +1029,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0104 — Customer Owner First Real Tenant Provisioning Execution V1
 - ADR 0105 — Customer Owner First Real Tenant Access Validation V1
 - ADR 0106 — Customer Owner First Real Tenant Paperclip Company Bootstrap Preflight V1
+- ADR 0107 — Customer Owner First Real Tenant Paperclip Company Bootstrap Execution V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
