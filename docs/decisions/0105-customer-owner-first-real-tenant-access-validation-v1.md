@@ -133,6 +133,20 @@ Paperclip/provider mutation   = none
 outbound mutation             = none
 ```
 
+## REPOSITORY PUBLICATION VALIDATION
+
+PR #153 is documentation-only. All five GitHub Actions again failed before receiving a runner:
+
+```text
+Core CI                         steps = null
+Web CI                          steps = null
+Platform Admin CI               steps = null
+Messaging Gateway CI            steps = null
+Organization Adapter Plugin CI  steps = null
+```
+
+These checks are not called green. They reproduce the already-known external runner failure pattern and contain no executed code/test step. The access validation itself was independently proven against the live customer session, edge/Web access evidence, database reconciliation and healthy runtime.
+
 ## RESULT
 
 **Customer Owner First Real Tenant Access Validation V1 is complete. The first real owner can log in normally and the Wandora customer product resolves MEDICSPRO as the authorized organization.**
