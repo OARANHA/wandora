@@ -340,6 +340,24 @@ proof directory   = absent
 
 No live Auth service was recreated and no live SMTP setting changed.
 
+## GITHUB ACTIONS INFRASTRUCTURE EXCEPTION
+
+PR #146 head `6960987a3523ebc4338e83bc5dd263233371333a` triggered the five normal repository workflows:
+
+```text
+Platform Admin CI #264 / run 35412755707
+Core CI #402 / run 35412755755
+Messaging Gateway CI #371 / run 35412755721
+Organization Adapter Plugin CI #80 / run 35412755820
+Web CI #339 / run 35412755792
+```
+
+All five jobs completed as `failure` with `steps=null`, before any workflow step executed. They are **not classified green** and are not treated as code/config test failures.
+
+This PR does contain a Compose overlay change, so the runner outage is not waived merely because the remaining diff is documentation. The exact changed overlay was independently materialized from the branch and validated on the live production host using Docker Compose v5.5.1 and the pinned `supabase/gotrue:v2.196.0` image. The validation includes secret-reset container semantics, file-secret readability failure, rejected long-syntax uid/gid/mode, privilege-drop/PID-1 proof, exact future-state render, real-secret non-leak check and one-service dry-run.
+
+Merging the candidate does not deploy it. Live activation remains a separately reviewed production effect.
+
 ## RESULT
 
 **Customer Owner Transactional E-mail GoTrue SMTP Activation Preflight V1 is accepted.**
