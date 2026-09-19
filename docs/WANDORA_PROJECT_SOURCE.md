@@ -981,19 +981,33 @@ Gateway outbound           = OFF
 
 The dedicated setter ran only under `SET LOCAL ROLE wandora_customer_hire_operator` after the exclusive lock and zero-enabled check. Independent post-commit validation confirmed no employee, provider-agent, activation or outbound side effect.
 
-## MEDICSPRO First Real Digital-Employee Hire Execution Preflight — COMPLETE
+## MEDICSPRO First Real Digital-Employee Hire — LIVE
 
-ADR 0114 proves the first real MEDICSPRO customer-hire path is ready without performing the hire. Live state remains one enabled `ana-commercial-v1` eligibility, one control binding, zero MEDICSPRO employees, zero employee-provider bindings, zero hire operations, zero Paperclip agents and zero unfinished hires. Human Send and Gateway outbound remain OFF.
+ADR 0114 froze the execution boundary; ADR 0115 completed the first genuine MEDICSPRO owner hire through the normal customer browser flow.
 
-The running Core's packaged eligibility/reconciliation code was inspected directly and a no-effect invocation of its actual live read service projects `hire.available=true / state=available` for MEDICSPRO. The deployed Web is still source-equivalent to current `apps/web/`; it persists one organization-scoped UUIDv4 idempotency key before the POST, reuses it for safe ambiguity recovery and clears it only after validated success.
+```text
+MEDICSPRO employees          = 1
+Ana status/autonomy          = paused / supervised
+employee bindings            = 1
+ana-commercial-v1 hire ops   = 1 completed
+unfinished hires             = 0
+Paperclip agents             = 1 paused
+Paperclip adapter            = wandora_mastra
+hire projection              = already-hired
+outbound attempts/messages   = 0 / 0
+Human Send                   = OFF
+Gateway outbound             = OFF
+```
 
-Capability Reuse Gate: no new capability/state is needed. The future hire reuses the existing Wandora customer contract -> Organization Adapter -> Paperclip managed-agent capability and must finalize Ana as `paused + supervised` only.
+The owner clicked `Contratar Ana` once. The original browser idempotency key became the single completed durable hire operation; no retry was required. Independent Paperclip reconciliation confirms Ana is paused with zero budget, no heartbeat and an explicit pause reason requiring separate activation.
+
+Capability Reuse Gate remains satisfied: Wandora owns the customer contract/policy and minimum mapping/idempotency state; Paperclip owns the provider employee lifecycle behind Organization Adapter.
 
 ## Next executable slice
 
-**Customer Owner First Real Tenant Digital-Employee Hire Execution V1.**
+**Customer Owner First Real Tenant Digital-Employee Activation Preflight V1.**
 
-Use a fresh normal MEDICSPRO owner browser session, require `/api/v1/me` + customer `hire.available=true`, initiate exactly one `Contratar Ana` operation, then independently reconcile one Wandora employee, one employee-provider binding, one completed hire operation and one paused Paperclip managed Ana. Do not activate/resume Ana. Keep Human Send and Gateway outbound OFF. On ambiguous outcome, reconcile/retry only with the original browser idempotency key.
+Perform no activation effect. Revalidate ADR 0063 prerequisites for a future explicit `Ativar`: production Paperclip -> Wandora/Mastra execution bridge, mapped employee compatibility, least-privilege `agents.resume`, transition ordering, idempotency/ambiguity recovery and tool/integration readiness. Do not activate/resume Ana and keep Human Send/Gateway outbound OFF.
 
 ## Platform Admin
 
@@ -1097,6 +1111,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0112 — Customer Owner First Real Tenant Eligibility Rollout Execution V1
 - ADR 0113 — GitHub Actions Self-Hosted Runner Isolation V1
 - ADR 0114 — Customer Owner First Real Tenant Digital-Employee Hire Execution Preflight V1
+- ADR 0115 — Customer Owner First Real Tenant Digital-Employee Hire Execution V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
