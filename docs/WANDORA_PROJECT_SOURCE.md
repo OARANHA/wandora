@@ -1144,21 +1144,44 @@ outbound attempts       = 0
 
 Continuity rule: **never repeat migration 014 on resume merely because the HMAC/runtime portion remains incomplete.** Reconcile first and continue from the HMAC custody gate.
 
-## Paperclip bridge wrapper command-preservation correction gate
+## Production execution bridge activation V1 — COMPLETE
 
-ADR 0123 is canonical on `main@2710f3e9100e93214b202953432a74d513ee5739`. Its root-custody -> tmpfs secret-copy design remains selected, but the first live promotion exposed an independent Compose bug: the custom entrypoint rendered with `Cmd=null`. Paperclip therefore entered a restart loop before application startup.
+ADR 0125 records completion of the Paperclip -> Wandora/Mastra production execution bridge foundation on `main@72bcd60eb8428f6210bd2aae0532edabd2c75c5f`.
 
-The failed recreate was rolled back immediately to the prior bridge overlay. Paperclip is healthy again; `wandora_mastra` remains installed exactly once; Ana remains paused with zero wakeups/heartbeats; `agents.resume` remains absent; Human Send and Gateway outbound remain OFF.
+The final live path is:
 
-ADR 0124 corrects the deployment contract by preserving the exact pinned Paperclip image command explicitly in the bridge overlay and requiring the wrapper to fail closed when it receives zero arguments. CI is hardened to detect both conditions.
+```text
+Paperclip control plane
+-> wandora_mastra external adapter
+-> dedicated Paperclip/Core HMAC boundary
+-> Wandora Core resolver/policy boundary
+-> existing Agent Runtime / Mastra execution boundary
+```
 
-Do not reinstall the adapter, change host HMAC ownership/mode, repeat migration 014, resume Ana, grant `agents.resume`, enable Human Send or enable Gateway outbound.
+Migration 014 is live/verified and must not be replayed. The host bridge HMAC remains `root:wandora-ops / 0640`. Paperclip uses the corrected startup wrapper to copy the secret into non-persistent tmpfs as `0400 uid:gid 1000:1000` before the original non-root application startup. Core and Paperclip are healthy with zero restarts at the final checkpoint.
+
+`wandora_mastra@0.1.0` is installed exactly once from the retained hash-addressed local package path and official `test-environment` is PASS.
+
+Safety state remains frozen:
+
+```text
+Ana = exactly 1 / paused + supervised
+Paperclip Ana = paused
+wakeups = 0
+heartbeat runs = 0
+agents.resume = absent
+Human Send = OFF
+Gateway outbound = OFF
+MEDICSPRO outbound attempts = 0
+```
+
+The bridge being live is **not** permission to execute Ana or send messages.
 
 ## Next executable slice
 
-**Complete ADR 0124, then finish Activation Execution V1.**
+**STOP the bridge-foundation activation slice.**
 
-After the ADR 0124 correction is merged and green: stage exact overlay/wrapper -> prove Git blobs + rendered explicit command -> recreate only Paperclip -> prove healthy/restart 0, final app UID/GID 1000, tmpfs HMAC `0400 node:node` and hash equality -> adapter readback without reinstall -> official `test-environment` once and require pass -> prove Ana paused, zero wakeups/heartbeats, `agents.resume` absent, Human Send OFF, Gateway outbound OFF and outbound attempts zero -> STOP.
+Any future digital-employee activation/resume or outbound enablement must begin in a new reviewed slice from fresh REAL NOW evidence. Do not grant `agents.resume`, change Ana to active, enable Human Send, enable Gateway outbound or send customer messages merely because the bridge foundation is ready.
 
 ## Platform Admin
 

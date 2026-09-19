@@ -13,38 +13,35 @@ ADR 0059 now records the completed internal canary, including the private-hostna
 
 Authority order: `AGENTS.md` → accepted ADRs → `docs/CAPABILITY_AUTHORITY.md` → `docs/architecture.md` → this file → component README/runbook.
 
-## 2026-09-19 execution bridge wrapper-command checkpoint — LIVE PARTIAL / ROLLED BACK
+## 2026-09-19 execution bridge activation V1 — COMPLETE / EMPLOYEE STILL PAUSED
 
-Canonical Git entering this correction:
-
-```text
-main = 2710f3e9100e93214b202953432a74d513ee5739
-PR #173 = merged
-ADR 0123 = canonical
-```
-
-ADR 0123's root-custody -> tmpfs copy design is retained, but its first live promotion exposed a separate Compose defect: overriding the Paperclip entrypoint produced `Cmd=null`, so the wrapper reached the original entrypoint with zero application arguments and Paperclip entered a restart loop before serving traffic.
-
-The failed corrective recreate was rolled back immediately to the prior bridge overlay. Current live safety state is:
+Canonical Git at execution completion:
 
 ```text
-migration 014              = LIVE / verified / do not repeat
-dedicated bridge HMAC      = present / root:wandora-ops / 0640
-Core candidate             = live / healthy / bridge ON
-Paperclip                  = healthy / rollback complete
-wandora_mastra             = installed exactly once / readback green
-adapter test-environment   = known FAIL CLOSED / EACCES until corrected wrapper is promoted
-Ana                         = exactly 1 / paused + supervised
-Paperclip Ana               = paused
-wakeups / heartbeat runs    = 0 / 0
-agents.resume               = absent
-Human Send                  = OFF
-Gateway outbound            = OFF
+main = 72bcd60eb8428f6210bd2aae0532edabd2c75c5f
+PR #175 = merged
+ADR 0125 = completion checkpoint
 ```
 
-ADR 0124 versions the corrective rule: the bridge overlay must preserve the exact pinned Paperclip application command explicitly and the wrapper must reject zero arguments before copying the secret. CI must assert both conditions.
+The Paperclip -> Wandora/Mastra production execution bridge foundation is now LIVE and validated. Migration 014 remains live/verified and was not repeated. The dedicated HMAC remains root-custodied on the host; Paperclip receives a node-owned `0400` tmpfs copy through the corrected ADR 0123/0124 startup wrapper.
 
-Do not reinstall the adapter, repeat migration 014, weaken host HMAC custody, resume Ana or enable outbound effects. The next live effect is only after the ADR 0124 correction is merged and green.
+Current production boundary:
+
+```text
+Core bridge                = LIVE / healthy / readyz 200
+Paperclip bridge           = LIVE / healthy / restart 0
+wandora_mastra             = exactly 1 / loaded / version 0.1.0
+adapter test-environment   = PASS
+Ana / Wandora              = exactly 1 / paused + supervised
+Ana / Paperclip            = exactly 1 / paused
+wakeups / heartbeat runs   = 0 / 0
+agents.resume              = absent
+Human Send                 = OFF
+Gateway outbound           = OFF
+MEDICSPRO outbound attempts= 0
+```
+
+This checkpoint activates only the bridge foundation. It does **not** authorize Ana activation/resume or customer messaging. Any future activation/outbound effect must be a separate reviewed slice from fresh REAL NOW evidence.
 
 ## 2026-09-19 CI execution checkpoint — LIVE
 
