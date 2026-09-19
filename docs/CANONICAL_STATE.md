@@ -1635,11 +1635,46 @@ GOTRUE_SMTP_SENDER_NAME = fake_sender
 
 No invite, recovery or test e-mail was sent. No Auth/Core/Web/Gateway service was recreated. Human Send and Gateway outbound remain OFF.
 
+## Customer Owner Transactional E-mail GoTrue SMTP Activation Preflight V1 — COMPLETE
+
+ADR 0098 closes the no-effect activation preflight and versions the exact Auth-only startup candidate.
+
+The adversarial proof found that local Docker Compose file-backed secrets preserve host permissions and explicitly ignore secret long-syntax `uid/gid/mode`. Therefore the protected `root:wandora-ops/0640` credential is not readable directly by the image's non-root `supabase` user.
+
+The accepted candidate does **not** weaken custody. It resets the inherited container password mapping, mounts the secret only into Auth, uses a minimal root startup shell to read it, and immediately `exec su -p` drops the final GoTrue PID 1 back to UID/GID 1000 before `/usr/local/bin/auth` runs. Disposable no-network proof verified the drop and showed no resident root parent.
+
+A protected rollback snapshot exists at:
+
+```text
+/home/wandora-admin/backups/gotrue-smtp-activation-preflight-v1-20260919T012450Z
+```
+
+It contains byte-identical live base/overlay copies, exactly the six prior SMTP_* values under mode 0600, hashes and Auth identity metadata. Values are operator-secret material and must never be printed.
+
+The exact candidate was rendered with future non-secret SMTP settings and the real Resend secret did not appear. A Docker Compose dry-run proposed only:
+
+```text
+supabase-auth Recreate -> Recreated -> Starting -> Started
+```
+
+The future `.env` keeps `SMTP_PASS=` intentionally empty only to satisfy upstream interpolation; the real credential remains file-only.
+
+Live production remains unchanged:
+
+```text
+GOTRUE_SMTP_HOST        = supabase-mail
+GOTRUE_SMTP_PORT        = 2500
+GOTRUE_SMTP_ADMIN_EMAIL = admin@example.com
+GOTRUE_SMTP_SENDER_NAME = fake_sender
+```
+
+No Auth service recreation occurred and no invite, recovery or test e-mail was sent.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Owner Transactional E-mail GoTrue SMTP Activation Preflight V1.**
+Next: **Customer Owner Transactional E-mail GoTrue SMTP Activation Execution V1.**
 
-This preflight must re-read exact live Supabase Compose/runtime state, version the already-reviewed secret-file Auth startup candidate, freeze backup/rollback and prove the exact one-service activation procedure. It must **not** change live GoTrue SMTP settings, recreate `supabase-auth` or send an invite, recovery or test e-mail.
+That execution may install the accepted non-secret SMTP values plus the canonical Auth overlay and recreate **only** `supabase-auth` using `--no-deps --force-recreate auth`. It must prove health, UID 1000 final process, STARTTLS and optionally AUTH+QUIT, then re-check no-effect counters. It must **not** send an invite, recovery or e-mail test.
 
 ## Operational safety
 
