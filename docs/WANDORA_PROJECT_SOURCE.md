@@ -949,11 +949,28 @@ eligibility                = 0 / 0 enabled
 
 The final current secret version is version 2. The adversarial review rotated the initial value to an exact 32-byte `crypto.randomBytes(32)` value before closure; hash-only proof matches Core custody to Paperclip `value_sha256` and `fingerprint_sha256`. No plaintext was exposed. Temporary staging was removed, runtime health is green and outbound remains OFF.
 
+## MEDICSPRO First Real Tenant Eligibility Rollout — PREFLIGHT COMPLETE
+
+ADR 0111 proves MEDICSPRO is now the clean real target that ADR 0085 previously lacked:
+
+```text
+real confirmed owner path = green
+employees / legacy Ana    = 0 / 0
+control binding           = exactly 1
+employee bindings         = 0
+ana-commercial-v1 hires   = 0
+Paperclip agents          = 0
+HMAC/config/secret        = exact + healthy
+eligibility rows/enabled  = 0 / 0
+```
+
+The operator authority is unchanged and a no-effect production rehearsal proved the exclusive-lock + local-role path without calling the setter. No eligibility row was created.
+
 ## Next executable slice
 
-Next: **Customer Owner First Real Tenant Eligibility Rollout Preflight V1.**
+Next: **Customer Owner First Real Tenant Eligibility Rollout Execution V1.**
 
-Reuse ADR 0085's first-rollout serialization and setter/rollback rules against the now-real clean MEDICSPRO target and `ana-commercial-v1`. Preflight only: do not enable eligibility, hire/activate an employee or enable outbound.
+Execute only the frozen serialized setter transaction for MEDICSPRO + `ana-commercial-v1`, validate exactly one enabled eligibility row and stop before employee hire/activation/outbound.
 
 ## Platform Admin
 
