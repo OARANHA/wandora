@@ -91,3 +91,22 @@ Platform Admin controls Wandora. It exercises Supabase/Paperclip/Mastra/Evolutio
 ## Current safety hold
 
 The abandoned unmerged `digital_employee_work_assignments` / migration 010 direction is **not authoritative** and must not be revived without explicitly passing ADR 0036's Capability Reuse Gate after Paperclip adapter analysis.
+
+## Paperclip / Mastra capability canonicalization — ADR 0126
+
+Use the maintained provider maps before designing new control-plane/runtime state:
+
+- [Paperclip Capability Map](PAPERCLIP_CAPABILITY_MAP.md)
+- [Mastra Capability Map](MASTRA_CAPABILITY_MAP.md)
+- [Capability Collision Matrix](CAPABILITY_COLLISION_MATRIX.md)
+
+Current durable split:
+
+- **Paperclip** owns the specialist implementation of company/agent lifecycle, durable organizational tasks/runs, Routines, organizational Skills policy/catalog, control-plane Decisions/Execution Policy, Decision Training, Task Watchdogs/liveness, Paperclip-controlled Connections/grants/secrets, external adapter loading and run-scoped identity.
+- **Mastra** owns runtime execution: workflows/tools, execution-local goals/task lists/signals, runtime memory/observability/evals when separately adopted, workspaces/sandbox, runtime skill materialization and token/context guardrails.
+- **Wandora** owns customer-facing semantics/stable IDs, tenant authorization, product policy/projections, provider-neutral adapters, external-effect authorization, compliance/effect audit, plans/billing and retention/privacy policy.
+
+A Paperclip approval/connection grant or a Mastra tool hook/skill/signal never authorizes a Wandora-governed external effect by itself.
+
+Paperclip Connections is the leading specialist candidate for organizational connection/grant authority. Do not introduce Mastra `@mastra/connect` or a new Wandora credential/grant subsystem as a competing authority without a superseding ADR.
+
