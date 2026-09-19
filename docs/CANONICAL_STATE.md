@@ -37,7 +37,7 @@ The runner is deliberately hosted on the existing Wandora VPS but is isolated fr
 
 Final validation on the implementation head proved Core Candidate, Core, Messaging Gateway, Operator Consoles, Organization Adapter Plugin, Platform Admin and Web CI green while critical production containers remained healthy with zero restarts.
 
-At the ADR 0113 CI checkpoint the next functional product slice was **Customer Owner First Real Tenant Digital-Employee Hire Execution Preflight V1**. ADR 0114 now closes that no-effect gate; the next functional slice is the separately reviewed **Customer Owner First Real Tenant Digital-Employee Hire Execution V1**. The CI restoration slice itself did not hire or activate Ana, enable Human Send, enable Gateway outbound, or change the MEDICSPRO Organization Adapter binding/HMAC/secret.
+At the ADR 0113 CI checkpoint the next functional product slice was **Customer Owner First Real Tenant Digital-Employee Hire Execution Preflight V1**. ADR 0114 closed that no-effect gate and ADR 0115 has now completed the first real MEDICSPRO customer hire through the normal owner browser path. The next functional slice is **Customer Owner First Real Tenant Digital-Employee Activation Preflight V1**. Ana remains paused + supervised; Human Send and Gateway outbound remain OFF.
 
 This file is a compact current-state handoff. Historical evidence belongs in accepted ADRs and infra proof documents. Mutable runtime facts must be re-verified before a later production action.
 
@@ -74,7 +74,7 @@ Implemented routes include `/`, `/team`, `/work`, `/conversations`, `/approvals`
 
 **REAL:** login/session, explicit multi-organization selection, Team read, Work, Conversations, Canonical Confirmation V2, the controlled supervised WhatsApp loop, and the tenant-gated customer `Contratar Ana` contract/UI.
 
-**PARTIAL / PLACEHOLDER:** dashboard/company/approval surfaces and digital-employee **activation/resume**. The first real MEDICSPRO hire has not yet been executed at ADR 0114 closure.
+**PARTIAL / PLACEHOLDER:** dashboard/company/approval surfaces and digital-employee **activation/resume**. The first real MEDICSPRO hire is now live under ADR 0115; activation remains deliberately unavailable.
 
 Customer hire is exposed only through the exact reviewed route `POST /api/v1/organizations/:organizationId/digital-employees`, normal human session authorization, tenant eligibility and Organization Adapter/Paperclip reconciliation. `Contratar` creates/returns a paused + supervised employee; it is not an activation capability.
 
@@ -2150,11 +2150,33 @@ Capability Reuse Gate passes with no new domain code: Paperclip remains the empl
 
 A fresh normal owner browser session is deliberately an execution-time pre-dispatch gate. No bearer token was extracted or manufactured during preflight.
 
+## Customer Owner First Real Tenant Digital-Employee Hire Execution V1 — COMPLETE
+
+ADR 0115 records the first genuine MEDICSPRO owner hire through the normal customer browser contract.
+
+```text
+MEDICSPRO Ana                       = exactly 1
+status / autonomy                   = paused / supervised
+employee-provider bindings          = exactly 1
+ana-commercial-v1 hire operations   = exactly 1 / completed
+global unfinished hires             = 0
+MEDICSPRO Paperclip agents          = exactly 1 / paused
+Paperclip adapter                   = wandora_mastra
+hire projection                     = already-hired
+
+outbound attempts                   = 0
+outbound messages                   = 0
+Human Send                          = OFF
+Gateway outbound                    = OFF
+```
+
+The normal owner clicked `Contratar Ana` once. The durable hire journal retained the original idempotency key and no retry was required. Independent provider reconciliation confirmed the managed Paperclip Ana is paused, has zero budget, no heartbeat and the explicit provider pause reason requiring separate activation.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Owner First Real Tenant Digital-Employee Hire Execution V1.**
+Next: **Customer Owner First Real Tenant Digital-Employee Activation Preflight V1.**
 
-Execute one normal-owner browser `Contratar Ana` operation only after fresh zero-state + `hire.available=true` validation. Reconcile exactly one paused/supervised Wandora Ana, one employee-provider binding, one completed hire operation and one paused Paperclip managed Ana. Never use a new idempotency key to escape ambiguity. Do not activate/resume Ana and keep Human Send and Gateway outbound OFF.
+Perform a no-effect preflight only. Revalidate ADR 0063 activation prerequisites: production Paperclip -> Wandora/Mastra execution bridge, exact mapped employee compatibility, least-privilege `agents.resume` capability, provider-first/Wandora-state transition semantics, idempotency and ambiguity recovery, and required tool/integration readiness. Do not activate/resume Ana. Keep Human Send and Gateway outbound OFF.
 
 ## Operational safety
 
