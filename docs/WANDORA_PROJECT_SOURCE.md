@@ -929,11 +929,21 @@ plugin config       = null
 
 Wandora remains intentionally unwired for MEDICSPRO: control binding, employee-provider binding, eligibility and hire state are all zero. The deterministic future HMAC file is also absent. No runtime was recreated and no outbound effect was enabled.
 
+## MEDICSPRO Organization Adapter Custody + Config + Binding — PREFLIGHT COMPLETE / EXECUTION BLOCKED
+
+ADR 0108 freezes the exact MEDICSPRO↔Paperclip wiring contract without creating it. The future control binding remains operator-owned; the Core HMAC target is deterministic from the provider-company ref; the Paperclip secret remains company-owned `local_encrypted`; and plugin config remains a same-company `secret_ref` written last.
+
+The retained ADR 0075 out-of-volume recovery snapshot is internally intact and its `master.key` copy still matches live, but its database predates the current canary HMAC secret and the MEDICSPRO company. The only newer backups are still inside the live Docker volume, and the newest observed backup also predates MEDICSPRO company creation.
+
+Therefore do not begin MEDICSPRO binding/HMAC/secret/config execution until a fresh current-state protected DB + key pair is created and proven.
+
+No MEDICSPRO HMAC, Paperclip secret/config, Wandora binding, eligibility or employee exists.
+
 ## Next executable slice
 
-Next: **Customer Owner First Real Tenant Organization Adapter Custody + Config + Binding Preflight V1.**
+Next: **Customer Owner First Real Tenant Paperclip Local-Encrypted Recovery Snapshot Refresh Execution V1.**
 
-Revalidate and freeze the ADR 0073–0076 wiring pattern for the exact MEDICSPRO↔Paperclip pair, including the protected local-encrypted recovery prerequisite, deterministic HMAC custody, operator-owned binding insert, Paperclip company secret/config order and ambiguity/rollback rules. Do not create wiring, eligibility or an employee during the preflight.
+Reuse ADRs 0074–0075 to create and prove one fresh current-state out-of-volume Paperclip DB + `master.key` recovery pair. Keep the previous snapshot until the new pair is green. Do not create MEDICSPRO wiring, eligibility or an employee during the refresh.
 
 ## Platform Admin
 
@@ -1029,7 +1039,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0104 — Customer Owner First Real Tenant Provisioning Execution V1
 - ADR 0105 — Customer Owner First Real Tenant Access Validation V1
 - ADR 0106 — Customer Owner First Real Tenant Paperclip Company Bootstrap Preflight V1
-- ADR 0107 — Customer Owner First Real Tenant Paperclip Company Bootstrap Execution V1
+- ADR 0107 — Customer Owner First Real Tenant Paperclip Company Bootstrap Execution V1\n- ADR 0108 — Customer Owner First Real Tenant Organization Adapter Custody + Config + Binding Preflight V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
