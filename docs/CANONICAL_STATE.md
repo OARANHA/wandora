@@ -2074,11 +2074,30 @@ The dedicated `wandora_customer_hire_operator` remains NOLOGIN/least-privilege a
 
 No eligibility, employee, hire, provider-agent or outbound effect occurred.
 
+## Customer Owner First Real Tenant Eligibility Rollout Execution V1 — COMPLETE
+
+ADR 0112 executed exactly the frozen serialized operator transaction for MEDICSPRO + `ana-commercial-v1`.
+
+```text
+eligibility rows/enabled      = 1 / 1
+enabled target                = MEDICSPRO + ana-commercial-v1
+MEDICSPRO employees           = 0
+employee provider bindings    = 0
+MEDICSPRO hire operations     = 0
+unfinished hires              = 0
+Paperclip agents              = 0
+Organization Adapter          = unchanged / ready
+Human Send                    = OFF
+Gateway outbound              = OFF
+```
+
+The setter ran only under `SET LOCAL ROLE wandora_customer_hire_operator` inside the ADR 0111 exclusive-lock transaction. The postcondition assertions passed before COMMIT, then an independent connection and Paperclip read proved that eligibility alone created no employee/provider/outbound effect.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Owner First Real Tenant Eligibility Rollout Execution V1.**
+Next: **Customer Owner First Real Tenant Digital-Employee Hire Execution Preflight V1.**
 
-Execute only the ADR 0111 frozen serialized operator transaction for MEDICSPRO + `ana-commercial-v1`. Require exactly one enabled eligibility row afterward while employees, hire operations, Paperclip agents, Human Send and Gateway outbound remain unchanged/off. Stop before the actual hire.
+Revalidate the real owner/browser path, customer availability projection, exact idempotency contract, MEDICSPRO wiring and zero target employee/hire/provider-agent state. Do not hire or activate Ana and do not enable Human Send or Gateway outbound during the preflight.
 
 ## Operational safety
 
