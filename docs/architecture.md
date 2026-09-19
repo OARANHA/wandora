@@ -749,6 +749,11 @@ fresh state reconciliation
 
 Bridge foundation activation is not employee activation. Provider resume and Wandora `paused -> active` remain a distinct later effect boundary.
 
+## Bridge activation pre-mutation recovery and host hygiene amendment
+
+ADR 0121 preserves ADR 0120's bridge-foundation GO but hardens the start of the future execution. Before migration 014 or any live bridge runtime mutation, the operator must remove proven disposable host pressure/localhost ambiguity while preserving proof volumes, then create and restore-prove a fresh Paperclip DB + current `master.key` snapshot that includes the current MEDICSPRO Ana. The previous protected Paperclip snapshot predates that Ana and is not an adequate current-state rollback point.
+
+This is an operational recovery gate only. It does not change capability authority, bridge contracts or employee lifecycle boundaries.
 ## NEXT EXECUTABLE SLICE
 
 Next: **Paperclip -> Wandora/Mastra Production Execution Bridge Activation Execution V1.**

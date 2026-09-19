@@ -2323,6 +2323,20 @@ Live Core/Paperclip base Compose files remain byte-identical to Git. The bridge 
 
 The V2 decision is GO only for a separately executed bridge-foundation activation transaction. It does not authorize `agents.resume`, Ana activation/resume, Human Send or Gateway outbound. If the short-lived Actions artifacts expire or cannot be retrieved, provenance must be re-established before any production effect.
 
+## Paperclip -> Wandora/Mastra Activation Execution pre-mutation recovery + host hygiene gate — COMPLETE
+
+ADR 0121 amends ADR 0120 after post-merge evidence showed two execution-preparation risks: the newest Paperclip recovery snapshot predates the current MEDICSPRO Ana, and stale disposable/proof containers consume material RAM while one host-network proof owns `127.0.0.1:3100`.
+
+ADR 0120's GO remains valid, but Activation Execution V1 must begin with:
+
+```text
+Gate A: reconcile + clean proven disposable high-cost containers, preserve proof volumes, free localhost:3100, re-check headroom
+Gate B: fresh current Paperclip DB + master.key snapshot, disposable restore/decrypt/state proof
+Gate C: exact PR #169 artifact availability/provenance
+then: Wandora DB backup/rehearsal -> migration 014 -> HMAC -> Core -> Paperclip -> adapter -> STOP
+```
+
+No bridge mutation, employee resume or outbound effect is authorized until these gates pass.
 ## NEXT EXECUTABLE SLICE
 
 Next: **Paperclip -> Wandora/Mastra Production Execution Bridge Activation Execution V1.**
