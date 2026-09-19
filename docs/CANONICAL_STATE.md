@@ -2198,11 +2198,11 @@ Therefore `adapterType=wandora_mastra` is not treated as runtime readiness, the 
 
 The future path remains provider-first and keeps Human Send/Gateway outbound independent. No new Wandora lifecycle/control-plane model is approved; only minimum external-effect safety state may be proposed later if serialized reconciliation cannot prove replay/concurrency safety.
 
-## Paperclip -> Wandora/Mastra Production Execution Bridge Contract Implementation V1 — CODE/CI CANDIDATE
+## Paperclip -> Wandora/Mastra Production Execution Bridge Contract Implementation V1 — COMPLETE / MERGED
 
 ADR 0117 promotes the ADR 0037 laboratory bridge into production-shaped repository contracts without activating production.
 
-Implemented candidate boundary:
+Canonical merged boundary (`main` = `7bc8c4790e37b0410703bf58979458200810d5a9`):
 
 ```text
 Paperclip external adapter package = @wandora/paperclip-adapter-mastra@0.1.0
@@ -2223,9 +2223,11 @@ No new Paperclip-like task/control-plane domain is created. The only new DB capa
 
 The current deterministic runtime makes duplicate execution of the same run non-effectful at this stage. This is not a general idempotency claim for future model/tool/external effects; those require a newer durable effect/reconciliation contract before activation.
 
+PR #166 was squash-merged only after all seven workflows on head `0d6ee0ba593e69e74cae851e127bf146b36f38f1` were green. Post-merge production proof confirms migration 014 is still absent, the live Paperclip adapter store has zero `wandora_mastra` records, MEDICSPRO Ana remains exactly one `paused + supervised` employee with one provider binding and one completed hire operation, and the Core bridge/Human Send/Gateway outbound enable flags remain absent/OFF.
+
 ## NEXT EXECUTABLE SLICE
 
-After ADR 0117 is CI-green and merged: **Paperclip -> Wandora/Mastra Production Execution Bridge Activation Preflight V1.**
+Next: **Paperclip -> Wandora/Mastra Production Execution Bridge Activation Preflight V1.**
 
 The preflight is no-effect. Reverify live state and freeze migration-014 application/verifier, dedicated bridge-HMAC custody, adapter artifact provenance/install path, Core overlay/candidate promotion, rollback and synthetic end-to-end proof. Do not apply migration 014, install the adapter, recreate Core, resume/activate Ana, grant `agents.resume`, enable Human Send or enable Gateway outbound during that preflight.
 
