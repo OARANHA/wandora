@@ -13,34 +13,38 @@ ADR 0059 now records the completed internal canary, including the private-hostna
 
 Authority order: `AGENTS.md` → accepted ADRs → `docs/CAPABILITY_AUTHORITY.md` → `docs/architecture.md` → this file → component README/runbook.
 
-## 2026-09-19 execution bridge corrective checkpoint — LIVE PARTIAL / FAIL-CLOSED
+## 2026-09-19 execution bridge wrapper-command checkpoint — LIVE PARTIAL / ROLLED BACK
 
-ADR 0122 is canonical on `main@ace37458b8d66e680320d99417097516a6c6dab4`. ADR 0123 is under review in PR #173 and records the newly discovered Paperclip privilege-drop custody defect and its corrective wrapper.
+Canonical Git entering this correction:
 
-Observed live state:
+```text
+main = 2710f3e9100e93214b202953432a74d513ee5739
+PR #173 = merged
+ADR 0123 = canonical
+```
+
+ADR 0123's root-custody -> tmpfs copy design is retained, but its first live promotion exposed a separate Compose defect: overriding the Paperclip entrypoint produced `Cmd=null`, so the wrapper reached the original entrypoint with zero application arguments and Paperclip entered a restart loop before serving traffic.
+
+The failed corrective recreate was rolled back immediately to the prior bridge overlay. Current live safety state is:
 
 ```text
 migration 014              = LIVE / verified / do not repeat
 dedicated bridge HMAC      = present / root:wandora-ops / 0640
-Core candidate             = live / healthy / readyz 200
-Core bridge                = ON
-Paperclip bridge overlay   = live
+Core candidate             = live / healthy / bridge ON
+Paperclip                  = healthy / rollback complete
 wandora_mastra             = installed exactly once / readback green
-adapter test-environment   = FAIL CLOSED / EACCES on HMAC
+adapter test-environment   = known FAIL CLOSED / EACCES until corrected wrapper is promoted
 Ana                         = exactly 1 / paused + supervised
 Paperclip Ana               = paused
 wakeups / heartbeat runs    = 0 / 0
 agents.resume               = absent
 Human Send                  = OFF
 Gateway outbound            = OFF
-MEDICSPRO outbound attempts = 0
 ```
 
-Root cause is proven: Paperclip PID 1 is root/tini, but the application is intentionally dropped to UID/GID 1000 by `gosu node`; supplementary groups are reset, so the host `root:wandora-ops / 0640` bind is unreadable to the application. A disposable proof also rejected plain Docker `group_add` as insufficient.
+ADR 0124 versions the corrective rule: the bridge overlay must preserve the exact pinned Paperclip application command explicitly and the wrapper must reject zero arguments before copying the secret. CI must assert both conditions.
 
-PR #173 proposes the minimal correction: root-only source bind -> startup copy into in-container tmpfs -> `0400 node:node` -> original entrypoint privilege drop. The exact pinned image passed this proof with final UID/GID 1000 and no secret plaintext exposure.
-
-Do not reinstall the adapter, repeat migration 014, weaken host custody, resume Ana or enable outbound effects. Next live effect is only after the corrective wrapper/overlay is merged and green.
+Do not reinstall the adapter, repeat migration 014, weaken host HMAC custody, resume Ana or enable outbound effects. The next live effect is only after the ADR 0124 correction is merged and green.
 
 ## 2026-09-19 CI execution checkpoint — LIVE
 
