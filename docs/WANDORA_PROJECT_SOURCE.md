@@ -905,11 +905,19 @@ ADR 0105 now proves the customer product end-to-end with a genuine normal owner 
 
 MEDICSPRO remains intentionally employee-free and provider-unwired: no Paperclip/control binding, employee binding, eligibility or hire state exists for it.
 
+## MEDICSPRO Paperclip Company Bootstrap — PREFLIGHT COMPLETE
+
+ADR 0106 freezes the provider-company bootstrap without creating it. Live Paperclip is still the pinned `wandora/paperclip:v2026.831.1` / `65ec059b...` runtime, healthy/private/authenticated, with exactly two existing provider companies and zero exact `MEDICSPRO` matches. The protected Board credential remains instance-admin when explicitly addressed to `http://127.0.0.1:3100`.
+
+The exact future payload is `{"name":"MEDICSPRO"}` (SHA-256 `6320780ded5fe0976fd96d8e5d8e834b87d87d771b9f9b441818fd2c793b415b`). Reuse the ADR 0072 official one-shot CLI path; Paperclip company creation is not idempotent and names are not unique, so ambiguous dispatch must be reconciled by read-only state and never blindly retried.
+
+MEDICSPRO remains at zero employees, control bindings, employee bindings, hire operations and eligibility. No HMAC/secret/plugin config was created.
+
 ## Next executable slice
 
-Next: **Customer Owner First Real Tenant Paperclip Company Bootstrap Preflight V1.**
+Next: **Customer Owner First Real Tenant Paperclip Company Bootstrap Execution V1.**
 
-Reuse the accepted Paperclip Organization Adapter authority model and canary bootstrap evidence to freeze exact MEDICSPRO company creation/reconciliation. Do not create provider state, eligibility or an employee during the preflight.
+Create exactly one Paperclip company named MEDICSPRO through the frozen one-shot official CLI path and stop before HMAC/secret/config, Wandora provider binding, eligibility or employee hire.
 
 ## Platform Admin
 
@@ -1004,6 +1012,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0103 — Customer Owner First Real Tenant Provisioning Preflight V1
 - ADR 0104 — Customer Owner First Real Tenant Provisioning Execution V1
 - ADR 0105 — Customer Owner First Real Tenant Access Validation V1
+- ADR 0106 — Customer Owner First Real Tenant Paperclip Company Bootstrap Preflight V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 

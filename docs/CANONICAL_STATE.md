@@ -1818,11 +1818,58 @@ unfinished hires                    = 0
 
 No customer token/password was shared or extracted. No privileged JWT impersonation was used. No Paperclip/provider, eligibility, hire or outbound mutation occurred.
 
+## Customer Owner First Real Tenant Paperclip Company Bootstrap Preflight V1 — COMPLETE
+
+ADR 0106 reuses the already-proven canary Paperclip company-bootstrap contract for the real MEDICSPRO tenant without creating provider state.
+
+Fresh read-only evidence:
+
+```text
+main entering preflight              = 6865551b5c841234714834cc37b904d52eb13768
+open PRs                             = 0
+Paperclip image                      = wandora/paperclip:v2026.831.1
+Paperclip source commit              = 65ec059bde30d98c92165b24a30a540800dd1f6f
+Paperclip health                     = ok
+deployment                           = authenticated / private
+bootstrapStatus                      = ready
+database backup                      = enabled / ok
+Board credential isInstanceAdmin     = true
+Paperclip companies                  = 2
+Paperclip MEDICSPRO exact matches    = 0
+
+MEDICSPRO active org                 = 1
+MEDICSPRO digital employees          = 0
+MEDICSPRO control bindings           = 0
+MEDICSPRO employee bindings          = 0
+MEDICSPRO hire operations            = 0
+MEDICSPRO eligibility                = 0
+unfinished hires total               = 0
+eligibility rows/enabled             = 0 / 0
+```
+
+The exact future provider payload is:
+
+```json
+{"name":"MEDICSPRO"}
+```
+
+with SHA-256:
+
+```text
+6320780ded5fe0976fd96d8e5d8e834b87d87d771b9f9b441818fd2c793b415b
+```
+
+The protected auth store is valid only when the CLI explicitly targets its matching private API base. A read-only call without the matching API base returned 401 before any effect; adding `--api-base http://127.0.0.1:3100` resolved the expected Board identity and exact two-company baseline. The future execution must not rely on CLI default API-base selection.
+
+Provider create remains non-idempotent. After dispatch, timeout/reset/unreadable response/non-201/interruption are potentially effectful and must be reconciled through provider reads. No blind retry, direct SQL repair or second company is allowed.
+
+This preflight created no Paperclip company, Organization Adapter HMAC/secret/config, Wandora provider binding, eligibility, employee or hire operation. Customer Hire remains globally ON but MEDICSPRO eligibility remains zero; Human Send and Gateway outbound remain OFF.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Owner First Real Tenant Paperclip Company Bootstrap Preflight V1.**
+Next: **Customer Owner First Real Tenant Paperclip Company Bootstrap Execution V1.**
 
-Freeze the exact MEDICSPRO Paperclip-company creation and ambiguity-reconciliation contract using the accepted Organization Adapter authority model and prior canary evidence. Do not create the company, binding, eligibility or employee during the preflight.
+Create exactly one Paperclip company named MEDICSPRO through the frozen official one-shot CLI path, independently reconcile the provider state and stop. Do not create Organization Adapter HMAC/secret/config, Wandora provider binding, eligibility or any digital employee during that execution.
 
 ## Operational safety
 
