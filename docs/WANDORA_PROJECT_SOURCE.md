@@ -1073,11 +1073,56 @@ Production activation is **not** authorized yet because three readiness contract
 
 The future activation order and rollback are frozen in ADR 0118. The adapter must be extracted into a restart-stable path under persistent `/paperclip/operator-packages` and installed through the official local-directory adapter route; never install it from `/tmp`, a CI workspace or an unverified registry package.
 
+## Paperclip -> Wandora/Mastra Production Execution Bridge Runtime Custody + Readiness + Disposable E2E Attestation — COMPLETE
+
+ADR 0119 closed ADR 0118's three implementation gaps without activating production:
+
+```text
+Paperclip bridge runtime overlay             = implemented / CI-validated
+Core migration-014-aware bridge readiness   = implemented / fail-closed
+disposable pinned Paperclip -> Core -> Mastra= GREEN
+migration 014 live                           = NO
+```
+
+The disposable proof uses Paperclip's native managed-agent service and a real run-scoped token. Its resolver shim is proof-only and is not a substitute for migration 014.
+
+## Paperclip -> Wandora/Mastra Production Execution Bridge Activation Preflight V2 — COMPLETE / GO
+
+ADR 0120 revalidated current `main@cb52b601d440b5abb9412005fc6503c7b8065adc`, PR #169 artifacts and production.
+
+```text
+migration 014            = absent
+bridge secret             = absent
+Core bridge               = OFF
+Paperclip bridge overlay  = absent live
+wandora_mastra store      = []
+agents.resume             = absent
+Ana                       = exactly 1 / paused + supervised
+Paperclip wakeups/runs    = 0 / 0
+Human Send                = OFF
+Gateway outbound          = OFF
+```
+
+Exact current artifacts are frozen:
+
+```text
+adapter artifact ZIP sha256 = ad82c276239e091779aadade7a7067175505f5c4a3f9aa0b0d4e5b0024163952
+adapter tgz sha256          = 0d2e77940c381bb36fc401bdf28080507227f081fe5e45a92f5b36723ed7604f
+
+Core artifact ZIP sha256    = 6c9daf4528e8f18dbaff2a4d313edf7616915627e19683223bacbd4da449b2fc
+Core archive sha256         = b101033ac47b7f1e4695d5e2a15d288558682d38e0e508cd7d059abd0aae902d
+Core source tree            = abacb9da0949a63210080a01bdd95b087e98d02e
+```
+
+The Core source tree is exactly the canonical current-main tree. The adapter tgz is byte-identical to ADR 0118. Live Core/Paperclip base Compose files remain byte-equivalent to Git, and the new bridge overlays remain repository-only.
+
+The GO is only for a separately reviewed bridge-foundation activation. It does not authorize `agents.resume`, Ana activation/resume, Human Send or Gateway outbound. If the current short-lived Actions artifacts expire or disappear, provenance must be re-established before any live mutation.
+
 ## Next executable slice
 
-**Paperclip -> Wandora/Mastra Production Execution Bridge Runtime Custody + Readiness + Disposable E2E Attestation Implementation V1.**
+**Paperclip -> Wandora/Mastra Production Execution Bridge Activation Execution V1.**
 
-Repository/CI/disposable-proof only. No migration 014 application, live secret, live adapter install, live Core/Paperclip recreation, `agents.resume`, Ana activation, Human Send or Gateway outbound effect.
+Use ADR 0118 + ADR 0120 exactly: reconcile -> fresh backup/restore/rehearsal -> migration 014 + verifier/postverify -> dedicated HMAC -> bridge-aware Core promotion/readiness -> Paperclip bridge overlay -> persistent exact adapter install/readback -> prove Ana still paused and all outbound effects OFF -> STOP.
 
 ## Platform Admin
 
@@ -1186,6 +1231,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0117 — Paperclip -> Wandora/Mastra Production Execution Bridge Contract Implementation V1
 - ADR 0118 — Paperclip -> Wandora/Mastra Production Execution Bridge Activation Preflight V1
 - ADR 0119 — Paperclip -> Wandora/Mastra Production Execution Bridge Runtime Custody + Readiness + Disposable E2E Attestation Implementation V1
+- ADR 0120 — Paperclip -> Wandora/Mastra Production Execution Bridge Activation Preflight V2
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
