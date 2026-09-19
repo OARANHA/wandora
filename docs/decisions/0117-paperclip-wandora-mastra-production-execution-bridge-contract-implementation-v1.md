@@ -1,6 +1,6 @@
 # ADR 0117 — Paperclip -> Wandora/Mastra Production Execution Bridge Contract Implementation V1
 
-- Status: **Accepted implementation candidate — code/CI only; no production install/activation effect**
+- Status: **Accepted / merged — code/CI-only foundation; production remains dormant**
 - Date: 2026-09-19
 - Scope: promote the ADR 0037 laboratory Paperclip external-adapter bridge into canonical production-installable source plus a disabled-by-default private Wandora Core execution contract, without installing the adapter live, activating/resuming Ana, granting `agents.resume`, enabling Human Send or enabling Gateway outbound.
 
@@ -317,7 +317,28 @@ The implementation must not be accepted/merged unless CI proves:
 
 **Implementation is bounded to code/CI. Production activation remains NOT authorized by this ADR.**
 
-Even after merge, the production truth must remain:
+PR #166 merged by squash into canonical `main` as:
+
+```text
+7bc8c4790e37b0410703bf58979458200810d5a9
+```
+
+The reviewed PR head `0d6ee0ba593e69e74cae851e127bf146b36f38f1` completed all seven repository workflows successfully: Core CI, Core Candidate Artifact, Paperclip Mastra Adapter CI, Organization Adapter Plugin CI, Messaging Gateway CI, Web CI and Platform Admin CI.
+
+Independent post-merge production validation proved:
+
+```text
+migration 014 live                  = false
+live Paperclip wandora_mastra       = not registered
+MEDICSPRO Ana / Wandora             = exactly 1 / paused + supervised
+MEDICSPRO employee-provider binding = exactly 1
+MEDICSPRO hire operation            = exactly 1 / completed / 0 unfinished
+Core bridge enable flag             = absent / OFF
+Human Send enable flag              = absent / OFF
+Gateway outbound enable flag        = absent / OFF
+```
+
+The production truth therefore remains:
 
 ```text
 live Paperclip wandora_mastra adapter = absent
@@ -332,7 +353,7 @@ Gateway outbound                      = OFF
 
 ## NEXT EXECUTABLE SLICE
 
-After this PR is CI-green and merged:
+With PR #166 merged and post-merge production state revalidated:
 
 **Paperclip -> Wandora/Mastra Production Execution Bridge Activation Preflight V1.**
 
