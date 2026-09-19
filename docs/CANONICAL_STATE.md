@@ -2447,7 +2447,9 @@ Resolved collisions:
 - Decision Training -> **Paperclip decision evidence**; Evals -> **Mastra execution-quality evidence**;
 - Connections/grants -> **Paperclip is the leading specialist candidate**; Mastra `@mastra/connect` is not adopted as a competing authority.
 
-## Paperclip v2026.916.0 Upgrade Preflight — NO-GO PENDING DISPOSABLE PROOF
+## Paperclip v2026.916.0 Disposable Upgrade Compatibility Proof — GREEN
+
+ADRs 0127–0128 record the production-derived disposable compatibility proof.
 
 Production remains:
 
@@ -2456,29 +2458,54 @@ Paperclip image  = wandora/paperclip:v2026.831.1
 Paperclip source = 65ec059bde30d98c92165b24a30a540800dd1f6f
 ```
 
-Current upstream stable reviewed:
+Qualified candidate:
 
 ```text
 tag    = v2026.916.0
 commit = dffc2b3ca1b9e88fa21cb17493083e682dffd1ca
+digest = sha256:4fb5073ff0b09ea50527cfeafe5bcaff4f9dae2b0f508fd06c0dc58661735ced
 ```
 
-The upgrade has a material potential benefit, especially the more mature Connections/grants/responsible-user train, but production promotion is **not authorized** until a production-derived disposable proof preserves:
+Final proof:
 
-- company + owner membership;
-- Organization Adapter config/plugin;
-- local-encrypted secret decryptability and wrong-key rejection;
-- exactly one paused Ana;
-- exact `wandora_mastra` load/readback/test;
-- run-scoped JWT identity behavior;
-- Paperclip -> Wandora/Mastra private bridge E2E;
-- unknown mappings fail-closed;
-- zero unexpected wakeups/heartbeat/outbound drift;
-- rollback.
+```text
+schema-faithful live/proof canonical SHA
+= 379673af39dc3d8d0dfcbd7bf5c751bde96ef6fae6bb88079c13e956959f8356
 
-During ADR 0126 the exact v916 source candidate build and PostgreSQL 18.1 proof image pull were dispatched. The remote VPS execution channel then became unavailable before completion could be reconciled.
+live == proof schema                     = true
+migrations 0231..0279                    = PASS
+MEDICSPRO + owner                        = preserved
+Ana                                      = preserved / paused / wandora_mastra
+agents.resume                            = absent
+Ana wakeups / heartbeat runs             = 0 / 0
+Organization Adapter                     = ready
+local_encrypted decrypt/hash/wrong-key    = PASS / PASS / PASS
+wandora_mastra copied existing package    = load PASS
+official adapter test-environment         = HTTP 200 / PASS
+real run-scoped JWT /api/agents/me        = 200
+tampered run token                        = 401
+mapped Core -> Mastra run                 = succeeded
+Mastra model                              = mastra-deterministic
+unknown managed mapping                   = fail-closed / Mastra not invoked
+bad HMAC                                  = 401
+v831 rollback lab                         = PASS before cleanup
+final proof cleanup                       = complete
+production drift                          = none
+```
 
-**Do not repeat either operation merely because the prior execution channel disappeared. Read actual state first.**
+Important backup-fidelity finding:
+
+- the normal Paperclip logical backup preserves logical data/recovery state but does **not** serialize PostgreSQL CHECK constraints;
+- it remains required together with the matching `master.key`;
+- upgrade rehearsal and exact rollback additionally require a fresh PostgreSQL 18.1 schema-faithful `pg_dump -Fc`.
+
+Upgrade state:
+
+```text
+disposable compatibility = GREEN
+production upgrade        = NOT EXECUTED
+next authorization level  = Production Upgrade Preflight V1 only
+```
 
 ## Mastra version/adoption checkpoint
 
@@ -2497,27 +2524,27 @@ Memory, Observability, Evals, workspaces/sandbox and richer runtime skills remai
 
 ## NEXT EXECUTABLE SLICE
 
-Next: **Paperclip v2026.916.0 Disposable Upgrade Compatibility Proof V1**.
+Next: **Paperclip v2026.916.0 Production Upgrade Preflight V1**.
 
 Required start:
 
 ```text
-reconcile real main/runtime/VPS
--> reconcile already-dispatched v916 candidate build
--> reconcile already-dispatched postgres:18.1 pull
--> do not repeat completed operations
--> restore protected Paperclip DB + master.key in isolated lab
--> run exact v916 migrations/startup
--> prove company/membership/plugin/secret/Ana/adapter/JWT invariants
--> run disposable private bridge E2E
--> prove unknown mapping fail-closed + zero outbound
--> clean disposable lab
--> decide GO/NO-GO for a separate production upgrade execution
+REAL NOW / current main / current runtime
+-> revalidate upstream target and exact candidate provenance
+-> re-attest wandora_mastra compatibility for v916
+-> capture fresh official Paperclip backup + matching master.key
+-> capture fresh protected schema-faithful PostgreSQL 18.1 pg_dump -Fc
+-> hash/custody both rollback artifacts
+-> freeze exact v831 image + wrapper + adapter store + both Wandora extension packages
+-> define production migration/recreation order + rollback trigger
+-> independently prove Ana paused / agents.resume absent / outbound OFF
+-> STOP before production mutation
 ```
 
-This slice does **not** authorize:
+This preflight does **not** authorize:
 
 - production Paperclip upgrade;
+- Mastra upgrade;
 - `agents.resume`;
 - Ana activation/resume;
 - Human Send;
