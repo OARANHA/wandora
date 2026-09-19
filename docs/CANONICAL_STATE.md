@@ -2366,42 +2366,189 @@ then: Wandora DB backup/rehearsal -> migration 014 -> HMAC -> Core -> Paperclip 
 ```
 
 No bridge mutation, employee resume or outbound effect is authorized until these gates pass.
-## Paperclip -> Wandora/Mastra Production Execution Bridge Activation Execution V1 — PARTIAL / STOP AT HMAC GATE
+## Paperclip -> Wandora/Mastra Production Execution Bridge Activation Execution V1 — COMPLETE
 
-ADR 0122 records the production execution checkpoint after ADR 0121 Gates A-C and the Wandora DB rehearsal completed successfully.
+ADRs 0122–0125 record the completed production bridge activation and its two corrective stops.
+
+After migration 014 became live in ADR 0122:
+
+- ADR 0123 created the dedicated bridge HMAC, promoted Core/Paperclip bridge runtime and installed `wandora_mastra` exactly once, then stopped when Paperclip's `gosu node` privilege drop could not read the root-custodied secret;
+- ADR 0124 corrected the secret wrapper after the first wrapper promotion failed closed with `Cmd=null`;
+- ADR 0125 validated the final live bridge foundation.
+
+Current validated state:
 
 ```text
-Gate A host hygiene/headroom                  = GREEN
-fresh Paperclip DB + master.key recovery proof = GREEN
-PR #169 exact artifact provenance             = GREEN
-Wandora scoped backup/restore/rehearsal        = GREEN
-
 migration 014                                  = LIVE / verified
-canonical verifier                             = GREEN
-MEDICSPRO resolver postverify                  = GREEN
-unknown provider-company mapping               = fail-closed / NULL
+dedicated bridge HMAC                          = present / root:wandora-ops / 0640
+Core bridge                                    = LIVE / healthy / ready
+Paperclip bridge                               = LIVE / healthy
+Paperclip tmpfs bridge secret                  = 0400 / 1000:1000 / host hash match
+wandora_mastra                                 = exactly 1 / loaded
+adapter test-environment                       = PASS
 
-dedicated bridge HMAC                          = NOT created
-Core bridge promotion                          = NOT executed
-Paperclip bridge recreation                    = NOT executed
-wandora_mastra live install                    = NOT executed
-
-Ana                                             = exactly 1 / paused + supervised
-agents.resume                                   = absent
-Human Send                                      = OFF
-Gateway outbound                                = OFF
-MEDICSPRO outbound attempts                     = 0
+Ana / Wandora                                  = exactly 1 / paused + supervised
+Ana / Paperclip                                = exactly 1 / paused / wandora_mastra
+Ana wakeups / heartbeat runs                   = 0 / 0
+agents.resume                                  = absent
+Human Send                                     = OFF
+Gateway outbound                               = OFF
+MEDICSPRO outbound attempts                    = 0
 ```
 
-Important continuity rule: **migration 014 is no longer pending and must not be re-applied on resume.** The execution platform blocked the canonical HMAC-generation operation before remote dispatch. No bypass/alternate generator was attempted, and the runtime activation sequence stopped before Core/Paperclip/adapter effects.
+Continuity rules:
 
-Protected execution artifacts retained on the VPS include the fresh Paperclip recovery pair, the scoped Wandora backup and the exact hash-verified PR #169 adapter/Core artifacts.
+- **do not repeat migration 014;**
+- **do not reinstall `wandora_mastra`;**
+- the live bridge foundation is not authorization to run Ana;
+- provider resume / `agents.resume`, Wandora `paused -> active`, Human Send and Gateway outbound remain separate future effects.
+
+## Paperclip + Mastra Capability Canonicalization / Authority Collision Audit — ADR 0126
+
+The canonical capability maps are:
+
+- `docs/PAPERCLIP_CAPABILITY_MAP.md`;
+- `docs/MASTRA_CAPABILITY_MAP.md`;
+- `docs/CAPABILITY_COLLISION_MATRIX.md`.
+
+Key authority split:
+
+```text
+Paperclip = durable organizational control plane
+            company/agent lifecycle
+            tasks/runs/routines
+            organizational skills
+            control-plane decisions/review
+            decision training
+            task watchdog/liveness
+            Paperclip-controlled connections/grants/secrets
+
+Wandora  = product semantics/stable IDs/tenancy
+            authorization/policy/projections
+            adapter mappings/reconciliation
+            external-effect authorization
+            compliance/effect audit
+            billing/retention/privacy
+
+Mastra   = execution runtime
+            workflows/tools
+            execution-local goals/task lists/signals
+            runtime skills
+            memory/observability/evals when separately adopted
+            workspaces/sandbox/token-context guardrails
+```
+
+Resolved collisions:
+
+- durable business recurrence -> **Paperclip Routine**, not a parallel Wandora scheduler or Mastra schedule;
+- durable organizational work -> **Paperclip task/issue**, not Mastra task lists/goals;
+- organizational skill catalog/policy -> **Paperclip**; runtime materialization -> **Mastra**;
+- control-plane decision/review -> **Paperclip**; customer commitment/external effect -> **Wandora**;
+- Decision Training -> **Paperclip decision evidence**; Evals -> **Mastra execution-quality evidence**;
+- Connections/grants -> **Paperclip is the leading specialist candidate**; Mastra `@mastra/connect` is not adopted as a competing authority.
+
+## Paperclip v2026.916.0 Disposable Upgrade Compatibility Proof — GREEN
+
+ADRs 0127–0128 record the production-derived disposable compatibility proof.
+
+Production remains:
+
+```text
+Paperclip image  = wandora/paperclip:v2026.831.1
+Paperclip source = 65ec059bde30d98c92165b24a30a540800dd1f6f
+```
+
+Qualified candidate:
+
+```text
+tag    = v2026.916.0
+commit = dffc2b3ca1b9e88fa21cb17493083e682dffd1ca
+digest = sha256:4fb5073ff0b09ea50527cfeafe5bcaff4f9dae2b0f508fd06c0dc58661735ced
+```
+
+Final proof:
+
+```text
+schema-faithful live/proof canonical SHA
+= 379673af39dc3d8d0dfcbd7bf5c751bde96ef6fae6bb88079c13e956959f8356
+
+live == proof schema                     = true
+migrations 0231..0279                    = PASS
+MEDICSPRO + owner                        = preserved
+Ana                                      = preserved / paused / wandora_mastra
+agents.resume                            = absent
+Ana wakeups / heartbeat runs             = 0 / 0
+Organization Adapter                     = ready
+local_encrypted decrypt/hash/wrong-key    = PASS / PASS / PASS
+wandora_mastra copied existing package    = load PASS
+official adapter test-environment         = HTTP 200 / PASS
+real run-scoped JWT /api/agents/me        = 200
+tampered run token                        = 401
+mapped Core -> Mastra run                 = succeeded
+Mastra model                              = mastra-deterministic
+unknown managed mapping                   = fail-closed / Mastra not invoked
+bad HMAC                                  = 401
+v831 rollback lab                         = PASS before cleanup
+final proof cleanup                       = complete
+production drift                          = none
+```
+
+Important backup-fidelity finding:
+
+- the normal Paperclip logical backup preserves logical data/recovery state but does **not** serialize PostgreSQL CHECK constraints;
+- it remains required together with the matching `master.key`;
+- upgrade rehearsal and exact rollback additionally require a fresh PostgreSQL 18.1 schema-faithful `pg_dump -Fc`.
+
+Upgrade state:
+
+```text
+disposable compatibility = GREEN
+production upgrade        = NOT EXECUTED
+next authorization level  = Production Upgrade Preflight V1 only
+```
+
+## Mastra version/adoption checkpoint
+
+Production Core remains:
+
+```text
+@mastra/core          = 1.66.0
+@mastra/memory        = NOT_FOUND
+@mastra/observability = NOT_FOUND
+@mastra/evals         = NOT_FOUND
+```
+
+Upstream `@mastra/core@1.67.0` is not required by the Paperclip upgrade proof and must not be bundled into that change.
+
+Memory, Observability, Evals, workspaces/sandbox and richer runtime skills remain separately reviewed adoption slices. `MASTRA_TELEMETRY_DISABLED=true` remains the current live default.
 
 ## NEXT EXECUTABLE SLICE
 
-Next: **resume Paperclip -> Wandora/Mastra Production Execution Bridge Activation Execution V1 at the dedicated HMAC custody gate.**
+Next: **Paperclip v2026.916.0 Production Upgrade Preflight V1**.
 
-Reconcile the real runtime first. Migration 014 is already live and verified; do **not** repeat it. If the dedicated bridge HMAC is still absent, create it only through an authorized secure execution path under ADR 0118/0120 custody. Then continue in order: exact Core candidate + bridge overlay/readiness -> Paperclip bridge overlay with adapter absent -> exact paused-state proof -> persistent exact adapter extraction -> single official local-directory install/readback/test -> final paused/no-outbound proof -> STOP.
+Required start:
+
+```text
+REAL NOW / current main / current runtime
+-> revalidate upstream target and exact candidate provenance
+-> re-attest wandora_mastra compatibility for v916
+-> capture fresh official Paperclip backup + matching master.key
+-> capture fresh protected schema-faithful PostgreSQL 18.1 pg_dump -Fc
+-> hash/custody both rollback artifacts
+-> freeze exact v831 image + wrapper + adapter store + both Wandora extension packages
+-> define production migration/recreation order + rollback trigger
+-> independently prove Ana paused / agents.resume absent / outbound OFF
+-> STOP before production mutation
+```
+
+This preflight does **not** authorize:
+
+- production Paperclip upgrade;
+- Mastra upgrade;
+- `agents.resume`;
+- Ana activation/resume;
+- Human Send;
+- Gateway outbound.
 
 ## Operational safety
 
@@ -2414,7 +2561,9 @@ Reconcile the real runtime first. Migration 014 is already live and verified; do
 - Browser-supplied IDs are selectors, never authorization.
 - Human Send and Gateway outbound remain separate explicitly reviewed effects.
 - A proof/candidate/archive being staged or loaded does not mean its runtime is active.
+- After timeout/chat/tool loss, reconcile state before retrying any effect.
 
 ## Definition of progress
 
-Progress means the real product gap was identified, authority checked, provider capability reused behind Wandora contracts, only minimum Wandora-owned safety state persisted, the decision survived adversarial review, execution was independently validated, and any production effect remains bounded by a separately reviewed activation step.
+Progress means the real product gap was identified, authority checked, provider capability reused behind Wandora contracts, only minimum Wandora-owned safety/state persisted, the decision survived adversarial review, execution was independently validated, and any production effect remains bounded by a separately reviewed activation step.
+

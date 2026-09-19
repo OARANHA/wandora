@@ -751,11 +751,148 @@ Bridge foundation activation is not employee activation. Provider resume and Wan
 
 ## Bridge activation pre-mutation recovery and host hygiene amendment
 
-ADR 0121 preserves ADR 0120's bridge-foundation GO but hardens the start of the future execution. Before migration 014 or any live bridge runtime mutation, the operator must remove proven disposable host pressure/localhost ambiguity while preserving proof volumes, then create and restore-prove a fresh Paperclip DB + current `master.key` snapshot that includes the current MEDICSPRO Ana. The previous protected Paperclip snapshot predates that Ana and is not an adequate current-state rollback point.
+ADR 0121 hardened the activation start with host-hygiene and fresh Paperclip recovery gates. ADR 0122 then recorded migration 014 live/verified, ADR 0123 corrected bridge-secret custody across Paperclip's privilege drop, and ADR 0124 corrected command preservation after the first wrapper promotion failed closed.
 
-This is an operational recovery gate only. It does not change capability authority, bridge contracts or employee lifecycle boundaries.
+## Production execution bridge foundation — LIVE
+
+ADR 0125 closes the bridge-foundation activation.
+
+Current validated architecture:
+
+```text
+Paperclip control plane
+  -> external adapter wandora_mastra
+  -> dedicated file-backed HMAC
+  -> run-scoped Paperclip identity
+  -> Wandora Core private bridge
+      -> independent Paperclip identity reconciliation
+      -> Paperclip company -> Wandora organization resolver
+      -> exact managed employee/provider binding
+      -> Wandora policy boundary
+      -> Agent Runtime Adapter
+          -> Mastra execution
+```
+
+Current safety boundary:
+
+```text
+migration 014        = LIVE / verified
+Core bridge          = LIVE / healthy / ready
+Paperclip bridge     = LIVE / healthy
+wandora_mastra       = exactly one / loaded
+adapter env test     = PASS
+Ana                  = paused + supervised
+agents.resume        = absent
+Human Send           = OFF
+Gateway outbound     = OFF
+outbound attempts    = 0
+```
+
+The bridge foundation is not employee activation. It supplies a safe execution path that remains unusable by Ana while the employee is paused and provider resume authority is absent.
+
+## Paperclip / Mastra capability authority — ADR 0126
+
+The detailed canonical maps are:
+
+- [Paperclip Capability Map](PAPERCLIP_CAPABILITY_MAP.md)
+- [Mastra Capability Map](MASTRA_CAPABILITY_MAP.md)
+- [Capability Collision Matrix](CAPABILITY_COLLISION_MATRIX.md)
+
+The architecture distinguishes three layers:
+
+```text
+Paperclip
+  durable organizational control plane
+  company / employee lifecycle
+  tasks / runs / routines / skills / control-plane decisions
+  connections / grants / Paperclip secrets
+        |
+        v
+Wandora adapter + policy boundary
+  stable product IDs / tenancy / authorization
+  mapping / reconciliation
+  external-effect authorization
+        |
+        v
+Mastra
+  workflow / tool execution
+  execution-local goals / task lists / signals
+  runtime memory / observability / evals when separately adopted
+```
+
+This resolves the principal collisions:
+
+- Paperclip Routines, not Mastra schedules, are authoritative for durable business recurrence.
+- Paperclip tasks/issues, not Mastra task lists/goals, are authoritative for durable organizational work.
+- Paperclip owns organizational Skills catalog/policy; Mastra may materialize runtime skills.
+- Paperclip Decisions/Execution Policy govern control-plane work; Wandora approvals govern customer commitments/external effects.
+- Paperclip Decision Training is decision evidence; Mastra Evals are execution-quality evidence.
+- Paperclip Connections is the leading candidate for organizational connection/grant authority. Mastra `@mastra/connect` is not adopted as a competing authority.
+
+## Paperclip v2026.916.0 compatibility boundary — QUALIFIED / NOT PROMOTED
+
+ADR 0128 completed the production-derived disposable compatibility proof GREEN.
+
+Production remains pinned to:
+
+```text
+wandora/paperclip:v2026.831.1
+65ec059bde30d98c92165b24a30a540800dd1f6f
+```
+
+Qualified candidate:
+
+```text
+v2026.916.0
+dffc2b3ca1b9e88fa21cb17493083e682dffd1ca
+sha256:4fb5073ff0b09ea50527cfeafe5bcaff4f9dae2b0f508fd06c0dc58661735ced
+```
+
+The disposable proof established:
+
+- schema-faithful production-derived restore equality;
+- all 49 migrations `0231..0279` pass;
+- MEDICSPRO / owner / paused Ana survive unchanged;
+- Organization Adapter and exact copied `wandora_mastra` remain compatible;
+- `local_encrypted` secret recovery survives;
+- real v916 run-scoped JWT identity works through `/api/agents/me`;
+- the real current Wandora Core image reaches `MastraDeterministicAgentRuntime`;
+- unknown managed mappings fail closed before Mastra;
+- bad HMAC and tampered run tokens fail closed;
+- production remains unchanged and outbound dormant;
+- v831 rollback was proven in disposable state.
+
+### Backup / rollback architecture amendment
+
+Paperclip's normal logical backup does not serialize PostgreSQL CHECK constraints.
+
+Therefore a future production upgrade must capture two complementary pre-upgrade database artifacts:
+
+```text
+official Paperclip logical backup + matching master.key
++
+schema-faithful PostgreSQL 18.1 pg_dump -Fc
+```
+
+The first remains canonical for Paperclip logical data + `local_encrypted` recovery. The second is required for exact schema rollback across upgrades.
+
+Compatibility qualification is not promotion. A separately reviewed production-upgrade preflight and execution are still required.
+
+## Mastra version boundary
+
+Production Core remains on `@mastra/core@1.66.0`.
+
+The reviewed upstream `1.67.0` is not required for Paperclip qualification. Memory, Observability and Evals are also not installed live and remain separate adoption slices.
+
+Do not combine a Paperclip production upgrade with a Mastra dependency upgrade.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Paperclip -> Wandora/Mastra Production Execution Bridge Activation Execution V1.**
+Next: **Paperclip v2026.916.0 Production Upgrade Preflight V1**.
 
-The execution must obey ADR 0118 + ADR 0120 exactly and must stop before `agents.resume`, Ana activation/resume, Human Send or Gateway outbound.
+The preflight must refresh REAL NOW evidence, re-attest `wandora_mastra` compatibility for v916, capture both rollback artifacts, freeze the exact v831 image/wrapper/extensions and define the production migration + rollback trigger.
+
+It must STOP before production mutation.
+
+Production Paperclip upgrade, Mastra upgrade, `agents.resume`, Ana activation/resume, Human Send and Gateway outbound remain prohibited until separately reviewed execution slices.
+
