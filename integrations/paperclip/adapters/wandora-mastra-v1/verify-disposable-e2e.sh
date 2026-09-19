@@ -35,6 +35,10 @@ chmod 700 "$TMP"
 actual_paperclip_commit="$(git -C "$PAPERCLIP_SOURCE_ROOT" rev-parse HEAD)"
 test "$actual_paperclip_commit" = "$EXPECTED_PAPERCLIP_COMMIT"
 
+node "$PAPERCLIP_SOURCE_ROOT/scripts/ensure-plugin-build-deps.mjs"
+test -f "$PAPERCLIP_SOURCE_ROOT/packages/plugins/sdk/dist/index.js"
+test -f "$PAPERCLIP_SOURCE_ROOT/packages/shared/dist/index.js"
+
 stage_tree() {
   local source="$1" target="$2"
   mkdir -p "$(dirname "$target")"
