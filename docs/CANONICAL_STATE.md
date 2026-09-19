@@ -2172,11 +2172,37 @@ Gateway outbound                    = OFF
 
 The normal owner clicked `Contratar Ana` once. The durable hire journal retained the original idempotency key and no retry was required. Independent provider reconciliation confirmed the managed Paperclip Ana is paused, has zero budget, no heartbeat and the explicit provider pause reason requiring separate activation.
 
+## Customer Owner First Real Tenant Digital-Employee Activation Preflight V1 — COMPLETE / NO-GO
+
+ADR 0116 revalidated the first real MEDICSPRO activation boundary without any resume or outbound effect.
+
+Fresh evidence is split cleanly:
+
+```text
+exact Wandora <-> Paperclip MEDICSPRO/Ana mapping = GREEN
+Paperclip Ana                                      = paused / org-chain healthy
+Paperclip adapterType                              = wandora_mastra
+
+wandora_mastra registered in live Paperclip        = NO / exact adapter read returns 404
+live Organization Adapter agents.resume capability= NO
+customer activation Core route                     = absent
+customer activation Web action                     = absent
+
+Human Send                                         = OFF
+Gateway outbound                                   = OFF
+```
+
+The pinned Paperclip SDK does provide company-scoped `ctx.agents.resume(agentId, companyId)`, guarded by the `agents.resume` plugin capability, and the provider resume transition converges `paused -> idle`. The installed Wandora plugin remains intentionally narrower with only `agents.managed`, `webhooks.receive` and `secrets.read-ref`.
+
+Therefore `adapterType=wandora_mastra` is not treated as runtime readiness, the Board credential is not accepted as a customer-activation shortcut, and Wandora must never project `active` before an exact provider resume/readback succeeds.
+
+The future path remains provider-first and keeps Human Send/Gateway outbound independent. No new Wandora lifecycle/control-plane model is approved; only minimum external-effect safety state may be proposed later if serialized reconciliation cannot prove replay/concurrency safety.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Owner First Real Tenant Digital-Employee Activation Preflight V1.**
+Next: **Paperclip -> Wandora/Mastra Production Execution Bridge Contract Implementation V1 — code/CI only.**
 
-Perform a no-effect preflight only. Revalidate ADR 0063 activation prerequisites: production Paperclip -> Wandora/Mastra execution bridge, exact mapped employee compatibility, least-privilege `agents.resume` capability, provider-first/Wandora-state transition semantics, idempotency and ambiguity recovery, and required tool/integration readiness. Do not activate/resume Ana. Keep Human Send and Gateway outbound OFF.
+Promote the ADR 0037 laboratory execution adapter/bridge direction into canonical production-installable code and prove it against the pinned Paperclip image plus the existing Wandora Agent Runtime/Mastra boundary. Do not install the adapter live, resume/activate Ana, grant `agents.resume` live, expose customer activation, enable Human Send or enable Gateway outbound.
 
 ## Operational safety
 
