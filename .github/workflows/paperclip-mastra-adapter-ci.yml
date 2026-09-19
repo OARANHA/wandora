@@ -119,6 +119,19 @@ jobs:
           grep -q 'target: /run/secrets-root/wandora/paperclip-execution-bridge.hmac' <<<"$effective"
           grep -q 'target: /run/wandora/paperclip-bridge-secret-entrypoint.sh' <<<"$effective"
           grep -q '/run/secrets/wandora:rw,noexec,nosuid,size=64k' <<<"$effective"
+          effective_json="$(docker compose \
+            -f infra/stacks/paperclip/compose.yaml \
+            -f infra/stacks/paperclip/compose.paperclip-execution-bridge.yaml \
+            config --format json)"
+          EFFECTIVE_JSON="$effective_json" node --input-type=module -e '
+            const cfg = JSON.parse(process.env.EFFECTIVE_JSON);
+            const actual = cfg.services.paperclip.command;
+            const expected = ["node", "--import", "./server/node_modules/tsx/dist/loader.mjs", "server/dist/index.js"];
+            if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+              console.error("Paperclip bridge overlay lost the image server command", { actual, expected });
+              process.exit(1);
+            }
+          '
           rm -f "$WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE_HOST"
 
       - name: Enforce migration 014 remains unapplied by disposable attestation
