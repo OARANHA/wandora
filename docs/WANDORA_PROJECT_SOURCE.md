@@ -1118,6 +1118,9 @@ The Core source tree is exactly the canonical current-main tree. The adapter tgz
 
 The GO is only for a separately reviewed bridge-foundation activation. It does not authorize `agents.resume`, Ana activation/resume, Human Send or Gateway outbound. If the current short-lived Actions artifacts expire or disappear, provenance must be re-established before any live mutation.
 
+## Activation Execution V1 pre-mutation amendment
+
+ADR 0121 adds two mandatory pre-mutation gates discovered after ADR 0120 merged: reclaim proven disposable runtime headroom / remove the old host-network Paperclip proof listener while preserving proof volumes, and create a fresh current Paperclip DB + `master.key` recovery snapshot with disposable restore/decrypt/state proof. The latest previous snapshot predates the current MEDICSPRO Ana.
 ## Next executable slice
 
 **Paperclip -> Wandora/Mastra Production Execution Bridge Activation Execution V1.**
@@ -1232,6 +1235,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0118 — Paperclip -> Wandora/Mastra Production Execution Bridge Activation Preflight V1
 - ADR 0119 — Paperclip -> Wandora/Mastra Production Execution Bridge Runtime Custody + Readiness + Disposable E2E Attestation Implementation V1
 - ADR 0120 — Paperclip -> Wandora/Mastra Production Execution Bridge Activation Preflight V2
+- ADR 0121 — Paperclip -> Wandora/Mastra Production Execution Bridge Pre-Mutation Recovery + Host Hygiene Gate
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
