@@ -1865,11 +1865,55 @@ Provider create remains non-idempotent. After dispatch, timeout/reset/unreadable
 
 This preflight created no Paperclip company, Organization Adapter HMAC/secret/config, Wandora provider binding, eligibility, employee or hire operation. Customer Hire remains globally ON but MEDICSPRO eligibility remains zero; Human Send and Gateway outbound remain OFF.
 
+## Customer Owner First Real Tenant Paperclip Company Bootstrap Execution V1 — COMPLETE
+
+ADR 0107 executed the exact ADR 0106 provider request once and stopped before any Organization Adapter wiring or customer-hire effect.
+
+Provider result:
+
+```text
+Paperclip companies total       = 3
+MEDICSPRO exact matches         = 1
+MEDICSPRO provider company id   = a63f27a8-dbac-4552-a456-b3a21302226b
+MEDICSPRO status                = active
+Board MEDICSPRO membership      = owner / active
+MEDICSPRO agents                = 0
+MEDICSPRO company secrets       = 0
+MEDICSPRO plugin config         = null
+```
+
+The exact payload was `{"name":"MEDICSPRO"}` and its pre-dispatch SHA-256 again matched `6320780ded5fe0976fd96d8e5d8e834b87d87d771b9f9b441818fd2c793b415b`. The installed non-TTY CLI path was re-read before dispatch and confirmed one `POST /api/companies` with interactive auth recovery disabled.
+
+Independent Wandora/no-effect proof:
+
+```text
+MEDICSPRO digital employees      = 0
+MEDICSPRO control bindings       = 0
+MEDICSPRO employee bindings      = 0
+MEDICSPRO hire operations        = 0
+MEDICSPRO eligibility            = 0
+
+control bindings total           = 2
+employee bindings total          = 2
+hire operations total            = 2
+unfinished hires total           = 0
+eligibility rows/enabled         = 0 / 0
+```
+
+Future deterministic HMAC path seed:
+
+```text
+sha256(a63f27a8-dbac-4552-a456-b3a21302226b)
+= 952c6872101f9b31d9950e6d9264dcbe242881c1b8161e79b4efc23cd45b421e
+```
+
+The matching host HMAC file is absent. Auth, DB, Web, Core, Paperclip and Messaging Gateway remain healthy. Organization Adapter and global Customer Hire remain ON, but MEDICSPRO remains ineligible; Human Send and Gateway outbound remain OFF.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Owner First Real Tenant Paperclip Company Bootstrap Execution V1.**
+Next: **Customer Owner First Real Tenant Organization Adapter Custody + Config + Binding Preflight V1.**
 
-Create exactly one Paperclip company named MEDICSPRO through the frozen official one-shot CLI path, independently reconcile the provider state and stop. Do not create Organization Adapter HMAC/secret/config, Wandora provider binding, eligibility or any digital employee during that execution.
+Reuse ADRs 0073–0076 to freeze the exact MEDICSPRO Wandora↔Paperclip pair, revalidate the protected Paperclip local-encrypted recovery prerequisite, deterministic HMAC custody, operator-owned binding insert, company secret/config sequence and ambiguity/rollback rules. Do not create HMAC, Paperclip secret/config, Wandora provider binding, eligibility or employee during that preflight.
 
 ## Operational safety
 
