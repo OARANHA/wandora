@@ -666,10 +666,10 @@ Provider IDs/run IDs stop at the bridge and do not enter Mastra task input. The 
 
 Migration 014 adds only the least-privilege Paperclip-company -> active-Wandora-organization resolver. It remains unapplied until a separate activation execution.
 
-The external adapter package, Core runtime gate and Compose overlay are artifacts only. Merge does not install `wandora_mastra`, enable the private bridge, activate Ana or alter Human Send/Gateway outbound.
+The external adapter package, Core runtime gate and Compose overlay are artifacts only. PR #166 is merged in canonical `main` at `7bc8c4790e37b0410703bf58979458200810d5a9`; merge did not install `wandora_mastra`, enable the private bridge, apply migration 014, activate Ana or alter Human Send/Gateway outbound. Independent post-merge validation confirmed those production boundaries remain unchanged.
 
 ## NEXT EXECUTABLE SLICE
 
-After CI-green merge: **Paperclip -> Wandora/Mastra Production Execution Bridge Activation Preflight V1.**
+Next: **Paperclip -> Wandora/Mastra Production Execution Bridge Activation Preflight V1.**
 
 That preflight must remain no-effect and freeze the live artifact/migration/HMAC/Core promotion order and rollback. Resume authority, customer activation and outbound remain separate later gates.
