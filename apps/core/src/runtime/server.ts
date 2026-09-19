@@ -30,7 +30,8 @@ export type RuntimeReadiness =
         | 'unexpected-database-role'
         | 'tenant-scope-leak'
         | 'organization-adapter-database-boundary-unavailable'
-        | 'customer-hire-eligibility-database-boundary-unavailable';
+        | 'customer-hire-eligibility-database-boundary-unavailable'
+        | 'paperclip-execution-bridge-database-boundary-unavailable';
     };
 
 export type RuntimeServerDeps = {
