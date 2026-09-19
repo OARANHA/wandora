@@ -28,6 +28,8 @@ jobs:
 
       - name: Run reproducible Ana Core verifier
         shell: bash
+        env:
+          WANDORA_CI_CONTAINER_SECRET_GID: "0"
         run: bash apps/core/scripts/verify-ana-v1.sh
 
       - name: Run Private Tenant Provisioning V2 verifier
