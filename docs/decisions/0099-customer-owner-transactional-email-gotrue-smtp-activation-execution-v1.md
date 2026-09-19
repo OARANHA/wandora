@@ -224,6 +224,22 @@ wandora-paperclip           = healthy / restarts 0
 
 No invite, recovery or test e-mail was sent. No Auth user, tenant, provider binding, employee, hire operation or eligibility row was created.
 
+## GITHUB ACTIONS INFRASTRUCTURE EXCEPTION
+
+PR #147 head `25c019abe4b53d53d93082384defa9114d530590` triggered the five normal repository workflows:
+
+```text
+Messaging Gateway CI #374 / run 35413495999
+Organization Adapter Plugin CI #82 / run 35413496007
+Web CI #342 / run 35413496028
+Core CI #405 / run 35413495998
+Platform Admin CI #267 / run 35413496032
+```
+
+All five jobs completed as `failure` with `runner_name=null` and `steps=null`, before any workflow step executed. They are **not classified green** and are not treated as code/config test failures.
+
+PR #147 is documentation-only: ADR/canonical continuity files and the Supabase README. It does not carry the production Compose or environment mutation. The live production effect was executed directly from the already-merged ADR 0098 candidate and independently validated before this documentation PR.
+
 ## RESULT
 
 **Customer Owner Transactional E-mail GoTrue SMTP Activation Execution V1 is accepted and live.**
