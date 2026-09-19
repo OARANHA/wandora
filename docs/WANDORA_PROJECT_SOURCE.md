@@ -1121,11 +1121,34 @@ The GO is only for a separately reviewed bridge-foundation activation. It does n
 ## Activation Execution V1 pre-mutation amendment
 
 ADR 0121 adds two mandatory pre-mutation gates discovered after ADR 0120 merged: reclaim proven disposable runtime headroom / remove the old host-network Paperclip proof listener while preserving proof volumes, and create a fresh current Paperclip DB + `master.key` recovery snapshot with disposable restore/decrypt/state proof. The latest previous snapshot predates the current MEDICSPRO Ana.
+## Activation Execution V1 partial production checkpoint
+
+ADR 0122 records that ADR 0121 Gates A-C are GREEN, the fresh scoped Wandora backup/rehearsal is GREEN, and **migration 014 is now LIVE and independently verified**.
+
+The execution stopped at the next step because the execution platform blocked creation of the dedicated bridge HMAC before remote dispatch. No bypass was attempted.
+
+Current bridge-foundation boundary at this checkpoint:
+
+```text
+migration 014          = LIVE / verified
+bridge HMAC             = not created by this execution
+Core bridge             = OFF / not promoted
+Paperclip bridge overlay= not activated
+wandora_mastra          = not installed live
+agents.resume           = absent
+Ana                     = exactly 1 / paused + supervised
+Human Send              = OFF
+Gateway outbound        = OFF
+outbound attempts       = 0
+```
+
+Continuity rule: **never repeat migration 014 on resume merely because the HMAC/runtime portion remains incomplete.** Reconcile first and continue from the HMAC custody gate.
+
 ## Next executable slice
 
-**Paperclip -> Wandora/Mastra Production Execution Bridge Activation Execution V1.**
+**Resume Paperclip -> Wandora/Mastra Production Execution Bridge Activation Execution V1 at the dedicated HMAC custody gate.**
 
-Use ADR 0118 + ADR 0120 exactly: reconcile -> fresh backup/restore/rehearsal -> migration 014 + verifier/postverify -> dedicated HMAC -> bridge-aware Core promotion/readiness -> Paperclip bridge overlay -> persistent exact adapter install/readback -> prove Ana still paused and all outbound effects OFF -> STOP.
+Migration 014 is already live/verified. After fresh reconciliation, continue only with: dedicated HMAC -> exact Core candidate/overlay/readiness -> Paperclip overlay -> paused-state proof -> persistent exact adapter extraction -> one official local-directory install/readback/test -> final paused/no-outbound proof -> STOP.
 
 ## Platform Admin
 
@@ -1236,6 +1259,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0119 — Paperclip -> Wandora/Mastra Production Execution Bridge Runtime Custody + Readiness + Disposable E2E Attestation Implementation V1
 - ADR 0120 — Paperclip -> Wandora/Mastra Production Execution Bridge Activation Preflight V2
 - ADR 0121 — Paperclip -> Wandora/Mastra Production Execution Bridge Pre-Mutation Recovery + Host Hygiene Gate
+- ADR 0122 — Paperclip -> Wandora/Mastra Production Execution Bridge Activation Execution V1 Partial Checkpoint
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
