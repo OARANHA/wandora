@@ -154,6 +154,7 @@ pc_api() {
       const text = await response.text();
       process.stdout.write(text);
       if (!response.ok) {
+        if (text) console.error(text);
         console.error(`\nPaperclip HTTP ${response.status} for ${method} ${path}`);
         process.exit(22);
       }
@@ -221,7 +222,7 @@ COMPANY_ID="$(printf '%s' "$company_json" | json_field id)"
 agent_body="$(node -e '
   process.stdout.write(JSON.stringify({
     name: "Ana",
-    role: "commercial-assistant",
+    role: "general",
     title: "Disposable Attestation Ana",
     adapterType: "wandora_mastra",
     adapterConfig: {},
@@ -236,6 +237,31 @@ agent_body="$(node -e '
 ')"
 agent_json="$(pc_api POST "/api/companies/$COMPANY_ID/agents" "$agent_body")"
 AGENT_ID="$(printf '%s' "$agent_json" | json_field id)"
+
+# The public create-agent schema intentionally accepts only Paperclip's board-facing
+# role vocabulary. Plugin-managed agents use the lower-level agent service and may
+# persist manifest-declared roles such as "commercial-assistant". The Organization
+# Adapter provisioning path is already proven separately, so this execution-only
+# attestation mutates just this synthetic Paperclip row to the canonical managed
+# representation instead of reinstalling/re-running that provider capability.
+docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d paperclip_attestation \
+  -v agent="$AGENT_ID" -v company="$COMPANY_ID" <<'SQL' >/dev/null
+UPDATE agents
+   SET role = 'commercial-assistant',
+       updated_at = now()
+ WHERE id = :'agent'::uuid
+   AND company_id = :'company'::uuid;
+\if :ROW_COUNT != 1
+  \echo 'synthetic managed-agent role patch did not affect exactly one row'
+  \quit 41
+\endif
+SQL
+
+agent_identity="$(pc_api GET "/api/agents/$AGENT_ID")"
+test "$(printf '%s' "$agent_identity" | json_field name)" = "Ana"
+test "$(printf '%s' "$agent_identity" | json_field role)" = "commercial-assistant"
+test "$(printf '%s' "$agent_identity" | json_field metadata.pluginManagedAgent.pluginKey)" = "wandora.organization-adapter-v1"
+test "$(printf '%s' "$agent_identity" | json_field metadata.pluginManagedAgent.agentKey)" = "ana-commercial-v1"
 
 PROVIDER_REF="$(node -e '
   const { createHash } = require("node:crypto");
