@@ -129,11 +129,26 @@ docker run --rm --network "$NET" -v "$CORE:/app" -w /app \
 docker build -t "$CORE_IMAGE" "$CORE" >/dev/null
 docker run -d --name "$CORE_SMOKE" --network none \
   -e WANDORA_CORE_MODE=standby -e PORT=8788 "$CORE_IMAGE" >/dev/null
+core_smoke_ready=0
 for _ in $(seq 1 30); do
+  if [ "$(docker inspect -f '{{.State.Running}}' "$CORE_SMOKE" 2>/dev/null || echo false)" != "true" ]; then
+    docker inspect -f 'core_smoke_status={{.State.Status}} exit={{.State.ExitCode}} oom={{.State.OOMKilled}} error={{json .State.Error}}' "$CORE_SMOKE" >&2 || true
+    docker logs "$CORE_SMOKE" >&2 || true
+    echo 'wandora_core_standby_smoke_exited_before_health' >&2
+    exit 1
+  fi
   if docker exec "$CORE_SMOKE" node -e \
-    "fetch('http://127.0.0.1:8788/healthz').then(r=>process.exit(r.status===200?0:1)).catch(()=>process.exit(1))"; then break; fi
+    "fetch('http://127.0.0.1:8788/healthz').then(r=>process.exit(r.status===200?0:1)).catch(()=>process.exit(1))"; then
+    core_smoke_ready=1
+    break
+  fi
   sleep 1
 done
+if [ "$core_smoke_ready" -ne 1 ]; then
+  docker logs "$CORE_SMOKE" >&2 || true
+  echo 'wandora_core_standby_smoke_health_timeout' >&2
+  exit 1
+fi
 docker exec "$CORE_SMOKE" node -e \
   "fetch('http://127.0.0.1:8788/readyz').then(r=>process.exit(r.status===503?0:1)).catch(()=>process.exit(1))"
 test -z "$(docker port "$CORE_SMOKE")"
