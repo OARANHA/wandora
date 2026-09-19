@@ -273,8 +273,14 @@ SELECT (count(*) = 1) AS patch_ok
 SQL
 
 agent_identity="$(pc_api GET "/api/agents/$AGENT_ID")"
+db_role="$(docker exec "$DB" psql -U supabase_admin -d paperclip_attestation -At \
+  -v agent="$AGENT_ID" -v company="$COMPANY_ID" \
+  -c "SELECT role FROM agents WHERE id = :'agent'::uuid AND company_id = :'company'::uuid;")"
+api_role="$(printf '%s' "$agent_identity" | json_field role)"
+printf 'SYNTHETIC_MANAGED_AGENT_ROLE db=%s api=%s\n' "$db_role" "$api_role"
+test "$db_role" = "commercial-assistant"
 test "$(printf '%s' "$agent_identity" | json_field name)" = "Ana"
-test "$(printf '%s' "$agent_identity" | json_field role)" = "commercial-assistant"
+test "$api_role" = "commercial-assistant"
 test "$(printf '%s' "$agent_identity" | json_field metadata.pluginManagedAgent.pluginKey)" = "wandora.organization-adapter-v1"
 test "$(printf '%s' "$agent_identity" | json_field metadata.pluginManagedAgent.agentKey)" = "ana-commercial-v1"
 
