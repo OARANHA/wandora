@@ -895,17 +895,19 @@ The recovery edge guard remains reachable normally after mitigation and direct-o
 
 No real invite/recovery has been sent.
 
-## First Real Customer Owner Access + Tenant — AUTH REAL / TENANT PREFLIGHT COMPLETE
+## First Real Customer Owner Access + Tenant — TENANT LIVE / CUSTOMER READ VALIDATION NEXT
 
-ADR 0101 sent the first real owner invite. ADR 0102 proves invite consumption, first password and a fresh normal password login. The account is Auth-valid but remains unlinked until tenant provisioning.
+ADR 0101 sent the first real owner invite. ADR 0102 proves invite consumption, first password and a fresh normal password login.
 
-ADR 0103 freezes the first real tenant as `MEDICSPRO` with slug `medicspro`, owner display name `Alessandro Aranha`, a stable V2 request key and a hashed runtime Auth-subject gate. Live collision checks are zero and the existing least-privilege Private Tenant Provisioning V2 path is ready. No tenant was created during the preflight.
+ADR 0103 froze the first real tenant request. ADR 0104 now makes `MEDICSPRO` / `medicspro` live through the exact Private Tenant Provisioning V2 path: one active organization, one owner mapping/membership, zero employees, and one V2 idempotency request. Paperclip/provider bindings, eligibility, hire state and messaging remain absent for MEDICSPRO.
+
+The owner e-mail and raw Auth subject remain outside Git. The execution did not extract a user refresh token or mint a privileged customer JWT merely to simulate access.
 
 ## Next executable slice
 
-Next: **Customer Owner First Real Tenant Provisioning Execution V1.**
+Next: **Customer Owner First Real Tenant Access Validation V1.**
 
-Use only the frozen V2 request. Stop after Wandora tenant/owner/idempotency state. Paperclip bootstrap/binding, eligibility and employee hire remain later separate effects.
+Use a genuine normal owner session to prove `/api/v1/me` now returns MEDICSPRO instead of `unlinked`. Keep the proof read-only; Paperclip bootstrap/binding, eligibility and employee hire remain later separate effects.
 
 ## Platform Admin
 
@@ -998,6 +1000,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0101 — Customer Owner First Real Invite Execution V1
 - ADR 0102 — Customer Owner First Invite Acceptance + First Password Validation V1
 - ADR 0103 — Customer Owner First Real Tenant Provisioning Preflight V1
+- ADR 0104 — Customer Owner First Real Tenant Provisioning Execution V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
