@@ -75,7 +75,7 @@ try {
     throw new Error('disposable_managed_agent_identity_invalid');
   }
 
-  process.stdout.write(agent.id);
+  process.stdout.write(`\nWANDORA_MANAGED_AGENT_ID=${agent.id}\n`);
 } finally {
   await closeRegisteredClients(databaseUrl);
 }
