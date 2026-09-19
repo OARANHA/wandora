@@ -2050,13 +2050,35 @@ Hash-only proof shows the final Core HMAC, Paperclip version-2 `value_sha256` an
 
 The single secret usage is the Organization Adapter plugin's required `hmacSecret` binding with `versionSelector=latest`. Temporary rotation/staging files were removed, the ADR 0109 recovery pair remains hash-green, all relevant runtimes remain healthy with zero restarts, and Human Send/Gateway outbound remain OFF.
 
+## Customer Owner First Real Tenant Eligibility Rollout Preflight V1 — COMPLETE
+
+ADR 0111 accepts MEDICSPRO as the first real `ana-commercial-v1` eligibility rollout target without enabling it.
+
+```text
+active real owner path       = 1
+MEDICSPRO employees          = 0
+matching legacy Ana          = 0
+control binding              = 1
+employee provider bindings   = 0
+ana-commercial-v1 hire ops   = 0
+Paperclip agents             = 0
+Paperclip secret/config      = exact / healthy
+Core HMAC ↔ secret hash      = match
+
+target eligibility rows      = 0
+global eligibility rows      = 0
+enabled eligibility rows     = 0
+```
+
+The dedicated `wandora_customer_hire_operator` remains NOLOGIN/least-privilege and is the only role with setter execution. A production no-effect rehearsal proved `supabase_admin -> BEGIN -> EXCLUSIVE LOCK -> zero-enabled check -> SET LOCAL ROLE -> RESET ROLE -> ROLLBACK`, ending with zero rows.
+
+No eligibility, employee, hire, provider-agent or outbound effect occurred.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Owner First Real Tenant Eligibility Rollout Preflight V1.**
+Next: **Customer Owner First Real Tenant Eligibility Rollout Execution V1.**
 
-Reuse ADR 0085's serialized first-rollout contract for the now-real clean MEDICSPRO target and exact catalog `ana-commercial-v1`. Revalidate owner/customer access, zero matching employee/hire state, exact Organization Adapter wiring/custody, zero enabled eligibility rows and the operator-only setter/rollback transaction.
-
-Do not enable eligibility, hire/activate an employee or enable outbound during the preflight.
+Execute only the ADR 0111 frozen serialized operator transaction for MEDICSPRO + `ana-commercial-v1`. Require exactly one enabled eligibility row afterward while employees, hire operations, Paperclip agents, Human Send and Gateway outbound remain unchanged/off. Stop before the actual hire.
 
 ## Operational safety
 
