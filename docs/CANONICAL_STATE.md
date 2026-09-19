@@ -1777,9 +1777,9 @@ eligibility rows/enabled      = 0 / 0
 unfinished hires              = 0
 ```
 
-## Customer Owner First Real Tenant Provisioning Preflight V1 — COMPLETE
+## Customer Owner First Real Tenant Provisioning Execution V1 — COMPLETE
 
-ADR 0103 freezes the first real customer tenant request without creating it.
+ADR 0104 executes exactly the ADR 0103 Private Tenant Provisioning V2 request.
 
 ```text
 organization display name = MEDICSPRO
@@ -1788,54 +1788,44 @@ owner display name        = Alessandro Aranha
 request key               = customer-owner-first-real:tenant-v2:medicspro:v1
 ```
 
-The owner e-mail and raw Supabase subject remain outside Git. The runtime-resolved subject is gated by a frozen SHA-256. Live proof shows one confirmed/signed-in Auth target, zero Wandora identity rows and zero memberships for that target.
+The runtime-resolved owner subject matched the frozen SHA-256 gate and remained outside Git/log output. The transaction used only `supabase_admin -> SET LOCAL ROLE wandora_platform_provisioner -> V2 -> COMMIT`; no direct inserts or provider calls were used.
 
-Collision/idempotency proof:
-
-```text
-slug collision             = 0
-display-name CI collision  = 0
-request-key collision      = 0
-```
-
-Private Tenant Provisioning V2 remains live and least-privilege:
+Validated live state:
 
 ```text
-V2 present                    = true
-platform provisioner executes = true
-Core executes V2              = false
-authenticated executes V2     = false
-platform direct ledger read   = false
-platform connection limit     = 0
-platform reusable credential  = absent
-```
-
-A no-effect transaction proved `supabase_admin -> SET LOCAL ROLE wandora_platform_provisioner`, V2 execute allowed, ledger read denied, then ROLLBACK.
-
-Current business baseline remains:
-
-```text
-organizations         = 3
-wandora_users         = 1
-user_identities       = 1
-memberships           = 3
+organizations         = 4
+wandora_users         = 2
+user_identities       = 2
+memberships           = 4
 digital_employees     = 4
-provisioning_requests = 1
-control_bindings      = 2
-employee_bindings     = 2
-completed_hires       = 2
-unfinished_hires      = 0
-eligibility_rows      = 0
-eligibility_enabled   = 0
+provisioning_requests = 2
+
+MEDICSPRO active orgs          = 1
+owner Supabase mappings       = 1
+active owner memberships      = 1
+MEDICSPRO employees           = 0
+exact V2 request rows         = 1
+provisioning_version          = 2
+employee_id                   = NULL
+
+control_bindings total / MEDICSPRO    = 2 / 0
+employee_bindings total / MEDICSPRO   = 2 / 0
+completed_hires total / MEDICSPRO     = 2 / 0
+unfinished_hires                      = 0
+eligibility rows / enabled            = 0 / 0
+messaging connections MEDICSPRO       = 0
+messaging provider bindings MEDICSPRO = 0
 ```
 
-No tenant, Paperclip/provider state, eligibility or hire effect was created.
+Auth, DB, Web, Core, Paperclip and Gateway remain healthy with zero restarts. Customer Hire remains globally ON; Human Send and Gateway outbound remain OFF.
+
+A fresh authenticated customer `/api/v1/me` read is deliberately not fabricated with a privileged JWT or extracted refresh token. That read-only proof remains separate.
 
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Owner First Real Tenant Provisioning Execution V1.**
+Next: **Customer Owner First Real Tenant Access Validation V1.**
 
-Execute exactly the ADR 0103 V2 request. Any ambiguity must reconcile by the frozen request key and slug before replay. Stop after Wandora organization/user/identity/owner-membership/idempotency state; do not bootstrap Paperclip or enable eligibility/hire in the same slice.
+Use a genuine normal owner session to prove `/api/v1/me` returns MEDICSPRO instead of `unlinked`. No Paperclip/provider bootstrap, eligibility, hire or outbound effect belongs in that validation.
 
 ## Operational safety
 
