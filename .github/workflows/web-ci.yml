@@ -32,29 +32,35 @@ jobs:
           set -euo pipefail
           WEB_IMAGE="wandora/web:candidate-${GITHUB_SHA:0:12}"
           CORE_NODE="node:22.23.2-bookworm-slim@sha256:83f487e0a63425e5b4d146fb5e5be574bcbe1b7b843d3ebafdd95eaf7767a7e5"
+          RUN_KEY="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          CORE_NETWORK="wandora-core-ci-${RUN_KEY}"
+          CORE_CONTAINER="wandora-core-ci-${RUN_KEY}"
+          WEB_CONTAINER="wandora-web-ci-${RUN_KEY}"
           cleanup() {
-            docker rm -f wandora-web-ci wandora-core >/dev/null 2>&1 || true
-            docker network rm wandora-core wandora-edge >/dev/null 2>&1 || true
+            docker rm -f "$WEB_CONTAINER" "$CORE_CONTAINER" >/dev/null 2>&1 || true
+            docker network rm "$CORE_NETWORK" >/dev/null 2>&1 || true
           }
           trap cleanup EXIT
-          docker network create wandora-core >/dev/null
-          docker network create wandora-edge >/dev/null
+          docker network create "$CORE_NETWORK" >/dev/null
           docker build \
             --label org.opencontainers.image.revision="$GITHUB_SHA" \
             --label wandora.candidate="wandora-web-reviewed-bridge-v1" \
             -t "$WEB_IMAGE" apps/web
-          docker run -d --rm --name wandora-core --network wandora-core "$CORE_NODE" \
+          docker run -d --rm --name "$CORE_CONTAINER" --network "$CORE_NETWORK" --network-alias wandora-core "$CORE_NODE" \
             node --input-type=module -e "import {createServer} from 'node:http'; createServer(async(req,res)=>{let body=''; for await (const chunk of req) body+=chunk; res.setHeader('content-type','application/json'); res.end(JSON.stringify({path:req.url,method:req.method,auth:req.headers.authorization??'',cookie:req.headers.cookie??'',idempotency:req.headers['idempotency-key']??'',body}));}).listen(8788,'0.0.0.0')" >/dev/null
-          docker run -d --rm --name wandora-web-ci --network wandora-core \
-            -p 127.0.0.1:18089:8080 "$WEB_IMAGE" >/dev/null
+          docker run -d --rm --name "$WEB_CONTAINER" --network "$CORE_NETWORK" \
+            -p 127.0.0.1::8080 "$WEB_IMAGE" >/dev/null
+          WEB_PORT="$(docker port "$WEB_CONTAINER" 8080/tcp | awk -F: 'NR==1{print $NF}')"
+          test -n "$WEB_PORT"
+          WEB_BASE_URL="http://127.0.0.1:$WEB_PORT"
           for _ in $(seq 1 30); do
-            if curl -fsS http://127.0.0.1:18089/healthz >/dev/null; then break; fi
+            if curl -fsS "$WEB_BASE_URL/healthz" >/dev/null; then break; fi
             sleep 1
           done
           SESSION_RESPONSE="$(curl -fsS \
             -H 'Authorization: Bearer ci-token' \
             -H 'Cookie: browser-session=must-not-cross' \
-            http://127.0.0.1:18089/api/v1/me)"
+            ${WEB_BASE_URL}/api/v1/me)"
           python3 - "$SESSION_RESPONSE" <<'PY'
           import json, sys
           data = json.loads(sys.argv[1])
@@ -66,7 +72,7 @@ jobs:
           WORK_RESPONSE="$(curl -fsS \
             -H 'Authorization: Bearer ci-token' \
             -H 'Cookie: browser-session=must-not-cross' \
-            http://127.0.0.1:18089/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/work/attention-required)"
+            ${WEB_BASE_URL}/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/work/attention-required)"
           python3 - "$WORK_RESPONSE" <<'PY'
           import json, sys
           data = json.loads(sys.argv[1])
@@ -78,7 +84,7 @@ jobs:
           DIGITAL_EMPLOYEES_RESPONSE="$(curl -fsS \
             -H 'Authorization: Bearer ci-token' \
             -H 'Cookie: browser-session=must-not-cross' \
-            http://127.0.0.1:18089/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/digital-employees)"
+            ${WEB_BASE_URL}/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/digital-employees)"
           python3 - "$DIGITAL_EMPLOYEES_RESPONSE" <<'PY'
           import json, sys
           data = json.loads(sys.argv[1])
@@ -93,7 +99,7 @@ jobs:
             -H 'Idempotency-Key: ci-hire-key' \
             -H 'Content-Type: application/json' \
             --data '{"catalogKey":"ana-commercial-v1"}' \
-            http://127.0.0.1:18089/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/digital-employees)"
+            ${WEB_BASE_URL}/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/digital-employees)"
           python3 - "$HIRE_RESPONSE" <<'PY'
           import json, sys
           data = json.loads(sys.argv[1])
@@ -108,7 +114,7 @@ jobs:
           SEND_RESPONSE="$(curl -fsS -X POST \
             -H 'Authorization: Bearer ci-token' \
             -H 'Cookie: browser-session=must-not-cross' \
-            "http://127.0.0.1:18089${SEND_PATH}")"
+            "${WEB_BASE_URL}${SEND_PATH}")"
           python3 - "$SEND_RESPONSE" "$SEND_PATH" <<'PY'
           import json, sys
           data = json.loads(sys.argv[1])
@@ -120,7 +126,7 @@ jobs:
           CONVERSATIONS_RESPONSE="$(curl -fsS \
             -H 'Authorization: Bearer ci-token' \
             -H 'Cookie: browser-session=must-not-cross' \
-            http://127.0.0.1:18089/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/conversations)"
+            ${WEB_BASE_URL}/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/conversations)"
           python3 - "$CONVERSATIONS_RESPONSE" <<'PY'
           import json, sys
           data = json.loads(sys.argv[1])
@@ -132,7 +138,7 @@ jobs:
           DETAIL_RESPONSE="$(curl -fsS \
             -H 'Authorization: Bearer ci-token' \
             -H 'Cookie: browser-session=must-not-cross' \
-            http://127.0.0.1:18089/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/conversations/50000000-0000-0000-0000-0000000000a1)"
+            ${WEB_BASE_URL}/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/conversations/50000000-0000-0000-0000-0000000000a1)"
           python3 - "$DETAIL_RESPONSE" <<'PY'
           import json, sys
           data = json.loads(sys.argv[1])
@@ -141,14 +147,14 @@ jobs:
           assert data['method'] == 'GET', data
           assert data['path'] == '/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/conversations/50000000-0000-0000-0000-0000000000a1', data
           PY
-          test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:18089/api/v1/session)" = "404"
-          test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:18089/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/work/not-reviewed)" = "404"
-          test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:18089/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/digital-employees/not-reviewed)" = "404"
-          test "$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:18089${SEND_PATH}/again")" = "404"
-          test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:18089/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/conversations/not-reviewed)" = "404"
-          test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:18089/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/conversations/50000000-0000-0000-0000-0000000000a1/messages)" = "404"
-          test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:18089/internal/v1/gateway/inbound)" = "404"
-          test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:18089/internal/v1/core/outbound/text)" = "404"
+          test "$(curl -sS -o /dev/null -w '%{http_code}' ${WEB_BASE_URL}/api/v1/session)" = "404"
+          test "$(curl -sS -o /dev/null -w '%{http_code}' ${WEB_BASE_URL}/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/work/not-reviewed)" = "404"
+          test "$(curl -sS -o /dev/null -w '%{http_code}' ${WEB_BASE_URL}/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/digital-employees/not-reviewed)" = "404"
+          test "$(curl -sS -o /dev/null -w '%{http_code}' "${WEB_BASE_URL}${SEND_PATH}/again")" = "404"
+          test "$(curl -sS -o /dev/null -w '%{http_code}' ${WEB_BASE_URL}/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/conversations/not-reviewed)" = "404"
+          test "$(curl -sS -o /dev/null -w '%{http_code}' ${WEB_BASE_URL}/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/conversations/50000000-0000-0000-0000-0000000000a1/messages)" = "404"
+          test "$(curl -sS -o /dev/null -w '%{http_code}' ${WEB_BASE_URL}/internal/v1/gateway/inbound)" = "404"
+          test "$(curl -sS -o /dev/null -w '%{http_code}' ${WEB_BASE_URL}/internal/v1/core/outbound/text)" = "404"
           WANDORA_WEB_IMAGE="$WEB_IMAGE" docker compose -f infra/stacks/web/compose.yaml config --format json | \
             python3 -c 'import json,sys; s=json.load(sys.stdin)["services"]["web"]; assert set(s["networks"])=={"wandora-edge","wandora-core"}; assert not s.get("ports")'
 
