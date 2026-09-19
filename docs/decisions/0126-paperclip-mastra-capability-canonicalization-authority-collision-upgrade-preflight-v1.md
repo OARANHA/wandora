@@ -147,7 +147,22 @@ The protected current-enough recovery snapshot used for bridge activation contai
 
 This is static/snapshot evidence only; it is not a substitute for the full disposable migration proof.
 
-### 8. Adapter static compatibility is promising but not sufficient
+### 8. Full v916 migration audit narrows the destructive-risk surface
+
+All migrations after the production `0230` baseline through `0279` were statically reviewed.
+
+Material findings:
+
+- no reviewed migration targets deletion of the external adapter registry, `wandora_mastra` adapter registration contract or Organization Adapter plugin configuration;
+- destructive/transforming work is concentrated mainly in the Connections/grants model, retired model-profile cleanup, heartbeat/wakeup provenance and new chat/AI-connection structures;
+- `0232_fixed_hannibal_king.sql` preserves a company-scoped secret when it is also referenced by an organization grant, a tool connection, a `company_secret_binding` or a routine trigger. Ambiguous personal grants fail conservatively to reauthorization rather than silently taking ownership of such a secret;
+- `0276_hard_mandroid.sql` only adopts recognized active **user-scoped** AI credentials with supported declarations into the AI-connections model. Its migration states that host auth homes and company secrets are left untouched and it performs no agent-binding changes;
+- `0260` and related wakeup migrations rewrite idempotency/provenance state, so zero Ana wakeups/heartbeat drift remains a required post-migration proof;
+- `0236` remains the known retired model-profile cleanup; the retained production-derived snapshot has no observed `modelProfiles` / `modelProfile` payload.
+
+This source audit lowers the likelihood of an Organization Adapter secret/adapter migration collision, but it is **not** a runtime safety claim. The production-derived disposable restore/migrate/start proof remains mandatory.
+
+### 9. Adapter static compatibility is promising but not sufficient
 
 The current `wandora_mastra@0.1.0` uses the Paperclip adapter contracts needed for:
 
