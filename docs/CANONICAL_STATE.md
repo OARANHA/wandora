@@ -37,7 +37,7 @@ The runner is deliberately hosted on the existing Wandora VPS but is isolated fr
 
 Final validation on the implementation head proved Core Candidate, Core, Messaging Gateway, Operator Consoles, Organization Adapter Plugin, Platform Admin and Web CI green while critical production containers remained healthy with zero restarts.
 
-The next functional product slice remains **Customer Owner First Real Tenant Digital-Employee Hire Execution Preflight V1**. This CI restoration slice does not hire or activate Ana, enable Human Send, enable Gateway outbound, or change the MEDICSPRO Organization Adapter binding/HMAC/secret.
+At the ADR 0113 CI checkpoint the next functional product slice was **Customer Owner First Real Tenant Digital-Employee Hire Execution Preflight V1**. ADR 0114 now closes that no-effect gate; the next functional slice is the separately reviewed **Customer Owner First Real Tenant Digital-Employee Hire Execution V1**. The CI restoration slice itself did not hire or activate Ana, enable Human Send, enable Gateway outbound, or change the MEDICSPRO Organization Adapter binding/HMAC/secret.
 
 This file is a compact current-state handoff. Historical evidence belongs in accepted ADRs and infra proof documents. Mutable runtime facts must be re-verified before a later production action.
 
@@ -72,13 +72,13 @@ Before material new domain state, apply ADR 0036 Capability Authority / Reuse Ga
 
 Implemented routes include `/`, `/team`, `/work`, `/conversations`, `/approvals`, `/company`, `/login` and `/start`.
 
-**REAL:** login/session, explicit multi-organization selection, Team read, Work, Conversations, Canonical Confirmation V2 and the controlled supervised WhatsApp loop.
+**REAL:** login/session, explicit multi-organization selection, Team read, Work, Conversations, Canonical Confirmation V2, the controlled supervised WhatsApp loop, and the tenant-gated customer `Contratar Ana` contract/UI.
 
-**PARTIAL / PLACEHOLDER:** dashboard/company/approval/start actions, including real employee hiring/activation.
+**PARTIAL / PLACEHOLDER:** dashboard/company/approval surfaces and digital-employee **activation/resume**. The first real MEDICSPRO hire has not yet been executed at ADR 0114 closure.
 
-No current Organization Adapter work introduces a customer `Contratar` / `Ativar funcionário` route.
+Customer hire is exposed only through the exact reviewed route `POST /api/v1/organizations/:organizationId/digital-employees`, normal human session authorization, tenant eligibility and Organization Adapter/Paperclip reconciliation. `Contratar` creates/returns a paused + supervised employee; it is not an activation capability.
 
-Human Send and Gateway outbound remain separate effect capabilities and are not activated by the Organization Adapter artifact work.
+Human Send and Gateway outbound remain separate effect capabilities and remain OFF.
 
 ## Organization Adapter — accepted V1 architecture
 
