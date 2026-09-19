@@ -2225,11 +2225,59 @@ The current deterministic runtime makes duplicate execution of the same run non-
 
 PR #166 was squash-merged only after all seven workflows on head `0d6ee0ba593e69e74cae851e127bf146b36f38f1` were green. Post-merge production proof confirms migration 014 is still absent, the live Paperclip adapter store has zero `wandora_mastra` records, MEDICSPRO Ana remains exactly one `paused + supervised` employee with one provider binding and one completed hire operation, and the Core bridge/Human Send/Gateway outbound enable flags remain absent/OFF.
 
+## Paperclip -> Wandora/Mastra Production Execution Bridge Activation Preflight V1 — COMPLETE / NO-GO
+
+ADR 0118 completed the requested no-effect production preflight.
+
+Fresh production evidence remains:
+
+```text
+main entering preflight = 2d4adc5c81ce6ce36554fd9e3fa399656dd7d612
+
+migration 014 resolver      = ABSENT
+wandora_mastra live adapter = ABSENT / 404
+Core execution bridge       = OFF
+Organization Adapter        = ready
+agents.resume               = absent
+
+MEDICSPRO Ana / Wandora     = exactly 1 / paused + supervised
+MEDICSPRO provider binding  = exactly 1
+MEDICSPRO hire              = exactly 1 / completed
+MEDICSPRO Ana / Paperclip   = exactly 1 / paused / no heartbeat
+
+Human Send                  = OFF
+Gateway outbound            = OFF
+MEDICSPRO outbound attempts = 0
+```
+
+Exact artifacts are frozen:
+
+```text
+adapter artifact id = 10580337991
+adapter ZIP sha256  = bd523953c42b2e8be23311c70c55be01c9248248e2e38358761e8c7d29a2414f
+adapter tgz sha256  = 0d2e77940c381bb36fc401bdf28080507227f081fe5e45a92f5b36723ed7604f
+
+Core artifact id    = 10580881710
+Core ZIP sha256     = 0387b4bf0f08f2c518b6249bf9515a37a080ffd4b36403d547902f5410ca1c05
+Core archive sha256 = b4acc5bac69743493865a69fa51757d32d2ab5bc738d9b277fccd62c3e3a7287
+Core source tree    = fb69ab98faa7cf116fadb9b17974cf0f65224dd9
+```
+
+The candidate source tree equals the canonical bridge-code squash-merge tree. Current `main` differs only by later documentation, so no rebuild is justified by commit-SHA difference alone.
+
+The preflight blocks live execution on three missing production-readiness contracts:
+
+1. Paperclip lacks a canonical/live bridge runtime overlay for the dedicated HMAC mount and Core bridge URL;
+2. Core `/readyz` does not yet prove the migration-014 resolver when the bridge flag is enabled;
+3. there is no single disposable integrated attestation using an actual pinned Paperclip run-scoped token through Paperclip -> Core -> Agent Runtime/Mastra.
+
+The exact future migration/HMAC/Core/Paperclip/adapter order and rollback rules are frozen in ADR 0118. The verified adapter must be installed from a restart-stable extracted directory under persistent `/paperclip`, never from `/tmp` or a CI workspace.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Paperclip -> Wandora/Mastra Production Execution Bridge Activation Preflight V1.**
+Next: **Paperclip -> Wandora/Mastra Production Execution Bridge Runtime Custody + Readiness + Disposable E2E Attestation Implementation V1.**
 
-The preflight is no-effect. Reverify live state and freeze migration-014 application/verifier, dedicated bridge-HMAC custody, adapter artifact provenance/install path, Core overlay/candidate promotion, rollback and synthetic end-to-end proof. Do not apply migration 014, install the adapter, recreate Core, resume/activate Ana, grant `agents.resume`, enable Human Send or enable Gateway outbound during that preflight.
+Repository/CI/disposable proof only. Do not apply migration 014, create a live bridge secret, install the live adapter, recreate Core/Paperclip, grant `agents.resume`, activate Ana, enable Human Send or enable Gateway outbound.
 
 ## Operational safety
 
