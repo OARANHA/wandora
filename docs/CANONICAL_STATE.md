@@ -1603,11 +1603,43 @@ The secret-file compose design was adversarially tested with synthetic material.
 
 No Resend account/domain/key was created, no DNS record changed, no GoTrue configuration changed and no invite, recovery or test e-mail was sent. No Auth user, tenant, provider binding or eligibility state was created. Human Send and Gateway outbound remain OFF.
 
+## Customer Owner Transactional E-mail Sender Domain + Credential Provisioning Execution V1 — COMPLETE
+
+ADR 0097 executes ADR 0096 Phase A and makes the external delivery foundation real without activating Auth SMTP.
+
+Live provider foundation:
+
+```text
+Resend domain = notify.wandora.com.br / verified
+region        = sa-east-1
+DKIM          = published + verified
+sending CNAME = rsend.notify + send.notify / DNS-only / verified
+DMARC         = _dmarc.notify / v=DMARC1; p=none;
+credential    = dedicated sending-only/domain-scoped operator key
+custody       = /opt/wandora/data/supabase/secrets/gotrue_smtp_pass
+               root:wandora-ops / 0640
+```
+
+Independent VPS read-back observed the provider DNS and exact DMARC value. Secret-structure/leak checks proved a nonempty 36-byte Resend credential with no trailing newline and no exact-value match in shell history, Supabase `.env`, Compose text or live Web/Core/Gateway/Auth service environments.
+
+A STARTTLS SMTP authentication proof returned `235` and immediately `QUIT 221` with no `MAIL FROM`, `RCPT TO` or `DATA`.
+
+Live GoTrue was deliberately not changed and still uses:
+
+```text
+GOTRUE_SMTP_HOST        = supabase-mail
+GOTRUE_SMTP_PORT        = 2500
+GOTRUE_SMTP_ADMIN_EMAIL = admin@example.com
+GOTRUE_SMTP_SENDER_NAME = fake_sender
+```
+
+No invite, recovery or test e-mail was sent. No Auth/Core/Web/Gateway service was recreated. Human Send and Gateway outbound remain OFF.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Owner Transactional E-mail Sender Domain + Credential Provisioning Execution V1.**
+Next: **Customer Owner Transactional E-mail GoTrue SMTP Activation Preflight V1.**
 
-This slice may create the Resend sender domain, provider-issued DNS records and one domain-restricted sending-only credential under reviewed custody. It must not modify live GoTrue SMTP configuration and must not send an invite, recovery or test e-mail.
+This preflight must re-read exact live Supabase Compose/runtime state, version the already-reviewed secret-file Auth startup candidate, freeze backup/rollback and prove the exact one-service activation procedure. It must **not** change live GoTrue SMTP settings, recreate `supabase-auth` or send an invite, recovery or test e-mail.
 
 ## Operational safety
 
