@@ -1,0 +1,110 @@
+import assert from 'node:assert/strict';
+import test, { after } from 'node:test';
+import { Pool } from 'pg';
+import type { AssignedTaskInput } from '../src/agent-runtime/task-runtime.js';
+import { paperclipManagedAgentRef } from '../src/organization-adapter/paperclip-provider.js';
+import {
+  PaperclipExecutionBindingError,
+  PaperclipExecutionService,
+} from '../src/paperclip-execution/service.js';
+
+const ORG = '71000000-0000-4000-8000-0000000000a1';
+const EMPLOYEE = '72000000-0000-4000-8000-0000000000a1';
+const COMPANY = '73000000-0000-4000-8000-0000000000a1';
+const AGENT = '74000000-0000-4000-8000-0000000000a1';
+const RUN = '75000000-0000-4000-8000-0000000000a1';
+const runtimePool = new Pool({ connectionString: process.env.DATABASE_URL });
+const fixturePool = new Pool({ connectionString: process.env.FIXTURE_DATABASE_URL });
+
+after(async () => {
+  await Promise.all([runtimePool.end(), fixturePool.end()]);
+});
+
+async function resetFixture(status: 'paused' | 'active') {
+  await fixturePool.query(`TRUNCATE
+    wandora_private.digital_employee_provider_bindings,
+    wandora_private.digital_employee_hire_operations,
+    wandora_private.control_plane_provider_bindings,
+    wandora.digital_employees,
+    wandora.memberships, wandora.user_identities, wandora.users,
+    wandora.organizations RESTART IDENTITY CASCADE`);
+  await fixturePool.query(
+    `INSERT INTO wandora.organizations(id,slug,display_name,status)
+     VALUES ($1,'bridge-org','Bridge Org','active')`,
+    [ORG],
+  );
+  await fixturePool.query(
+    `INSERT INTO wandora_private.control_plane_provider_bindings
+       (organization_id,provider,provider_company_ref)
+     VALUES ($1,'paperclip',$2)`,
+    [ORG, COMPANY],
+  );
+  await fixturePool.query(
+    `INSERT INTO wandora.digital_employees
+       (id,organization_id,display_name,role,status,autonomy_mode)
+     VALUES ($1,$2,'Ana','commercial-assistant',$3,'supervised')`,
+    [EMPLOYEE, ORG, status],
+  );
+  await fixturePool.query(
+    `INSERT INTO wandora_private.digital_employee_provider_bindings
+       (organization_id,employee_id,provider,provider_agent_ref)
+     VALUES ($1,$2,'paperclip',$3)`,
+    [ORG, EMPLOYEE, paperclipManagedAgentRef(COMPANY, 'ana-commercial-v1')],
+  );
+}
+
+test('private execution requires the canonical Wandora employee to be active', async () => {
+  await resetFixture('paused');
+  let runtimeCalls = 0;
+  const service = new PaperclipExecutionService(runtimePool, {
+    executeAssignedTask: async () => {
+      runtimeCalls += 1;
+      return { model: 'test', summary: 'should-not-run' };
+    },
+  });
+
+  await assert.rejects(
+    service.execute({
+      identity: { paperclipAgentId: AGENT, paperclipCompanyId: COMPANY, catalogKey: 'ana-commercial-v1' },
+      paperclipRunId: RUN,
+      task: { title: 'Qualificar', description: 'Contato' },
+    }),
+    (error: unknown) => error instanceof PaperclipExecutionBindingError && error.code === 'employee-unavailable',
+  );
+  assert.equal(runtimeCalls, 0);
+});
+
+test('active exact binding reaches AgentTaskRuntime without provider identifiers', async () => {
+  await resetFixture('active');
+  let received: AssignedTaskInput | undefined;
+  const service = new PaperclipExecutionService(runtimePool, {
+    executeAssignedTask: async (input) => {
+      received = input;
+      return { model: 'mastra-deterministic', summary: 'Proposta supervisionada' };
+    },
+  });
+
+  const result = await service.execute({
+    identity: { paperclipAgentId: AGENT, paperclipCompanyId: COMPANY, catalogKey: 'ana-commercial-v1' },
+    paperclipRunId: RUN,
+    task: { title: 'Qualificar', description: 'Entender necessidade' },
+  });
+
+  assert.equal(result.model, 'mastra-deterministic');
+  assert.equal(result.summary, 'Proposta supervisionada');
+  assert.match(result.executionId, /^exec_[0-9a-f]{64}$/);
+  assert.deepEqual(received, {
+    organizationId: ORG,
+    employee: {
+      id: EMPLOYEE,
+      organizationId: ORG,
+      name: 'Ana',
+      role: 'commercial-assistant',
+      autonomyMode: 'supervised',
+    },
+    task: { title: 'Qualificar', description: 'Entender necessidade' },
+  });
+  assert.equal(JSON.stringify(received).includes(COMPANY), false);
+  assert.equal(JSON.stringify(received).includes(AGENT), false);
+  assert.equal(JSON.stringify(received).includes(RUN), false);
+});
