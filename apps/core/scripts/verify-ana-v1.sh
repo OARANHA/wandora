@@ -19,9 +19,9 @@ CORE_SMOKE="wandora-core-smoke-$SUFFIX"
 CORE_DB_SMOKE="wandora-core-db-smoke-$SUFFIX"
 CORE_ORG_ADAPTER_SMOKE="wandora-core-org-adapter-smoke-$SUFFIX"
 CONTAINER_SECRET_GID="${WANDORA_CI_CONTAINER_SECRET_GID:-$(id -g)}"
-TMP_SECRET="$(mktemp)"
-TMP_OUTBOUND_SECRET="$(mktemp)"
-TMP_ORG_ADAPTER_DIR="$(mktemp -d)"
+TMP_SECRET="$(mktemp -p "${RUNNER_TEMP:-/tmp}" wandora-core-db-secret.XXXXXX)"
+TMP_OUTBOUND_SECRET="$(mktemp -p "${RUNNER_TEMP:-/tmp}" wandora-core-outbound-secret.XXXXXX)"
+TMP_ORG_ADAPTER_DIR="$(mktemp -d -p "${RUNNER_TEMP:-/tmp}" wandora-core-org-adapter.XXXXXX)"
 
 cleanup() {
   docker rm -f "$CORE_ORG_ADAPTER_SMOKE" >/dev/null 2>&1 || true
