@@ -17,7 +17,7 @@ concurrency:
 jobs:
   ana-core-verifier:
     name: Ana Core verifier
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, linux, x64, wandora-ci]
     timeout-minutes: 35
 
     steps:
