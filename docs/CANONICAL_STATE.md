@@ -13,6 +13,14 @@ ADR 0059 now records the completed internal canary, including the private-hostna
 
 Authority order: `AGENTS.md` → accepted ADRs → `docs/CAPABILITY_AUTHORITY.md` → `docs/architecture.md` → this file → component README/runbook.
 
+## 2026-09-19 bridge HMAC custody checkpoint — BLOCKED BEFORE SECRET CREATION
+
+ADR 0123 records the post-ADR-0122 privileged-custody gate. Migration 014 remains LIVE/verified and must not be repeated. The dedicated bridge HMAC is still absent.
+
+The authorized Desktop Commander session runs as `wandora-admin`; canonical ADR 0120 custody requires `root:wandora-ops / 0640`, and sudo requires interactive operator authentication. No Docker/CI/alternate privilege bypass is authorized.
+
+Next effect: one authorized privileged creation of the canonical HMAC; then reconcile and continue Core -> Paperclip -> adapter activation while Ana remains paused and all outbound effects remain OFF.
+
 
 ## 2026-09-19 CI execution checkpoint — LIVE
 
