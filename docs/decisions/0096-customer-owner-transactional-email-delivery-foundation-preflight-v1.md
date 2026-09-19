@@ -307,22 +307,41 @@ No production service was recreated and no production configuration was changed.
 
 ## VALIDATION / NO-EFFECT PROOF
 
-Required final checks for this preflight:
+Final production read-back after the probes:
 
 ```text
-no real invite sent
-no recovery sent
-no test e-mail sent
-no Auth user created
-no tenant created
-no Resend account/domain/key created by this slice
-no Cloudflare DNS record changed by this slice
-no Auth/Core/Web/Gateway runtime config changed
-no provider binding/wiring created
-no eligibility created/enabled
-Human Send remains OFF
-Gateway outbound remains OFF
+Auth users = 1
+recovery_sent users = 0
+recovery_token users = 0
+Auth one-time tokens = 0
+
+eligibility rows = 0
+enabled eligibility rows = 0
+hire operations = 2
+unfinished hire operations = 0
+
+Customer Digital-Employee Hire = ON
+Human Send = absent / OFF
+Gateway outbound = absent / OFF
+
+GOTRUE_SMTP_HOST = supabase-mail
+GOTRUE_SMTP_PORT = 2500
+GOTRUE_SMTP_ADMIN_EMAIL = admin@example.com
+GOTRUE_SMTP_SENDER_NAME = fake_sender
+
+notify.wandora.com.br records = absent
+send.notify.wandora.com.br records = absent
+resend._domainkey.notify.wandora.com.br records = absent
+_dmarc.notify.wandora.com.br records = absent
+
+temporary SMTP preflight directories = 0
 ```
+
+No real invite, recovery or test e-mail was sent.
+
+No Auth user, tenant, Resend account/domain/key, Cloudflare DNS record, provider binding/wiring or eligibility state was created by this slice.
+
+No Auth/Core/Web/Gateway runtime configuration changed.
 
 ## RESULT
 
