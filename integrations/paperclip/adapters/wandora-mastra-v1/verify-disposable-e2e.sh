@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
+
+on_error() {
+  local status="$?"
+  printf 'ATTESTATION_FAILURE status=%s line=%s command=%q\n' \
+    "$status" "${BASH_LINENO[0]:-${LINENO}}" "${BASH_COMMAND:-unknown}" >&2
+}
+trap on_error ERR
+
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
 PAPERCLIP_SOURCE_ROOT="${PAPERCLIP_SOURCE_ROOT:?set PAPERCLIP_SOURCE_ROOT to pinned Paperclip source checkout}"
