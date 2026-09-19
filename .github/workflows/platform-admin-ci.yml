@@ -40,19 +40,20 @@ jobs:
 
       - name: Smoke standby contract
         run: |
-          docker run -d --name wandora-platform-admin-ci --network none \
+          container="wandora-platform-admin-ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          docker run -d --name "$container" --network none \
             -e PORT=8790 wandora/platform-admin:ci
-          trap 'docker rm -f wandora-platform-admin-ci >/dev/null 2>&1 || true' EXIT
+          trap 'docker rm -f "$container" >/dev/null 2>&1 || true' EXIT
           for _ in $(seq 1 30); do
-            if docker exec wandora-platform-admin-ci node -e \
+            if docker exec "$container" node -e \
               "fetch('http://127.0.0.1:8790/healthz').then(r=>process.exit(r.status===200?0:1)).catch(()=>process.exit(1))"; then break; fi
             sleep 1
           done
-          docker exec wandora-platform-admin-ci node -e \
+          docker exec "$container" node -e \
             "fetch('http://127.0.0.1:8790/readyz').then(r=>process.exit(r.status===503?0:1)).catch(()=>process.exit(1))"
-          docker exec wandora-platform-admin-ci node -e \
+          docker exec "$container" node -e \
             "fetch('http://127.0.0.1:8790/internal/v1/platform/session').then(r=>process.exit(r.status===404?0:1)).catch(()=>process.exit(1))"
-          test -z "$(docker port wandora-platform-admin-ci)"
+          test -z "$(docker port "$container")"
 
       - name: Validate Compose boundaries
         env:
