@@ -15,8 +15,21 @@ services:
           - wandora-postgres
 
   auth:
+    user: "0"
     environment:
       GOTRUE_JWT_KEYS: ${JWT_KEYS:-[]}
+      GOTRUE_SMTP_PASS: !reset null
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        GOTRUE_SMTP_PASS="$$(cat /run/secrets/gotrue_smtp_pass)"
+        export GOTRUE_SMTP_PASS
+        exec /bin/su -p -s /bin/sh supabase -c 'exec /usr/local/bin/auth'
+    secrets:
+      - source: gotrue_smtp_pass
+        target: gotrue_smtp_pass
+
   realtime:
     environment:
       API_JWT_JWKS: ${JWT_JWKS:-{"keys":[]}}
@@ -36,3 +49,7 @@ networks:
     external: true
   wandora-data:
     external: true
+
+secrets:
+  gotrue_smtp_pass:
+    file: /opt/wandora/data/supabase/secrets/gotrue_smtp_pass
