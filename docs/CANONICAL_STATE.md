@@ -2022,11 +2022,41 @@ unfinished hires total     = 0
 
 Auth, DB, Web, Core, Paperclip and Messaging Gateway remain healthy with zero restarts. Human Send and Gateway outbound remain OFF.
 
+## Customer Owner First Real Tenant Organization Adapter Custody + Config + Binding Execution V1 — COMPLETE
+
+ADR 0110 makes the real MEDICSPRO control-plane wiring live.
+
+```text
+Wandora control binding     = exactly 1
+Core deterministic HMAC    = present / 0640 / readable
+Paperclip company secret    = exactly 1 active local_encrypted
+Paperclip plugin config     = exact secret_ref / lastError=null
+secret referenceCount       = 1
+Paperclip agents            = 0
+
+MEDICSPRO employees         = 0
+employee provider bindings  = 0
+hire operations             = 0
+eligibility                 = 0 / 0 enabled
+```
+
+The adversarial review caught that the first generated HMAC, while strong and correctly shaped, did not literally satisfy ADR 0108's full 32-random-byte contract. Before closure and while MEDICSPRO remained ineligible/employee-free, the same Paperclip secret was rotated to a Node `crypto.randomBytes(32)` value. Provider version 1 is now `previous`; version 2 is `current`.
+
+Hash-only proof shows the final Core HMAC, Paperclip version-2 `value_sha256` and `fingerprint_sha256` are identical:
+
+```text
+020612ff6243e98e4475062da0973042cc0bef69d78f02b7e7c0fffb8f1e64a8
+```
+
+The single secret usage is the Organization Adapter plugin's required `hmacSecret` binding with `versionSelector=latest`. Temporary rotation/staging files were removed, the ADR 0109 recovery pair remains hash-green, all relevant runtimes remain healthy with zero restarts, and Human Send/Gateway outbound remain OFF.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Owner First Real Tenant Organization Adapter Custody + Config + Binding Execution V1.**
+Next: **Customer Owner First Real Tenant Eligibility Rollout Preflight V1.**
 
-Reuse ADR 0108 without redesign. Revalidate the exact pair and then execute only the operator-owned Wandora control binding, one deterministic-path protected MEDICSPRO HMAC, one company-owned Paperclip `local_encrypted` secret and one company-scoped Organization Adapter `secret_ref` config written last. Keep MEDICSPRO eligibility at zero and create no employee/hire operation. Do not enable Human Send or Gateway outbound.
+Reuse ADR 0085's serialized first-rollout contract for the now-real clean MEDICSPRO target and exact catalog `ana-commercial-v1`. Revalidate owner/customer access, zero matching employee/hire state, exact Organization Adapter wiring/custody, zero enabled eligibility rows and the operator-only setter/rollback transaction.
+
+Do not enable eligibility, hire/activate an employee or enable outbound during the preflight.
 
 ## Operational safety
 
