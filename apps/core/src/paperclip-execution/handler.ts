@@ -92,7 +92,7 @@ export function createPaperclipExecutionHandler(deps: {
     paperclipAgentId: string;
     paperclipCompanyId: string;
   }) => Promise<PaperclipRunIdentity>;
-  service: PaperclipExecutionService;
+  service: Pick<PaperclipExecutionService, 'execute'>;
   now?: () => number;
 }) {
   const now = deps.now ?? (() => Date.now());
