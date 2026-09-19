@@ -13,14 +13,34 @@ ADR 0059 now records the completed internal canary, including the private-hostna
 
 Authority order: `AGENTS.md` → accepted ADRs → `docs/CAPABILITY_AUTHORITY.md` → `docs/architecture.md` → this file → component README/runbook.
 
-## 2026-09-19 bridge HMAC custody checkpoint — BLOCKED BEFORE SECRET CREATION
+## 2026-09-19 execution bridge corrective checkpoint — LIVE PARTIAL / FAIL-CLOSED
 
-ADR 0123 records the post-ADR-0122 privileged-custody gate. Migration 014 remains LIVE/verified and must not be repeated. The dedicated bridge HMAC is still absent.
+ADR 0122 is canonical on `main@ace37458b8d66e680320d99417097516a6c6dab4`. ADR 0123 is under review in PR #173 and records the newly discovered Paperclip privilege-drop custody defect and its corrective wrapper.
 
-The authorized Desktop Commander session runs as `wandora-admin`; canonical ADR 0120 custody requires `root:wandora-ops / 0640`, and sudo requires interactive operator authentication. No Docker/CI/alternate privilege bypass is authorized.
+Observed live state:
 
-Next effect: one authorized privileged creation of the canonical HMAC; then reconcile and continue Core -> Paperclip -> adapter activation while Ana remains paused and all outbound effects remain OFF.
+```text
+migration 014              = LIVE / verified / do not repeat
+dedicated bridge HMAC      = present / root:wandora-ops / 0640
+Core candidate             = live / healthy / readyz 200
+Core bridge                = ON
+Paperclip bridge overlay   = live
+wandora_mastra             = installed exactly once / readback green
+adapter test-environment   = FAIL CLOSED / EACCES on HMAC
+Ana                         = exactly 1 / paused + supervised
+Paperclip Ana               = paused
+wakeups / heartbeat runs    = 0 / 0
+agents.resume               = absent
+Human Send                  = OFF
+Gateway outbound            = OFF
+MEDICSPRO outbound attempts = 0
+```
 
+Root cause is proven: Paperclip PID 1 is root/tini, but the application is intentionally dropped to UID/GID 1000 by `gosu node`; supplementary groups are reset, so the host `root:wandora-ops / 0640` bind is unreadable to the application. A disposable proof also rejected plain Docker `group_add` as insufficient.
+
+PR #173 proposes the minimal correction: root-only source bind -> startup copy into in-container tmpfs -> `0400 node:node` -> original entrypoint privilege drop. The exact pinned image passed this proof with final UID/GID 1000 and no secret plaintext exposure.
+
+Do not reinstall the adapter, repeat migration 014, weaken host custody, resume Ana or enable outbound effects. Next live effect is only after the corrective wrapper/overlay is merged and green.
 
 ## 2026-09-19 CI execution checkpoint — LIVE
 
