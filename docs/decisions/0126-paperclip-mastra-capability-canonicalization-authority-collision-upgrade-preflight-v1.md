@@ -183,6 +183,22 @@ Paperclip source = 65ec059bde30d98c92165b24a30a540800dd1f6f
 
 Therefore production v916 requires runtime qualification and an explicit compatibility re-attestation rather than an assumption.
 
+### 10. Recovery snapshot and external adapter store are separate state
+
+The protected `paperclip-local-encrypted-20260919T110752Z` DB + `master.key` pair predates the final `wandora_mastra` installation.
+
+The live external-adapter registration is held in persistent Paperclip filesystem state:
+
+```text
+/paperclip/adapter-plugins.json
+/paperclip/operator-packages/wandora-paperclip-adapter-mastra-v1/
+0d2e77940c381bb36fc401bdf28080507227f081fe5e45a92f5b36723ed7604f/
+```
+
+Therefore a DB/key-only restore would not faithfully test the actual production upgrade path.
+
+The disposable proof must read/hash/copy the **current live store and exact package without modifying them**, stage those copies into the isolated candidate Paperclip home and prove v916 loads the existing registration **without reinstalling the adapter**.
+
 ## GAPS
 
 The Paperclip production upgrade is not yet proven.
@@ -196,15 +212,16 @@ Required disposable gates still include:
 5. Organization Adapter plugin/config/secret-ref preservation;
 6. successful decrypt with the protected recovery key and wrong-key rejection;
 7. Ana remains exactly one and paused;
-8. `wandora_mastra` package/load compatibility;
-9. official adapter readback/test-environment PASS;
-10. run-scoped JWT `/api/agents/me` behavior;
-11. disposable Paperclip -> bridge -> Wandora/Mastra execution;
-12. unknown company/agent mapping fail-closed;
-13. zero unexpected wakeups/heartbeat drift;
-14. zero outbound effect;
-15. disposable cleanup;
-16. rollback evidence.
+8. current `adapter-plugins.json` + exact operator package copied/hash-verified from live read-only state;
+9. v916 accepts the copied existing `wandora_mastra` registration without reinstall;
+10. official adapter readback/test-environment PASS;
+11. run-scoped JWT `/api/agents/me` behavior;
+12. disposable Paperclip -> bridge -> Wandora/Mastra execution;
+13. unknown company/agent mapping fail-closed;
+14. zero unexpected wakeups/heartbeat drift;
+15. zero outbound effect;
+16. disposable cleanup;
+17. rollback evidence.
 
 During the preflight, the exact v916 source tag was cloned and a pinned candidate build was started:
 
