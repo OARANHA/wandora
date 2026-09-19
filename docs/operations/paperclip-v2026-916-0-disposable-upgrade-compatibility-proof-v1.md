@@ -168,6 +168,46 @@ Before running v916 migrations, record the restored baseline facts needed for co
 - `wandora_mastra` adapter registration state represented in the snapshot;
 - wakeup/heartbeat counts.
 
+### Gate 4A — schema-fidelity gate for the official logical backup
+
+The first disposable v916 startup discovered an important limitation of the official Paperclip logical backup format.
+
+Paperclip's backup serializer restores table columns, primary keys, unique constraints, foreign keys, indexes, triggers and data, but it does not serialize PostgreSQL CHECK constraints. Direct evidence from the current production baseline:
+
+```text
+live v831 tool_connections_transport_check = PRESENT
+protected logical backup SQL                = ABSENT
+```
+
+A first candidate startup against a raw restored snapshot therefore failed in migration 0255 while executing:
+
+```sql
+ALTER TABLE "tool_connections" DROP CONSTRAINT "tool_connections_transport_check";
+```
+
+That failure is a **restore-fidelity failure**, not yet evidence that the v916 migration fails against the actual production schema.
+
+Do not repair only the named failing constraint.
+
+Before any second v916 startup:
+
+1. preserve the first failed lab logs/evidence;
+2. discard the partially migrated disposable DB;
+3. restore the protected snapshot into a fresh PostgreSQL 18.1 target;
+4. generate a deterministic **read-only catalog export of every non-system CHECK constraint from the live v831 database** using `pg_constraint` + `pg_get_constraintdef()`;
+5. apply that complete generated CHECK-constraint supplement only to the fresh disposable restore;
+6. compare canonical schema fingerprints between live v831 and the supplemented restore for:
+   - columns/defaults/nullability;
+   - PK/UNIQUE/FK/CHECK constraints;
+   - indexes;
+   - non-internal triggers;
+   - enum labels;
+7. if the schema fingerprints do not match, STOP and investigate the remaining backup-fidelity gap before starting v916.
+
+The supplement must be generated wholesale from live catalog state and hash-retained. A hand-written or target-specific `ADD CONSTRAINT` is forbidden.
+
+This gate does not modify production. It exists only because an upgrade proof requires a schema-faithful production-derived clone, while the normal recovery backup is sufficient for data/secret recovery but not by itself for migration-compatibility testing.
+
 ## Gate 5 — pre-migration secret recovery
 
 Reuse Paperclip's own local-encrypted resolution code, as in ADR 0109.
