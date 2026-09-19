@@ -1909,11 +1909,70 @@ sha256(a63f27a8-dbac-4552-a456-b3a21302226b)
 
 The matching host HMAC file is absent. Auth, DB, Web, Core, Paperclip and Messaging Gateway remain healthy. Organization Adapter and global Customer Hire remain ON, but MEDICSPRO remains ineligible; Human Send and Gateway outbound remain OFF.
 
+## Customer Owner First Real Tenant Organization Adapter Custody + Config + Binding Preflight V1 — COMPLETE / EXECUTION BLOCKED
+
+ADR 0108 revalidated the exact real-tenant wiring boundary without creating it.
+
+```text
+Wandora organization = b3fa4d96-4e2d-4d5a-ab59-ffab0d3062e5
+Paperclip company     = a63f27a8-dbac-4552-a456-b3a21302226b
+MEDICSPRO agents      = 0
+MEDICSPRO secrets     = 0
+MEDICSPRO plugin cfg  = null
+
+MEDICSPRO control bindings   = 0
+MEDICSPRO employee bindings  = 0
+MEDICSPRO hire operations    = 0
+MEDICSPRO eligibility        = 0 / 0 enabled
+```
+
+The deterministic future Core custody target remains absent:
+
+```text
+sha256(a63f27a8-dbac-4552-a456-b3a21302226b)
+= 952c6872101f9b31d9950e6d9264dcbe242881c1b8161e79b4efc23cd45b421e
+
+paperclip-952c6872101f9b31d9950e6d9264dcbe242881c1b8161e79b4efc23cd45b421e.hmac
+exists = false
+```
+
+Binding authority is unchanged: `supabase_admin` may INSERT the private mapping, while `wandora_core_runtime` may SELECT but not INSERT. Future execution remains operator-owned and uses one exact INSERT without UPSERT.
+
+The Organization Adapter plugin is `wandora.organization-adapter-v1@0.1.0`, ready/healthy. `local_encrypted` is healthy and the protected ADR 0075 master-key copy still matches the live key.
+
+The second adversarial review found the retained recovery DB is stale relative to current Paperclip state:
+
+```text
+protected recovery snapshot = paperclip-local-encrypted-20260918T090456Z
+snapshot hashes             = green
+snapshot master.key         = matches live
+canary company in snapshot  = yes
+canary live HMAC secret     = absent from snapshot
+MEDICSPRO company           = absent from snapshot
+```
+
+The only newer logical backups are still inside the Paperclip Docker volume; the newest observed preflight backup (`paperclip-20260919-030454.sql.gz`) predates the MEDICSPRO company creation at 03:23:39 UTC.
+
+Therefore the recovery mechanism remains proven, but the retained out-of-volume DB+key pair does not represent current state. Wiring execution is blocked until a fresh current-state pair is created and proven using ADRs 0074–0075.
+
+Future wiring order remains:
+
+```text
+current-state recovery refresh
+-> exact operator-owned Wandora control binding
+-> one protected deterministic-path Core HMAC
+-> one company-owned Paperclip local_encrypted secret
+-> company-scoped secret_ref plugin config LAST
+-> independent validation
+```
+
+No HMAC, Paperclip secret/config, Wandora binding, eligibility or employee was created by ADR 0108. Human Send and Gateway outbound remain OFF.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Owner First Real Tenant Organization Adapter Custody + Config + Binding Preflight V1.**
+Next: **Customer Owner First Real Tenant Paperclip Local-Encrypted Recovery Snapshot Refresh Execution V1.**
 
-Reuse ADRs 0073–0076 to freeze the exact MEDICSPRO Wandora↔Paperclip pair, revalidate the protected Paperclip local-encrypted recovery prerequisite, deterministic HMAC custody, operator-owned binding insert, company secret/config sequence and ambiguity/rollback rules. Do not create HMAC, Paperclip secret/config, Wandora provider binding, eligibility or employee during that preflight.
+Reuse the already-proven ADR 0074–0075 mechanism to create one fresh official logical backup, pair it out of the Docker volume with the exact current `master.key`, hash/gzip gate it, prove current canary secret recovery plus MEDICSPRO company presence on disposable PG18 state, and keep the previous snapshot until the new pair is green. Do not create MEDICSPRO HMAC, Paperclip secret/config, Wandora provider binding, eligibility or employee during that refresh.
 
 ## Operational safety
 
