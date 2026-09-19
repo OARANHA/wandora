@@ -1581,11 +1581,33 @@ Decision:
 
 No invite/recovery, Auth user, tenant, Paperclip resource, eligibility or outbound effect occurred.
 
+## Customer Owner Transactional E-mail Delivery Foundation Preflight V1 — COMPLETE
+
+ADR 0096 closes the no-effect SMTP foundation preflight.
+
+Decision:
+
+```text
+provider        = Resend SMTP
+sending domain  = notify.wandora.com.br
+sending region  = sa-east-1
+from             = Wandora <acesso@notify.wandora.com.br>
+smtp host/port   = smtp.resend.com:587 / STARTTLS
+credential       = sending-only key restricted to notify.wandora.com.br
+custody          = Docker secret file, never Supabase .env/Git
+```
+
+The live Auth container resolved and reached the selected SMTP endpoint and observed STARTTLS without authenticating or issuing MAIL/RCPT/DATA. The selected sender-domain DNS names are currently unused; `mail.wandora.com.br` was rejected because it already resolves to the VPS.
+
+The secret-file compose design was adversarially tested with synthetic material. A naive override was rejected because it retained the password environment key and allowed Compose-time dollar interpolation. The accepted design removes `GOTRUE_SMTP_PASS` from the versioned environment mapping, mounts a dedicated secret and reads it only inside the container immediately before `exec /usr/local/bin/auth`.
+
+No Resend account/domain/key was created, no DNS record changed, no GoTrue configuration changed and no invite, recovery or test e-mail was sent. No Auth user, tenant, provider binding or eligibility state was created. Human Send and Gateway outbound remain OFF.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Customer Owner Transactional E-mail Delivery Foundation Preflight V1.**
+Next: **Customer Owner Transactional E-mail Sender Domain + Credential Provisioning Execution V1.**
 
-No-effect preflight only. Select the production SMTP provider/custody/config contract, verify sender-domain requirements and rollback, and prove the exact Auth configuration delta without sending an invite, recovery or test e-mail.
+This slice may create the Resend sender domain, provider-issued DNS records and one domain-restricted sending-only credential under reviewed custody. It must not modify live GoTrue SMTP configuration and must not send an invite, recovery or test e-mail.
 
 ## Operational safety
 
