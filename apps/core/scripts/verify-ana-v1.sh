@@ -146,6 +146,7 @@ for _ in $(seq 1 30); do
   sleep 1
 done
 if [ "$core_smoke_ready" -ne 1 ]; then
+  docker inspect -f 'core_smoke_status={{.State.Status}} exit={{.State.ExitCode}} oom={{.State.OOMKilled}} error={{json .State.Error}}' "$CORE_SMOKE" >&2 || true
   docker logs "$CORE_SMOKE" >&2 || true
   echo 'wandora_core_standby_smoke_health_timeout' >&2
   exit 1
