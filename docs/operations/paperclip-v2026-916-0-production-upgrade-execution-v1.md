@@ -160,14 +160,15 @@ Post-upgrade acceptance:
 - a deliberately invalid Organization Adapter signature returned `invalid_wandora_signature`; by the plugin's fixed order this occurs only after resolving/decrypting the company secret and before `managed.reconcile`, proving secret resolution without mutating the employee;
 - exactly one `wandora_mastra@0.1.0` remains registered; no compatibility-only 0.1.1 package was promoted;
 - the final bounded proof used Paperclip's normal service path: a synthetic issue was created in `Wandora Internal Supervised Proof`, only the proof agent was temporarily resumed, and `heartbeatService.wakeup()` let Paperclip mint the run-scoped JWT internally;
-- the on-demand proof run and one timer heartbeat that fired during the brief synthetic idle window both completed `succeeded`; after drain/reconciliation the proof agent was returned to `paused`, the synthetic issue was `cancelled`, and pending proof runs were zero;
+- the initial on-demand proof run and one timer heartbeat that fired during the brief synthetic idle window both completed `succeeded`; after drain/reconciliation the proof agent was returned to `paused`, the synthetic issue was `cancelled`, and pending proof runs were zero;
+- during a later chat-continuity recovery, before the already-existing PR #180 checkpoint was discovered, the same `WAN-1` proof path was invoked once more; run `3d316b82-eaa2-4ceb-a89e-f25e9263fec6` also completed `succeeded`, was fully cleaned up, and did not change the proof tenant's outbound-attempt baseline;
 - the successful bridge run proves the internally minted token passed Core's `/api/agents/me` verification before mapping/execution; a syntactically valid forged JWT with a false signature returned 401;
 - the proof path traversed `wandora_mastra -> Wandora Core -> deterministic Mastra` successfully and the proof tenant's historical outbound-attempt count remained unchanged at 4;
-- unknown Paperclip company mapping remains absent/fail-closed; the Core resolver itself is unchanged by this Paperclip-only upgrade;
+- unknown Paperclip company mapping was rechecked live through `PaperclipExecutionService.resolveOrganization()` using the Core runtime's own least-privilege connection and returned `company-unmapped` / `UNKNOWN_MAPPING_FAIL_CLOSED=true`;
 - Human Send and Gateway outbound remain OFF.
 
 The first Compose recreate attempt failed during interpolation because the secret-file **path variable** was not present in that shell. Reconciliation proved the old v831 container remained exited and unchanged, so no migration had run. The recreate was then executed once with the already-canonical host path `/opt/wandora/stacks/core/secrets/paperclip-execution-bridge-hmac`; this was not a new secret and did not change custody.
 
 No rollback was required. The protected pre-upgrade recovery set and exact v831 rollback image alias remain retained. Image-only rollback is no longer valid for this production database because v916 migrations have committed; any future rollback to v831 must follow ADR 0129's schema-faithful restore path.
 
-No Mastra upgrade, Organization Adapter behavior change, Ana activation/resume, Human Send, Gateway outbound or customer message occurred in this slice.
+No Mastra upgrade, Organization Adapter behavior change, **MEDICSPRO Ana** activation/resume, Human Send, Gateway outbound or customer message occurred in this slice. The production-only synthetic proof agent was temporarily resumed only for bounded acceptance and returned to `paused`; final proof state is 3 succeeded runs total, zero pending runs/wakeups, `WAN-1=cancelled`, and outbound attempts unchanged at 4.
