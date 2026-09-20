@@ -120,9 +120,10 @@ export function DigitalEmployeeWorkPanel({
     if (pendingRequest) mutation.mutate(pendingRequest);
   };
 
-  const uncertain = mutation.error instanceof WorkRequestError
+  const uncertainRequest = mutation.error instanceof WorkRequestError
     && mutation.error.retrySameRequest
-    && pendingRequest;
+    ? pendingRequest
+    : null;
 
   return (
     <section className="mt-5 rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4">
@@ -140,17 +141,17 @@ export function DigitalEmployeeWorkPanel({
 
       <div className="mt-4 space-y-3">
         <input
-          value={uncertain ? pendingRequest.title : title}
+          value={uncertainRequest ? uncertainRequest.title : title}
           onChange={(event) => setTitle(event.target.value)}
-          disabled={Boolean(uncertain) || mutation.isPending}
+          disabled={Boolean(uncertainRequest) || mutation.isPending}
           maxLength={200}
           placeholder="Ex.: Preparar resumo das oportunidades desta semana"
           className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-indigo-300 disabled:bg-slate-50"
         />
         <textarea
-          value={uncertain ? pendingRequest.description : description}
+          value={uncertainRequest ? uncertainRequest.description : description}
           onChange={(event) => setDescription(event.target.value)}
-          disabled={Boolean(uncertain) || mutation.isPending}
+          disabled={Boolean(uncertainRequest) || mutation.isPending}
           maxLength={4000}
           rows={4}
           placeholder="Descreva o resultado interno que você quer receber. Não peça envio externo neste primeiro fluxo."
@@ -161,7 +162,7 @@ export function DigitalEmployeeWorkPanel({
             {mutation.error instanceof Error ? mutation.error.message : 'Não foi possível atribuir o trabalho.'}
           </div>
         ) : null}
-        {uncertain ? (
+        {uncertainRequest ? (
           <button
             type="button"
             onClick={retrySame}
