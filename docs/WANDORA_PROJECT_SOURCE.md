@@ -1429,3 +1429,12 @@ outbound attempts         = 0
 
 Next executable slice: **Customer Owner First Real Tenant Digital-Employee Activation Contract Implementation V1**. It is implementation/qualification only and must not resume the real MEDICSPRO Ana.
 
+## 2026-09-20 checkpoint — Activation Production Preflight V1
+
+ADR 0133 completed the **Customer Owner First Real Tenant Digital-Employee Activation Production Preflight V1 — NO EFFECT**.
+
+Current production remains dormant: migration 015 absent; Organization Adapter v0.1.0 live without `agents.resume`; activation gate OFF; Ana MEDICSPRO `paused + supervised` / Paperclip `paused`; wakeups, heartbeat runs, open routine runs and outbound attempts all zero; Human Send and Gateway outbound OFF.
+
+The live-derived disposable rehearsal qualified migration 015, its verifier and restore rollback. Exact Core/Web/Organization Adapter v0.2.0 candidate provenance and current rollback anchors are frozen in ADR 0133. Activation adds only Paperclip `agents.resume`; it does not invoke work or Mastra.
+
+Next slice: **Customer Owner First Real Tenant Digital-Employee Activation Production Execution V1**, with a fresh execution-time backup and fresh pre-resume gates before any lifecycle effect.

@@ -971,3 +971,24 @@ later authorized work -> Paperclip run -> wandora_mastra -> Core -> Agent Runtim
 The Organization Adapter candidate may hold `agents.resume` but must never use `agents.invoke` in the activation path. Human Send and Gateway outbound remain independent Wandora-owned effect gates.
 
 This implementation is canonical in Git but **dormant in production** until a separately reviewed production preflight/execution applies migration 015, promotes the exact immutable adapter/Core/Web artifacts and explicitly authorizes the real MEDICSPRO transition.
+## Production activation boundary — ADR 0133
+
+The first real employee activation production preflight confirms the lifecycle boundary:
+
+```text
+customer owner
+  -> Wandora Core activation contract
+  -> Organization Adapter v0.2
+  -> Paperclip agents.resume
+  -> Paperclip idle readback
+  -> Wandora paused -> active projection
+  -> STOP
+```
+
+Activation does not invoke work. It must not call `agents.invoke`, create tasks/wakeups/heartbeat runs/routine runs, or call `wandora_mastra` / Agent Runtime / Mastra.
+
+The execution bridge remains independently fail-closed: Paperclip `idle` does not authorize runtime execution while the Wandora employee projection is still `paused`.
+
+Human Send and Gateway outbound remain separate Wandora-owned effect gates and are not implied by digital-employee activation.
+
+ADR 0133 also freezes the operational rule that `agents.resume` is the lifecycle point of no automatic rollback in V1. Conventional rollback applies to migration/plugin/Core/Web before resume; post-resume anomalies require explicit fail-closed reconciliation/remediation rather than adding `agents.pause` or direct employee UPDATE authority.
