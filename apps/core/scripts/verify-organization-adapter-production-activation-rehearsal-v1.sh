@@ -42,17 +42,27 @@ assert_static_activation_contract() {
   grep -Fq 'ctx.secrets.resolve(ref, { companyId, configPath: "hmacSecret" })' "$PLUGIN_WORKER"
   grep -Fq 'pluginContext.agents.managed.reconcile(catalogKey, companyId)' "$PLUGIN_WORKER"
 
-  # The live v0.1 adapter above remains the production baseline. The candidate
-  # v0.2 artifact is separately qualified here and must narrow resume to the
-  # fixed managed employee without adding invoke/work authority.
-  grep -Fq "version: '0.2.0'" "$CANDIDATE_PLUGIN_ROOT/src/manifest.ts"
+  # The live adapter remains the production baseline until a separately reviewed
+  # promotion. The v0.3 candidate keeps activation and work as different webhook
+  # contracts. Activation itself must still use only managed read + resume and
+  # must never create an issue, wake a run or invoke an agent.
+  grep -Fq "version: '0.3.0'" "$CANDIDATE_PLUGIN_ROOT/src/manifest.ts"
   grep -Fq "'agents.resume'" "$CANDIDATE_PLUGIN_ROOT/src/manifest.ts"
+  grep -Fq "'issues.create'" "$CANDIDATE_PLUGIN_ROOT/src/manifest.ts"
+  grep -Fq "'issues.wakeup'" "$CANDIDATE_PLUGIN_ROOT/src/manifest.ts"
+  grep -Fq "'plugin.state.write'" "$CANDIDATE_PLUGIN_ROOT/src/manifest.ts"
   grep -Fq "endpointKey: 'employee-activate'" "$CANDIDATE_PLUGIN_ROOT/src/manifest.ts"
+  grep -Fq "endpointKey: 'employee-work'" "$CANDIDATE_PLUGIN_ROOT/src/manifest.ts"
   grep -Fq 'activateManagedCatalogEmployee' "$CANDIDATE_PLUGIN_ROOT/src/worker.ts"
+  grep -Fq 'ensureManagedCatalogEmployeeWork' "$CANDIDATE_PLUGIN_ROOT/src/worker.ts"
   grep -Fq 'agents.managed.get(CATALOG_KEY, companyId)' "$CANDIDATE_PLUGIN_ROOT/src/activation.ts"
   grep -Fq 'agents.resume(current.agentId, companyId)' "$CANDIDATE_PLUGIN_ROOT/src/activation.ts"
+  if grep -Fq 'issues.' "$CANDIDATE_PLUGIN_ROOT/src/activation.ts"; then
+    echo 'organization_adapter_activation_path_must_not_touch_work' >&2
+    exit 1
+  fi
   if grep -R -Fq 'agents.invoke' "$CANDIDATE_PLUGIN_ROOT/src"; then
-    echo 'organization_adapter_activation_candidate_must_not_invoke_work' >&2
+    echo 'organization_adapter_candidate_must_not_invoke_agent_directly' >&2
     exit 1
   fi
 
@@ -87,6 +97,9 @@ assert_static_activation_contract() {
   test -f "$CORE_STACK/compose.human-digital-employee-activation.yaml"
   grep -Fq 'WANDORA_HUMAN_DIGITAL_EMPLOYEE_ACTIVATION_ENABLED: "true"' "$CORE_STACK/compose.human-digital-employee-activation.yaml"
   grep -Fq 'WANDORA_ORGANIZATION_ADAPTER_ACTIVATION_WEBHOOK_URL:' "$CORE_STACK/compose.human-digital-employee-activation.yaml"
+  test -f "$CORE_STACK/compose.human-digital-employee-work.yaml"
+  grep -Fq 'WANDORA_HUMAN_DIGITAL_EMPLOYEE_WORK_ENABLED: "true"' "$CORE_STACK/compose.human-digital-employee-work.yaml"
+  grep -Fq 'WANDORA_ORGANIZATION_ADAPTER_WORK_WEBHOOK_URL:' "$CORE_STACK/compose.human-digital-employee-work.yaml"
 
   # Base runtime remains disabled unless the candidate overlay is explicitly
   # selected; no Organization Adapter env belongs in the base stack.
@@ -100,6 +113,10 @@ assert_static_activation_contract() {
   fi
   if grep -Fq 'WANDORA_HUMAN_DIGITAL_EMPLOYEE_ACTIVATION_ENABLED' "$CORE_STACK/compose.yaml"; then
     echo 'organization_adapter_rehearsal_base_stack_must_not_enable_customer_activation' >&2
+    exit 1
+  fi
+  if grep -Fq 'WANDORA_HUMAN_DIGITAL_EMPLOYEE_WORK_ENABLED' "$CORE_STACK/compose.yaml"; then
+    echo 'organization_adapter_rehearsal_base_stack_must_not_enable_customer_work' >&2
     exit 1
   fi
 }

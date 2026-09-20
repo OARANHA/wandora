@@ -2903,3 +2903,61 @@ First real work execution is therefore **NO-GO** until those gaps are implemente
 **Customer Owner First Real Tenant Active Digital-Employee First Legitimate Work Contract Implementation V1 — NO REAL WORK**
 
 Implement and qualify only the minimum customer-safe Wandora/Core + Organization Adapter contract above, preferably against disposable/candidate Paperclip. Do not create MEDICSPRO real work, wakeups or runs during implementation, and do not enable Human Send or Gateway outbound.
+
+
+## First legitimate work contract implementation V1 — QUALIFIED / PRODUCTION DORMANT
+
+ADR 0137 accepts the repository implementation of the customer-safe first-work contract.
+
+Final qualified implementation head:
+
+```text
+PR #188 head = 21ba162b463dbdeb6be3c84419c46afa0d465335
+CI           = 7 / 7 GREEN
+```
+
+Accepted repository boundary:
+
+```text
+authenticated owner/admin
+-> Wandora work admission + stable idempotency request
+-> private integration-safety journal (migration 016)
+-> signed company-scoped Organization Adapter v0.3
+-> Paperclip issue authority + fail-closed dispatch receipt
+-> Paperclip run
+-> wandora_mastra@0.2.0
+-> existing Core execution bridge
+-> Agent Runtime / Mastra
+-> supervised internal result
+-> Wandora customer-safe projection
+-> STOP before external effect
+```
+
+Paperclip remains the authoritative task/run control plane. The Wandora journal is limited to request idempotency, provider-effect reconciliation, exact run receipt and customer result projection; it is not a second task lifecycle.
+
+Fresh final production readback after qualification remained:
+
+```text
+Wandora Ana                  = active + supervised
+Paperclip Ana                = idle / wandora_mastra
+assigned Paperclip issues    = 0
+wakeups                      = 0
+heartbeat runs               = 0
+routine runs                 = 0
+task sessions                = 0
+runtime last_run_id          = null
+runtime tokens / cost        = 0 / 0
+outbound attempts            = 0
+migration 016 live           = absent
+customer work flag           = OFF
+Human Send                   = OFF
+Gateway outbound             = OFF
+```
+
+Repository acceptance does **not** authorize production promotion.
+
+### NEXT EXECUTABLE SLICE
+
+**Customer Owner First Real Tenant Active Digital-Employee First Legitimate Work Production Preflight V1 — NO EFFECT**
+
+Reconcile post-merge main and exact immutable candidate provenance, prove migration-016 rollback/readiness, live plugin/adapter promotion plan and customer-safe stop boundary. Do not create MEDICSPRO work or enable any outbound effect.

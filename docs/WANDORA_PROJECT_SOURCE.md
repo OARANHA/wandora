@@ -1527,3 +1527,37 @@ Because issue creation and execution wake are distinct Paperclip effects and gen
 First real work execution remains blocked until that contract is implemented, qualified and promoted separately. Human Send and Gateway outbound remain independent Wandora-owned effect gates and stay OFF.
 
 Next executable slice: **Customer Owner First Real Tenant Active Digital-Employee First Legitimate Work Contract Implementation V1 — NO REAL WORK**.
+
+
+## First legitimate work contract implementation — ADR 0137
+
+The first customer-owner work contract is repository-qualified with PR #188 head `21ba162b463dbdeb6be3c84419c46afa0d465335` and **7/7 GREEN** workflows.
+
+The accepted ownership split is:
+
+```text
+Wandora
+  customer intent / auth / tenant policy
+  stable work request + minimum reconciliation receipt
+  supervised customer result projection
+
+Paperclip
+  durable issue/task
+  assignment
+  dispatch/wakeup/run
+
+Mastra
+  execution-local reasoning/workflow behind the existing Agent Runtime
+```
+
+Candidate components remain dormant in production:
+
+- migration 016 is not live;
+- Organization Adapter v0.3 is not promoted;
+- `wandora_mastra@0.2.0` is not promoted;
+- `WANDORA_HUMAN_DIGITAL_EMPLOYEE_WORK_ENABLED` is OFF/absent;
+- Human Send and Gateway outbound remain OFF.
+
+Final read-only production proof still shows exactly one MEDICSPRO Ana, `active + supervised` in Wandora and `idle / wandora_mastra` in Paperclip, with zero assigned issues, wakeups, heartbeat runs, routine runs, task sessions, runtime usage/cost and outbound attempts.
+
+Next executable slice: **Customer Owner First Real Tenant Active Digital-Employee First Legitimate Work Production Preflight V1 — NO EFFECT**.

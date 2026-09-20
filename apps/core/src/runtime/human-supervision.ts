@@ -1,6 +1,7 @@
 import { HumanAuthError } from '../human-auth/es256-jwks.js';
 import {
   DigitalEmployeeActivationError,
+  DigitalEmployeeWorkError,
   OrganizationAdapterConflictError,
   OrganizationAdapterUnavailableError,
 } from '../organization-adapter/contracts.js';
@@ -24,6 +25,7 @@ const WORK_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/work\/attention-requir
 const SEND_PROPOSAL_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/work\/([^/]+)\/proposals\/([^/]+)\/send$/;
 const DIGITAL_EMPLOYEES_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/digital-employees$/;
 const DIGITAL_EMPLOYEE_ACTIVATE_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/digital-employees\/([^/]+)\/activate$/;
+const DIGITAL_EMPLOYEE_WORK_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/digital-employees\/([^/]+)\/work$/;
 const CONVERSATIONS_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/conversations$/;
 const CONVERSATION_DETAIL_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/conversations\/([^/]+)$/;
 const SESSION_PATH = '/api/v1/me';
@@ -69,6 +71,34 @@ export function isHumanDigitalEmployeeActivationPath(pathname: string): boolean 
   return Boolean(match?.[1] && match?.[2] && UUID_RE.test(match[1]) && UUID_RE.test(match[2]));
 }
 
+export function isHumanDigitalEmployeeWorkPath(pathname: string): boolean {
+  const match = DIGITAL_EMPLOYEE_WORK_PATH_RE.exec(pathname);
+  return Boolean(match?.[1] && match?.[2] && UUID_RE.test(match[1]) && UUID_RE.test(match[2]));
+}
+
+function parseDigitalEmployeeWorkRequest(rawBody: string | undefined): {
+  title: string;
+  description: string;
+} | undefined {
+  if (!rawBody || rawBody.length > 8_192) return undefined;
+  try {
+    const parsed = JSON.parse(rawBody) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return undefined;
+    const record = parsed as Record<string, unknown>;
+    if (
+      Object.keys(record).sort().join(',') !== 'description,title'
+      || typeof record.title !== 'string'
+      || typeof record.description !== 'string'
+    ) return undefined;
+    const title = record.title.trim();
+    const description = record.description.trim();
+    if (!title || title.length > 200 || !description || description.length > 4000) return undefined;
+    return { title, description };
+  } catch {
+    return undefined;
+  }
+}
+
 function parseCatalogHireRequest(rawBody: string | undefined): { catalogKey: string } | undefined {
   if (!rawBody || rawBody.length > 1_024) return undefined;
   try {
@@ -105,6 +135,7 @@ export function createHumanSupervisionHandler(
   digitalEmployeesService?: HumanDigitalEmployeesReadService,
   digitalEmployeeHireService?: OrganizationAdapterService,
   digitalEmployeeActivationService?: HumanDigitalEmployeeActivationService,
+  digitalEmployeeWorkService?: OrganizationAdapterService,
 ) {
   return async (request: HumanSupervisionRequest): Promise<HumanSupervisionResponse> => {
     try {
@@ -143,6 +174,43 @@ export function createHumanSupervisionHandler(
           confirmationVersion,
         });
         return { status: 200, body: result };
+      }
+
+      const employeeWorkMatch = DIGITAL_EMPLOYEE_WORK_PATH_RE.exec(request.pathname);
+      if (employeeWorkMatch) {
+        const organizationId = employeeWorkMatch[1];
+        const employeeId = employeeWorkMatch[2];
+        if (!organizationId || !employeeId || !UUID_RE.test(organizationId) || !UUID_RE.test(employeeId)) {
+          return { status: 404, body: { error: 'not-found' } };
+        }
+        if (!digitalEmployeeWorkService) return { status: 404, body: { error: 'not-found' } };
+
+        const session = await service.getSessionContext(request.authorization);
+        if (request.method === 'GET') {
+          const items = await digitalEmployeeWorkService.listCatalogEmployeeWork({
+            organizationId,
+            actorUserId: session.user.id,
+            employeeId,
+          });
+          return { status: 200, body: { items } };
+        }
+        if (request.method !== 'POST') {
+          return { status: 405, body: { error: 'method-not-allowed' } };
+        }
+        const idempotencyKey = request.idempotencyKey?.trim();
+        const workRequest = parseDigitalEmployeeWorkRequest(request.rawBody);
+        if (!idempotencyKey || idempotencyKey.length > 255 || !workRequest) {
+          return { status: 400, body: { error: 'invalid-work-request' } };
+        }
+        const work = await digitalEmployeeWorkService.ensureCatalogEmployeeWork({
+          organizationId,
+          actorUserId: session.user.id,
+          employeeId,
+          idempotencyKey,
+          title: workRequest.title,
+          description: workRequest.description,
+        });
+        return { status: 200, body: { work } };
       }
 
       const activationMatch = DIGITAL_EMPLOYEE_ACTIVATE_PATH_RE.exec(request.pathname);
@@ -292,6 +360,22 @@ export function createHumanSupervisionHandler(
           return { status: 409, body: { error: 'employee-activation-uncertain', retry: 'same-activation-contract' } };
         }
         return { status: 503, body: { error: 'employee-activation-unavailable' } };
+      }
+      if (error instanceof DigitalEmployeeWorkError) {
+        if (error.code === 'provider-work-uncertain') {
+          return {
+            status: 409,
+            body: { error: 'employee-work-uncertain', retry: 'same-idempotency-key' },
+          };
+        }
+        if (
+          error.code === 'employee-work-unavailable'
+          || error.code === 'work-execution-unavailable'
+          || error.code === 'work-execution-uncertain'
+        ) {
+          return { status: 409, body: { error: error.code } };
+        }
+        return { status: 503, body: { error: 'employee-work-unavailable' } };
       }
       if (error instanceof OrganizationAdapterConflictError) {
         return { status: 409, body: { error: error.code } };

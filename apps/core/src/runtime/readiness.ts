@@ -6,6 +6,7 @@ export function createRuntimeReadinessChecker(
   options: {
     organizationAdapterEnabled?: boolean;
     customerHireEnabled?: boolean;
+    customerWorkEnabled?: boolean;
     paperclipExecutionBridgeEnabled?: boolean;
   } = {},
 ): () => Promise<RuntimeReadiness> {
@@ -54,6 +55,21 @@ export function createRuntimeReadinessChecker(
         return {
           ready: false,
           reason: 'customer-hire-eligibility-database-boundary-unavailable',
+        };
+      }
+    }
+
+    if (options.customerWorkEnabled) {
+      try {
+        await pool.query(`
+          SELECT 1
+            FROM wandora_private.digital_employee_work_operations
+           LIMIT 0;
+        `);
+      } catch {
+        return {
+          ready: false,
+          reason: 'customer-work-database-boundary-unavailable',
         };
       }
     }

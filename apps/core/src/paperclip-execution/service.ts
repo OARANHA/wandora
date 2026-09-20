@@ -3,12 +3,15 @@ import type { Pool, PoolClient } from 'pg';
 import type { AgentTaskRuntime, AssignedTask } from '../agent-runtime/task-runtime.js';
 import { paperclipManagedAgentRef } from '../organization-adapter/paperclip-provider.js';
 import type { PaperclipRunIdentity } from './paperclip-run-identity.js';
+import type { OrganizationAdapterService } from '../organization-adapter/service.js';
 
 export class PaperclipExecutionBindingError extends Error {
-  constructor(readonly code: 'company-unmapped' | 'employee-unavailable') {
+  constructor(readonly code: 'company-unmapped' | 'employee-unavailable' | 'work-unavailable') {
     super(code === 'company-unmapped'
       ? 'Paperclip company is not mapped to an active Wandora organization.'
-      : 'Mapped Wandora employee is unavailable for execution.');
+      : code === 'employee-unavailable'
+        ? 'Mapped Wandora employee is unavailable for execution.'
+        : 'Mapped Wandora work is unavailable or execution state is uncertain.');
     this.name = 'PaperclipExecutionBindingError';
   }
 }
@@ -24,6 +27,12 @@ export class PaperclipExecutionService {
   constructor(
     private readonly pool: Pool,
     private readonly runtime: AgentTaskRuntime,
+    private readonly workProjection?: Pick<
+      OrganizationAdapterService,
+      | 'prepareCatalogEmployeeWorkExecution'
+      | 'recordCatalogEmployeeWorkResult'
+      | 'markCatalogEmployeeWorkExecutionUncertain'
+    >,
   ) {}
 
   private async resolveOrganization(providerCompanyRef: string): Promise<string> {
@@ -55,6 +64,7 @@ export class PaperclipExecutionService {
   async execute(input: {
     identity: PaperclipRunIdentity;
     paperclipRunId: string;
+    workId?: string | null;
     task: AssignedTask;
   }): Promise<{ executionId: string; model: string; summary: string }> {
     const organizationId = await this.resolveOrganization(input.identity.paperclipCompanyId);
@@ -84,21 +94,81 @@ export class PaperclipExecutionService {
     });
     if (!employee) throw new PaperclipExecutionBindingError('employee-unavailable');
 
-    const result = await this.runtime.executeAssignedTask({
-      organizationId,
-      employee: {
-        id: employee.employee_id,
-        organizationId,
-        name: employee.display_name,
-        role: employee.role,
-        autonomyMode: employee.autonomy_mode,
-      },
-      task: input.task,
-    });
-
     const executionId = `exec_${createHash('sha256')
       .update(JSON.stringify(['paperclip-run-v1', organizationId, employee.employee_id, input.paperclipRunId]))
       .digest('hex')}`;
+
+    if (input.workId) {
+      if (!this.workProjection) {
+        throw new PaperclipExecutionBindingError('work-unavailable');
+      }
+      try {
+        const prepared = await this.workProjection.prepareCatalogEmployeeWorkExecution({
+          organizationId,
+          employeeId: employee.employee_id,
+          workId: input.workId,
+          paperclipRunId: input.paperclipRunId,
+          title: input.task.title,
+          description: input.task.description,
+        });
+        if (prepared.kind === 'cached') {
+          return {
+            executionId: prepared.executionId,
+            model: prepared.model,
+            summary: prepared.summary,
+          };
+        }
+      } catch {
+        throw new PaperclipExecutionBindingError('work-unavailable');
+      }
+    }
+
+    let result;
+    try {
+      result = await this.runtime.executeAssignedTask({
+        organizationId,
+        employee: {
+          id: employee.employee_id,
+          organizationId,
+          name: employee.display_name,
+          role: employee.role,
+          autonomyMode: employee.autonomy_mode,
+        },
+        task: input.task,
+      });
+    } catch (error) {
+      if (input.workId && this.workProjection) {
+        await this.workProjection.markCatalogEmployeeWorkExecutionUncertain({
+          organizationId,
+          employeeId: employee.employee_id,
+          workId: input.workId,
+          paperclipRunId: input.paperclipRunId,
+        }).catch(() => undefined);
+      }
+      throw error;
+    }
+
+    if (input.workId && this.workProjection) {
+      try {
+        await this.workProjection.recordCatalogEmployeeWorkResult({
+          organizationId,
+          employeeId: employee.employee_id,
+          workId: input.workId,
+          paperclipRunId: input.paperclipRunId,
+          executionId,
+          model: result.model,
+          summary: result.summary,
+        });
+      } catch {
+        await this.workProjection.markCatalogEmployeeWorkExecutionUncertain({
+          organizationId,
+          employeeId: employee.employee_id,
+          workId: input.workId,
+          paperclipRunId: input.paperclipRunId,
+        }).catch(() => undefined);
+        throw new PaperclipExecutionBindingError('work-unavailable');
+      }
+    }
 
     return { executionId, model: result.model, summary: result.summary };
   }

@@ -40,6 +40,49 @@ export function parseActivationWebhook(input: {
   return parseCatalogWebhook({ ...input, expectedEndpointKey: 'employee-activate' });
 }
 
+export function parseWorkWebhook(input: {
+  endpointKey: string; parsedBody?: unknown; rawBody: string; headers: Record<string, HeaderValue>;
+}) {
+  if (input.endpointKey !== 'employee-work') throw new Error('unknown_endpoint');
+  const body = input.parsedBody && typeof input.parsedBody === 'object' && !Array.isArray(input.parsedBody)
+    ? input.parsedBody as Record<string, unknown>
+    : {};
+  if (
+    Object.keys(body).sort().join(',')
+    !== 'catalogKey,companyId,description,title,workId'
+  ) throw new Error('invalid_wandora_request');
+
+  const companyId = nonEmpty(body.companyId);
+  const catalogKey = nonEmpty(body.catalogKey);
+  const workId = nonEmpty(body.workId);
+  const title = nonEmpty(body.title);
+  const description = nonEmpty(body.description);
+  const timestamp = nonEmpty(input.headers['x-wandora-timestamp']);
+  const signature = nonEmpty(input.headers['x-wandora-signature']);
+  if (
+    !companyId
+    || catalogKey !== CATALOG_KEY
+    || !workId
+    || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(workId)
+    || !title
+    || title.length > 200
+    || !description
+    || description.length > 4000
+    || !timestamp
+    || !signature
+  ) throw new Error('invalid_wandora_request');
+  return {
+    companyId,
+    catalogKey: CATALOG_KEY,
+    workId: workId.toLowerCase(),
+    title,
+    description,
+    timestamp,
+    signature,
+    rawBody: input.rawBody,
+  };
+}
+
 export function requireFreshTimestamp(timestamp: string, nowSeconds = Math.floor(Date.now() / 1000)): number {
   const numericTimestamp = Number(timestamp);
   if (!Number.isInteger(numericTimestamp) || Math.abs(nowSeconds - numericTimestamp) > MAX_SKEW_SECONDS) {

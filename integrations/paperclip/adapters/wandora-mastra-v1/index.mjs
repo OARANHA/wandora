@@ -20,15 +20,25 @@ function optionalString(value, max = MAX_TASK_TEXT) {
   return normalized.slice(0, max);
 }
 
+const WORK_MARKER_RE =
+  /^<!-- wandora-work-v1:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}) -->\r?\n?/i;
+
 function reviewedTask(context) {
   const issue = context?.paperclipIssue && typeof context.paperclipIssue === 'object'
     ? context.paperclipIssue
     : {};
+  const rawDescription = optionalString(issue.description);
+  const match = rawDescription ? WORK_MARKER_RE.exec(rawDescription) : null;
+  const workId = match?.[1]?.toLowerCase() ?? null;
+  const description = rawDescription && match
+    ? optionalString(rawDescription.slice(match[0].length))
+    : rawDescription;
   return {
+    workId,
     issueId: optionalString(issue.id, 255),
     identifier: optionalString(issue.identifier, 255),
     title: optionalString(issue.title),
-    description: optionalString(issue.description),
+    description,
     workMode: optionalString(issue.workMode, 128),
     wakeReason: optionalString(context?.wakeReason, 255),
     wakeCommentId: optionalString(context?.wakeCommentId ?? context?.commentId, 255),

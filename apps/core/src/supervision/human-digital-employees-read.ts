@@ -15,6 +15,10 @@ export type HumanDigitalEmployee = {
     available: boolean;
     state: 'available' | 'active' | 'unavailable';
   };
+  work: {
+    available: boolean;
+    state: 'available' | 'unavailable';
+  };
 };
 
 export type HumanDigitalEmployeeHireAvailability = {
@@ -44,6 +48,7 @@ export class HumanDigitalEmployeesReadService {
     private readonly sessionService: HumanSupervisionReadService,
     private readonly catalogHireRuntimeEnabled = false,
     private readonly activationRuntimeEnabled = false,
+    private readonly workRuntimeEnabled = false,
   ) {}
 
   private async scoped<T>(
@@ -241,6 +246,18 @@ export class HumanDigitalEmployeesReadService {
           : activationEligible.has(row.employee_id)
             ? { available: true, state: 'available' as const }
             : { available: false, state: 'unavailable' as const },
+        work: {
+          available: this.workRuntimeEnabled
+            && (role === 'owner' || role === 'admin')
+            && row.employee_status === 'active'
+            && row.employee_autonomy === 'supervised',
+          state: this.workRuntimeEnabled
+            && (role === 'owner' || role === 'admin')
+            && row.employee_status === 'active'
+            && row.employee_autonomy === 'supervised'
+            ? 'available' as const
+            : 'unavailable' as const,
+        },
       }));
 
       return {

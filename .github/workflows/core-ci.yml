@@ -65,6 +65,7 @@ jobs:
             -f infra/stacks/core/compose.organization-adapter.yaml \
             -f infra/stacks/core/compose.paperclip-execution-bridge.yaml \
             -f infra/stacks/core/compose.human-digital-employee-activation.yaml \
+            -f infra/stacks/core/compose.human-digital-employee-work.yaml \
             config)"
           printf '%s\n' "$effective" >/dev/null
           grep -q 'WANDORA_HUMAN_API_ENABLED: "true"' <<<"$effective"
@@ -82,6 +83,8 @@ jobs:
           grep -q 'target: /run/secrets/wandora/organization-adapter' <<<"$effective"
           grep -q 'WANDORA_HUMAN_DIGITAL_EMPLOYEE_ACTIVATION_ENABLED: "true"' <<<"$effective"
           grep -q 'WANDORA_ORGANIZATION_ADAPTER_ACTIVATION_WEBHOOK_URL: http://wandora-paperclip:3100/api/plugins/wandora.organization-adapter-v1/webhooks/employee-activate' <<<"$effective"
+          grep -q 'WANDORA_HUMAN_DIGITAL_EMPLOYEE_WORK_ENABLED: "true"' <<<"$effective"
+          grep -q 'WANDORA_ORGANIZATION_ADAPTER_WORK_WEBHOOK_URL: http://wandora-paperclip:3100/api/plugins/wandora.organization-adapter-v1/webhooks/employee-work' <<<"$effective"
           grep -q 'WANDORA_PAPERCLIP_EXECUTION_BRIDGE_ENABLED: "true"' <<<"$effective"
           grep -q 'WANDORA_PAPERCLIP_AGENT_ME_URL: http://wandora-paperclip:3100/api/agents/me' <<<"$effective"
           grep -q 'WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE: /run/secrets/wandora/paperclip-execution-bridge.hmac' <<<"$effective"

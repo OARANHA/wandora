@@ -41,7 +41,7 @@ test('wandora_mastra adapter keeps the bridge narrow and file-backed', async () 
           id: 'issue-1',
           identifier: 'MED-1',
           title: 'Qualificar contato',
-          description: 'Entender a necessidade.',
+          description: '<!-- wandora-work-v1:11111111-1111-4111-8111-111111111111 -->\nEntender a necessidade.',
           workMode: 'standard',
         },
         wakeReason: 'issue_assigned',
@@ -55,6 +55,10 @@ test('wandora_mastra adapter keeps the bridge narrow and file-backed', async () 
     assert.equal(result.resultJson.executionId, 'exec_test_1');
     assert.equal(received.url, 'http://wandora-core:8788/internal/v1/paperclip/execution');
     const body = String(received.init.body);
+    const parsedBody = JSON.parse(body);
+    assert.equal(parsedBody.task.workId, '11111111-1111-4111-8111-111111111111');
+    assert.equal(parsedBody.task.description, 'Entender a necessidade.');
+    assert.equal(body.includes('wandora-work-v1:'), false);
     assert.equal(body.includes('opaque-run-token-never-in-body'), false);
     assert.equal(body.includes('must-not-cross'), false);
     assert.equal(received.init.headers['x-wandora-paperclip-run-token'], 'opaque-run-token-never-in-body');

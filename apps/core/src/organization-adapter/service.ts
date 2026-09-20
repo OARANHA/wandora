@@ -4,12 +4,15 @@ import { HumanAccessError, HumanNotFoundError } from '../supervision/human-read.
 import { paperclipManagedAgentRef } from './paperclip-provider.js';
 import {
   DigitalEmployeeActivationError,
+  DigitalEmployeeWorkError,
   OrganizationAdapterConflictError,
   OrganizationAdapterUnavailableError,
   WANDORA_CATALOG_V1,
   type CatalogEmployeeDefinition,
   type CatalogEmployeeResult,
+  type DigitalEmployeeWorkResult,
   type OrganizationAdapterProvider,
+  type PreparedDigitalEmployeeWorkExecution,
 } from './contracts.js';
 
 type OperationStatus = 'planned' | 'creating' | 'completed' | 'uncertain';
@@ -34,6 +37,45 @@ type EmployeeRow = {
   provider_agent_ref: string;
 };
 
+type WorkOperationStatus =
+  | 'planned'
+  | 'submitting'
+  | 'submitted'
+  | 'uncertain'
+  | 'executing'
+  | 'result_recorded'
+  | 'execution_uncertain';
+
+type WorkOperationRow = {
+  id: string;
+  employee_id: string;
+  created_by_user_id: string;
+  idempotency_key: string;
+  request_hash: string;
+  title: string;
+  description: string;
+  provider: string;
+  catalog_key: string;
+  provider_company_ref: string;
+  provider_agent_ref: string;
+  status: WorkOperationStatus;
+  provider_run_ref: string | null;
+  execution_id: string | null;
+  result_model: string | null;
+  result_summary: string | null;
+  created_at: Date;
+  updated_at: Date;
+};
+
+type WorkEmployeeContext = {
+  employee_name: string;
+  employee_role: 'commercial-assistant';
+  employee_autonomy: 'supervised';
+  catalog_key: string;
+  provider_company_ref: string;
+  provider_agent_ref: string;
+};
+
 const canonicalRequestHash = (definition: CatalogEmployeeDefinition): string => {
   const canonical = [
     'organization-adapter-catalog-hire-v1',
@@ -43,6 +85,37 @@ const canonicalRequestHash = (definition: CatalogEmployeeDefinition): string => 
     definition.autonomy,
   ];
   return createHash('sha256').update(JSON.stringify(canonical)).digest('hex');
+};
+
+const canonicalWorkRequestHash = (input: {
+  employeeId: string;
+  title: string;
+  description: string;
+}): string => createHash('sha256')
+  .update(JSON.stringify([
+    'digital-employee-work-v1',
+    input.employeeId,
+    input.title,
+    input.description,
+  ]))
+  .digest('hex');
+
+const workState = (status: WorkOperationStatus): DigitalEmployeeWorkResult['state'] => {
+  switch (status) {
+    case 'planned':
+    case 'submitting':
+      return 'submitting';
+    case 'submitted':
+      return 'submitted';
+    case 'uncertain':
+      return 'uncertain';
+    case 'executing':
+      return 'executing';
+    case 'result_recorded':
+      return 'review-ready';
+    case 'execution_uncertain':
+      return 'execution-uncertain';
+  }
 };
 
 const isUniqueViolation = (error: unknown): boolean => (
@@ -747,6 +820,468 @@ export class OrganizationAdapterService {
         status: 'active',
         autonomy: employee.employee_autonomy,
       };
+    });
+  }
+
+  private workResult(row: WorkOperationRow): DigitalEmployeeWorkResult {
+    return {
+      id: row.id,
+      employeeId: row.employee_id,
+      title: row.title,
+      description: row.description,
+      state: workState(row.status),
+      result: row.status === 'result_recorded'
+        && row.result_summary
+        && row.result_model
+        ? { summary: row.result_summary, model: row.result_model }
+        : null,
+      createdAt: row.created_at.toISOString(),
+      updatedAt: row.updated_at.toISOString(),
+    };
+  }
+
+  private async requireWorkEmployeeContext(
+    client: PoolClient,
+    organizationId: string,
+    employeeId: string,
+  ): Promise<WorkEmployeeContext> {
+    const result = await client.query<WorkEmployeeContext>(
+      `SELECT de.display_name AS employee_name,
+              de.role::text AS employee_role,
+              de.autonomy_mode::text AS employee_autonomy,
+              h.catalog_key,
+              c.provider_company_ref,
+              b.provider_agent_ref
+         FROM wandora.digital_employees de
+         JOIN wandora_private.digital_employee_hire_operations h
+           ON h.organization_id = de.organization_id
+          AND h.employee_id = de.id
+          AND h.provider = $3
+          AND h.status = 'completed'
+         JOIN wandora_private.control_plane_provider_bindings c
+           ON c.organization_id = de.organization_id
+          AND c.provider = h.provider
+          AND c.provider_company_ref = h.provider_company_ref
+         JOIN wandora_private.digital_employee_provider_bindings b
+           ON b.organization_id = de.organization_id
+          AND b.employee_id = de.id
+          AND b.provider = h.provider
+          AND b.provider_agent_ref = h.provider_agent_ref
+        WHERE de.organization_id = $1
+          AND de.id = $2
+          AND de.status = 'active'
+          AND de.role = 'commercial-assistant'
+          AND de.autonomy_mode = 'supervised'
+        LIMIT 2`,
+      [organizationId, employeeId, this.provider.provider],
+    );
+    if (result.rowCount !== 1) {
+      throw new DigitalEmployeeWorkError(
+        'employee-work-unavailable',
+        'Digital employee is not available for supervised work.',
+      );
+    }
+    const row = result.rows[0]!;
+    const definition = this.catalog.get(row.catalog_key);
+    if (
+      !definition
+      || definition.displayName !== row.employee_name
+      || definition.role !== row.employee_role
+      || definition.autonomy !== row.employee_autonomy
+      || row.provider_agent_ref !== paperclipManagedAgentRef(row.provider_company_ref, row.catalog_key)
+    ) {
+      throw new OrganizationAdapterConflictError(
+        'state-inconsistent',
+        'Digital employee work provider bindings are inconsistent.',
+      );
+    }
+    return row;
+  }
+
+  private async reserveCatalogEmployeeWork(args: {
+    organizationId: string;
+    actorUserId: string;
+    employeeId: string;
+    idempotencyKey: string;
+    title: string;
+    description: string;
+    requestHash: string;
+  }): Promise<WorkOperationRow> {
+    return this.scopedWrite(args.organizationId, async (client) => {
+      await this.requireOwnerOrAdmin(client, args.organizationId, args.actorUserId);
+      const context = await this.requireWorkEmployeeContext(
+        client,
+        args.organizationId,
+        args.employeeId,
+      );
+
+      const existing = await client.query<WorkOperationRow>(
+        `SELECT id::text, employee_id::text, created_by_user_id::text,
+                idempotency_key, request_hash, title, description, provider,
+                catalog_key, provider_company_ref, provider_agent_ref,
+                status::text AS status, provider_run_ref, execution_id,
+                result_model, result_summary, created_at, updated_at
+           FROM wandora_private.digital_employee_work_operations
+          WHERE organization_id = $1 AND idempotency_key = $2
+          FOR UPDATE`,
+        [args.organizationId, args.idempotencyKey],
+      );
+      const row = existing.rows[0];
+      if (row) {
+        if (
+          row.request_hash !== args.requestHash
+          || row.employee_id !== args.employeeId
+          || row.title !== args.title
+          || row.description !== args.description
+          || row.provider !== this.provider.provider
+          || row.catalog_key !== context.catalog_key
+          || row.provider_company_ref !== context.provider_company_ref
+          || row.provider_agent_ref !== context.provider_agent_ref
+        ) {
+          throw new OrganizationAdapterConflictError(
+            'idempotency-conflict',
+            'The idempotency key is already reserved for different work.',
+          );
+        }
+        return row;
+      }
+
+      const workId = this.uuid();
+      const inserted = await client.query<WorkOperationRow>(
+        `INSERT INTO wandora_private.digital_employee_work_operations
+           (id, organization_id, employee_id, created_by_user_id,
+            idempotency_key, request_hash, title, description, provider,
+            catalog_key, provider_company_ref, provider_agent_ref, status)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'planned')
+         RETURNING id::text, employee_id::text, created_by_user_id::text,
+                   idempotency_key, request_hash, title, description, provider,
+                   catalog_key, provider_company_ref, provider_agent_ref,
+                   status::text AS status, provider_run_ref, execution_id,
+                   result_model, result_summary, created_at, updated_at`,
+        [
+          workId,
+          args.organizationId,
+          args.employeeId,
+          args.actorUserId,
+          args.idempotencyKey,
+          args.requestHash,
+          args.title,
+          args.description,
+          this.provider.provider,
+          context.catalog_key,
+          context.provider_company_ref,
+          context.provider_agent_ref,
+        ],
+      );
+      return inserted.rows[0]!;
+    });
+  }
+
+  async ensureCatalogEmployeeWork(args: {
+    organizationId: string;
+    actorUserId: string;
+    employeeId: string;
+    idempotencyKey: string;
+    title: string;
+    description: string;
+  }): Promise<DigitalEmployeeWorkResult> {
+    const idempotencyKey = args.idempotencyKey.trim();
+    const title = args.title.trim();
+    const description = args.description.trim();
+    if (!idempotencyKey || idempotencyKey.length > 255) {
+      throw new RangeError('digital_employee_work_invalid_idempotency_key');
+    }
+    if (!title || title.length > 200) {
+      throw new RangeError('digital_employee_work_invalid_title');
+    }
+    if (!description || description.length > 4000) {
+      throw new RangeError('digital_employee_work_invalid_description');
+    }
+
+    const requestHash = canonicalWorkRequestHash({
+      employeeId: args.employeeId,
+      title,
+      description,
+    });
+    const reserved = await this.reserveCatalogEmployeeWork({
+      organizationId: args.organizationId,
+      actorUserId: args.actorUserId,
+      employeeId: args.employeeId,
+      idempotencyKey,
+      title,
+      description,
+      requestHash,
+    });
+
+    const outcome = await this.scopedWrite(args.organizationId, async (client) => {
+      await this.requireOwnerOrAdmin(client, args.organizationId, args.actorUserId);
+      const currentResult = await client.query<WorkOperationRow>(
+        `SELECT id::text, employee_id::text, created_by_user_id::text,
+                idempotency_key, request_hash, title, description, provider,
+                catalog_key, provider_company_ref, provider_agent_ref,
+                status::text AS status, provider_run_ref, execution_id,
+                result_model, result_summary, created_at, updated_at
+           FROM wandora_private.digital_employee_work_operations
+          WHERE organization_id = $1 AND id = $2
+          FOR UPDATE`,
+        [args.organizationId, reserved.id],
+      );
+      const current = currentResult.rows[0];
+      if (!current) {
+        throw new OrganizationAdapterConflictError(
+          'state-inconsistent',
+          'Reserved digital employee work disappeared.',
+        );
+      }
+      if (
+        current.request_hash !== requestHash
+        || current.employee_id !== args.employeeId
+        || current.idempotency_key !== idempotencyKey
+      ) {
+        throw new OrganizationAdapterConflictError(
+          'state-inconsistent',
+          'Reserved digital employee work changed unexpectedly.',
+        );
+      }
+
+      if (['submitted', 'executing', 'result_recorded', 'execution_uncertain'].includes(current.status)) {
+        return { kind: 'ok' as const, row: current };
+      }
+      if (!this.provider.ensureCatalogEmployeeWork) {
+        throw new DigitalEmployeeWorkError(
+          'provider-work-unavailable',
+          'Provider work admission is unavailable.',
+        );
+      }
+
+      await client.query(
+        `UPDATE wandora_private.digital_employee_work_operations
+            SET status = 'submitting'
+          WHERE organization_id = $1 AND id = $2`,
+        [args.organizationId, current.id],
+      );
+
+      try {
+        const providerResult = await this.provider.ensureCatalogEmployeeWork({
+          providerCompanyRef: current.provider_company_ref,
+          catalogKey: current.catalog_key,
+          workId: current.id,
+          title: current.title,
+          description: current.description,
+        });
+        if (providerResult.providerAgentRef !== current.provider_agent_ref) {
+          throw new OrganizationAdapterConflictError(
+            'state-inconsistent',
+            'Provider work correlation does not match the bound employee.',
+          );
+        }
+      } catch (error) {
+        if (error instanceof OrganizationAdapterConflictError) throw error;
+        const uncertain = await client.query<WorkOperationRow>(
+          `UPDATE wandora_private.digital_employee_work_operations
+              SET status = 'uncertain'
+            WHERE organization_id = $1 AND id = $2
+            RETURNING id::text, employee_id::text, created_by_user_id::text,
+                      idempotency_key, request_hash, title, description, provider,
+                      catalog_key, provider_company_ref, provider_agent_ref,
+                      status::text AS status, provider_run_ref, execution_id,
+                      result_model, result_summary, created_at, updated_at`,
+          [args.organizationId, current.id],
+        );
+        return { kind: 'uncertain' as const, row: uncertain.rows[0]! };
+      }
+
+      const submitted = await client.query<WorkOperationRow>(
+        `UPDATE wandora_private.digital_employee_work_operations
+            SET status = CASE
+                  WHEN status IN ('executing','result_recorded','execution_uncertain')
+                    THEN status
+                  ELSE 'submitted'
+                END,
+                submitted_at = COALESCE(submitted_at, $3::timestamptz)
+          WHERE organization_id = $1 AND id = $2
+          RETURNING id::text, employee_id::text, created_by_user_id::text,
+                    idempotency_key, request_hash, title, description, provider,
+                    catalog_key, provider_company_ref, provider_agent_ref,
+                    status::text AS status, provider_run_ref, execution_id,
+                    result_model, result_summary, created_at, updated_at`,
+        [args.organizationId, current.id, this.now()],
+      );
+      return { kind: 'ok' as const, row: submitted.rows[0]! };
+    });
+
+    if (outcome.kind === 'uncertain') {
+      throw new DigitalEmployeeWorkError(
+        'provider-work-uncertain',
+        'Provider work admission is uncertain. Retry only with the original idempotency key.',
+      );
+    }
+    return this.workResult(outcome.row);
+  }
+
+  async listCatalogEmployeeWork(args: {
+    organizationId: string;
+    actorUserId: string;
+    employeeId: string;
+  }): Promise<DigitalEmployeeWorkResult[]> {
+    return this.scopedWrite(args.organizationId, async (client) => {
+      await this.requireOwnerOrAdmin(client, args.organizationId, args.actorUserId);
+      await this.requireWorkEmployeeContext(client, args.organizationId, args.employeeId);
+      const rows = await client.query<WorkOperationRow>(
+        `SELECT id::text, employee_id::text, created_by_user_id::text,
+                idempotency_key, request_hash, title, description, provider,
+                catalog_key, provider_company_ref, provider_agent_ref,
+                status::text AS status, provider_run_ref, execution_id,
+                result_model, result_summary, created_at, updated_at
+           FROM wandora_private.digital_employee_work_operations
+          WHERE organization_id = $1 AND employee_id = $2
+          ORDER BY created_at DESC
+          LIMIT 50`,
+        [args.organizationId, args.employeeId],
+      );
+      return rows.rows.map((row) => this.workResult(row));
+    });
+  }
+
+  async prepareCatalogEmployeeWorkExecution(args: {
+    organizationId: string;
+    employeeId: string;
+    workId: string;
+    paperclipRunId: string;
+    title: string;
+    description: string | null;
+  }): Promise<PreparedDigitalEmployeeWorkExecution> {
+    return this.scopedWrite(args.organizationId, async (client) => {
+      const result = await client.query<WorkOperationRow>(
+        `SELECT id::text, employee_id::text, created_by_user_id::text,
+                idempotency_key, request_hash, title, description, provider,
+                catalog_key, provider_company_ref, provider_agent_ref,
+                status::text AS status, provider_run_ref, execution_id,
+                result_model, result_summary, created_at, updated_at
+           FROM wandora_private.digital_employee_work_operations
+          WHERE organization_id = $1 AND id = $2 AND employee_id = $3
+          FOR UPDATE`,
+        [args.organizationId, args.workId, args.employeeId],
+      );
+      const row = result.rows[0];
+      if (
+        !row
+        || row.title !== args.title
+        || row.description !== (args.description ?? '')
+      ) {
+        throw new DigitalEmployeeWorkError(
+          'work-execution-unavailable',
+          'Paperclip work does not match the reserved Wandora request.',
+        );
+      }
+      if (row.provider_run_ref && row.provider_run_ref !== args.paperclipRunId) {
+        throw new DigitalEmployeeWorkError(
+          'work-execution-uncertain',
+          'A different provider run is already bound to this work request.',
+        );
+      }
+      if (
+        row.status === 'result_recorded'
+        && row.provider_run_ref === args.paperclipRunId
+        && row.execution_id
+        && row.result_model
+        && row.result_summary
+      ) {
+        return {
+          kind: 'cached',
+          executionId: row.execution_id,
+          model: row.result_model,
+          summary: row.result_summary,
+        };
+      }
+      if (
+        row.provider_run_ref === args.paperclipRunId
+        && ['executing', 'execution_uncertain'].includes(row.status)
+      ) {
+        throw new DigitalEmployeeWorkError(
+          'work-execution-uncertain',
+          'The exact provider run already has an unresolved Wandora execution receipt.',
+        );
+      }
+      if (!['planned', 'submitting', 'submitted', 'uncertain'].includes(row.status)) {
+        throw new DigitalEmployeeWorkError(
+          'work-execution-unavailable',
+          'Work request is not eligible for execution.',
+        );
+      }
+
+      await client.query(
+        `UPDATE wandora_private.digital_employee_work_operations
+            SET provider_run_ref = $3,
+                status = 'executing'
+          WHERE organization_id = $1 AND id = $2`,
+        [args.organizationId, args.workId, args.paperclipRunId],
+      );
+      return { kind: 'execute' };
+    });
+  }
+
+  async recordCatalogEmployeeWorkResult(args: {
+    organizationId: string;
+    employeeId: string;
+    workId: string;
+    paperclipRunId: string;
+    executionId: string;
+    model: string;
+    summary: string;
+  }): Promise<void> {
+    await this.scopedWrite(args.organizationId, async (client) => {
+      const updated = await client.query(
+        `UPDATE wandora_private.digital_employee_work_operations
+            SET status = 'result_recorded',
+                execution_id = $5,
+                result_model = $6,
+                result_summary = $7,
+                result_recorded_at = $8::timestamptz,
+                submitted_at = COALESCE(submitted_at, $8::timestamptz)
+          WHERE organization_id = $1
+            AND id = $2
+            AND employee_id = $3
+            AND provider_run_ref = $4
+            AND status = 'executing'
+          RETURNING id`,
+        [
+          args.organizationId,
+          args.workId,
+          args.employeeId,
+          args.paperclipRunId,
+          args.executionId,
+          args.model,
+          args.summary,
+          this.now(),
+        ],
+      );
+      if (updated.rowCount !== 1) {
+        throw new DigitalEmployeeWorkError(
+          'work-execution-uncertain',
+          'Supervised result projection could not be committed exactly once.',
+        );
+      }
+    });
+  }
+
+  async markCatalogEmployeeWorkExecutionUncertain(args: {
+    organizationId: string;
+    employeeId: string;
+    workId: string;
+    paperclipRunId: string;
+  }): Promise<void> {
+    await this.scopedWrite(args.organizationId, async (client) => {
+      await client.query(
+        `UPDATE wandora_private.digital_employee_work_operations
+            SET status = 'execution_uncertain'
+          WHERE organization_id = $1
+            AND id = $2
+            AND employee_id = $3
+            AND provider_run_ref = $4
+            AND status = 'executing'`,
+        [args.organizationId, args.workId, args.employeeId, args.paperclipRunId],
+      );
     });
   }
 

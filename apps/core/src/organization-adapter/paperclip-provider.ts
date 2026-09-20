@@ -1,5 +1,8 @@
 import { createHash, createHmac } from 'node:crypto';
-import type { OrganizationAdapterProvider } from './contracts.js';
+import type {
+  CatalogEmployeeWorkProviderInput,
+  OrganizationAdapterProvider,
+} from './contracts.js';
 
 export const PAPERCLIP_ORGANIZATION_ADAPTER_PLUGIN_KEY = 'wandora.organization-adapter-v1';
 
@@ -30,9 +33,32 @@ function validateEndpoint(value: string): URL {
   return endpoint;
 }
 
+function validateBaseInput(input: { providerCompanyRef: string; catalogKey: string }): void {
+  if (!input.providerCompanyRef.trim() || input.providerCompanyRef.length > 255) {
+    throw new RangeError('paperclip_organization_adapter_invalid_company_ref');
+  }
+  if (!/^[a-z0-9][a-z0-9._-]{2,63}$/.test(input.catalogKey)) {
+    throw new RangeError('paperclip_organization_adapter_invalid_catalog_key');
+  }
+}
+
+function validateWorkInput(input: CatalogEmployeeWorkProviderInput): void {
+  validateBaseInput(input);
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input.workId)) {
+    throw new RangeError('paperclip_organization_adapter_invalid_work_id');
+  }
+  if (!input.title.trim() || input.title.length > 200) {
+    throw new RangeError('paperclip_organization_adapter_invalid_work_title');
+  }
+  if (!input.description.trim() || input.description.length > 4000) {
+    throw new RangeError('paperclip_organization_adapter_invalid_work_description');
+  }
+}
+
 export function createPaperclipOrganizationAdapterProvider(deps: {
   webhookUrl: string;
   activationWebhookUrl?: string;
+  workWebhookUrl?: string;
   resolveHmacSecret: (providerCompanyRef: string) => Promise<string>;
   fetchImpl?: typeof fetch;
   now?: () => number;
@@ -40,6 +66,7 @@ export function createPaperclipOrganizationAdapterProvider(deps: {
 }): OrganizationAdapterProvider {
   const reconcileEndpoint = validateEndpoint(deps.webhookUrl);
   const activationEndpoint = deps.activationWebhookUrl ? validateEndpoint(deps.activationWebhookUrl) : undefined;
+  const workEndpoint = deps.workWebhookUrl ? validateEndpoint(deps.workWebhookUrl) : undefined;
   const fetchImpl = deps.fetchImpl ?? fetch;
   const now = deps.now ?? (() => Date.now());
   const timeoutMs = deps.timeoutMs ?? 5_000;
@@ -47,20 +74,15 @@ export function createPaperclipOrganizationAdapterProvider(deps: {
   const call = async (
     endpoint: URL,
     input: { providerCompanyRef: string; catalogKey: string },
+    body: Record<string, string>,
   ): Promise<{ providerAgentRef: string }> => {
-    if (!input.providerCompanyRef.trim() || input.providerCompanyRef.length > 255) {
-      throw new RangeError('paperclip_organization_adapter_invalid_company_ref');
-    }
-    if (!/^[a-z0-9][a-z0-9._-]{2,63}$/.test(input.catalogKey)) {
-      throw new RangeError('paperclip_organization_adapter_invalid_catalog_key');
-    }
-
+    validateBaseInput(input);
     const secret = await deps.resolveHmacSecret(input.providerCompanyRef);
     if (typeof secret !== 'string' || secret.length === 0 || secret.length > 8_192) {
       throw new Error('paperclip_organization_adapter_hmac_secret_unavailable');
     }
 
-    const rawBody = JSON.stringify({ companyId: input.providerCompanyRef, catalogKey: input.catalogKey });
+    const rawBody = JSON.stringify(body);
     const timestamp = String(Math.floor(now() / 1_000));
     const signature = signPaperclipOrganizationAdapterRequest(secret, timestamp, rawBody);
 
@@ -104,10 +126,34 @@ export function createPaperclipOrganizationAdapterProvider(deps: {
 
   const provider: OrganizationAdapterProvider = {
     provider: 'paperclip',
-    reconcileCatalogEmployee: (input) => call(reconcileEndpoint, input),
+    reconcileCatalogEmployee: (input) => call(
+      reconcileEndpoint,
+      input,
+      { companyId: input.providerCompanyRef, catalogKey: input.catalogKey },
+    ),
   };
   if (activationEndpoint) {
-    provider.activateCatalogEmployee = (input) => call(activationEndpoint, input);
+    provider.activateCatalogEmployee = (input) => call(
+      activationEndpoint,
+      input,
+      { companyId: input.providerCompanyRef, catalogKey: input.catalogKey },
+    );
+  }
+  if (workEndpoint) {
+    provider.ensureCatalogEmployeeWork = (input) => {
+      validateWorkInput(input);
+      return call(
+        workEndpoint,
+        input,
+        {
+          companyId: input.providerCompanyRef,
+          catalogKey: input.catalogKey,
+          workId: input.workId,
+          title: input.title,
+          description: input.description,
+        },
+      );
+    };
   }
   return provider;
 }

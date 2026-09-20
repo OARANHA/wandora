@@ -4,6 +4,7 @@ import { createHmac } from 'node:crypto';
 import {
   parseActivationWebhook,
   parseReconcileWebhook,
+  parseWorkWebhook,
   requireFreshTimestamp,
   requireHmacSecret,
   verifySignature,
@@ -76,5 +77,42 @@ test('activation accepts only the fixed catalog shape and rejects raw provider i
     parsedBody: { ...JSON.parse(body), agentId: 'raw-provider-agent-id' },
     rawBody: body,
     headers: { 'x-wandora-timestamp': timestamp, 'x-wandora-signature': signature },
+  }), /invalid_wandora_request/);
+});
+
+
+test('work accepts only bounded Wandora work and rejects provider identifiers', () => {
+  const workBody = JSON.stringify({
+    companyId: 'company-test-only',
+    catalogKey: 'ana-commercial-v1',
+    workId: '11111111-1111-4111-8111-111111111111',
+    title: 'Preparar resumo',
+    description: 'Preparar um resumo interno supervisionado.',
+  });
+  const workSignature = `sha256=${createHmac('sha256', secret).update(`${timestamp}.${workBody}`).digest('hex')}`;
+  const req = parseWorkWebhook({
+    endpointKey: 'employee-work',
+    parsedBody: JSON.parse(workBody),
+    rawBody: workBody,
+    headers: {
+      'x-wandora-timestamp': timestamp,
+      'x-wandora-signature': workSignature,
+    },
+  });
+  assert.equal(req.workId, '11111111-1111-4111-8111-111111111111');
+  assert.equal(req.title, 'Preparar resumo');
+
+  const withProviderId = {
+    ...JSON.parse(workBody),
+    agentId: 'raw-provider-agent-id',
+  };
+  assert.throws(() => parseWorkWebhook({
+    endpointKey: 'employee-work',
+    parsedBody: withProviderId,
+    rawBody: JSON.stringify(withProviderId),
+    headers: {
+      'x-wandora-timestamp': timestamp,
+      'x-wandora-signature': workSignature,
+    },
   }), /invalid_wandora_request/);
 });

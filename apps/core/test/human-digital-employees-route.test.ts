@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  DigitalEmployeeWorkError,
   OrganizationAdapterConflictError,
   OrganizationAdapterUnavailableError,
 } from '../src/organization-adapter/contracts.js';
@@ -40,6 +41,8 @@ function baseServices() {
           role: 'commercial-assistant' as const,
           status: 'paused' as const,
           autonomy: 'supervised' as const,
+          activation: { available: true, state: 'available' as const },
+          work: { available: false, state: 'unavailable' as const },
         }],
         hire: {
           catalogKey: 'ana-commercial-v1' as const,
@@ -70,6 +73,8 @@ test('exact UUID digital employees GET remains canonical read-only projection', 
       role: 'commercial-assistant',
       status: 'paused',
       autonomy: 'supervised',
+      activation: { available: true, state: 'available' },
+      work: { available: false, state: 'unavailable' },
     }],
     hire: {
       catalogKey: 'ana-commercial-v1',
@@ -345,4 +350,208 @@ test('activation route stays closed without runtime activation wiring and maps f
     assert.equal(response.status, status);
     assert.deepEqual(response.body, body);
   }
+});
+
+
+test('customer work route stays structurally closed without the explicit work service gate', async () => {
+  const { service, digitalEmployeesService } = baseServices();
+  const handler = createHumanSupervisionHandler(service, undefined, digitalEmployeesService);
+  const path = `/api/v1/organizations/${ORG}/digital-employees/${EMPLOYEE}/work`;
+
+  assert.deepEqual(await handler({
+    method: 'GET',
+    pathname: path,
+    authorization: 'Bearer fixture',
+  }), { status: 404, body: { error: 'not-found' } });
+
+  assert.deepEqual(await handler({
+    method: 'POST',
+    pathname: path,
+    authorization: 'Bearer fixture',
+    idempotencyKey: 'work-1',
+    rawBody: JSON.stringify({ title: 'Resumo', description: 'Preparar resumo interno.' }),
+  }), { status: 404, body: { error: 'not-found' } });
+});
+
+test('customer work POST passes only Wandora actor, tenant, employee, stable idempotency key and bounded content', async () => {
+  const { service, digitalEmployeesService } = baseServices();
+  const calls: unknown[] = [];
+  const workService = {
+    async ensureCatalogEmployeeWork(input: unknown) {
+      calls.push(input);
+      return {
+        id: '40000000-0000-4000-8000-0000000000a1',
+        employeeId: EMPLOYEE,
+        title: 'Preparar resumo',
+        description: 'Preparar um resumo interno supervisionado.',
+        state: 'submitted' as const,
+        result: null,
+        createdAt: '2026-09-20T00:00:00.000Z',
+        updatedAt: '2026-09-20T00:00:00.000Z',
+      };
+    },
+    async listCatalogEmployeeWork() {
+      return [];
+    },
+  } as unknown as OrganizationAdapterService;
+
+  const handler = createHumanSupervisionHandler(
+    service,
+    undefined,
+    digitalEmployeesService,
+    undefined,
+    undefined,
+    workService,
+  );
+  const response = await handler({
+    method: 'POST',
+    pathname: `/api/v1/organizations/${ORG}/digital-employees/${EMPLOYEE}/work`,
+    authorization: 'Bearer fixture',
+    idempotencyKey: ' stable-work-key ',
+    rawBody: JSON.stringify({
+      title: ' Preparar resumo ',
+      description: ' Preparar um resumo interno supervisionado. ',
+    }),
+  });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(calls, [{
+    organizationId: ORG,
+    actorUserId: USER,
+    employeeId: EMPLOYEE,
+    idempotencyKey: 'stable-work-key',
+    title: 'Preparar resumo',
+    description: 'Preparar um resumo interno supervisionado.',
+  }]);
+  assert.equal(JSON.stringify(response.body).includes('provider'), false);
+  assert.equal(JSON.stringify(response.body).includes('paperclip'), false);
+});
+
+test('customer work rejects provider selectors and malformed work before any adapter effect', async () => {
+  const { service, digitalEmployeesService } = baseServices();
+  let calls = 0;
+  const workService = {
+    async ensureCatalogEmployeeWork() {
+      calls += 1;
+      throw new Error('must not run');
+    },
+    async listCatalogEmployeeWork() {
+      return [];
+    },
+  } as unknown as OrganizationAdapterService;
+  const handler = createHumanSupervisionHandler(
+    service,
+    undefined,
+    digitalEmployeesService,
+    undefined,
+    undefined,
+    workService,
+  );
+  const path = `/api/v1/organizations/${ORG}/digital-employees/${EMPLOYEE}/work`;
+
+  for (const request of [
+    { idempotencyKey: undefined, rawBody: JSON.stringify({ title: 'A', description: 'B' }) },
+    { idempotencyKey: '', rawBody: JSON.stringify({ title: 'A', description: 'B' }) },
+    { idempotencyKey: 'work-1', rawBody: JSON.stringify({ title: '', description: 'B' }) },
+    { idempotencyKey: 'work-1', rawBody: JSON.stringify({ title: 'A', description: '' }) },
+    {
+      idempotencyKey: 'work-1',
+      rawBody: JSON.stringify({
+        title: 'A',
+        description: 'B',
+        providerAgentId: 'forbidden',
+      }),
+    },
+    {
+      idempotencyKey: 'work-1',
+      rawBody: JSON.stringify({
+        title: 'A',
+        description: 'B',
+        provider: 'paperclip',
+      }),
+    },
+  ]) {
+    const response = await handler({
+      method: 'POST',
+      pathname: path,
+      authorization: 'Bearer fixture',
+      ...request,
+    });
+    assert.equal(response.status, 400);
+    assert.deepEqual(response.body, { error: 'invalid-work-request' });
+  }
+  assert.equal(calls, 0);
+});
+
+test('customer work GET exposes only the Wandora supervised result projection', async () => {
+  const { service, digitalEmployeesService } = baseServices();
+  const workService = {
+    async listCatalogEmployeeWork(input: unknown) {
+      assert.deepEqual(input, {
+        organizationId: ORG,
+        actorUserId: USER,
+        employeeId: EMPLOYEE,
+      });
+      return [{
+        id: '40000000-0000-4000-8000-0000000000a1',
+        employeeId: EMPLOYEE,
+        title: 'Resumo comercial',
+        description: 'Preparar resultado interno.',
+        state: 'review-ready' as const,
+        result: { summary: 'Resumo pronto para revisão.', model: 'mastra-deterministic' },
+        createdAt: '2026-09-20T00:00:00.000Z',
+        updatedAt: '2026-09-20T00:01:00.000Z',
+      }];
+    },
+  } as unknown as OrganizationAdapterService;
+  const handler = createHumanSupervisionHandler(
+    service,
+    undefined,
+    digitalEmployeesService,
+    undefined,
+    undefined,
+    workService,
+  );
+  const response = await handler({
+    method: 'GET',
+    pathname: `/api/v1/organizations/${ORG}/digital-employees/${EMPLOYEE}/work`,
+    authorization: 'Bearer fixture',
+  });
+  assert.equal(response.status, 200);
+  assert.equal(JSON.stringify(response.body).includes('provider'), false);
+  assert.equal(JSON.stringify(response.body).includes('paperclipRun'), false);
+  assert.equal(JSON.stringify(response.body).includes('providerAgent'), false);
+  assert.match(JSON.stringify(response.body), /Resumo pronto para revisão/);
+});
+
+test('customer work maps ambiguous provider dispatch to same-key-only retry without provider leakage', async () => {
+  const { service, digitalEmployeesService } = baseServices();
+  const workService = {
+    async ensureCatalogEmployeeWork() {
+      throw new DigitalEmployeeWorkError(
+        'provider-work-uncertain',
+        'private provider dispatch state',
+      );
+    },
+  } as unknown as OrganizationAdapterService;
+  const handler = createHumanSupervisionHandler(
+    service,
+    undefined,
+    digitalEmployeesService,
+    undefined,
+    undefined,
+    workService,
+  );
+  const response = await handler({
+    method: 'POST',
+    pathname: `/api/v1/organizations/${ORG}/digital-employees/${EMPLOYEE}/work`,
+    authorization: 'Bearer fixture',
+    idempotencyKey: 'work-uncertain',
+    rawBody: JSON.stringify({ title: 'Resumo', description: 'Preparar resumo interno.' }),
+  });
+  assert.deepEqual(response, {
+    status: 409,
+    body: { error: 'employee-work-uncertain', retry: 'same-idempotency-key' },
+  });
+  assert.equal(JSON.stringify(response.body).includes('provider'), false);
 });

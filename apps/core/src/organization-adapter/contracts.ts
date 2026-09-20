@@ -14,6 +14,14 @@ export const WANDORA_CATALOG_V1: ReadonlyMap<string, CatalogEmployeeDefinition> 
   }],
 ]);
 
+export type CatalogEmployeeWorkProviderInput = {
+  providerCompanyRef: string;
+  catalogKey: string;
+  workId: string;
+  title: string;
+  description: string;
+};
+
 export type OrganizationAdapterProvider = {
   readonly provider: 'paperclip';
   reconcileCatalogEmployee(input: {
@@ -24,6 +32,9 @@ export type OrganizationAdapterProvider = {
     providerCompanyRef: string;
     catalogKey: string;
   }): Promise<{ providerAgentRef: string }>;
+  ensureCatalogEmployeeWork?(input: CatalogEmployeeWorkProviderInput): Promise<{
+    providerAgentRef: string;
+  }>;
 };
 
 export type CatalogEmployeeResult = {
@@ -33,6 +44,37 @@ export type CatalogEmployeeResult = {
   status: 'active' | 'paused';
   autonomy: 'supervised';
 };
+
+export type DigitalEmployeeWorkState =
+  | 'submitting'
+  | 'submitted'
+  | 'uncertain'
+  | 'executing'
+  | 'review-ready'
+  | 'execution-uncertain';
+
+export type DigitalEmployeeWorkResult = {
+  id: string;
+  employeeId: string;
+  title: string;
+  description: string;
+  state: DigitalEmployeeWorkState;
+  result: {
+    summary: string;
+    model: string;
+  } | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PreparedDigitalEmployeeWorkExecution =
+  | { kind: 'execute' }
+  | {
+      kind: 'cached';
+      executionId: string;
+      model: string;
+      summary: string;
+    };
 
 export type OrganizationAdapterConflictCode =
   | 'idempotency-conflict'
@@ -69,5 +111,20 @@ export class DigitalEmployeeActivationError extends Error {
   constructor(readonly code: DigitalEmployeeActivationErrorCode, message: string) {
     super(message);
     this.name = 'DigitalEmployeeActivationError';
+  }
+}
+
+export type DigitalEmployeeWorkErrorCode =
+  | 'employee-work-unavailable'
+  | 'provider-work-unavailable'
+  | 'provider-work-uncertain'
+  | 'work-execution-unavailable'
+  | 'work-execution-uncertain'
+  | 'runtime-not-ready';
+
+export class DigitalEmployeeWorkError extends Error {
+  constructor(readonly code: DigitalEmployeeWorkErrorCode, message: string) {
+    super(message);
+    this.name = 'DigitalEmployeeWorkError';
   }
 }
