@@ -19,7 +19,7 @@ health  = healthy / API status ok
 restarts= 0
 ```
 
-No Mastra upgrade, Organization Adapter repack, `wandora_mastra` repack, Ana activation/resume, Human Send or Gateway outbound is part of this decision.
+No Mastra upgrade, Organization Adapter repack, `wandora_mastra` repack, **MEDICSPRO Ana** activation/resume, Human Send or Gateway outbound is part of this decision. The isolated synthetic proof agent may be temporarily resumed only for the bounded acceptance path and must be returned to `paused`.
 
 ## REAL NOW
 
@@ -294,12 +294,28 @@ Final synthetic cleanup:
 ```text
 proof agent status       = paused
 proof pending runs       = 0
-proof succeeded runs     = 2
+proof succeeded runs     = 3
 proof issue              = cancelled
 proof outbound attempts  = 4 / unchanged from pre-proof baseline
 ```
 
 The successful bridge execution proves the genuine internally minted run token was accepted by Paperclip `/api/agents/me`, because Core's `verifyRunIdentity` performs that check before employee binding resolution and Mastra execution.
+
+### Continuity reconciliation after the first acceptance checkpoint
+
+A later chat-continuity recovery initially resumed from runtime evidence before discovering that PR #180 already contained the earlier acceptance checkpoint. During that narrow window, the same existing synthetic issue `WAN-1` was exercised **one additional time** through the same normal application-service path. This was an unnecessary continuity duplicate, not a repeated preflight, backup, migration or production upgrade.
+
+The additional on-demand run was:
+
+```text
+3d316b82-eaa2-4ceb-a89e-f25e9263fec6
+status      = succeeded
+executionId = exec_42658a8f758c33a2257904b9965b859d8c09d0de02869cb5246848057e6234d0
+```
+
+After it completed, `WAN-1` was returned to `cancelled`, the proof agent returned to `paused`, proof pending runs/wakeups were both `0`, and the proof tenant outbound-attempt count remained exactly `4`. MEDICSPRO still had `0` wakeups, `0` heartbeat runs and `0` outbound attempts.
+
+The continuity rule is therefore strengthened for future chats: reconcile Git checkpoints as well as runtime state before replaying even a bounded synthetic acceptance action.
 
 A separate syntactically valid forged HS256 JWT with the proof identity/run claims but a false signature returned:
 
@@ -310,7 +326,7 @@ A separate syntactically valid forged HS256 JWT with the proof identity/run clai
 This closes the positive run-token / bridge path and the signature-tamper rejection without printing or persisting any real run token.
 ### Fail-closed / no-effect state
 
-The Core resolver still has no binding for an unknown Paperclip company and the Core itself was not changed in this Paperclip-only upgrade. ADR 0128's unknown-mapping fail-closed proof therefore remains applicable; the live binding table also confirms no unknown mapping exists.
+The live Core boundary was independently rechecked after the synthetic proof by calling `PaperclipExecutionService.resolveOrganization()` with an unmapped Paperclip company reference through the Core runtime's own least-privilege database connection. The observed result was `PaperclipExecutionBindingError(code=company-unmapped)`, recorded as `UNKNOWN_MAPPING_FAIL_CLOSED=true`.
 
 Final effect boundary:
 
@@ -325,7 +341,7 @@ Gateway outbound           = OFF
 customer messages          = 0 new
 ```
 
-The synthetic proof tenant created only the two bounded acceptance runs above; after cleanup it had zero pending runs, the proof agent was paused, the proof issue was cancelled, and its historical outbound-attempt count remained unchanged at 4.
+The synthetic proof tenant now contains the two original acceptance runs plus the later continuity duplicate: **3 succeeded runs total**. After final cleanup it had zero pending runs and zero pending wakeups, the proof agent was paused, the proof issue was cancelled, and its historical outbound-attempt count remained unchanged at 4.
 
 ## Rollback status
 
