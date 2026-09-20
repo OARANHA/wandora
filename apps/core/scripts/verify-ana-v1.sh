@@ -108,8 +108,9 @@ docker cp "$VERIFIERS/$ACTIVATED_VERIFIER" "$DB:/tmp/$ACTIVATED_VERIFIER" >/dev/
 docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -f "/tmp/$ACTIVATED_VERIFIER"
 
 # This historical harness intentionally stops at migration 010. Keep all
-# migration-011 Organization Adapter integration tests in the dedicated
-# verifier, where 010 inertness is proved first and 011 is applied explicitly.
+# post-010 Organization Adapter integration tests in the dedicated
+# verifier, where 010 inertness is proved first and later migrations
+# (including 011 and 016) are applied explicitly.
 docker run --rm --network "$NET" -v "$CORE:/app" -w /app \
   -e DATABASE_URL="postgresql://wandora_core_runtime:${CORE_PASSWORD}@${DB}:5432/${DB_NAME}" \
   -e FIXTURE_DATABASE_URL="postgresql://wandora_fixture_admin_test:${FIXTURE_PASSWORD}@${DB}:5432/${DB_NAME}" \
@@ -122,6 +123,7 @@ docker run --rm --network "$NET" -v "$CORE:/app" -w /app \
       ! -name "organization-adapter-service.integration.test.ts" \
       ! -name "organization-adapter-runtime-e2e.integration.test.ts" \
       ! -name "organization-adapter-activation.integration.test.ts" \
+      ! -name "organization-adapter-work.integration.test.ts" \
       ! -name "human-digital-employee-activation-read.integration.test.ts" \
       ! -name "customer-hire-tenant-eligibility.integration.test.ts" \
       ! -name "paperclip-execution-service.integration.test.ts" \
