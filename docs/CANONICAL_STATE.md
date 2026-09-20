@@ -2765,3 +2765,22 @@ Gateway outbound             = OFF
 **Customer Owner First Real Tenant Digital-Employee Activation Production Preflight V1 — NO EFFECT.**
 
 It must reconcile fresh runtime state, rehearse migration 015 + rollback on disposable restore, pin exact v0.2/Core/Web artifacts and rollback assets, prove zero pending MEDICSPRO wakeup/run/timer-heartbeat risk, revalidate outbound OFF, freeze the future execution order, and stop without applying/deploying/resuming anything.
+## ADR 0133 — First real employee Production Activation Preflight V1 GREEN (2026-09-20)
+
+The no-effect production activation preflight for MEDICSPRO Ana is complete and GREEN.
+
+Proven immediately before and after the disposable rehearsal:
+
+- migration 015 remains absent live;
+- Organization Adapter live remains v0.1.0 without `agents.resume`;
+- activation runtime gate, Human Send and Gateway outbound remain OFF;
+- MEDICSPRO has exactly one Ana `paused + supervised`, one control binding, one employee binding and one completed hire;
+- Paperclip Ana remains `paused`, with zero wakeups, zero heartbeat runs and zero open routine runs;
+- MEDICSPRO outbound attempts remain zero;
+- Mastra/Agent Runtime remains the existing reusable execution dependency and is not called by activation.
+
+Migration 015 + canonical verifier passed against a live-derived disposable restore, including idempotent replay and an independent pristine rollback restore. Exact Core, Web and Organization Adapter v0.2.0 artifact digests/provenance and current rollback anchors are frozen in ADR 0133.
+
+The activation path is proven to use only `agents.resume` as new Paperclip authority and not `agents.invoke`, tasks, wakeups, heartbeats, runs, routines or Mastra. The existing execution bridge continues fail-closed for `Paperclip idle + Wandora paused`.
+
+The next executable slice is **Customer Owner First Real Tenant Digital-Employee Activation Production Execution V1**. It is separately effectful and must not begin without a fresh REAL NOW and second adversarial review.
