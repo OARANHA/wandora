@@ -183,8 +183,8 @@ test('wrong tenant, wrong employee and non-owner fail before provider effect', a
   assert.equal(provider.activationCalls, 0);
 });
 
-test('missing completed hire, employee binding or control binding fails before provider effect', async () => {
-  for (const table of ['wandora_private.digital_employee_hire_operations', 'wandora_private.digital_employee_provider_bindings', 'wandora_private.control_plane_provider_bindings']) {
+test('missing completed hire or employee binding fails before provider effect and control binding cannot orphan dependents', async () => {
+  for (const table of ['wandora_private.digital_employee_hire_operations', 'wandora_private.digital_employee_provider_bindings']) {
     const ref = await resetFixture();
     const provider = new ActivationProvider();
     provider.lifecycle.set(ref, 'paused');
@@ -195,4 +195,22 @@ test('missing completed hire, employee binding or control binding fails before p
     );
     assert.equal(provider.activationCalls, 0);
   }
+
+  const ref = await resetFixture();
+  const provider = new ActivationProvider();
+  provider.lifecycle.set(ref, 'paused');
+  await assert.rejects(
+    fixturePool.query(
+      `DELETE FROM wandora_private.control_plane_provider_bindings
+        WHERE organization_id=$1 AND provider='paperclip'`,
+      [ORG_A],
+    ),
+    (error: unknown) => (
+      typeof error === 'object'
+      && error !== null
+      && 'code' in error
+      && error.code === '23503'
+    ),
+  );
+  assert.equal(provider.activationCalls, 0);
 });
