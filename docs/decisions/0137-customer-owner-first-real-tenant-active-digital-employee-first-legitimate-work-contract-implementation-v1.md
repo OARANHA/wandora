@@ -402,10 +402,13 @@ The live Core/Web remain the previously activated customer-owner builds and the 
 FIRST LEGITIMATE WORK CONTRACT IMPLEMENTATION V1
 = ACCEPTED
 
-PR #188 final implementation head
+PR #188 final code-bearing head
 = 21ba162b463dbdeb6be3c84419c46afa0d465335
 
-PR workflow set
+PR #188 final merged head
+= 843b4e5a7f53e837e826929856cc2924b36cac8b
+
+PR workflow set on final head
 = 7 / 7 GREEN
 
 PRODUCTION WORK AUTHORITY
@@ -422,3 +425,44 @@ Merging this implementation is a repository change only. It does not authorize m
 **Customer Owner First Real Tenant Active Digital-Employee First Legitimate Work Production Preflight V1 — NO EFFECT**
 
 That preflight must reconcile the post-merge main, exact immutable candidate artifacts, migration-016 backup/rollback strategy, live plugin/adapter provenance, runtime overlays, customer UX/readiness and the same zero-work production baseline. It must not apply migration 016, promote the plugin/adapter, enable the work gate, create an issue/wakeup/run or enable Human Send/Gateway outbound.
+
+
+## Post-merge canonical checkpoint
+
+PR #188 was marked ready only after the final head completed the full workflow set and was then squash-merged.
+
+```text
+PR #188 final head = 843b4e5a7f53e837e826929856cc2924b36cac8b
+PR #188 CI         = 7 / 7 GREEN
+PR #188            = merged
+main after merge   = 97290031e1aa567e6207c88873fa92d2ff3698ba
+```
+
+Post-merge read-only reconciliation proved no production promotion was coupled to the repository merge:
+
+```text
+critical Core/Web/Paperclip/Gateway = healthy
+Wandora Ana                          = exactly 1 / active + supervised
+migration 016 live                   = absent
+customer work flag                   = absent / OFF
+MEDICSPRO outbound attempts          = 0
+Human Send                           = OFF
+Gateway outbound                     = OFF
+```
+
+The immediately pre-merge Paperclip readback on the same production runtime also proved:
+
+```text
+Paperclip Ana       = idle / wandora_mastra
+assigned issues     = 0
+wakeups             = 0
+heartbeat runs      = 0
+routine runs        = 0
+task sessions       = 0
+runtime last_run_id = null
+runtime tokens/cost = 0 / 0
+```
+
+A later extra Paperclip post-merge read attempt was blocked by the tool security layer before execution; it was not retried through a broader or more invasive path because the merge itself had no runtime deployment effect and the independent post-merge Core/Web/Supabase checks remained unchanged.
+
+The implementation slice is therefore closed in Git. The next executable slice remains the separately reviewed **Production Preflight V1 — NO EFFECT**.
