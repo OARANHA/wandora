@@ -2,6 +2,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { AlertTriangle, Bot, LoaderCircle, Plus, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../AuthProvider';
+import { DigitalEmployeeWorkPanel } from '../components/DigitalEmployeeWorkPanel';
 
 type DigitalEmployee = {
   id: string;
@@ -12,6 +13,10 @@ type DigitalEmployee = {
   activation: {
     available: boolean;
     state: 'available' | 'active' | 'unavailable';
+  };
+  work: {
+    available: boolean;
+    state: 'available' | 'unavailable';
   };
 };
 
@@ -248,6 +253,10 @@ function EmployeeCard({
                 {activating ? 'Ativando…' : `Ativar ${employee.name}`}
               </button>
             </div>
+          ) : null}
+
+          {employee.work.available ? (
+            <DigitalEmployeeWorkPanel employeeId={employee.id} employeeName={employee.name} />
           ) : null}
 
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
