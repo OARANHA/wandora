@@ -108,3 +108,153 @@ test('active exact binding reaches AgentTaskRuntime without provider identifiers
   assert.equal(JSON.stringify(received).includes(AGENT), false);
   assert.equal(JSON.stringify(received).includes(RUN), false);
 });
+
+
+test('Wandora work correlation is verified and result is committed without entering AgentTaskRuntime input', async () => {
+  await resetFixture('active');
+  const WORK = '76000000-0000-4000-8000-0000000000a1';
+  let received: AssignedTaskInput | undefined;
+  const preparation: unknown[] = [];
+  const recorded: unknown[] = [];
+  const service = new PaperclipExecutionService(
+    runtimePool,
+    {
+      executeAssignedTask: async (input) => {
+        received = input;
+        return { model: 'mastra-deterministic', summary: 'Resultado supervisionado' };
+      },
+    },
+    {
+      async prepareCatalogEmployeeWorkExecution(input) {
+        preparation.push(input);
+        return { kind: 'execute' as const };
+      },
+      async recordCatalogEmployeeWorkResult(input) {
+        recorded.push(input);
+      },
+      async markCatalogEmployeeWorkExecutionUncertain() {
+        throw new Error('must not mark uncertain');
+      },
+    },
+  );
+
+  const result = await service.execute({
+    identity: { paperclipAgentId: AGENT, paperclipCompanyId: COMPANY, catalogKey: 'ana-commercial-v1' },
+    paperclipRunId: RUN,
+    workId: WORK,
+    task: { title: 'Preparar resumo', description: 'Somente resultado interno.' },
+  });
+
+  assert.deepEqual(preparation, [{
+    organizationId: ORG,
+    employeeId: EMPLOYEE,
+    workId: WORK,
+    paperclipRunId: RUN,
+    title: 'Preparar resumo',
+    description: 'Somente resultado interno.',
+  }]);
+  assert.equal(JSON.stringify(received).includes(WORK), false);
+  assert.equal(JSON.stringify(received).includes(RUN), false);
+  assert.equal(JSON.stringify(received).includes(COMPANY), false);
+  assert.equal(JSON.stringify(received).includes(AGENT), false);
+  assert.equal(recorded.length, 1);
+  assert.deepEqual(recorded[0], {
+    organizationId: ORG,
+    employeeId: EMPLOYEE,
+    workId: WORK,
+    paperclipRunId: RUN,
+    executionId: result.executionId,
+    model: 'mastra-deterministic',
+    summary: 'Resultado supervisionado',
+  });
+});
+
+test('cached exact work result prevents a duplicate AgentTaskRuntime execution', async () => {
+  await resetFixture('active');
+  const WORK = '76000000-0000-4000-8000-0000000000a2';
+  let runtimeCalls = 0;
+  let recordCalls = 0;
+  const service = new PaperclipExecutionService(
+    runtimePool,
+    {
+      executeAssignedTask: async () => {
+        runtimeCalls += 1;
+        return { model: 'unexpected', summary: 'unexpected' };
+      },
+    },
+    {
+      async prepareCatalogEmployeeWorkExecution() {
+        return {
+          kind: 'cached' as const,
+          executionId: 'exec_cached',
+          model: 'mastra-deterministic',
+          summary: 'Resultado já registrado',
+        };
+      },
+      async recordCatalogEmployeeWorkResult() {
+        recordCalls += 1;
+      },
+      async markCatalogEmployeeWorkExecutionUncertain() {
+        throw new Error('must not mark uncertain');
+      },
+    },
+  );
+
+  const result = await service.execute({
+    identity: { paperclipAgentId: AGENT, paperclipCompanyId: COMPANY, catalogKey: 'ana-commercial-v1' },
+    paperclipRunId: RUN,
+    workId: WORK,
+    task: { title: 'Preparar resumo', description: 'Somente resultado interno.' },
+  });
+  assert.deepEqual(result, {
+    executionId: 'exec_cached',
+    model: 'mastra-deterministic',
+    summary: 'Resultado já registrado',
+  });
+  assert.equal(runtimeCalls, 0);
+  assert.equal(recordCalls, 0);
+});
+
+test('runtime failure marks exact work execution uncertain and never retries inside the bridge', async () => {
+  await resetFixture('active');
+  const WORK = '76000000-0000-4000-8000-0000000000a3';
+  let runtimeCalls = 0;
+  const uncertain: unknown[] = [];
+  const service = new PaperclipExecutionService(
+    runtimePool,
+    {
+      executeAssignedTask: async () => {
+        runtimeCalls += 1;
+        throw new Error('synthetic model failure');
+      },
+    },
+    {
+      async prepareCatalogEmployeeWorkExecution() {
+        return { kind: 'execute' as const };
+      },
+      async recordCatalogEmployeeWorkResult() {
+        throw new Error('must not record');
+      },
+      async markCatalogEmployeeWorkExecutionUncertain(input) {
+        uncertain.push(input);
+      },
+    },
+  );
+
+  await assert.rejects(
+    service.execute({
+      identity: { paperclipAgentId: AGENT, paperclipCompanyId: COMPANY, catalogKey: 'ana-commercial-v1' },
+      paperclipRunId: RUN,
+      workId: WORK,
+      task: { title: 'Preparar resumo', description: 'Somente resultado interno.' },
+    }),
+    /synthetic model failure/,
+  );
+  assert.equal(runtimeCalls, 1);
+  assert.deepEqual(uncertain, [{
+    organizationId: ORG,
+    employeeId: EMPLOYEE,
+    workId: WORK,
+    paperclipRunId: RUN,
+  }]);
+});
