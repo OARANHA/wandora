@@ -54,6 +54,12 @@ stage_tree() {
   if cp -al "$source" "$target" 2>/dev/null; then
     return
   fi
+
+  # GNU cp may leave a partially-created target when hard-link staging fails
+  # (for example when the source tree contains files owned by another UID).
+  # Never overlay the full copy on that partial tree: doing so nests the source
+  # directory and breaks relative pnpm symlinks such as server/node_modules/tsx.
+  rm -rf "$target"
   cp -a "$source" "$target"
 }
 
