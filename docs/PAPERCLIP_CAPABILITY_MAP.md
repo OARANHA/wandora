@@ -121,3 +121,29 @@ This map does **not** authorize future Paperclip upgrades, Mastra upgrades, empl
 - Routines: https://docs.paperclip.ing/reference/api/routines/
 - Tool Gateway: https://docs.paperclip.ing/reference/api/tool-gateway/
 - Connection access model: https://docs.paperclip.ing/connectors/access-model/
+
+## Activation-specific v916 lifecycle semantics — ADR 0131
+
+The first real Wandora activation refresh verified the exact live v2026.916.0 lifecycle implementation rather than inferring it from older v831 behavior.
+
+- `agents.managed` and `agents.resume` are distinct plugin capabilities.
+- `agents.managed.reconcile` resolves/materializes the managed resource but is not lifecycle activation.
+- `agents.resume` changes a non-terminated/non-pending agent to `idle`, clears pause/error state and does **not** request a heartbeat wakeup.
+- `agents.invoke` is the separate host operation that requests a wakeup.
+- reconciling an existing managed agent does not reapply the manifest's initial `status: paused`;
+- managed reset patches declared configuration and likewise does not force lifecycle status back to paused.
+
+Authority decision:
+
+```text
+customer activation intent / authorization = Wandora
+provider lifecycle transition              = Paperclip
+execution wakeup/run                       = Paperclip work/run path
+runtime execution                          = Mastra behind Wandora bridge
+external effect authorization              = Wandora
+```
+
+For the first activation, the Organization Adapter may be adapted to request native `agents.resume`, but the Wandora-owned action must narrow that coarse provider capability to the fixed managed catalog employee and must never expose arbitrary provider agent IDs or call `agents.invoke`.
+
+Paperclip `idle` means resumed and waiting. It is not equivalent to a running execution and it does not imply Human Send or Gateway outbound authority.
+

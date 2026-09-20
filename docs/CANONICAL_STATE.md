@@ -2657,3 +2657,53 @@ This next slice must begin from REAL NOW and finish with MEDICSPRO Ana still pau
 
 Progress means the real product gap was identified, authority checked, provider capability reused behind Wandora contracts, only minimum Wandora-owned safety/state persisted, the decision survived adversarial review, execution was independently validated, and any production effect remains bounded by a separately reviewed activation step.
 
+## Customer Owner First Real Tenant Digital-Employee Activation Readiness Refresh V1
+
+ADR 0131 reconciles ADR 0116 against the live Paperclip v2026.916.0 runtime.
+
+Read-only reconciliation proved:
+
+```text
+main                         = 1c1c3c88aa4ef50d56a66d8a1948b96464b49ee3 at slice start
+Paperclip                    = v2026.916.0 / dffc2b3... / healthy / restart 0
+migration ledger             = 278 / max 278
+MEDICSPRO Ana / Wandora      = exactly 1 / paused + supervised
+MEDICSPRO Ana / Paperclip    = exactly 1 / paused / wandora_mastra
+MEDICSPRO wakeups/runs       = 0 / 0
+completed hire               = exactly 1
+unfinished hires             = 0
+control + employee binding   = present / exact
+agents.resume                = absent
+Human Send                   = OFF
+Gateway outbound             = OFF
+MEDICSPRO outbound attempts  = 0
+```
+
+v916 resolves the old execution-adapter/bridge blocker from ADR 0116 but does not replace the Wandora activation boundary. Native Paperclip `agents.resume` remains a distinct capability from `agents.managed`; resume converges the provider lifecycle to `idle` and does not request a wakeup. Existing managed-agent reconciliation does not force an already resumed agent back to paused.
+
+The remaining blockers before first real activation are deliberately narrow:
+
+1. add a company-scoped, signed Organization Adapter activation action for the fixed managed Ana and grant only the necessary `agents.resume` capability; it must never expose arbitrary provider agent IDs or call `agents.invoke`;
+2. add the Wandora owner/admin Core activation contract that revalidates the exact employee/hire/bindings, calls the adapter, reconciles Paperclip, and only then changes the Wandora projection `paused -> active`;
+3. expose customer-safe activation availability/action in the Web/read model;
+4. prove timeout/concurrency/already-idle/fail-closed paths in candidate/disposable tests without resuming MEDICSPRO Ana.
+
+ADR 0131 deliberately does **not** approve a second lifecycle engine or a new activation journal. Paperclip resume is convergent and exact provider readback can recover an ambiguous response; a new durable journal requires separate evidence.
+
+Status mapping is now explicit:
+
+```text
+Paperclip paused = lifecycle stopped
+Paperclip idle   = resumed and waiting, not running
+Wandora active   = product-eligible for authorized work
+supervised       = still governed by Wandora policy/effect boundaries
+```
+
+Human Send and Gateway outbound remain independent Wandora-owned effect gates and are not activation prerequisites.
+
+### NEXT EXECUTABLE SLICE
+
+**Customer Owner First Real Tenant Digital-Employee Activation Contract Implementation V1**
+
+Implement and qualify the minimum adapter/Core/Web contract above. Do not resume MEDICSPRO Ana, do not create a real wakeup/run, do not grant `agents.invoke`, and keep Human Send/Gateway outbound OFF.
+

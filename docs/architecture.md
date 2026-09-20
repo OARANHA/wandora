@@ -894,3 +894,44 @@ Next: **Customer Owner First Real Tenant Digital-Employee Activation Readiness R
 ADR 0116's earlier activation assumptions must be reconciled against the now-live Paperclip v2026.916.0 capability/authority map and current runtime. This is a readiness slice, not implicit authorization to resume MEDICSPRO Ana or enable external effects.
 
 Ana must remain paused + supervised, `agents.resume` absent, Human Send OFF and Gateway outbound OFF until a later separately reviewed activation execution explicitly changes that boundary.
+
+## First real digital-employee activation boundary — ADR 0131
+
+The post-v916 activation architecture keeps lifecycle authority in Paperclip while retaining customer authorization and product state in Wandora:
+
+```text
+authenticated Wandora owner/admin
+        |
+        v
+Wandora Core activation contract
+  exact tenant/employee/hire/binding checks
+        |
+        v
+company-scoped Organization Adapter
+  fixed managed catalog employee only
+  Paperclip agents.resume
+        |
+        v
+Paperclip paused -> idle
+  no wakeup implied
+        |
+        v
+provider readback/reconciliation
+        |
+        v
+Wandora paused -> active + supervised
+```
+
+The following states are intentionally different:
+
+- Paperclip `paused` = provider lifecycle stopped;
+- Paperclip `idle` = resumed and waiting for work;
+- Wandora `active` = product-eligible for authorized work;
+- Wandora `supervised` = supervision/effect policy remains in force.
+
+Activation is not work dispatch. It must not call `agents.invoke`, create a heartbeat, create a task, enable Human Send or enable Gateway outbound.
+
+The current v0.1.0 Organization Adapter still grants only `agents.managed`, `webhooks.receive` and `secrets.read-ref`, so real activation remains blocked until a separately reviewed immutable adapter artifact exposes a narrow signed managed-employee activation action with the native `agents.resume` capability.
+
+Core must reconcile Paperclip before changing its local product projection. A response lost after provider resume can be recovered by exact readback; while Wandora remains paused, the execution bridge fails closed for that employee. A new activation journal is not part of the architecture unless implementation testing proves additional durable safety state is necessary.
+
