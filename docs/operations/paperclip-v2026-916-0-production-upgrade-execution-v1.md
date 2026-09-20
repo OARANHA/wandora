@@ -159,8 +159,10 @@ Post-upgrade acceptance:
 - company config still uses `secret_ref`; active `local_encrypted` secret and required binding remain exactly one;
 - a deliberately invalid Organization Adapter signature returned `invalid_wandora_signature`; by the plugin's fixed order this occurs only after resolving/decrypting the company secret and before `managed.reconcile`, proving secret resolution without mutating the employee;
 - exactly one `wandora_mastra@0.1.0` remains registered; no compatibility-only 0.1.1 package was promoted;
-- a bounded synthetic `Wandora Internal Supervised Proof` token was minted with the exact live Paperclip `createLocalAgentJwt` implementation, accepted by `/api/agents/me`, and a tampered token returned 401;
-- the same synthetic token traversed `wandora_mastra -> Wandora Core -> deterministic Mastra` with exit code 0 and an execution ID, without creating a Paperclip wakeup or heartbeat run;
+- the final bounded proof used Paperclip's normal service path: a synthetic issue was created in `Wandora Internal Supervised Proof`, only the proof agent was temporarily resumed, and `heartbeatService.wakeup()` let Paperclip mint the run-scoped JWT internally;
+- the on-demand proof run and one timer heartbeat that fired during the brief synthetic idle window both completed `succeeded`; after drain/reconciliation the proof agent was returned to `paused`, the synthetic issue was `cancelled`, and pending proof runs were zero;
+- the successful bridge run proves the internally minted token passed Core's `/api/agents/me` verification before mapping/execution; a syntactically valid forged JWT with a false signature returned 401;
+- the proof path traversed `wandora_mastra -> Wandora Core -> deterministic Mastra` successfully and the proof tenant's historical outbound-attempt count remained unchanged at 4;
 - unknown Paperclip company mapping remains absent/fail-closed; the Core resolver itself is unchanged by this Paperclip-only upgrade;
 - Human Send and Gateway outbound remain OFF.
 
