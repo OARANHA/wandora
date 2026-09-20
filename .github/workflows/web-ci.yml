@@ -46,6 +46,10 @@ jobs:
             --label org.opencontainers.image.revision="$GITHUB_SHA" \
             --label wandora.candidate="wandora-web-reviewed-bridge-v1" \
             -t "$WEB_IMAGE" apps/web
+          docker run --rm --entrypoint sh "$WEB_IMAGE" -lc '
+            grep -REq "sb_publishable_[A-Za-z0-9_-]{20,}|eyJ[A-Za-z0-9_-]{20,}\\.[A-Za-z0-9_-]{20,}\\.[A-Za-z0-9_-]{20,}" /usr/share/nginx/html/assets
+          '
+          echo "WANDORA_WEB_AUTH_PUBLIC_CONFIG_V1_OK"
           docker run -d --rm --name "$CORE_CONTAINER" --network "$CORE_NETWORK" --network-alias wandora-core "$CORE_NODE" \
             node --input-type=module -e "import {createServer} from 'node:http'; createServer(async(req,res)=>{let body=''; for await (const chunk of req) body+=chunk; res.setHeader('content-type','application/json'); res.end(JSON.stringify({path:req.url,method:req.method,auth:req.headers.authorization??'',cookie:req.headers.cookie??'',idempotency:req.headers['idempotency-key']??'',body}));}).listen(8788,'0.0.0.0')" >/dev/null
           docker run -d --rm --name "$WEB_CONTAINER" --network "$CORE_NETWORK" \
