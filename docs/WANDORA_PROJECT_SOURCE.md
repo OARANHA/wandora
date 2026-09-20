@@ -1274,6 +1274,52 @@ Update this file when architecture authority, REAL customer surfaces, live topol
 
 Keep it compact. Detailed history belongs in ADRs/evidence docs.
 
+## Paperclip v2026.916.0 production-upgrade preflight checkpoint
+
+ADR 0129 closes the **Production Upgrade Preflight V1** as GREEN while keeping production on v2026.831.1.
+
+Frozen candidate:
+
+```text
+v2026.916.0
+dffc2b3ca1b9e88fa21cb17493083e682dffd1ca
+sha256:4fb5073ff0b09ea50527cfeafe5bcaff4f9dae2b0f508fd06c0dc58661735ced
+```
+
+Fresh recovery set:
+
+```text
+/home/wandora-admin/backups/
+paperclip-v916-production-upgrade-preflight-v1-20260920T004119Z/
+```
+
+It contains the new official Paperclip backup + matching live `master.key`, a PostgreSQL 18.1 schema-faithful `pg_dump -Fc`, frozen v831 Compose/bridge wrapper, adapter store, `wandora_mastra`, Organization Adapter and image provenance.
+
+The fresh custom dump was actually restored and normalized schema equality with live was proven.
+
+Exact v831 rollback image alias:
+
+```text
+wandora/paperclip:rollback-v2026.831.1-pre-v916-20260920T004119Z
+-> sha256:76b91ae947fe3b379223a1f4bff80318595daf31f12904927c7e88cba56486b1
+```
+
+Production remains unchanged:
+
+```text
+Paperclip          = v2026.831.1
+migration ledger   = 229 / max 229
+Ana                = paused + supervised
+agents.resume      = absent
+Human Send         = OFF
+Gateway outbound   = OFF
+outbound attempts  = 0
+```
+
+The first committed v916 migration is the boundary after which image-only rollback is forbidden. Exact execution/rollback order is frozen in `docs/operations/paperclip-v2026-916-0-production-upgrade-execution-v1.md`.
+
+Next executable slice: **Paperclip v2026.916.0 Production Upgrade Execution V1**. It must reconcile drift and perform a second adversarial review before any live migration/recreate.
+
 ## Canonical documents
 
 - `AGENTS.md`
@@ -1284,6 +1330,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - `docs/MASTRA_CAPABILITY_MAP.md`
 - `docs/CAPABILITY_COLLISION_MATRIX.md`
 - `docs/operations/paperclip-v2026-916-0-disposable-upgrade-compatibility-proof-v1.md`
+- `docs/operations/paperclip-v2026-916-0-production-upgrade-execution-v1.md`
 - ADR 0034 — state-first continuity
 - ADR 0036 — capability authority/reuse gate
 - ADR 0037 — Paperclip/Wandora/Mastra execution bridge
@@ -1359,6 +1406,7 @@ Keep it compact. Detailed history belongs in ADRs/evidence docs.
 - ADR 0126 — Paperclip + Mastra Capability Canonicalization, Authority Collision Audit + Paperclip Upgrade Preflight V1
 - ADR 0127 — Paperclip v2026.916.0 Disposable Upgrade Compatibility Proof V1 Partial Checkpoint
 - ADR 0128 — Paperclip v2026.916.0 Disposable Upgrade Compatibility Proof V1 Complete
+- ADR 0129 — Paperclip v2026.916.0 Production Upgrade Preflight V1
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
