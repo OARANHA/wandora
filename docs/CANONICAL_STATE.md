@@ -2522,33 +2522,79 @@ Upstream `@mastra/core@1.67.0` is not required by the Paperclip upgrade proof an
 
 Memory, Observability, Evals, workspaces/sandbox and richer runtime skills remain separately reviewed adoption slices. `MASTRA_TELEMETRY_DISABLED=true` remains the current live default.
 
-## NEXT EXECUTABLE SLICE
+## Paperclip v2026.916.0 Production Upgrade Preflight — GREEN / STOP before mutation
 
-Next: **Paperclip v2026.916.0 Production Upgrade Preflight V1**.
+ADR 0129 freezes the real production rollback and execution contract without upgrading Paperclip.
 
-Required start:
+Candidate remains exactly:
 
 ```text
-REAL NOW / current main / current runtime
--> revalidate upstream target and exact candidate provenance
--> re-attest wandora_mastra compatibility for v916
--> capture fresh official Paperclip backup + matching master.key
--> capture fresh protected schema-faithful PostgreSQL 18.1 pg_dump -Fc
--> hash/custody both rollback artifacts
--> freeze exact v831 image + wrapper + adapter store + both Wandora extension packages
--> define production migration/recreation order + rollback trigger
--> independently prove Ana paused / agents.resume absent / outbound OFF
--> STOP before production mutation
+tag    = v2026.916.0
+commit = dffc2b3ca1b9e88fa21cb17493083e682dffd1ca
+digest = sha256:4fb5073ff0b09ea50527cfeafe5bcaff4f9dae2b0f508fd06c0dc58661735ced
 ```
 
-This preflight does **not** authorize:
+Fresh protected recovery set:
 
-- production Paperclip upgrade;
-- Mastra upgrade;
-- `agents.resume`;
-- Ana activation/resume;
-- Human Send;
-- Gateway outbound.
+```text
+/home/wandora-admin/backups/
+paperclip-v916-production-upgrade-preflight-v1-20260920T004119Z/
+
+official backup =
+paperclip-20260920-003950.sql.gz
+SHA-256 =
+b279ddd16aa67c76c33a47c1de649760c2d2061e6e37f22294209049471867d0
+
+schema-faithful PostgreSQL 18.1 pg_dump -Fc SHA-256 =
+6e830685e30969a34826f37b212bf25eae19395b632845f40b4142e28567fbbd
+
+fresh dump restore/schema equality =
+8f60a06a73283d9d774cff4ef5f5c9fb5131b025b2d8db752d9bcbcce3c5c612
+= GREEN
+```
+
+The copied `master.key` is byte-identical to live. The protected Compose base, bridge overlay/wrapper, `adapter-plugins.json`, current `wandora_mastra` package and current Organization Adapter package are byte-identical to live.
+
+Exact v831 image availability is frozen with:
+
+```text
+wandora/paperclip:rollback-v2026.831.1-pre-v916-20260920T004119Z
+-> sha256:76b91ae947fe3b379223a1f4bff80318595daf31f12904927c7e88cba56486b1
+```
+
+The current `wandora_mastra@0.1.0` runtime bytes remain v916-qualified by ADR 0128. Its `compatibility.json` still pins v831.1 and is now explicitly classified as stale provenance metadata. Before a re-attested package is promoted, emit a new immutable compatibility-only artifact (recommended `0.1.1`) with the v916 image/commit while keeping `index.mjs` byte-identical and `adapterType=wandora_mastra`.
+
+Production remains:
+
+```text
+Paperclip                = v2026.831.1 / healthy / restart 0
+migration ledger         = 229 / max 229
+Ana / Wandora            = exactly 1 / paused + supervised
+Ana / Paperclip          = exactly 1 / paused / wandora_mastra
+Organization Adapter     = exactly 1 / ready
+agents.resume            = absent
+Ana wakeups / runs       = 0 / 0
+Human Send               = OFF
+Gateway outbound         = OFF
+MEDICSPRO outbound       = 0
+production upgrade       = NOT EXECUTED
+```
+
+Irreversibility rule:
+
+> once the first v916 migration from `0231..0279` commits, image-only rollback is forbidden; rollback requires the protected schema-faithful pre-upgrade database restore plus matching `master.key` and exact frozen v831 runtime/extensions.
+
+The exact future sequence and rollback decision tree are frozen in:
+
+`docs/operations/paperclip-v2026-916-0-production-upgrade-execution-v1.md`.
+
+## NEXT EXECUTABLE SLICE
+
+Next: **Paperclip v2026.916.0 Production Upgrade Execution V1**.
+
+It must re-run REAL NOW and prove no drift before any effect. If Paperclip durable state changed after the preflight backup, stop and deliberately refresh both rollback formats before upgrading; never reuse a stale capture or repeat a backup merely because a prior response was lost.
+
+The execution must keep Ana paused + supervised, keep `agents.resume` absent, keep Human Send/Gateway outbound OFF, and must not bundle a Mastra upgrade or Organization Adapter behavior change.
 
 ## Operational safety
 
