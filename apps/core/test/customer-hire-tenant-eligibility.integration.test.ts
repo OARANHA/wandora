@@ -223,5 +223,9 @@ test('completed catalog operation projects already-hired and preserves canonical
       available: false,
       state: 'unavailable',
     },
+    work: {
+      available: false,
+      state: 'unavailable',
+    },
   }]);
 });
