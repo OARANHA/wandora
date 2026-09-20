@@ -1100,3 +1100,67 @@ The current Organization Adapter v0.2.0 has lifecycle capabilities but no issue 
 Paperclip plugin issue creation and wakeup are separate effects. Therefore the Wandora admission boundary must reconcile partial success and must never blindly retry an ambiguous create or dispatch. Minimum durable Wandora state is permitted only for request idempotency/reconciliation; Paperclip remains the task lifecycle authority.
 
 Until a customer-safe work-admission contract and supervised result projection exist, first real MEDICSPRO work remains blocked. Operator Paperclip UI/API, synthetic fixtures, timer heartbeats, direct `agents.invoke` and manual demonstration wakeups are not legitimate customer work sources.
+
+
+## First legitimate work implementation boundary — ADR 0137
+
+ADR 0137 turns the ADR 0136 authority decision into a dormant repository implementation without changing the control-plane ownership model.
+
+```text
+CUSTOMER OWNER / ADMIN
+  |
+  v
+WANDORA WORK ADMISSION
+  human session
+  tenant/role authorization
+  exact active + supervised employee
+  Idempotency-Key
+  immutable title/description
+  |
+  v
+WANDORA PRIVATE INTEGRATION RECEIPT
+  request identity
+  provider dispatch reconciliation
+  exact run/result receipt only
+  X not task lifecycle
+  |
+  v
+ORGANIZATION ADAPTER v0.3
+  signed company-scoped employee-work
+  issues.read/create/wakeup
+  plugin.state read/write
+  X no agents.invoke
+  |
+  v
+PAPERCLIP
+  one durable issue with Wandora originId
+  one fail-closed dispatch receipt
+  authoritative wakeup/run
+  |
+  v
+wandora_mastra@0.2.0
+  extracts opaque Wandora work correlation
+  strips internal marker from task content
+  |
+  v
+CORE EXECUTION BRIDGE
+  run identity + tenant + employee + work receipt
+  |
+  v
+AGENT RUNTIME / MASTRA
+  title + description only
+  |
+  v
+SUPERVISED INTERNAL RESULT
+  |
+  v
+WANDORA CUSTOMER PROJECTION
+  |
+  STOP BEFORE EXTERNAL EFFECT
+```
+
+A lost/ambiguous provider response must fail closed. The client may retry only the same stable Wandora request. A plugin-side `dispatching` receipt is not automatically retried because the wakeup may already have occurred.
+
+The runtime capability is disabled by default and requires the separate work overlay plus migration-016 readiness. Repository merge cannot activate it.
+
+Human Send and Gateway outbound remain independent authority boundaries and are not implied by successful work execution.
