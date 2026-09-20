@@ -2912,8 +2912,11 @@ ADR 0137 accepts the repository implementation of the customer-safe first-work c
 Final qualified implementation head:
 
 ```text
-PR #188 head = 21ba162b463dbdeb6be3c84419c46afa0d465335
-CI           = 7 / 7 GREEN
+PR #188 code-bearing head = 21ba162b463dbdeb6be3c84419c46afa0d465335
+PR #188 final head        = 843b4e5a7f53e837e826929856cc2924b36cac8b
+PR #188 CI                = 7 / 7 GREEN
+PR #188                   = merged
+main after merge          = 97290031e1aa567e6207c88873fa92d2ff3698ba
 ```
 
 Accepted repository boundary:
@@ -2961,3 +2964,19 @@ Repository acceptance does **not** authorize production promotion.
 **Customer Owner First Real Tenant Active Digital-Employee First Legitimate Work Production Preflight V1 — NO EFFECT**
 
 Reconcile post-merge main and exact immutable candidate provenance, prove migration-016 rollback/readiness, live plugin/adapter promotion plan and customer-safe stop boundary. Do not create MEDICSPRO work or enable any outbound effect.
+
+
+## Post-merge checkpoint — first legitimate work contract implementation V1
+
+The repository implementation slice is closed.
+
+```text
+PR #188 final head = 843b4e5a7f53e837e826929856cc2924b36cac8b
+CI                 = 7 / 7 GREEN
+merge method       = squash
+main               = 97290031e1aa567e6207c88873fa92d2ff3698ba
+```
+
+No production artifact was promoted by this merge. Fresh post-merge read-only checks kept Core/Web/Paperclip/Gateway healthy, MEDICSPRO Ana exactly one and `active + supervised`, migration 016 absent, customer work flag absent/OFF and outbound attempts zero. The last successful exact Paperclip readback immediately before merge remained `idle / wandora_mastra` with zero assigned issues, wakeups, heartbeat runs, routine runs, task sessions and runtime usage.
+
+Do not execute first MEDICSPRO work from this checkpoint. The next slice is **Customer Owner First Real Tenant Active Digital-Employee First Legitimate Work Production Preflight V1 — NO EFFECT**.
