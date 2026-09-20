@@ -107,3 +107,42 @@ test('Customer Digital-Employee Hire candidate becomes ready when adapter and el
   assert.deepEqual(ready, { ready: true });
   assert.equal(call, 3);
 });
+
+
+test('Customer work readiness fails closed until migration 016 journal is accessible', async () => {
+  let call = 0;
+  const pool = {
+    query: async (sql: string) => {
+      call += 1;
+      if (call === 1) {
+        return { rows: [{ current_user: 'wandora_core_runtime', organization_scope: null }] };
+      }
+      assert.match(sql, /digital_employee_work_operations/);
+      throw new Error('relation missing');
+    },
+  } as unknown as Pool;
+
+  const ready = await createRuntimeReadinessChecker(pool, { customerWorkEnabled: true })();
+  assert.deepEqual(ready, {
+    ready: false,
+    reason: 'customer-work-database-boundary-unavailable',
+  });
+  assert.equal(call, 2);
+});
+
+test('Customer work readiness becomes green when migration 016 boundary is accessible', async () => {
+  let call = 0;
+  const pool = {
+    query: async () => {
+      call += 1;
+      if (call === 1) {
+        return { rows: [{ current_user: 'wandora_core_runtime', organization_scope: null }] };
+      }
+      return { rows: [] };
+    },
+  } as unknown as Pool;
+
+  const ready = await createRuntimeReadinessChecker(pool, { customerWorkEnabled: true })();
+  assert.deepEqual(ready, { ready: true });
+  assert.equal(call, 2);
+});
