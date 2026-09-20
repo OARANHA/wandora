@@ -589,6 +589,12 @@ export class OrganizationAdapterService {
     return this.scopedWrite(args.organizationId, async (client) => {
       await this.requireOwnerOrAdmin(client, args.organizationId, args.actorUserId);
 
+      const activationLock = await client.query<{ employee_status: 'active' | 'paused' | null }>(
+        `SELECT wandora_private.lock_catalog_digital_employee_activation_v1($1, $2)
+                AS employee_status`,
+        [args.organizationId, args.employeeId],
+      );
+
       const employeeResult = await client.query<{
         employee_name: string;
         employee_role: 'commercial-assistant';
@@ -600,12 +606,25 @@ export class OrganizationAdapterService {
                 status::text AS employee_status,
                 autonomy_mode::text AS employee_autonomy
            FROM wandora.digital_employees
-          WHERE organization_id = $1 AND id = $2
-          FOR UPDATE`,
+          WHERE organization_id = $1 AND id = $2`,
         [args.organizationId, args.employeeId],
       );
       const employee = employeeResult.rows[0];
       if (!employee) throw new HumanNotFoundError();
+
+      const lockedStatus = activationLock.rows[0]?.employee_status;
+      if (!lockedStatus) {
+        throw new DigitalEmployeeActivationError(
+          'employee-not-activatable',
+          'Digital employee activation preconditions are not satisfied.',
+        );
+      }
+      if (lockedStatus !== employee.employee_status) {
+        throw new OrganizationAdapterConflictError(
+          'state-inconsistent',
+          'Digital employee activation lock state changed unexpectedly.',
+        );
+      }
 
       if (employee.employee_status === 'active') {
         return {
@@ -709,16 +728,12 @@ export class OrganizationAdapterService {
         throw new OrganizationAdapterConflictError('state-inconsistent', 'Provider activation correlation is inconsistent.');
       }
 
-      const updated = await client.query<{ status: 'active' }>(
-        `UPDATE wandora.digital_employees
-            SET status = 'active', updated_at = now()
-          WHERE organization_id = $1
-            AND id = $2
-            AND status = 'paused'
-          RETURNING status::text AS status`,
+      const finalized = await client.query<{ activated: boolean }>(
+        `SELECT wandora_private.activate_catalog_digital_employee_projection_v1($1, $2)
+                AS activated`,
         [args.organizationId, args.employeeId],
       );
-      if (updated.rowCount !== 1) {
+      if (finalized.rows[0]?.activated !== true) {
         throw new DigitalEmployeeActivationError(
           'provider-activation-uncertain',
           'Provider is converged but Wandora activation finalization did not commit.',

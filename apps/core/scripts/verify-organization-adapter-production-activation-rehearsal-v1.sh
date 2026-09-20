@@ -8,6 +8,7 @@ CORE_STACK="$ROOT/infra/stacks/core"
 PAPERCLIP_STACK="$ROOT/infra/stacks/paperclip/compose.yaml"
 PLUGIN_MANIFEST="$ROOT/spikes/paperclip-organization-adapter-private-client-v1/manifest.js"
 PLUGIN_WORKER="$ROOT/spikes/paperclip-organization-adapter-private-client-v1/worker.js"
+CANDIDATE_PLUGIN_ROOT="$ROOT/integrations/paperclip/plugins/organization-adapter-v1"
 PG_IMAGE="${POSTGRES_IMAGE:-supabase/postgres:17.6.1.136}"
 NODE_IMAGE="${NODE_IMAGE:-node:22.23.2-bookworm-slim@sha256:83f487e0a63425e5b4d146fb5e5be574bcbe1b7b843d3ebafdd95eaf7767a7e5}"
 SUFFIX="$$"
@@ -41,6 +42,20 @@ assert_static_activation_contract() {
   grep -Fq 'ctx.secrets.resolve(ref, { companyId, configPath: "hmacSecret" })' "$PLUGIN_WORKER"
   grep -Fq 'pluginContext.agents.managed.reconcile(catalogKey, companyId)' "$PLUGIN_WORKER"
 
+  # The live v0.1 adapter above remains the production baseline. The candidate
+  # v0.2 artifact is separately qualified here and must narrow resume to the
+  # fixed managed employee without adding invoke/work authority.
+  grep -Fq "version: '0.2.0'" "$CANDIDATE_PLUGIN_ROOT/src/manifest.ts"
+  grep -Fq "'agents.resume'" "$CANDIDATE_PLUGIN_ROOT/src/manifest.ts"
+  grep -Fq "endpointKey: 'employee-activate'" "$CANDIDATE_PLUGIN_ROOT/src/manifest.ts"
+  grep -Fq 'activateManagedCatalogEmployee' "$CANDIDATE_PLUGIN_ROOT/src/worker.ts"
+  grep -Fq 'agents.managed.get(CATALOG_KEY, companyId)' "$CANDIDATE_PLUGIN_ROOT/src/activation.ts"
+  grep -Fq 'agents.resume(current.agentId, companyId)' "$CANDIDATE_PLUGIN_ROOT/src/activation.ts"
+  if grep -R -Fq 'agents.invoke' "$CANDIDATE_PLUGIN_ROOT/src"; then
+    echo 'organization_adapter_activation_candidate_must_not_invoke_work' >&2
+    exit 1
+  fi
+
   test -f "$CORE/src/runtime/organization-adapter.ts"
   grep -Fq 'createPaperclipOrganizationAdapterFileSecretResolver' "$CORE/src/runtime/organization-adapter.ts"
   grep -Fq 'createPaperclipOrganizationAdapterProvider' "$CORE/src/runtime/organization-adapter.ts"
@@ -69,6 +84,9 @@ assert_static_activation_contract() {
   fi
   test -f "$CORE_STACK/compose.human-digital-employee-hire.yaml"
   grep -Fq 'WANDORA_HUMAN_DIGITAL_EMPLOYEE_HIRE_ENABLED: "true"' "$CORE_STACK/compose.human-digital-employee-hire.yaml"
+  test -f "$CORE_STACK/compose.human-digital-employee-activation.yaml"
+  grep -Fq 'WANDORA_HUMAN_DIGITAL_EMPLOYEE_ACTIVATION_ENABLED: "true"' "$CORE_STACK/compose.human-digital-employee-activation.yaml"
+  grep -Fq 'WANDORA_ORGANIZATION_ADAPTER_ACTIVATION_WEBHOOK_URL:' "$CORE_STACK/compose.human-digital-employee-activation.yaml"
 
   # Base runtime remains disabled unless the candidate overlay is explicitly
   # selected; no Organization Adapter env belongs in the base stack.
@@ -78,6 +96,10 @@ assert_static_activation_contract() {
   fi
   if grep -Fq 'WANDORA_HUMAN_DIGITAL_EMPLOYEE_HIRE_ENABLED' "$CORE_STACK/compose.yaml"; then
     echo 'organization_adapter_rehearsal_base_stack_must_not_enable_customer_hire' >&2
+    exit 1
+  fi
+  if grep -Fq 'WANDORA_HUMAN_DIGITAL_EMPLOYEE_ACTIVATION_ENABLED' "$CORE_STACK/compose.yaml"; then
+    echo 'organization_adapter_rehearsal_base_stack_must_not_enable_customer_activation' >&2
     exit 1
   fi
 }
@@ -195,7 +217,8 @@ assert_static_activation_contract
 
 # Reuse the already accepted composed verifier for the success path. It proves
 # baseline -> migration 010 inert verifier -> migration 011 service verifier ->
-# DB/service/custody/signed-client behavior, including uncertain frozen retry.
+# migration 015 least-privilege activation projection -> DB/service/custody/signed-client
+# behavior, including uncertain frozen retry and no direct employee UPDATE privilege.
 bash "$CORE/scripts/verify-organization-adapter-service-v1.sh"
 
 # Make custody, config, candidate wiring and readiness fail-closed evidence
