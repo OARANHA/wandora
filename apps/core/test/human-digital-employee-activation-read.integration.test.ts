@@ -18,6 +18,7 @@ const verifier: HumanTokenVerifier={async verifyAuthorization(){return {subject:
 
 async function reset(){
   await fixturePool.query(`TRUNCATE
+    wandora_private.digital_employee_work_operations,
     wandora_private.digital_employee_catalog_hire_eligibility,
     wandora_private.digital_employee_provider_bindings,
     wandora_private.digital_employee_hire_operations,
@@ -38,12 +39,28 @@ async function reset(){
 test('backend exposes activation only for exact locally ready paused employee and never exposes provider ids', async()=>{
   await reset();
   const session=new HumanSupervisionReadService(runtimePool,verifier);
-  const service=new HumanDigitalEmployeesReadService(runtimePool,session,true,true);
+  const service=new HumanDigitalEmployeesReadService(runtimePool,session,true,true,true);
   const view=await service.getDigitalEmployeesView('Bearer valid',ORG);
   assert.deepEqual(view.items[0]?.activation,{available:true,state:'available'});
+  assert.deepEqual(view.items[0]?.work,{available:false,state:'unavailable'});
   assert.equal(JSON.stringify(view).includes(COMPANY),false);
   assert.equal(JSON.stringify(view).includes('managed:v1:'),false);
   await fixturePool.query(`DELETE FROM wandora_private.digital_employee_provider_bindings WHERE organization_id=$1`,[ORG]);
   const unavailable=await service.getDigitalEmployeesView('Bearer valid',ORG);
   assert.deepEqual(unavailable.items[0]?.activation,{available:false,state:'unavailable'});
+});
+
+test('work availability appears only for owner/admin active supervised employee when runtime gate is enabled', async()=>{
+  await reset();
+  await fixturePool.query(`UPDATE wandora.digital_employees SET status='active' WHERE id=$1`,[EMP]);
+  const session=new HumanSupervisionReadService(runtimePool,verifier);
+  const enabled=new HumanDigitalEmployeesReadService(runtimePool,session,true,true,true);
+  const view=await enabled.getDigitalEmployeesView('Bearer valid',ORG);
+  assert.deepEqual(view.items[0]?.work,{available:true,state:'available'});
+  assert.equal(JSON.stringify(view).includes(COMPANY),false);
+  assert.equal(JSON.stringify(view).includes('managed:v1:'),false);
+
+  const disabled=new HumanDigitalEmployeesReadService(runtimePool,session,true,true,false);
+  const gated=await disabled.getDigitalEmployeesView('Bearer valid',ORG);
+  assert.deepEqual(gated.items[0]?.work,{available:false,state:'unavailable'});
 });
