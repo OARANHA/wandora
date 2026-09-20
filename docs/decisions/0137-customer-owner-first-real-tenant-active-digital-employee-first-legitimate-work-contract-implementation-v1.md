@@ -1,6 +1,6 @@
 # ADR 0137 — Customer Owner First Real Tenant Active Digital-Employee First Legitimate Work Contract Implementation V1
 
-- Status: Implementation locally qualified — PR CI pending / no production effect
+- Status: Accepted — implementation qualified / production dormant
 - Date: 2026-09-20
 - Builds on: ADR 0036, ADR 0037, ADR 0126, ADR 0135, ADR 0136
 - Scope: customer-safe admission of one-off supervised internal work for an already-active managed digital employee
@@ -300,7 +300,7 @@ The first work contract ends at a customer-reviewable internal result. Human Sen
 
 ## Validation required before acceptance
 
-This ADR remains **Under qualification** until PR CI proves:
+Acceptance required the final PR head to prove:
 
 1. Core typecheck/build/tests;
 2. migration 016 + verifier + idempotent replay on disposable PostgreSQL;
@@ -353,7 +353,7 @@ Evidence on the final implementation line before PR CI refresh:
   - if hard-link staging partially fails, the partial target is deleted before full-copy fallback;
   - this prevents a nested/incomplete pnpm tree and preserves `server/node_modules/tsx`.
 
-These proofs qualify the implementation candidate locally. **Acceptance/merge still requires a fresh all-GREEN GitHub PR workflow set for the final head.**
+These proofs qualified the implementation candidate locally. The final implementation head `21ba162b463dbdeb6be3c84419c46afa0d465335` then completed the full GitHub PR workflow set **7/7 GREEN**: Core Candidate Artifact, Organization Adapter Plugin CI, Messaging Gateway CI, Core CI, Platform Admin CI, Web CI and Paperclip Mastra Adapter CI.
 
 ## Production boundary
 
@@ -370,3 +370,55 @@ Gateway outbound                 = OFF
 ```
 
 A separately reviewed production preflight is required before promotion.
+
+
+## Final acceptance readback
+
+Read-only production reconciliation after the final 7/7 GREEN workflow set proved that qualification introduced no live customer work or external effect:
+
+```text
+MEDICSPRO Wandora Ana        = exactly 1 / active + supervised
+MEDICSPRO Paperclip Ana      = exactly 1 / idle / wandora_mastra
+assigned Paperclip issues    = 0
+wakeup requests              = 0
+heartbeat runs               = 0
+routine runs                 = 0
+task sessions                = 0
+runtime session / last run   = null / null
+runtime tokens / cost        = 0 / 0
+MEDICSPRO outbound attempts  = 0
+migration 016 table live     = absent
+customer work runtime flag   = absent / OFF
+Human Send                   = OFF
+Gateway outbound             = OFF
+critical Core/Web/Paperclip  = healthy
+```
+
+The live Core/Web remain the previously activated customer-owner builds and the live Paperclip Organization Adapter remains the pre-work authority version. No candidate work artifact was promoted by this implementation slice.
+
+## Acceptance outcome
+
+```text
+FIRST LEGITIMATE WORK CONTRACT IMPLEMENTATION V1
+= ACCEPTED
+
+PR #188 final implementation head
+= 21ba162b463dbdeb6be3c84419c46afa0d465335
+
+PR workflow set
+= 7 / 7 GREEN
+
+PRODUCTION WORK AUTHORITY
+= DORMANT / NOT PROMOTED
+
+FIRST MEDICSPRO WORK
+= NOT CREATED
+```
+
+Merging this implementation is a repository change only. It does not authorize migration 016, Organization Adapter v0.3, `wandora_mastra@0.2.0`, the customer-work runtime flag or any MEDICSPRO work execution.
+
+## Next executable slice
+
+**Customer Owner First Real Tenant Active Digital-Employee First Legitimate Work Production Preflight V1 — NO EFFECT**
+
+That preflight must reconcile the post-merge main, exact immutable candidate artifacts, migration-016 backup/rollback strategy, live plugin/adapter provenance, runtime overlays, customer UX/readiness and the same zero-work production baseline. It must not apply migration 016, promote the plugin/adapter, enable the work gate, create an issue/wakeup/run or enable Human Send/Gateway outbound.
