@@ -110,3 +110,25 @@ A Paperclip approval/connection grant or a Mastra tool hook/skill/signal never a
 
 Paperclip Connections is the leading specialist candidate for organizational connection/grant authority. Do not introduce Mastra `@mastra/connect` or a new Wandora credential/grant subsystem as a competing authority without a superseding ADR.
 
+
+
+## Customer-owner one-off work admission — ADR 0137
+
+For the first legitimate active-employee work contract:
+
+| Capability | Authority | Wandora rule |
+| --- | --- | --- |
+| customer work intent | Wandora | authenticated owner/admin only |
+| tenant/employee authorization | Wandora | exact tenant + active/supervised employee |
+| stable request idempotency | Wandora | minimum private integration receipt |
+| durable issue/task lifecycle | Paperclip | reuse; do not clone |
+| assignment + wakeup/run | Paperclip | reuse through company-scoped adapter |
+| provider-side dispatch receipt | Paperclip plugin.state | narrow fail-closed receipt only |
+| model/workflow execution | Mastra via existing Agent Runtime | reuse |
+| exact run identity | Paperclip asserts / Wandora verifies | existing bridge |
+| supervised result projection | Wandora | customer-safe projection only |
+| external message/action effect | Wandora | separate Human Send/Gateway gates |
+
+Approved candidate Organization Adapter authority for this contract is limited to `issues.read`, `issues.create`, `issues.wakeup`, `plugin.state.read` and `plugin.state.write` in addition to the already-approved lifecycle/webhook/secret-ref capabilities. `agents.invoke` remains forbidden.
+
+The migration-016 journal is explicitly **integration-safety state**, not a task engine. It may store the stable work request, provider/run correlation and supervised result receipt, but Paperclip remains authority for organizational task status, assignment, dependencies, recurrence and run lifecycle.
