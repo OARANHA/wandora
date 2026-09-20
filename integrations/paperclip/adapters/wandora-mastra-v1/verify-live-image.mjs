@@ -41,7 +41,7 @@ const result = await adapter.execute({
       id: 'issue-proof-1',
       identifier: 'PROOF-1',
       title: 'Qualificar contato',
-      description: 'Entender a necessidade.',
+      description: '<!-- wandora-work-v1:11111111-1111-4111-8111-111111111111 -->\nEntender a necessidade.',
       workMode: 'standard',
     },
     wakeReason: 'issue_assigned',
@@ -52,6 +52,10 @@ const result = await adapter.execute({
 
 assert.equal(result.exitCode, 0);
 assert.equal(result.resultJson?.executionId, 'exec-live-image-proof');
+const reviewedBody = JSON.parse(String(request.init.body));
+assert.equal(reviewedBody.task.workId, '11111111-1111-4111-8111-111111111111');
+assert.equal(reviewedBody.task.description, 'Entender a necessidade.');
+assert.equal(String(request.init.body).includes('wandora-work-v1:'), false);
 assert.equal(String(request.init.body).includes('must-not-cross'), false);
 assert.equal(String(request.init.body).includes('opaque-proof-run-token'), false);
 assert.equal(request.init.headers['x-wandora-paperclip-run-token'], 'opaque-proof-run-token');
