@@ -1203,42 +1203,37 @@ Key reuse decisions:
 - Paperclip Connections is the leading candidate for organizational connection/grant authority;
 - Mastra `@mastra/connect` is not adopted as a competing authority.
 
-Production remains on Paperclip `v2026.831.1` and Mastra Core `1.66.0`.
+Production now runs Paperclip `v2026.916.0` at `dffc2b3ca1b9e88fa21cb17493083e682dffd1ca` / `sha256:4fb5073ff0b09ea50527cfeafe5bcaff4f9dae2b0f508fd06c0dc58661735ced`. Mastra Core remains `1.66.0`.
 
-ADRs 0127–0128 completed the production-derived Paperclip `v2026.916.0` disposable compatibility proof.
+ADRs 0127–0130 close the Paperclip v916 qualification, rollback preflight and production execution chain.
 
-Final result:
+Current production result:
 
 ```text
-schema-faithful live/proof equality = GREEN
-migrations 0231..0279               = GREEN
-Organization Adapter                = GREEN
-wandora_mastra                      = GREEN
-local_encrypted recovery            = GREEN
-real run-scoped JWT                 = GREEN
-Core -> Mastra deterministic E2E    = GREEN
-unknown mapping / bad HMAC          = fail-closed
-production drift                    = none
-rollback lab                        = GREEN before cleanup
-proof cleanup                       = complete
+Paperclip health/restarts = healthy / 0
+migration ledger          = 278 / max 278
+new migration rows        = 49
+startup migration files   = 0231..0279 / applied
+Organization Adapter      = 1 / ready / v0.1.0
+wandora_mastra            = 1 / v0.1.0 / testEnvironment pass
+MEDICSPRO Ana             = paused + supervised
+Paperclip Ana             = paused
+MEDICSPRO wakeups/runs    = 0 / 0
+MEDICSPRO outbound        = 0
+agents.resume             = absent
+Human Send                = OFF
+Gateway outbound          = OFF
 ```
 
-Important upgrade/rollback amendment:
-
-- Paperclip's official logical backup does not serialize PostgreSQL CHECK constraints;
-- keep using it with the matching `master.key` for canonical Paperclip logical recovery;
-- any production Paperclip upgrade must additionally capture a fresh protected PostgreSQL 18.1 schema-faithful `pg_dump -Fc` for exact rollback.
-
-The v916 candidate is now **qualified for a separate production-upgrade preflight**, not promoted.
+The retained ADR 0129 recovery set remains authoritative. Because v916 migrations committed, image-only rollback to v831 is forbidden; rollback requires the schema-faithful PostgreSQL 18.1 pre-upgrade restore + matching `master.key` + exact frozen v831 runtime/extensions.
 
 ## Next executable slice
 
-**Paperclip v2026.916.0 Production Upgrade Preflight V1.**
+**Customer Owner First Real Tenant Digital-Employee Activation Readiness Refresh V1.**
 
-Revalidate REAL NOW, re-attest `wandora_mastra` compatibility for v916, capture both rollback artifacts, freeze the exact v831 image/wrapper/adapter store/packages, define migration + rollback triggers, prove Ana remains paused and outbound remains OFF, then STOP before production mutation.
+Reconcile ADR 0116's earlier activation assumptions against the now-live Paperclip v2026.916.0 capability/authority maps and current runtime. Determine actual prerequisites before employee activation rather than adopting every new provider capability by default.
 
-Do not upgrade production, upgrade Mastra, grant `agents.resume`, activate/resume Ana, enable Human Send or enable Gateway outbound in that preflight.
-
+This is a readiness slice only. MEDICSPRO Ana must remain paused + supervised, `agents.resume` absent, Human Send OFF and Gateway outbound OFF unless a later separately reviewed activation execution explicitly changes those boundaries.
 ## Platform Admin
 
 Platform Admin remains a separate Wandora operator trust plane and is not the current priority. ADR 0033 provisioning API work remains frozen unless explicitly reprioritized.
@@ -1274,51 +1269,37 @@ Update this file when architecture authority, REAL customer surfaces, live topol
 
 Keep it compact. Detailed history belongs in ADRs/evidence docs.
 
-## Paperclip v2026.916.0 production-upgrade preflight checkpoint
+## Paperclip v2026.916.0 production-upgrade execution checkpoint
 
-ADR 0129 closes the **Production Upgrade Preflight V1** as GREEN while keeping production on v2026.831.1.
-
-Frozen candidate:
+ADR 0130 supersedes the mutable Paperclip production-version lines above.
 
 ```text
-v2026.916.0
-dffc2b3ca1b9e88fa21cb17493083e682dffd1ca
-sha256:4fb5073ff0b09ea50527cfeafe5bcaff4f9dae2b0f508fd06c0dc58661735ced
-```
+Paperclip          = v2026.916.0
+source             = dffc2b3ca1b9e88fa21cb17493083e682dffd1ca
+image ID           = sha256:4fb5073ff0b09ea50527cfeafe5bcaff4f9dae2b0f508fd06c0dc58661735ced
+health/restarts    = healthy / 0
+migration ledger  = 278 / max 278
+new migrations    = 49 / startup files 0231..0279
 
-Fresh recovery set:
+Organization Adapter = 1 / ready / v0.1.0
+wandora_mastra       = 1 / v0.1.0 / testEnvironment pass
 
-```text
-/home/wandora-admin/backups/
-paperclip-v916-production-upgrade-preflight-v1-20260920T004119Z/
-```
-
-It contains the new official Paperclip backup + matching live `master.key`, a PostgreSQL 18.1 schema-faithful `pg_dump -Fc`, frozen v831 Compose/bridge wrapper, adapter store, `wandora_mastra`, Organization Adapter and image provenance.
-
-The fresh custom dump was actually restored and normalized schema equality with live was proven.
-
-Exact v831 rollback image alias:
-
-```text
-wandora/paperclip:rollback-v2026.831.1-pre-v916-20260920T004119Z
--> sha256:76b91ae947fe3b379223a1f4bff80318595daf31f12904927c7e88cba56486b1
-```
-
-Production remains unchanged:
-
-```text
-Paperclip          = v2026.831.1
-migration ledger   = 229 / max 229
-Ana                = paused + supervised
+MEDICSPRO Ana      = paused + supervised
+Paperclip Ana      = paused
+wakeups/runs       = 0 / 0
 agents.resume      = absent
 Human Send         = OFF
 Gateway outbound   = OFF
 outbound attempts  = 0
 ```
 
-The first committed v916 migration is the boundary after which image-only rollback is forbidden. Exact execution/rollback order is frozen in `docs/operations/paperclip-v2026-916-0-production-upgrade-execution-v1.md`.
+The ADR 0129 protected recovery set remains retained. Production has crossed the migration boundary, so v831 image-only rollback is forbidden; v831 recovery requires the schema-faithful PostgreSQL 18.1 pre-upgrade restore + matching `master.key` + frozen runtime/extensions.
 
-Next executable slice: **Paperclip v2026.916.0 Production Upgrade Execution V1**. It must reconcile drift and perform a second adversarial review before any live migration/recreate.
+Post-upgrade acceptance used only the existing **Wandora Internal Supervised Proof** identity. The initial proof ran through Paperclip's normal heartbeat service so Paperclip minted the run-scoped JWT internally; the bounded on-demand run and one timer heartbeat that fired during the brief synthetic idle window both completed `succeeded`. During later chat-continuity recovery, before the already-existing PR #180 checkpoint was discovered, the same `WAN-1` proof path was invoked once more and run `3d316b82-eaa2-4ceb-a89e-f25e9263fec6` also completed `succeeded`. Final proof state is 3 succeeded runs total, agent `paused`, issue `cancelled`, pending runs/wakeups `0/0`, and proof outbound attempts unchanged at 4. A forged/tampered JWT was rejected with 401, and a live Core service check returned `UNKNOWN_MAPPING_FAIL_CLOSED=true` for an unmapped Paperclip company. The local-encrypted Organization Adapter path was proven by resolving the secret before deliberately rejecting an invalid signature. No MEDICSPRO employee or outbound effect was triggered.
+
+No `wandora_mastra` repack, Organization Adapter behavior change or Mastra upgrade was bundled.
+
+Next executable slice: **Customer Owner First Real Tenant Digital-Employee Activation Readiness Refresh V1**. It must reconcile the earlier activation preflight with v916 and the capability maps before any resume/activation.
 
 ## Canonical documents
 
@@ -1407,6 +1388,7 @@ Next executable slice: **Paperclip v2026.916.0 Production Upgrade Execution V1**
 - ADR 0127 — Paperclip v2026.916.0 Disposable Upgrade Compatibility Proof V1 Partial Checkpoint
 - ADR 0128 — Paperclip v2026.916.0 Disposable Upgrade Compatibility Proof V1 Complete
 - ADR 0129 — Paperclip v2026.916.0 Production Upgrade Preflight V1
+- ADR 0130 — Paperclip v2026.916.0 Production Upgrade Execution V1 Complete
 - current Git `main`
 - current runtime/container state when deployment facts matter
 

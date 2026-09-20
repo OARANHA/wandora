@@ -2588,13 +2588,57 @@ The exact future sequence and rollback decision tree are frozen in:
 
 `docs/operations/paperclip-v2026-916-0-production-upgrade-execution-v1.md`.
 
+## Paperclip v2026.916.0 Production Upgrade Execution V1 — COMPLETE / LIVE
+
+ADR 0130 records the production execution from `main@fa666370184d31d031d5b554153786a8b708b777`.
+
+The already-green ADR 0128 disposable proof and ADR 0129 preflight were reused rather than repeated. Immediately before mutation, the protected rollback set was revalidated and proved fresh: a PostgreSQL 18.1 restore of the protected `pg_dump -Fc` matched live across deterministic fingerprints of all 358 public base tables, and schema matched after normalizing only pg_dump's random restrict token.
+
+Production now is:
+
+```text
+Paperclip image        = wandora/paperclip:v2026.916.0
+Paperclip image ID     = sha256:4fb5073ff0b09ea50527cfeafe5bcaff4f9dae2b0f508fd06c0dc58661735ced
+Paperclip source       = dffc2b3ca1b9e88fa21cb17493083e682dffd1ca
+Paperclip health       = healthy / API status ok
+Paperclip restarts     = 0
+
+migration ledger       = 278 / max 278
+new ledger entries     = 49
+startup migration set  = 0231..0279 / applied
+
+Organization Adapter   = exactly 1 / ready / v0.1.0
+wandora_mastra         = exactly 1 / v0.1.0 / testEnvironment pass
+
+MEDICSPRO Ana/Wandora  = exactly 1 / paused + supervised
+MEDICSPRO Ana/Paperclip= exactly 1 / paused
+MEDICSPRO wakeups/runs = 0 / 0
+agents.resume          = absent
+Human Send             = OFF
+Gateway outbound       = OFF
+MEDICSPRO outbound     = 0
+```
+
+Post-upgrade validation additionally proved:
+
+- company/memberships and Organization Adapter config/bindings survived;
+- the `local_encrypted` path resolves successfully without exposing plaintext: a deliberately invalid signed webhook reached `invalid_wandora_signature`, which the fixed plugin order can reach only after secret resolution and before managed reconcile;
+- the existing **Wandora Internal Supervised Proof** identity was exercised through Paperclip's normal `heartbeatService.wakeup()` path, so Paperclip minted the run-scoped JWT internally and Core validated it through `/api/agents/me` before mapping/execution;
+- the initial bounded on-demand proof run plus one timer heartbeat that fired during the short synthetic idle window both completed `succeeded`; during later chat-continuity recovery, before the already-existing PR #180 checkpoint was discovered, the same `WAN-1` path ran once more and `3d316b82-eaa2-4ceb-a89e-f25e9263fec6` also completed `succeeded`; final cleanup returned the proof agent to `paused`, kept the proof issue `cancelled`, and left zero pending proof runs/wakeups;
+- a syntactically valid forged JWT with a false signature returned 401, while the successful proof traversed `wandora_mastra -> Core -> deterministic Mastra`; the proof tenant outbound-attempt count remained unchanged;
+- unknown Paperclip company mapping was revalidated live through the Core runtime service and returned `company-unmapped` / `UNKNOWN_MAPPING_FAIL_CLOSED=true`;
+- no compatibility-only `wandora_mastra` repack was promoted;
+- no Mastra upgrade or Organization Adapter behavior change occurred.
+
+The protected ADR 0129 recovery set and exact v831 rollback image remain retained. Because v916 migrations are now committed, image-only rollback is forbidden; any return to v831 requires the protected schema-faithful database restore plus matching `master.key` and frozen v831 runtime/extensions.
+
 ## NEXT EXECUTABLE SLICE
 
-Next: **Paperclip v2026.916.0 Production Upgrade Execution V1**.
+Next: **Customer Owner First Real Tenant Digital-Employee Activation Readiness Refresh V1**.
 
-It must re-run REAL NOW and prove no drift before any effect. If Paperclip durable state changed after the preflight backup, stop and deliberately refresh both rollback formats before upgrading; never reuse a stale capture or repeat a backup merely because a prior response was lost.
+Reconcile ADR 0116's earlier activation assumptions against the now-live Paperclip v2026.916.0 control plane and the canonical Paperclip/Mastra capability maps. Determine which safety capabilities are actual prerequisites before employee activation instead of adopting every new provider feature by default.
 
-The execution must keep Ana paused + supervised, keep `agents.resume` absent, keep Human Send/Gateway outbound OFF, and must not bundle a Mastra upgrade or Organization Adapter behavior change.
+This next slice must begin from REAL NOW and finish with MEDICSPRO Ana still paused unless a later separately reviewed activation execution explicitly authorizes resume. Human Send and Gateway outbound remain separate effect gates.
 
 ## Operational safety
 

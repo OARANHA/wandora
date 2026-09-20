@@ -24,9 +24,11 @@ cleanup() {
 trap cleanup EXIT
 
 assert_static_activation_contract() {
-  grep -Fq 'PAPERCLIP_BUILD_VERSION: v2026.831.1' "$PAPERCLIP_STACK"
-  grep -Fq 'PAPERCLIP_BUILD_COMMIT: 65ec059bde30d98c92165b24a30a540800dd1f6f' "$PAPERCLIP_STACK"
-  grep -Fq 'image: wandora/paperclip:v2026.831.1' "$PAPERCLIP_STACK"
+  # ADR 0130 promoted the already-qualified exact v916 Paperclip runtime.
+  # Keep this rehearsal pinned to the canonical production control-plane provenance.
+  grep -Fq 'PAPERCLIP_BUILD_VERSION: v2026.916.0' "$PAPERCLIP_STACK"
+  grep -Fq 'PAPERCLIP_BUILD_COMMIT: dffc2b3ca1b9e88fa21cb17493083e682dffd1ca' "$PAPERCLIP_STACK"
+  grep -Fq 'image: wandora/paperclip:v2026.916.0' "$PAPERCLIP_STACK"
 
   grep -Fq 'id: "wandora.organization-adapter-v1"' "$PLUGIN_MANIFEST"
   grep -Fq 'capabilities: ["agents.managed", "webhooks.receive", "secrets.read-ref"]' "$PLUGIN_MANIFEST"

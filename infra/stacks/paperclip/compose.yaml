@@ -4,9 +4,9 @@ services:
       context: ./source
       dockerfile: Dockerfile
       args:
-        PAPERCLIP_BUILD_VERSION: v2026.831.1
-        PAPERCLIP_BUILD_COMMIT: 65ec059bde30d98c92165b24a30a540800dd1f6f
-    image: wandora/paperclip:v2026.831.1
+        PAPERCLIP_BUILD_VERSION: v2026.916.0
+        PAPERCLIP_BUILD_COMMIT: dffc2b3ca1b9e88fa21cb17493083e682dffd1ca
+    image: wandora/paperclip:v2026.916.0
     container_name: wandora-paperclip
     restart: unless-stopped
     pids_limit: 2048

@@ -1,11 +1,11 @@
 # Paperclip Capability Map
 
-- Date: 2026-09-19
-- Production runtime: `wandora/paperclip:v2026.831.1`
-- Production source: `65ec059bde30d98c92165b24a30a540800dd1f6f`
+- Date: 2026-09-20
+- Production runtime: `wandora/paperclip:v2026.916.0`
+- Production source: `dffc2b3ca1b9e88fa21cb17493083e682dffd1ca`
 - Current upstream stable reviewed: `v2026.916.0`
 - Upstream stable source: `dffc2b3ca1b9e88fa21cb17493083e682dffd1ca`
-- Status: **Canonical capability map — upgrade is not authorized by this document**
+- Status: **Canonical capability map — production is on v2026.916.0 per ADR 0130; future upgrades are not authorized by this document**
 
 This map answers one question before Wandora adds control-plane/domain state: **does Paperclip already own or supply the capability?**
 
@@ -95,35 +95,26 @@ The audit does **not** authorize production promotion, but it narrows the expect
 
 This is source-level evidence only. Actual production-derived restore/migration/runtime proof remains mandatory.
 
-## v916 upgrade relevance
+## v916 production status
 
-The current upstream stable `v2026.916.0` is materially interesting because the Connections train is substantially more mature: runtime credentials, per-person/organization/agent grants, responsible-user routing and in-task connection repair/intents are promoted as headline capabilities.
+ADR 0128 completed the production-derived disposable compatibility gates, ADR 0129 froze the rollback contract, and ADR 0130 promoted the exact candidate to production.
 
-This is an **upgrade benefit**, not an upgrade authorization.
+Current live runtime:
 
-The following remain mandatory before production promotion:
+```text
+Paperclip = v2026.916.0
+source    = dffc2b3ca1b9e88fa21cb17493083e682dffd1ca
+digest    = sha256:4fb5073ff0b09ea50527cfeafe5bcaff4f9dae2b0f508fd06c0dc58661735ced
+health    = healthy / restart 0
+```
 
-1. exact source/image provenance;
-2. disposable restore of the current Paperclip recovery snapshot;
-3. migration proof through the current schema;
-4. company/membership/Organization Adapter/secret preservation;
-5. Ana remains exactly paused;
-6. exact `wandora_mastra` load/readback/test-environment;
-7. run-scoped JWT `/api/agents/me` proof;
-8. disposable Paperclip -> bridge -> Wandora/Mastra E2E;
-9. unknown mapping fail-closed;
-10. no unexpected wakeup/heartbeat/outbound;
-11. rollback evidence;
-12. independent post-proof production invariants.
+The production startup applied all 49 qualified migration files `0231..0279`. MEDICSPRO company/membership state, paused Ana, Organization Adapter, local-encrypted secret binding and the single `wandora_mastra@0.1.0` registration survived unchanged.
 
-ADR 0128 completed those disposable gates GREEN.
+Live post-upgrade acceptance also exercised the existing **Wandora Internal Supervised Proof** identity through the normal Paperclip heartbeat/run path. The initial on-demand run plus one timer heartbeat succeeded through `wandora_mastra -> Wandora Core -> deterministic Mastra`. During later chat-continuity recovery, before the already-existing PR #180 checkpoint was discovered, the same `WAN-1` path produced one additional succeeded run. Final proof state is 3 succeeded runs total, agent `paused`, issue `cancelled`, pending runs/wakeups `0/0`, and proof outbound attempts unchanged at 4. MEDICSPRO wakeups/runs/outbound remained `0/0/0`, and unknown provider-company mapping was revalidated live as fail-closed through the Core runtime service.
 
-This means `v2026.916.0` is **eligible for a separately reviewed production-upgrade preflight**. It does not authorize promotion.
+Paperclip's normal logical backup still does not serialize PostgreSQL CHECK constraints. The retained v831 rollback contract therefore requires both the official backup + matching `master.key` and the protected schema-faithful PostgreSQL 18.1 `pg_dump -Fc`. Since v916 migrations have committed, image-only rollback is no longer valid.
 
-Production remains pinned to `v2026.831.1` until a later reviewed production-upgrade execution explicitly changes it.
-
-The proof also established an upgrade/rollback constraint: Paperclip's normal logical backup does not serialize PostgreSQL CHECK constraints. A future production upgrade must therefore protect both the official Paperclip backup + matching `master.key` and a fresh schema-faithful PostgreSQL 18.1 `pg_dump -Fc`.
-
+This map does **not** authorize future Paperclip upgrades, Mastra upgrades, employee activation/resume or external effects. Those remain separate reviewed slices.
 ## Provider references
 
 - Paperclip releases: https://github.com/paperclipai/paperclip/releases

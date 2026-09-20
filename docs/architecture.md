@@ -829,70 +829,68 @@ This resolves the principal collisions:
 - Paperclip Decision Training is decision evidence; Mastra Evals are execution-quality evidence.
 - Paperclip Connections is the leading candidate for organizational connection/grant authority. Mastra `@mastra/connect` is not adopted as a competing authority.
 
-## Paperclip v2026.916.0 compatibility boundary — QUALIFIED / NOT PROMOTED
+## Paperclip v2026.916.0 production boundary — LIVE / GREEN
 
-ADR 0128 completed the production-derived disposable compatibility proof GREEN.
+ADRs 0128–0130 establish the full qualification, rollback and production-execution chain.
 
-Production remains pinned to:
-
-```text
-wandora/paperclip:v2026.831.1
-65ec059bde30d98c92165b24a30a540800dd1f6f
-```
-
-Qualified candidate:
+The live control plane is pinned to:
 
 ```text
-v2026.916.0
+wandora/paperclip:v2026.916.0
 dffc2b3ca1b9e88fa21cb17493083e682dffd1ca
 sha256:4fb5073ff0b09ea50527cfeafe5bcaff4f9dae2b0f508fd06c0dc58661735ced
 ```
 
-The disposable proof established:
+The production startup applied the already-qualified 49 migration files `0231..0279`. Company/membership state, the Organization Adapter, `local_encrypted` secret resolution, the paused MEDICSPRO Ana and the single `wandora_mastra@0.1.0` registration survived unchanged.
 
-- schema-faithful production-derived restore equality;
-- all 49 migrations `0231..0279` pass;
-- MEDICSPRO / owner / paused Ana survive unchanged;
-- Organization Adapter and exact copied `wandora_mastra` remain compatible;
-- `local_encrypted` secret recovery survives;
-- real v916 run-scoped JWT identity works through `/api/agents/me`;
-- the real current Wandora Core image reaches `MastraDeterministicAgentRuntime`;
-- unknown managed mappings fail closed before Mastra;
-- bad HMAC and tampered run tokens fail closed;
-- production remains unchanged and outbound dormant;
-- v831 rollback was proven in disposable state.
+The live acceptance path now proves the v916 boundary itself, not only a disposable clone:
 
-### Backup / rollback architecture amendment
+```text
+Paperclip run-scoped JWT
+  -> /api/agents/me
+  -> wandora_mastra
+  -> private Wandora Core bridge
+  -> deterministic Mastra runtime
+```
 
-Paperclip's normal logical backup does not serialize PostgreSQL CHECK constraints.
+The bounded acceptance used the existing **Wandora Internal Supervised Proof** identity through Paperclip's normal heartbeat/run path. The initial acceptance produced one on-demand run plus one timer heartbeat; both succeeded. During later chat-continuity recovery, before the already-existing PR #180 checkpoint was discovered, the same `WAN-1` path was invoked once more and a third synthetic run also succeeded. Final proof state is agent `paused`, issue `cancelled`, pending runs/wakeups `0/0`, and outbound attempts unchanged. MEDICSPRO Ana was never awakened. A forged/tampered JWT was rejected, and unknown provider-company mapping was independently rechecked through the Core service and failed closed.
 
-Therefore a future production upgrade must capture two complementary pre-upgrade database artifacts:
+### Backup / rollback architecture
+
+Paperclip's normal logical backup remains necessary for Paperclip logical recovery and the matching `master.key`, but it does not serialize PostgreSQL CHECK constraints.
+
+The retained v831 recovery contract therefore remains:
 
 ```text
 official Paperclip logical backup + matching master.key
 +
 schema-faithful PostgreSQL 18.1 pg_dump -Fc
++
+exact v831 image/wrapper/extensions
 ```
 
-The first remains canonical for Paperclip logical data + `local_encrypted` recovery. The second is required for exact schema rollback across upgrades.
+Since v916 migrations have committed in production, **image-only rollback is invalid**. A v831 rollback requires restoring the protected pre-upgrade schema-faithful database before starting the frozen v831 runtime.
 
-Compatibility qualification is not promotion. A separately reviewed production-upgrade preflight and execution are still required.
+### Adapter/package policy after upgrade
+
+The exact current `wandora_mastra@0.1.0` runtime bytes are v916-qualified and remain live exactly once. Its compatibility metadata still names v831; that is stale provenance, not a runtime incompatibility.
+
+Do not edit the hash-addressed 0.1.0 package in place. If a metadata-aligned package is ever needed, emit a new immutable compatibility-only artifact after separate review. It is not a prerequisite for the current v916 runtime.
+
+The Organization Adapter package also remains the exact already-qualified v0.1.0 bytes; no repack was bundled into the Paperclip upgrade.
 
 ## Mastra version boundary
 
 Production Core remains on `@mastra/core@1.66.0`.
 
-The reviewed upstream `1.67.0` is not required for Paperclip qualification. Memory, Observability and Evals are also not installed live and remain separate adoption slices.
+The reviewed upstream `1.67.0` is not required by the Paperclip upgrade and was not bundled. Memory, Observability and Evals remain separately reviewed adoption slices.
 
-Do not combine a Paperclip production upgrade with a Mastra dependency upgrade.
+Do not conflate Paperclip control-plane modernization with a Mastra dependency upgrade.
 
 ## NEXT EXECUTABLE SLICE
 
-Next: **Paperclip v2026.916.0 Production Upgrade Preflight V1**.
+Next: **Customer Owner First Real Tenant Digital-Employee Activation Readiness Refresh V1**.
 
-The preflight must refresh REAL NOW evidence, re-attest `wandora_mastra` compatibility for v916, capture both rollback artifacts, freeze the exact v831 image/wrapper/extensions and define the production migration + rollback trigger.
+ADR 0116's earlier activation assumptions must be reconciled against the now-live Paperclip v2026.916.0 capability/authority map and current runtime. This is a readiness slice, not implicit authorization to resume MEDICSPRO Ana or enable external effects.
 
-It must STOP before production mutation.
-
-Production Paperclip upgrade, Mastra upgrade, `agents.resume`, Ana activation/resume, Human Send and Gateway outbound remain prohibited until separately reviewed execution slices.
-
+Ana must remain paused + supervised, `agents.resume` absent, Human Send OFF and Gateway outbound OFF until a later separately reviewed activation execution explicitly changes that boundary.
