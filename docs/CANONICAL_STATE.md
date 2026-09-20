@@ -2707,3 +2707,61 @@ Human Send and Gateway outbound remain independent Wandora-owned effect gates an
 
 Implement and qualify the minimum adapter/Core/Web contract above. Do not resume MEDICSPRO Ana, do not create a real wakeup/run, do not grant `agents.invoke`, and keep Human Send/Gateway outbound OFF.
 
+
+
+## Customer Owner First Real Tenant Digital-Employee Activation Contract Implementation V1 — MERGED / PRODUCTION STILL DORMANT
+
+ADR 0132 records the completed implementation slice.
+
+Canonical Git:
+
+```text
+PR #182 head = c6d9e2d00431f475e6226b430c73af07bbd8d960
+PR #182      = merged
+main         = 60527c39ddd962367674c82db16156caa201fa35
+CI           = 7/7 GREEN
+```
+
+The repository now contains the narrow Organization Adapter v0.2.0 activation candidate, owner/admin Core activation route, customer-safe Team/Web projection and candidate migration 015 least-privilege activation finalizer.
+
+The implementation intentionally preserves the authority split:
+
+```text
+activation intent
+-> Wandora owner/admin + exact mappings
+-> company-scoped Organization Adapter
+-> Paperclip managed.get
+-> Paperclip agents.resume only if paused
+-> Paperclip managed.get == idle
+-> Wandora paused -> active projection through migration-015 helper
+
+NO agents.invoke
+NO task/wakeup/heartbeat/run
+NO Mastra call during activation
+NO Human Send/Gateway outbound enablement
+```
+
+Mastra remains the already-qualified execution dependency used only later when Paperclip has an authorized concrete run through `wandora_mastra -> Core -> Agent Runtime -> Mastra`.
+
+Fresh post-merge production readback remains:
+
+```text
+Paperclip                    = v2026.916.0 / healthy
+Core/Web/Gateway             = healthy
+MEDICSPRO Ana / Wandora      = exactly 1 / paused + supervised
+control + employee binding   = 1 / 1
+completed hire               = 1 / ana-commercial-v1
+MEDICSPRO outbound attempts  = 0
+migration 015 functions      = 0 / absent live
+activation runtime flag      = absent / OFF
+Human Send                   = OFF
+Gateway outbound             = OFF
+```
+
+**Merged does not mean live:** migration 015 is unapplied, Organization Adapter v0.2.0 is not promoted by this checkpoint, live resume authority is not changed by this checkpoint, and Ana is not activated.
+
+### NEXT EXECUTABLE SLICE
+
+**Customer Owner First Real Tenant Digital-Employee Activation Production Preflight V1 — NO EFFECT.**
+
+It must reconcile fresh runtime state, rehearse migration 015 + rollback on disposable restore, pin exact v0.2/Core/Web artifacts and rollback assets, prove zero pending MEDICSPRO wakeup/run/timer-heartbeat risk, revalidate outbound OFF, freeze the future execution order, and stop without applying/deploying/resuming anything.
