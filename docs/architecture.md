@@ -935,3 +935,39 @@ The current v0.1.0 Organization Adapter still grants only `agents.managed`, `web
 
 Core must reconcile Paperclip before changing its local product projection. A response lost after provider resume can be recovered by exact readback; while Wandora remains paused, the execution bridge fails closed for that employee. A new activation journal is not part of the architecture unless implementation testing proves additional durable safety state is necessary.
 
+
+
+## First real digital-employee activation implementation boundary — ADR 0132
+
+ADR 0132 completes the code/CI implementation of ADR 0131 without changing production.
+
+Canonical dormant implementation:
+
+```text
+Web / Team Ativar projection
+  -> exact Core POST /organizations/:organizationId/digital-employees/:employeeId/activate
+     -> authenticated owner/admin + exact employee/hire/binding reconciliation
+     -> migration-015 private activation lock helper
+     -> signed company-scoped Organization Adapter v0.2 action
+        -> agents.managed.get(fixed ana-commercial-v1)
+        -> agents.resume only if provider is paused
+        -> agents.managed.get(fixed ana-commercial-v1)
+        -> require provider idle
+     -> migration-015 private paused->active projection finalizer
+     -> return customer-safe active + supervised projection
+```
+
+The database boundary deliberately keeps `wandora_core_runtime` without direct `UPDATE` on `wandora.digital_employees`. Migration 015 supplies only tenant-scoped `SECURITY DEFINER` lock/finalize helpers for the fixed already-hired catalog employee; it adds no lifecycle table or activation journal.
+
+Activation is still not execution:
+
+```text
+Ativar -> Paperclip idle -> Wandora active
+                    X no wakeup/run
+
+later authorized work -> Paperclip run -> wandora_mastra -> Core -> Agent Runtime -> Mastra
+```
+
+The Organization Adapter candidate may hold `agents.resume` but must never use `agents.invoke` in the activation path. Human Send and Gateway outbound remain independent Wandora-owned effect gates.
+
+This implementation is canonical in Git but **dormant in production** until a separately reviewed production preflight/execution applies migration 015, promotes the exact immutable adapter/Core/Web artifacts and explicitly authorizes the real MEDICSPRO transition.
