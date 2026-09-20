@@ -38,6 +38,7 @@ function parseBody(rawBody: string): {
   paperclipAgentId: string;
   paperclipCompanyId: string;
   paperclipRunId: string;
+  workId: string | null;
   task: AssignedTask;
 } | undefined {
   let value: unknown;
@@ -53,12 +54,18 @@ function parseBody(rawBody: string): {
 
   const title = optionalText(value.task.title, 12_000);
   const description = optionalText(value.task.description, 12_000);
+  const suppliedWorkId = value.task.workId;
+  const workId = suppliedWorkId === null || suppliedWorkId === undefined
+    ? null
+    : String(suppliedWorkId).trim().toLowerCase();
   if (!title && !description) return undefined;
+  if (workId !== null && !UUID_RE.test(workId)) return undefined;
 
   return {
     paperclipAgentId,
     paperclipCompanyId,
     paperclipRunId,
+    workId,
     task: { title: title ?? description!, description },
   };
 }
@@ -117,6 +124,7 @@ export function createPaperclipExecutionHandler(deps: {
       const result = await deps.service.execute({
         identity,
         paperclipRunId: parsed.paperclipRunId,
+        workId: parsed.workId,
         task: parsed.task,
       });
       return { status: 200, body: result };
