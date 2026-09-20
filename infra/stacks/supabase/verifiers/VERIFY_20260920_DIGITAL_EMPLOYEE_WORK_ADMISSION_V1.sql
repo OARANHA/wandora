@@ -12,16 +12,52 @@ BEGIN
     'wandora_core_runtime',
     'wandora_private.digital_employee_work_operations',
     'SELECT'
-  ) OR NOT has_table_privilege(
-    'wandora_core_runtime',
-    'wandora_private.digital_employee_work_operations',
-    'INSERT'
-  ) OR NOT has_table_privilege(
-    'wandora_core_runtime',
-    'wandora_private.digital_employee_work_operations',
-    'UPDATE'
   ) THEN
-    RAISE EXCEPTION 'digital_employee_work_operations_runtime_privileges_missing';
+    RAISE EXCEPTION 'digital_employee_work_operations_runtime_select_missing';
+  END IF;
+
+  IF has_table_privilege(
+       'wandora_core_runtime',
+       'wandora_private.digital_employee_work_operations',
+       'INSERT'
+     )
+     OR has_table_privilege(
+       'wandora_core_runtime',
+       'wandora_private.digital_employee_work_operations',
+       'UPDATE'
+     )
+  THEN
+    RAISE EXCEPTION 'digital_employee_work_operations_runtime_table_write_too_broad';
+  END IF;
+
+  IF NOT (
+    has_column_privilege('wandora_core_runtime','wandora_private.digital_employee_work_operations','id','INSERT')
+    AND has_column_privilege('wandora_core_runtime','wandora_private.digital_employee_work_operations','organization_id','INSERT')
+    AND has_column_privilege('wandora_core_runtime','wandora_private.digital_employee_work_operations','employee_id','INSERT')
+    AND has_column_privilege('wandora_core_runtime','wandora_private.digital_employee_work_operations','created_by_user_id','INSERT')
+    AND has_column_privilege('wandora_core_runtime','wandora_private.digital_employee_work_operations','idempotency_key','INSERT')
+    AND has_column_privilege('wandora_core_runtime','wandora_private.digital_employee_work_operations','request_hash','INSERT')
+    AND has_column_privilege('wandora_core_runtime','wandora_private.digital_employee_work_operations','title','INSERT')
+    AND has_column_privilege('wandora_core_runtime','wandora_private.digital_employee_work_operations','description','INSERT')
+    AND has_column_privilege('wandora_core_runtime','wandora_private.digital_employee_work_operations','provider','INSERT')
+    AND has_column_privilege('wandora_core_runtime','wandora_private.digital_employee_work_operations','catalog_key','INSERT')
+    AND has_column_privilege('wandora_core_runtime','wandora_private.digital_employee_work_operations','provider_company_ref','INSERT')
+    AND has_column_privilege('wandora_core_runtime','wandora_private.digital_employee_work_operations','provider_agent_ref','INSERT')
+    AND has_column_privilege('wandora_core_runtime','wandora_private.digital_employee_work_operations','status','INSERT')
+  ) THEN
+    RAISE EXCEPTION 'digital_employee_work_operations_runtime_insert_columns_missing';
+  END IF;
+
+  IF NOT (
+    has_column_privilege('wandora_core_runtime','wandora_private.digital_employee_work_operations','status','UPDATE')
+    AND has_column_privilege('wandora_core_runtime','wandora_private.digital_employee_work_operations','provider_run_ref','UPDATE')
+    AND has_column_privilege('wandora_core_runtime','wandora_private.digital_employee_work_operations','execution_id','UPDATE')
+    AND has_column_privilege('wandora_core_runtime','wandora_private.digital_employee_work_operations','result_model','UPDATE')
+    AND has_column_privilege('wandora_core_runtime','wandora_private.digital_employee_work_operations','result_summary','UPDATE')
+    AND has_column_privilege('wandora_core_runtime','wandora_private.digital_employee_work_operations','submitted_at','UPDATE')
+    AND has_column_privilege('wandora_core_runtime','wandora_private.digital_employee_work_operations','result_recorded_at','UPDATE')
+  ) THEN
+    RAISE EXCEPTION 'digital_employee_work_operations_runtime_update_columns_missing';
   END IF;
 
   IF has_column_privilege(
@@ -60,12 +96,12 @@ BEGIN
            'wandora_private.digital_employee_work_operations',
            'SELECT'
          )
-         OR has_table_privilege(
+         OR has_any_column_privilege(
            role_name,
            'wandora_private.digital_employee_work_operations',
            'INSERT'
          )
-         OR has_table_privilege(
+         OR has_any_column_privilege(
            role_name,
            'wandora_private.digital_employee_work_operations',
            'UPDATE'
