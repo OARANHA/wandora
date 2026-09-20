@@ -1485,3 +1485,45 @@ outbound attempts = 0
 Therefore activation did not invoke Mastra or create execution work.
 
 Continuity rule: do not repeat activation after chat failure. Reconcile the real Wandora/Paperclip states first. The next work must be a new, explicitly reviewed post-activation operational slice; do not manufacture work or enable outbound merely to prove that Ana is active.
+
+## First legitimate active-employee work boundary — ADR 0136
+
+The first post-activation MEDICSPRO work preflight is complete without creating work.
+
+Fresh live state remained:
+
+```text
+Wandora Ana       = active + supervised
+Paperclip Ana     = idle / wandora_mastra
+assigned issues   = 0
+wakeups/runs      = 0 / 0
+routine runs      = 0
+task sessions     = 0
+runtime last run  = null
+runtime cost      = 0
+outbound attempts = 0
+Human Send        = OFF
+Gateway outbound  = OFF
+```
+
+The first legitimate work must originate from a real authenticated MEDICSPRO owner instruction through a Wandora-owned customer contract. Paperclip remains the durable work authority:
+
+```text
+owner intent
+-> Wandora authorization + stable request/idempotency boundary
+-> company-scoped Organization Adapter
+-> Paperclip issue + assignment wakeup/run
+-> run-scoped identity
+-> wandora_mastra -> Core -> Agent Runtime -> Mastra
+-> supervised internal result
+-> Wandora customer-safe projection
+-> STOP before external effect
+```
+
+The live Organization Adapter does not yet have Paperclip `issues.read/create/wakeup`, and Core/Web do not yet expose a customer-safe Paperclip work admission/result projection. Existing `wandora.work_items` remain part of the proven messaging supervision slice; do not expand them into a competing Paperclip task engine.
+
+Because issue creation and execution wake are distinct Paperclip effects and generic plugin issue creation has no first-class create idempotency key, the next implementation may add only the **minimum Wandora integration-safety journal** required to reconcile ambiguous outcomes. It must not clone Paperclip task lifecycle.
+
+First real work execution remains blocked until that contract is implemented, qualified and promoted separately. Human Send and Gateway outbound remain independent Wandora-owned effect gates and stay OFF.
+
+Next executable slice: **Customer Owner First Real Tenant Active Digital-Employee First Legitimate Work Contract Implementation V1 — NO REAL WORK**.
