@@ -853,7 +853,7 @@ Paperclip run-scoped JWT
   -> deterministic Mastra runtime
 ```
 
-The bounded acceptance used the existing **Wandora Internal Supervised Proof** identity. MEDICSPRO Ana was not awakened. A tampered JWT was rejected, and unknown provider-company mappings remain fail-closed.
+The bounded acceptance used the existing **Wandora Internal Supervised Proof** identity through Paperclip's normal heartbeat/run path. Two synthetic runs completed successfully during the brief proof window; the proof agent was then re-paused, its synthetic issue cancelled and pending proof runs returned to zero. MEDICSPRO Ana was never awakened. A forged/tampered JWT was rejected, and unknown provider-company mappings remain fail-closed.
 
 ### Backup / rollback architecture
 
