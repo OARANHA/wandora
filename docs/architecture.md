@@ -1032,3 +1032,71 @@ Gateway outbound = OFF
 ```
 
 Any future deactivation/pause capability or first legitimate post-activation work requires a separately reviewed slice; do not grant broader Paperclip lifecycle authority or create synthetic work merely for demonstration.
+
+## First legitimate work authority boundary — ADR 0136
+
+Activation makes an employee eligible for authorized work; it does not define how customer work enters the system.
+
+The accepted first-work architecture is:
+
+```text
+CUSTOMER OWNER
+  |
+  v
+WANDORA WORK ADMISSION
+  session + tenant + owner/admin authorization
+  exact active + supervised employee
+  stable Wandora request/idempotency identity
+  |
+  v
+ORGANIZATION ADAPTER
+  company-scoped provider boundary
+  no browser/provider IDs
+  |
+  v
+PAPERCLIP
+  durable issue/task authority
+  exact Ana assignment
+  assignment-triggered wakeup/run
+  run-scoped identity
+  |
+  v
+wandora_mastra
+  |
+  v
+WANDORA CORE EXECUTION BRIDGE
+  HMAC + Paperclip identity + company mapping
+  exact employee binding
+  require active + supervised
+  |
+  v
+MASTRA
+  execution-local reasoning/workflow/tools
+  |
+  v
+SUPERVISED INTERNAL RESULT
+  |
+  v
+WANDORA CUSTOMER-SAFE PROJECTION
+  |
+  STOP
+```
+
+The stop boundary is before every customer-visible external effect. A successful internal run is not authority to send WhatsApp/e-mail, create an order/payment or mutate another customer system. Human Send and Gateway outbound remain separate Wandora-owned effect gates.
+
+### Work authority
+
+- Wandora owns customer intent, tenant/actor authorization, stable request identity, policy, reconciliation needed for safe provider interaction and customer-facing result projection.
+- Paperclip owns the durable organizational issue/task, assignment and work-triggered run.
+- Mastra owns execution-local work behind the existing Agent Runtime.
+- The existing Paperclip execution bridge remains the only approved path from a Paperclip run into Mastra.
+
+Do not create a generic Wandora task engine merely because the customer UX needs a "give work" action. Existing `wandora.work_items` and `work_proposals` support the messaging-supervision vertical slice; they are not a second general work control plane.
+
+### Minimum work-admission gap
+
+The current Organization Adapter v0.2.0 has lifecycle capabilities but no issue capabilities. A future implementation may add only the narrow Paperclip operations required for this contract, expected to be `issues.read`, `issues.create` and `issues.wakeup`, subject to implementation qualification.
+
+Paperclip plugin issue creation and wakeup are separate effects. Therefore the Wandora admission boundary must reconcile partial success and must never blindly retry an ambiguous create or dispatch. Minimum durable Wandora state is permitted only for request idempotency/reconciliation; Paperclip remains the task lifecycle authority.
+
+Until a customer-safe work-admission contract and supervised result projection exist, first real MEDICSPRO work remains blocked. Operator Paperclip UI/API, synthetic fixtures, timer heartbeats, direct `agents.invoke` and manual demonstration wakeups are not legitimate customer work sources.
