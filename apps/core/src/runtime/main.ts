@@ -45,6 +45,7 @@ const organizationAdapterService = pool && config.organizationAdapter
 const checkReady = createRuntimeReadinessChecker(pool, {
   organizationAdapterEnabled: Boolean(organizationAdapterService),
   customerHireEnabled: Boolean(config.humanDigitalEmployeeHire),
+  customerWorkEnabled: Boolean(config.humanDigitalEmployeeWork),
   paperclipExecutionBridgeEnabled: Boolean(config.paperclipExecutionBridge),
 });
 
@@ -70,7 +71,11 @@ const handlePaperclipExecution = pool
       verifyRunIdentity: createPaperclipRunIdentityClient({
         agentMeUrl: config.paperclipExecutionBridge.agentMeUrl,
       }),
-      service: new PaperclipExecutionService(pool, agentRuntime),
+      service: new PaperclipExecutionService(
+        pool,
+        agentRuntime,
+        config.humanDigitalEmployeeWork ? organizationAdapterService : undefined,
+      ),
     })
   : undefined;
 
@@ -92,6 +97,7 @@ const humanDigitalEmployeesReadService = pool && humanReadService
       humanReadService,
       Boolean(config.humanDigitalEmployeeHire && organizationAdapterService),
       Boolean(config.humanDigitalEmployeeActivation && organizationAdapterService && config.paperclipExecutionBridge && agentRuntime),
+      Boolean(config.humanDigitalEmployeeWork && organizationAdapterService && config.paperclipExecutionBridge && agentRuntime),
     )
   : undefined;
 
@@ -122,6 +128,14 @@ const humanDigitalEmployeeActivationService = organizationAdapterService
   ? new HumanDigitalEmployeeActivationService(organizationAdapterService, checkReady)
   : undefined;
 
+const humanDigitalEmployeeWorkService = organizationAdapterService
+  && humanVerifier
+  && config.humanDigitalEmployeeWork
+  && config.paperclipExecutionBridge
+  && agentRuntime
+  ? organizationAdapterService
+  : undefined;
+
 const handleHumanSupervision = humanReadService
   ? createHumanSupervisionHandler(
       humanReadService,
@@ -129,6 +143,7 @@ const handleHumanSupervision = humanReadService
       humanDigitalEmployeesReadService,
       humanDigitalEmployeeHireService,
       humanDigitalEmployeeActivationService,
+      humanDigitalEmployeeWorkService,
     )
   : undefined;
 
@@ -150,6 +165,7 @@ server.listen(config.port, '0.0.0.0', () => {
     humanSendProposal: Boolean(humanSendProposalService),
     humanDigitalEmployeeHire: Boolean(humanDigitalEmployeeHireService),
     humanDigitalEmployeeActivation: Boolean(humanDigitalEmployeeActivationService),
+    humanDigitalEmployeeWork: Boolean(humanDigitalEmployeeWorkService),
     organizationAdapter: Boolean(organizationAdapterService),
     agentRuntime: config.agentRuntime?.mode ?? 'disabled',
   }));
