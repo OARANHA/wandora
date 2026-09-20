@@ -5,6 +5,8 @@ import {
   OrganizationAdapterUnavailableError,
 } from '../src/organization-adapter/contracts.js';
 import type { OrganizationAdapterService } from '../src/organization-adapter/service.js';
+import { DigitalEmployeeActivationError } from '../src/organization-adapter/contracts.js';
+import type { HumanDigitalEmployeeActivationService } from '../src/supervision/human-digital-employee-activation.js';
 import type { HumanDigitalEmployeesReadService } from '../src/supervision/human-digital-employees-read.js';
 import { HumanAccessError, type HumanSupervisionReadService } from '../src/supervision/human-read.js';
 import { createHumanSupervisionHandler } from '../src/runtime/human-supervision.js';
@@ -277,4 +279,70 @@ test('unsupported methods and absent read service stay closed', async () => {
   });
   assert.equal(response.status, 404);
   assert.deepEqual(response.body, { error: 'not-found' });
+});
+
+test('activation route passes only authenticated actor + exact Wandora tenant/employee and no provider selector', async () => {
+  const { service, digitalEmployeesService } = baseServices();
+  const calls: unknown[] = [];
+  const activationService = {
+    async activate(input: unknown) {
+      calls.push(input);
+      return { id: EMPLOYEE, name: 'Ana', role: 'commercial-assistant', status: 'active', autonomy: 'supervised' };
+    },
+  } as unknown as HumanDigitalEmployeeActivationService;
+  const handler = createHumanSupervisionHandler(service, undefined, digitalEmployeesService, undefined, activationService);
+
+  const response = await handler({
+    method: 'POST',
+    pathname: `/api/v1/organizations/${ORG}/digital-employees/${EMPLOYEE}/activate`,
+    authorization: 'Bearer fixture',
+    rawBody: '',
+  });
+  assert.equal(response.status, 200);
+  assert.deepEqual(calls, [{ organizationId: ORG, actorUserId: USER, employeeId: EMPLOYEE }]);
+  assert.equal(JSON.stringify(response.body).includes('provider'), false);
+});
+
+test('activation rejects raw request bodies/provider ids before the activation service', async () => {
+  const { service, digitalEmployeesService } = baseServices();
+  let calls = 0;
+  const activationService = {
+    async activate() { calls += 1; throw new Error('must not run'); },
+  } as unknown as HumanDigitalEmployeeActivationService;
+  const handler = createHumanSupervisionHandler(service, undefined, digitalEmployeesService, undefined, activationService);
+
+  const response = await handler({
+    method: 'POST',
+    pathname: `/api/v1/organizations/${ORG}/digital-employees/${EMPLOYEE}/activate`,
+    authorization: 'Bearer fixture',
+    rawBody: JSON.stringify({ providerAgentId: 'paperclip-agent-forbidden' }),
+  });
+  assert.equal(response.status, 400);
+  assert.deepEqual(response.body, { error: 'invalid-activation-request' });
+  assert.equal(calls, 0);
+});
+
+test('activation route stays closed without runtime activation wiring and maps fail-closed outcomes', async () => {
+  const { service, digitalEmployeesService } = baseServices();
+  const path = `/api/v1/organizations/${ORG}/digital-employees/${EMPLOYEE}/activate`;
+  const closed = createHumanSupervisionHandler(service, undefined, digitalEmployeesService);
+  assert.deepEqual(await closed({ method: 'POST', pathname: path, authorization: 'Bearer fixture', rawBody: '' }), {
+    status: 404, body: { error: 'not-found' },
+  });
+
+  const cases = [
+    ['employee-not-activatable', 409, { error: 'employee-not-activatable' }],
+    ['provider-activation-uncertain', 409, { error: 'employee-activation-uncertain', retry: 'same-activation-contract' }],
+    ['provider-activation-unavailable', 503, { error: 'employee-activation-unavailable' }],
+    ['runtime-not-ready', 503, { error: 'employee-activation-unavailable' }],
+  ] as const;
+  for (const [code, status, body] of cases) {
+    const activationService = {
+      async activate() { throw new DigitalEmployeeActivationError(code, code); },
+    } as unknown as HumanDigitalEmployeeActivationService;
+    const handler = createHumanSupervisionHandler(service, undefined, digitalEmployeesService, undefined, activationService);
+    const response = await handler({ method: 'POST', pathname: path, authorization: 'Bearer fixture', rawBody: '' });
+    assert.equal(response.status, status);
+    assert.deepEqual(response.body, body);
+  }
 });

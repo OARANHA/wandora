@@ -36,10 +36,15 @@ export type RuntimeHumanSendProposalConfig = {
 
 export type RuntimeOrganizationAdapterConfig = {
   webhookUrl: string;
+  activationWebhookUrl?: string;
   secretDirectory: string;
 };
 
 export type RuntimeHumanDigitalEmployeeHireConfig = {
+  enabled: true;
+};
+
+export type RuntimeHumanDigitalEmployeeActivationConfig = {
   enabled: true;
 };
 
@@ -58,6 +63,7 @@ export type RuntimeConfig = {
   humanSendProposal?: RuntimeHumanSendProposalConfig;
   organizationAdapter?: RuntimeOrganizationAdapterConfig;
   humanDigitalEmployeeHire?: RuntimeHumanDigitalEmployeeHireConfig;
+  humanDigitalEmployeeActivation?: RuntimeHumanDigitalEmployeeActivationConfig;
   paperclipExecutionBridge?: RuntimePaperclipExecutionBridgeConfig;
 };
 
@@ -131,6 +137,25 @@ const validatePaperclipAgentMeUrl = (value: string): string => {
   return url.toString();
 };
 
+const validateOrganizationAdapterActivationWebhookUrl = (value: string): string => {
+  const url = new URL(value);
+  if (
+    url.protocol !== 'http:'
+    || url.hostname !== 'wandora-paperclip'
+    || url.port !== '3100'
+    || url.pathname !== '/api/plugins/wandora.organization-adapter-v1/webhooks/employee-activate'
+    || url.username
+    || url.password
+    || url.search
+    || url.hash
+  ) {
+    throw new Error(
+      'WANDORA_ORGANIZATION_ADAPTER_ACTIVATION_WEBHOOK_URL must target the private canonical Paperclip activation route.',
+    );
+  }
+  return url.toString();
+};
+
 const validateOrganizationAdapterWebhookUrl = (value: string): string => {
   const url = new URL(value);
   if (
@@ -177,6 +202,10 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     env.WANDORA_HUMAN_DIGITAL_EMPLOYEE_HIRE_ENABLED,
     'WANDORA_HUMAN_DIGITAL_EMPLOYEE_HIRE_ENABLED',
   );
+  const humanDigitalEmployeeActivationEnabled = parseEnabled(
+    env.WANDORA_HUMAN_DIGITAL_EMPLOYEE_ACTIVATION_ENABLED,
+    'WANDORA_HUMAN_DIGITAL_EMPLOYEE_ACTIVATION_ENABLED',
+  );
   const paperclipExecutionBridgeEnabled = parseEnabled(
     env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_ENABLED,
     'WANDORA_PAPERCLIP_EXECUTION_BRIDGE_ENABLED',
@@ -198,6 +227,9 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     }
     if (humanDigitalEmployeeHireEnabled) {
       throw new Error('Human Digital Employee Hire cannot be enabled while Wandora Core is in standby mode.');
+    }
+    if (humanDigitalEmployeeActivationEnabled) {
+      throw new Error('Human Digital Employee Activation cannot be enabled while Wandora Core is in standby mode.');
     }
     if (paperclipExecutionBridgeEnabled) {
       throw new Error('Paperclip Execution Bridge cannot be enabled while Wandora Core is in standby mode.');
@@ -222,6 +254,18 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
   }
   if (paperclipExecutionBridgeEnabled && agentRuntimeMode === 'disabled') {
     throw new Error('Paperclip Execution Bridge requires an Agent Runtime to be enabled.');
+  }
+  if (humanDigitalEmployeeActivationEnabled && !humanApiEnabled) {
+    throw new Error('Human Digital Employee Activation requires the Human API to be enabled.');
+  }
+  if (humanDigitalEmployeeActivationEnabled && !organizationAdapterEnabled) {
+    throw new Error('Human Digital Employee Activation requires the Organization Adapter to be enabled.');
+  }
+  if (humanDigitalEmployeeActivationEnabled && !paperclipExecutionBridgeEnabled) {
+    throw new Error('Human Digital Employee Activation requires the Paperclip Execution Bridge to be enabled.');
+  }
+  if (humanDigitalEmployeeActivationEnabled && agentRuntimeMode === 'disabled') {
+    throw new Error('Human Digital Employee Activation requires an Agent Runtime to be configured.');
   }
 
   const user = (env.WANDORA_CORE_DB_USER ?? 'wandora_core_runtime').trim();
@@ -312,6 +356,13 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
       webhookUrl: validateOrganizationAdapterWebhookUrl(
         required(env, 'WANDORA_ORGANIZATION_ADAPTER_WEBHOOK_URL'),
       ),
+      ...(humanDigitalEmployeeActivationEnabled
+        ? {
+            activationWebhookUrl: validateOrganizationAdapterActivationWebhookUrl(
+              required(env, 'WANDORA_ORGANIZATION_ADAPTER_ACTIVATION_WEBHOOK_URL'),
+            ),
+          }
+        : {}),
       secretDirectory,
     };
   }
@@ -333,6 +384,9 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     ...(paperclipExecutionBridge ? { paperclipExecutionBridge } : {}),
     ...(humanDigitalEmployeeHireEnabled
       ? { humanDigitalEmployeeHire: { enabled: true as const } }
+      : {}),
+    ...(humanDigitalEmployeeActivationEnabled
+      ? { humanDigitalEmployeeActivation: { enabled: true as const } }
       : {}),
     ...(agentRuntimeMode === 'mastra-deterministic'
       ? { agentRuntime: { mode: 'mastra-deterministic' as const } }

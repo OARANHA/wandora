@@ -14,6 +14,7 @@ import type {
   PaperclipExecutionResponse,
 } from '../paperclip-execution/handler.js';
 import {
+  isHumanDigitalEmployeeActivationPath,
   isHumanDigitalEmployeeHirePath,
   isHumanSendProposalPath,
   type HumanSupervisionRequest,
@@ -140,7 +141,11 @@ export function createRuntimeServer(deps: RuntimeServerDeps): Server {
       }
       try {
         const humanPostBody = request.method === 'POST'
-          && (isHumanSendProposalPath(url.pathname) || isHumanDigitalEmployeeHirePath(url.pathname));
+          && (
+            isHumanSendProposalPath(url.pathname)
+            || isHumanDigitalEmployeeHirePath(url.pathname)
+            || isHumanDigitalEmployeeActivationPath(url.pathname)
+          );
         const rawBody = humanPostBody ? await readBody(request, 2_048) : undefined;
         const result = await deps.handleHumanSupervision({
           method: request.method,

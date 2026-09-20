@@ -20,6 +20,10 @@ export type OrganizationAdapterProvider = {
     providerCompanyRef: string;
     catalogKey: string;
   }): Promise<{ providerAgentRef: string }>;
+  activateCatalogEmployee?(input: {
+    providerCompanyRef: string;
+    catalogKey: string;
+  }): Promise<{ providerAgentRef: string }>;
 };
 
 export type CatalogEmployeeResult = {
@@ -52,5 +56,18 @@ export class OrganizationAdapterUnavailableError extends Error {
   constructor(readonly code: OrganizationAdapterUnavailableCode, message: string) {
     super(message);
     this.name = 'OrganizationAdapterUnavailableError';
+  }
+}
+
+export type DigitalEmployeeActivationErrorCode =
+  | 'employee-not-activatable'
+  | 'provider-activation-unavailable'
+  | 'provider-activation-uncertain'
+  | 'runtime-not-ready';
+
+export class DigitalEmployeeActivationError extends Error {
+  constructor(readonly code: DigitalEmployeeActivationErrorCode, message: string) {
+    super(message);
+    this.name = 'DigitalEmployeeActivationError';
   }
 }

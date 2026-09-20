@@ -55,8 +55,10 @@ JSON
   --outfile="$ROOT/dist/worker.js" --alias:@paperclipai/plugin-sdk="$SDK_JS"
 "$ESBUILD" "$ROOT/src/contract.ts" --bundle --platform=node --format=esm --target=node24 \
   --outfile="$ROOT/.test-build/contract.mjs"
+"$ESBUILD" "$ROOT/src/activation.ts" --bundle --platform=node --format=esm --target=node24 \
+  --outfile="$ROOT/.test-build/activation.mjs" --alias:@paperclipai/plugin-sdk="$SDK_JS"
 
-node --test "$ROOT/test/contract.test.mjs"
+node --test "$ROOT/test/contract.test.mjs" "$ROOT/test/activation.test.mjs"
 node "$ROOT/scripts/verify-artifact.mjs"
 node --check "$ROOT/dist/manifest.js"
 node --check "$ROOT/dist/worker.js"
@@ -89,7 +91,23 @@ cmp "$VERIFY_DIR/expected-contents.txt" "$VERIFY_DIR/actual-contents.txt"
 
 mkdir -p "$VERIFY_DIR/extracted"
 tar -xzf "$PACK2" -C "$VERIFY_DIR/extracted"
-if grep -RInE 'wandora_mastra_spike|127\.0\.0\.1:3140|company-test-only|synthetic-test-only|-----BEGIN (RSA |OPENSSH |EC )?PRIVATE KEY-----|service_role|x-wandora-paperclip-run-token' "$VERIFY_DIR/extracted/package"; then
+FORBIDDEN_HITS="$VERIFY_DIR/forbidden-material.txt"
+FILTERED_HITS="$VERIFY_DIR/forbidden-material-filtered.txt"
+
+grep -RInE 'wandora_mastra_spike|127\.0\.0\.1:3140|company-test-only|synthetic-test-only|-----BEGIN (RSA |OPENSSH |EC )?PRIVATE KEY-----|service_role|x-wandora-paperclip-run-token' \
+  "$VERIFY_DIR/extracted/package" >"$FORBIDDEN_HITS" || true
+
+# Paperclip v2026.916.0's bundled public SDK contains one literal placeholder
+# used by upstream SDK code. Exclude only that exact known placeholder hit from
+# dist/worker.js; any other private-key marker or forbidden material still fails.
+awk '
+  index($0, "/package/dist/worker.js:") &&
+  index($0, "placeholder: \"-----BEGIN RSA PRIVATE KEY-----\",") { next }
+  { print }
+' "$FORBIDDEN_HITS" >"$FILTERED_HITS"
+
+if [[ -s "$FILTERED_HITS" ]]; then
+  cat "$FILTERED_HITS" >&2
   echo 'forbidden laboratory/credential material found in installable artifact' >&2
   exit 1
 fi
@@ -99,7 +117,7 @@ printf '%s  %s\n' "$HASH2" "$(basename "$PACK2")" > "$ROOT/artifacts/package-sha
 cat > "$ROOT/artifacts/provenance.txt" <<EOF
 wandora_source_sha=${WANDORA_SOURCE_SHA:-unversioned}
 paperclip_source_commit=$EXPECTED_COMMIT
-paperclip_image=wandora/paperclip:v2026.831.1
+paperclip_image=wandora/paperclip:v2026.916.0
 plugin_package=$(basename "$PACK2")
 plugin_package_sha256=$HASH2
 EOF

@@ -7,6 +7,7 @@ import { createPrivateGatewayClient } from '../messaging/private-gateway.js';
 import { createPaperclipExecutionHandler } from '../paperclip-execution/handler.js';
 import { createPaperclipRunIdentityClient } from '../paperclip-execution/paperclip-run-identity.js';
 import { PaperclipExecutionService } from '../paperclip-execution/service.js';
+import { HumanDigitalEmployeeActivationService } from '../supervision/human-digital-employee-activation.js';
 import { HumanDigitalEmployeesReadService } from '../supervision/human-digital-employees-read.js';
 import { HumanSupervisionReadService } from '../supervision/human-read.js';
 import { HumanSendProposalService } from '../supervision/human-send-proposal.js';
@@ -90,6 +91,7 @@ const humanDigitalEmployeesReadService = pool && humanReadService
       pool,
       humanReadService,
       Boolean(config.humanDigitalEmployeeHire && organizationAdapterService),
+      Boolean(config.humanDigitalEmployeeActivation && organizationAdapterService && config.paperclipExecutionBridge && agentRuntime),
     )
   : undefined;
 
@@ -112,12 +114,21 @@ const humanDigitalEmployeeHireService = pool
   ? organizationAdapterService
   : undefined;
 
+const humanDigitalEmployeeActivationService = organizationAdapterService
+  && humanVerifier
+  && config.humanDigitalEmployeeActivation
+  && config.paperclipExecutionBridge
+  && agentRuntime
+  ? new HumanDigitalEmployeeActivationService(organizationAdapterService, checkReady)
+  : undefined;
+
 const handleHumanSupervision = humanReadService
   ? createHumanSupervisionHandler(
       humanReadService,
       humanSendProposalService,
       humanDigitalEmployeesReadService,
       humanDigitalEmployeeHireService,
+      humanDigitalEmployeeActivationService,
     )
   : undefined;
 
@@ -138,6 +149,7 @@ server.listen(config.port, '0.0.0.0', () => {
     humanApi: Boolean(handleHumanSupervision),
     humanSendProposal: Boolean(humanSendProposalService),
     humanDigitalEmployeeHire: Boolean(humanDigitalEmployeeHireService),
+    humanDigitalEmployeeActivation: Boolean(humanDigitalEmployeeActivationService),
     organizationAdapter: Boolean(organizationAdapterService),
     agentRuntime: config.agentRuntime?.mode ?? 'disabled',
   }));

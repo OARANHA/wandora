@@ -33,7 +33,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: paperclipai/paperclip
-          ref: 65ec059bde30d98c92165b24a30a540800dd1f6f
+          ref: dffc2b3ca1b9e88fa21cb17493083e682dffd1ca
           path: .paperclip
 
       - name: Set up Node 24.21.0

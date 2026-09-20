@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createHmac } from 'node:crypto';
 import {
+  parseActivationWebhook,
   parseReconcileWebhook,
   requireFreshTimestamp,
   requireHmacSecret,
@@ -59,5 +60,21 @@ test('rejects ambiguous repeated signature headers', () => {
       'x-wandora-timestamp': timestamp,
       'x-wandora-signature': [signature, signature],
     },
+  }), /invalid_wandora_request/);
+});
+
+test('activation accepts only the fixed catalog shape and rejects raw provider identifiers', () => {
+  const req = parseActivationWebhook({
+    endpointKey: 'employee-activate',
+    parsedBody: JSON.parse(body),
+    rawBody: body,
+    headers: { 'x-wandora-timestamp': timestamp, 'x-wandora-signature': signature },
+  });
+  assert.equal(req.catalogKey, 'ana-commercial-v1');
+  assert.throws(() => parseActivationWebhook({
+    endpointKey: 'employee-activate',
+    parsedBody: { ...JSON.parse(body), agentId: 'raw-provider-agent-id' },
+    rawBody: body,
+    headers: { 'x-wandora-timestamp': timestamp, 'x-wandora-signature': signature },
   }), /invalid_wandora_request/);
 });

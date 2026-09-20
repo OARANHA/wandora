@@ -1,7 +1,9 @@
 import { createHash, randomUUID } from 'node:crypto';
 import type { Pool, PoolClient } from 'pg';
-import { HumanAccessError } from '../supervision/human-read.js';
+import { HumanAccessError, HumanNotFoundError } from '../supervision/human-read.js';
+import { paperclipManagedAgentRef } from './paperclip-provider.js';
 import {
+  DigitalEmployeeActivationError,
   OrganizationAdapterConflictError,
   OrganizationAdapterUnavailableError,
   WANDORA_CATALOG_V1,
@@ -578,4 +580,174 @@ export class OrganizationAdapterService {
       );
     }
   }
+
+  async activateCatalogEmployee(args: {
+    organizationId: string;
+    actorUserId: string;
+    employeeId: string;
+  }): Promise<CatalogEmployeeResult> {
+    return this.scopedWrite(args.organizationId, async (client) => {
+      await this.requireOwnerOrAdmin(client, args.organizationId, args.actorUserId);
+
+      const activationLock = await client.query<{ employee_status: 'active' | 'paused' | null }>(
+        `SELECT wandora_private.lock_catalog_digital_employee_activation_v1($1, $2)
+                AS employee_status`,
+        [args.organizationId, args.employeeId],
+      );
+
+      const employeeResult = await client.query<{
+        employee_name: string;
+        employee_role: 'commercial-assistant';
+        employee_status: 'active' | 'paused';
+        employee_autonomy: 'supervised';
+      }>(
+        `SELECT display_name AS employee_name,
+                role::text AS employee_role,
+                status::text AS employee_status,
+                autonomy_mode::text AS employee_autonomy
+           FROM wandora.digital_employees
+          WHERE organization_id = $1 AND id = $2`,
+        [args.organizationId, args.employeeId],
+      );
+      const employee = employeeResult.rows[0];
+      if (!employee) throw new HumanNotFoundError();
+
+      const lockedStatus = activationLock.rows[0]?.employee_status;
+      if (!lockedStatus) {
+        throw new DigitalEmployeeActivationError(
+          'employee-not-activatable',
+          'Digital employee activation preconditions are not satisfied.',
+        );
+      }
+      if (lockedStatus !== employee.employee_status) {
+        throw new OrganizationAdapterConflictError(
+          'state-inconsistent',
+          'Digital employee activation lock state changed unexpectedly.',
+        );
+      }
+
+      if (employee.employee_status === 'active') {
+        return {
+          id: args.employeeId,
+          name: employee.employee_name,
+          role: employee.employee_role,
+          status: 'active',
+          autonomy: employee.employee_autonomy,
+        };
+      }
+      if (
+        employee.employee_status !== 'paused'
+        || employee.employee_role !== 'commercial-assistant'
+        || employee.employee_autonomy !== 'supervised'
+      ) {
+        throw new DigitalEmployeeActivationError('employee-not-activatable', 'Digital employee is not activatable.');
+      }
+
+      const operationResult = await client.query<{
+        catalog_key: string;
+        provider_company_ref: string;
+        provider_agent_ref: string | null;
+      }>(
+        `SELECT catalog_key, provider_company_ref, provider_agent_ref
+           FROM wandora_private.digital_employee_hire_operations
+          WHERE organization_id = $1
+            AND employee_id = $2
+            AND provider = $3
+            AND status = 'completed'
+          LIMIT 2`,
+        [args.organizationId, args.employeeId, this.provider.provider],
+      );
+      if (operationResult.rowCount !== 1) {
+        throw new DigitalEmployeeActivationError('employee-not-activatable', 'Completed catalog hire is missing or ambiguous.');
+      }
+      const operation = operationResult.rows[0]!;
+      if (!operation.provider_agent_ref) {
+        throw new DigitalEmployeeActivationError('employee-not-activatable', 'Completed catalog hire has no provider binding.');
+      }
+
+      const definition = this.catalog.get(operation.catalog_key);
+      if (
+        !definition
+        || definition.displayName !== employee.employee_name
+        || definition.role !== employee.employee_role
+        || definition.autonomy !== employee.employee_autonomy
+      ) {
+        throw new DigitalEmployeeActivationError('employee-not-activatable', 'Employee does not match the completed catalog hire.');
+      }
+
+      const controlResult = await client.query<{ provider_company_ref: string }>(
+        `SELECT provider_company_ref
+           FROM wandora_private.control_plane_provider_bindings
+          WHERE organization_id = $1 AND provider = $2
+          LIMIT 2`,
+        [args.organizationId, this.provider.provider],
+      );
+      const bindingResult = await client.query<{ provider_agent_ref: string }>(
+        `SELECT provider_agent_ref
+           FROM wandora_private.digital_employee_provider_bindings
+          WHERE organization_id = $1 AND employee_id = $2 AND provider = $3
+          LIMIT 2`,
+        [args.organizationId, args.employeeId, this.provider.provider],
+      );
+      if (controlResult.rowCount !== 1 || bindingResult.rowCount !== 1) {
+        throw new DigitalEmployeeActivationError('employee-not-activatable', 'Required provider binding is missing or ambiguous.');
+      }
+
+      const providerCompanyRef = controlResult.rows[0]!.provider_company_ref;
+      const providerAgentRef = bindingResult.rows[0]!.provider_agent_ref;
+      const expectedProviderAgentRef = paperclipManagedAgentRef(providerCompanyRef, operation.catalog_key);
+      if (
+        operation.provider_company_ref !== providerCompanyRef
+        || operation.provider_agent_ref !== providerAgentRef
+        || providerAgentRef !== expectedProviderAgentRef
+      ) {
+        throw new OrganizationAdapterConflictError('state-inconsistent', 'Activation provider bindings are inconsistent.');
+      }
+
+      if (!this.provider.activateCatalogEmployee) {
+        throw new DigitalEmployeeActivationError('provider-activation-unavailable', 'Provider activation action is unavailable.');
+      }
+
+      let activated: { providerAgentRef: string } | undefined;
+      for (let attempt = 0; attempt < 2 && !activated; attempt += 1) {
+        try {
+          activated = await this.provider.activateCatalogEmployee({
+            providerCompanyRef,
+            catalogKey: operation.catalog_key,
+          });
+        } catch {
+          if (attempt === 1) {
+            throw new DigitalEmployeeActivationError(
+              'provider-activation-uncertain',
+              'Provider activation could not be reconciled; Wandora remains paused.',
+            );
+          }
+        }
+      }
+      if (!activated || activated.providerAgentRef !== expectedProviderAgentRef) {
+        throw new OrganizationAdapterConflictError('state-inconsistent', 'Provider activation correlation is inconsistent.');
+      }
+
+      const finalized = await client.query<{ activated: boolean }>(
+        `SELECT wandora_private.activate_catalog_digital_employee_projection_v1($1, $2)
+                AS activated`,
+        [args.organizationId, args.employeeId],
+      );
+      if (finalized.rows[0]?.activated !== true) {
+        throw new DigitalEmployeeActivationError(
+          'provider-activation-uncertain',
+          'Provider is converged but Wandora activation finalization did not commit.',
+        );
+      }
+
+      return {
+        id: args.employeeId,
+        name: employee.employee_name,
+        role: employee.employee_role,
+        status: 'active',
+        autonomy: employee.employee_autonomy,
+      };
+    });
+  }
+
 }

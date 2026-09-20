@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { AlertTriangle, Bot, LoaderCircle, Plus, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../AuthProvider';
@@ -9,6 +9,10 @@ type DigitalEmployee = {
   role: 'commercial-assistant';
   status: 'active' | 'paused';
   autonomy: 'supervised';
+  activation: {
+    available: boolean;
+    state: 'available' | 'active' | 'unavailable';
+  };
 };
 
 type HireAvailability = {
@@ -43,6 +47,24 @@ export function TeamPage() {
       if (response.status === 403) throw new Error('Seu acesso a esta empresa não está ativo.');
       if (!response.ok) throw new Error('Não foi possível carregar os funcionários digitais da empresa.');
       return await response.json() as DigitalEmployeesResponse;
+    },
+  });
+
+  const activation = useMutation({
+    mutationFn: async (employeeId: string) => {
+      if (!activeOrganization) throw new Error('Escolha uma empresa antes de ativar um funcionário.');
+      const response = await authFetch(
+        `/api/v1/organizations/${activeOrganization.id}/digital-employees/${employeeId}/activate`,
+        { method: 'POST' },
+      );
+      if (response.status === 403) throw new Error('Seu acesso não permite ativar funcionários nesta empresa.');
+      if (response.status === 409) throw new Error('A ativação precisa ser reconciliada antes de tentar novamente.');
+      if (response.status === 503) throw new Error('A ativação está temporariamente indisponível.');
+      if (!response.ok) throw new Error('Não foi possível ativar este funcionário agora.');
+      return await response.json() as { employee: DigitalEmployee };
+    },
+    onSuccess: async () => {
+      await query.refetch();
     },
   });
 
@@ -134,9 +156,20 @@ export function TeamPage() {
               </button>
             </div>
           ) : null}
+          {activation.isError ? (
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+              {activation.error instanceof Error ? activation.error.message : 'Não foi possível ativar o funcionário.'}
+            </div>
+          ) : null}
           <div className="grid gap-5 xl:grid-cols-2">
             {query.data.items.map((employee) => (
-              <EmployeeCard key={employee.id} employee={employee} />
+              <EmployeeCard
+                key={employee.id}
+                employee={employee}
+                canManage={canManage}
+                activating={activation.isPending && activation.variables === employee.id}
+                onActivate={() => activation.mutate(employee.id)}
+              />
             ))}
           </div>
         </>
@@ -159,7 +192,17 @@ function PageHeader() {
   );
 }
 
-function EmployeeCard({ employee }: { employee: DigitalEmployee }) {
+function EmployeeCard({
+  employee,
+  canManage,
+  activating,
+  onActivate,
+}: {
+  employee: DigitalEmployee;
+  canManage: boolean;
+  activating: boolean;
+  onActivate: () => void;
+}) {
   const active = employee.status === 'active';
   const initials = employee.name
     .split(/\s+/)
@@ -188,6 +231,24 @@ function EmployeeCard({ employee }: { employee: DigitalEmployee }) {
               {active ? 'Ativo' : 'Contratada · aguardando ativação'}
             </span>
           </div>
+
+          {canManage && employee.status === 'paused' && employee.activation.available ? (
+            <div className="mt-5 rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4">
+              <p className="m-0 text-sm font-medium text-slate-700">
+                Ativar torna {employee.name} apta a receber trabalho supervisionado. Não inicia trabalho,
+                não cria execução e não libera envios externos.
+              </p>
+              <button
+                type="button"
+                disabled={activating}
+                onClick={onActivate}
+                className="mt-3 inline-flex h-10 items-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {activating ? <LoaderCircle className="size-4 animate-spin" /> : <Bot className="size-4" />}
+                {activating ? 'Ativando…' : `Ativar ${employee.name}`}
+              </button>
+            </div>
+          ) : null}
 
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
             <div className="rounded-2xl bg-slate-50 p-4">

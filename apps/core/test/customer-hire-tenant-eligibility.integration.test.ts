@@ -219,5 +219,9 @@ test('completed catalog operation projects already-hired and preserves canonical
     role: 'commercial-assistant',
     status: 'paused',
     autonomy: 'supervised',
+    activation: {
+      available: false,
+      state: 'unavailable',
+    },
   }]);
 });

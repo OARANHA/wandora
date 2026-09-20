@@ -4,12 +4,12 @@ import { CATALOG_KEY, EXECUTION_ADAPTER_TYPE } from './catalog.js';
 const manifest: PaperclipPluginManifestV1 = {
   id: 'wandora.organization-adapter-v1',
   apiVersion: 1,
-  version: '0.1.0',
+  version: '0.2.0',
   displayName: 'Wandora Organization Adapter V1',
   description: 'Headless company-scoped managed catalog employee adapter for Wandora.',
   author: 'Wandora',
   categories: ['automation', 'connector'],
-  capabilities: ['agents.managed', 'webhooks.receive', 'secrets.read-ref'],
+  capabilities: ['agents.managed', 'agents.resume', 'webhooks.receive', 'secrets.read-ref'],
   entrypoints: { worker: './dist/worker.js' },
   instanceConfigSchema: {
     type: 'object',
@@ -23,11 +23,18 @@ const manifest: PaperclipPluginManifestV1 = {
     },
     additionalProperties: false,
   },
-  webhooks: [{
-    endpointKey: 'employee-reconcile',
-    displayName: 'Employee Reconcile',
-    description: 'Accepts signed Wandora catalog employee reconcile requests.',
-  }],
+  webhooks: [
+    {
+      endpointKey: 'employee-reconcile',
+      displayName: 'Employee Reconcile',
+      description: 'Accepts signed Wandora catalog employee reconcile requests.',
+    },
+    {
+      endpointKey: 'employee-activate',
+      displayName: 'Employee Activate',
+      description: 'Convergently resumes the existing managed catalog employee without invoking work.',
+    },
+  ],
   agents: [{
     agentKey: CATALOG_KEY,
     displayName: 'Ana',
