@@ -2840,3 +2840,66 @@ MEDICSPRO run_identity_contexts = 0
 The owner activation crossed the intended lifecycle point exactly once through the normal authenticated Web contract. Activation did not invoke Mastra and did not create a run. Mastra remains a lazy execution dependency for later legitimate work.
 
 Do not create synthetic work, wakeups, heartbeats, Mastra runs or outbound effects merely to demonstrate that Ana is active. Any first real post-activation work is a separate reviewed slice.
+
+## Customer Owner First Real Tenant Active Digital-Employee First Legitimate Work Preflight V1 — COMPLETE / REAL EXECUTION BLOCKED
+
+ADR 0136 records the first no-effect preflight after the real MEDICSPRO Ana activation.
+
+Fresh read-only reconciliation proved:
+
+```text
+main at slice start          = 1f13f10dc8782a459d01c7c514189e1368650831
+MEDICSPRO Ana / Wandora      = exactly 1 / active + supervised
+MEDICSPRO Ana / Paperclip    = exactly 1 / idle / wandora_mastra
+assigned Paperclip issues    = 0
+wakeup requests              = 0
+heartbeat runs               = 0
+routine runs                 = 0
+task sessions                = 0
+run identity contexts        = 0
+runtime last_run_id          = null
+runtime tokens / cost        = 0 / 0
+MEDICSPRO outbound attempts  = 0
+Human Send                   = OFF
+Gateway outbound             = OFF
+critical runtime             = healthy
+```
+
+No synthetic work was created.
+
+The authoritative first-work source is now frozen conceptually as:
+
+```text
+authenticated MEDICSPRO owner
+-> Wandora customer work-admission contract
+-> company-scoped Organization Adapter
+-> Paperclip durable issue assigned to Ana
+-> Paperclip assignment wakeup/run
+-> run-scoped Paperclip identity
+-> wandora_mastra
+-> Wandora Core execution bridge
+-> Agent Runtime
+-> Mastra
+-> supervised internal result
+-> customer-safe Wandora projection
+-> STOP before external effect
+```
+
+Paperclip v2026.916.0 remains authority for durable organizational work. Exact source inspection proved that the normal assigned-issue path is the provider-native work trigger. The Plugin SDK exposes `issues.read`, `issues.create` and `issues.wakeup` separately; generic plugin issue creation does not itself dispatch the run. The live Organization Adapter v0.2.0 intentionally lacks those issue capabilities.
+
+The current Wandora customer surface also lacks a customer-safe Paperclip work-create contract and result projection. Existing `wandora.work_items` / `work_proposals` remain the messaging-supervision vertical slice and are **not** precedent for a parallel general task engine.
+
+The minimum remaining gaps are:
+
+1. authenticated owner/admin work admission for an exact active + supervised employee;
+2. narrow Organization Adapter issue read/create/wakeup capability;
+3. minimum Wandora-owned idempotency/reconciliation state for the distinct issue-create and wake provider effects;
+4. customer-safe projection of Paperclip work/result for supervision.
+
+First real work execution is therefore **NO-GO** until those gaps are implemented and separately promoted. Human Send and Gateway outbound stay OFF; any eventual first run must stop after an internal, reviewable result.
+
+### NEXT EXECUTABLE SLICE
+
+**Customer Owner First Real Tenant Active Digital-Employee First Legitimate Work Contract Implementation V1 — NO REAL WORK**
+
+Implement and qualify only the minimum customer-safe Wandora/Core + Organization Adapter contract above, preferably against disposable/candidate Paperclip. Do not create MEDICSPRO real work, wakeups or runs during implementation, and do not enable Human Send or Gateway outbound.
