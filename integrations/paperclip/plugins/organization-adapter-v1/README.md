@@ -19,3 +19,19 @@ Merging this package does **not** install or configure it in production. Live Pa
 Compatibility is pinned in `compatibility.json`.
 
 `@paperclipai/plugin-sdk@1.0.0` is not currently available from the npm registry. The verification/build gate therefore compiles against the SDK from the exact pinned Paperclip source commit and bundles that SDK into the worker artifact. The final installable tarball has no runtime npm dependency on the unpublished SDK package.
+
+
+## Customer work admission V1
+
+Version 0.3.0 adds a signed company-scoped `employee-work` webhook for Wandora-originated supervised work.
+
+The plugin reuses Paperclip as the durable work authority:
+
+- exact managed employee must already be `idle`;
+- work is materialized as one Paperclip issue with a stable Wandora `originId`;
+- the issue is dispatched through `issues.wakeup`, never `agents.invoke`;
+- plugin-scoped state stores only a fail-closed dispatch receipt;
+- an ambiguous `dispatching` receipt is never retried automatically;
+- no customer/browser provider IDs or credentials are accepted.
+
+The work webhook does not enable Human Send, Gateway outbound or any external customer effect.
