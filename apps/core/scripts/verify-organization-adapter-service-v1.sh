@@ -103,6 +103,15 @@ ACTIVATION_PROJECTION_VERIFIER="VERIFY_20260920_DIGITAL_EMPLOYEE_ACTIVATION_PROJ
 docker cp "$VERIFIERS/$ACTIVATION_PROJECTION_VERIFIER" "$DB:/tmp/$ACTIVATION_PROJECTION_VERIFIER" >/dev/null
 docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -f "/tmp/$ACTIVATION_PROJECTION_VERIFIER"
 
+WORK_ADMISSION_MIGRATION="20260920_016_digital_employee_work_admission_v1.sql"
+docker cp "$MIGRATIONS/$WORK_ADMISSION_MIGRATION" "$DB:/tmp/$WORK_ADMISSION_MIGRATION" >/dev/null
+docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -f "/tmp/$WORK_ADMISSION_MIGRATION" >/dev/null
+docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -f "/tmp/$WORK_ADMISSION_MIGRATION" >/dev/null
+
+WORK_ADMISSION_VERIFIER="VERIFY_20260920_DIGITAL_EMPLOYEE_WORK_ADMISSION_V1.sql"
+docker cp "$VERIFIERS/$WORK_ADMISSION_VERIFIER" "$DB:/tmp/$WORK_ADMISSION_VERIFIER" >/dev/null
+docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -f "/tmp/$WORK_ADMISSION_VERIFIER"
+
 docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -c \
   "ALTER ROLE wandora_core_runtime CONNECTION LIMIT 4 PASSWORD '${CORE_PASSWORD}';
    CREATE ROLE wandora_fixture_admin_test LOGIN BYPASSRLS PASSWORD '${FIXTURE_PASSWORD}';
@@ -114,7 +123,7 @@ docker run --rm --network "$NET" -v "$CORE:/app" -w /app \
   -e DATABASE_URL="postgresql://wandora_core_runtime:${CORE_PASSWORD}@${DB}:5432/${DB_NAME}" \
   -e FIXTURE_DATABASE_URL="postgresql://wandora_fixture_admin_test:${FIXTURE_PASSWORD}@${DB}:5432/${DB_NAME}" \
   "$NODE_IMAGE" sh -lc \
-  'npm ci --ignore-scripts >/dev/null && npm run typecheck && node --import tsx --test --test-concurrency=1 test/organization-adapter-service.integration.test.ts test/organization-adapter-runtime-e2e.integration.test.ts test/organization-adapter-activation.integration.test.ts test/human-digital-employee-activation-read.integration.test.ts test/paperclip-execution-service.integration.test.ts'
+  'npm ci --ignore-scripts >/dev/null && npm run typecheck && node --import tsx --test --test-concurrency=1 test/organization-adapter-service.integration.test.ts test/organization-adapter-runtime-e2e.integration.test.ts test/organization-adapter-activation.integration.test.ts test/organization-adapter-work.integration.test.ts test/human-digital-employee-activation-read.integration.test.ts test/paperclip-execution-service.integration.test.ts'
 
 echo "ORGANIZATION_ADAPTER_SERVICE_CONTRACT_V1_VERIFY_OK"
 echo "ORGANIZATION_ADAPTER_RUNTIME_E2E_V1_VERIFY_OK"
@@ -122,3 +131,4 @@ echo "DIGITAL_EMPLOYEE_ACTIVATION_CONTRACT_V1_VERIFY_OK"
 echo "CUSTOMER_HIRE_TENANT_ELIGIBILITY_V1_VERIFY_OK"
 echo "PAPERCLIP_EXECUTION_BINDING_RESOLVER_V1_VERIFY_OK"
 echo "DIGITAL_EMPLOYEE_ACTIVATION_PROJECTION_V1_VERIFY_OK"
+echo "DIGITAL_EMPLOYEE_WORK_ADMISSION_V1_VERIFY_OK"
