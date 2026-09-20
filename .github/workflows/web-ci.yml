@@ -110,6 +110,20 @@ jobs:
           assert data['idempotency'] == 'ci-hire-key', data
           assert json.loads(data['body']) == {'catalogKey': 'ana-commercial-v1'}, data
           PY
+          ACTIVATE_PATH='/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/digital-employees/30000000-0000-0000-0000-0000000000a1/activate'
+          ACTIVATE_RESPONSE="$(curl -fsS -X POST \
+            -H 'Authorization: Bearer ci-token' \
+            -H 'Cookie: browser-session=must-not-cross' \
+            "${WEB_BASE_URL}${ACTIVATE_PATH}")"
+          python3 - "$ACTIVATE_RESPONSE" "$ACTIVATE_PATH" <<'PY'
+          import json, sys
+          data = json.loads(sys.argv[1])
+          assert data['auth'] == 'Bearer ci-token', data
+          assert data['cookie'] == '', data
+          assert data['method'] == 'POST', data
+          assert data['path'] == sys.argv[2], data
+          assert data['body'] == '', data
+          PY
           SEND_PATH='/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/work/60000000-0000-0000-0000-0000000000a1/proposals/70000000-0000-0000-0000-0000000000a1/send'
           SEND_RESPONSE="$(curl -fsS -X POST \
             -H 'Authorization: Bearer ci-token' \
