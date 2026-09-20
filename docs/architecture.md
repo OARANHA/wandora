@@ -853,7 +853,7 @@ Paperclip run-scoped JWT
   -> deterministic Mastra runtime
 ```
 
-The bounded acceptance used the existing **Wandora Internal Supervised Proof** identity through Paperclip's normal heartbeat/run path. Two synthetic runs completed successfully during the brief proof window; the proof agent was then re-paused, its synthetic issue cancelled and pending proof runs returned to zero. MEDICSPRO Ana was never awakened. A forged/tampered JWT was rejected, and unknown provider-company mappings remain fail-closed.
+The bounded acceptance used the existing **Wandora Internal Supervised Proof** identity through Paperclip's normal heartbeat/run path. The initial acceptance produced one on-demand run plus one timer heartbeat; both succeeded. During later chat-continuity recovery, before the already-existing PR #180 checkpoint was discovered, the same `WAN-1` path was invoked once more and a third synthetic run also succeeded. Final proof state is agent `paused`, issue `cancelled`, pending runs/wakeups `0/0`, and outbound attempts unchanged. MEDICSPRO Ana was never awakened. A forged/tampered JWT was rejected, and unknown provider-company mapping was independently rechecked through the Core service and failed closed.
 
 ### Backup / rollback architecture
 
