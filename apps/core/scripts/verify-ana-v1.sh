@@ -121,6 +121,8 @@ docker run --rm --network "$NET" -v "$CORE:/app" -w /app \
     BASE_TESTS="$(find test -maxdepth 1 -name "*.test.ts" \
       ! -name "organization-adapter-service.integration.test.ts" \
       ! -name "organization-adapter-runtime-e2e.integration.test.ts" \
+      ! -name "organization-adapter-activation.integration.test.ts" \
+      ! -name "human-digital-employee-activation-read.integration.test.ts" \
       ! -name "customer-hire-tenant-eligibility.integration.test.ts" \
       ! -name "paperclip-execution-service.integration.test.ts" \
       -print | sort | tr "\n" " ")"

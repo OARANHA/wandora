@@ -129,3 +129,33 @@ test('Paperclip provider fails closed before network on invalid local configurat
   );
   assert.equal(networkCalls, 0);
 });
+
+test('activation provider sends only company + catalog to the separate signed activation action', async () => {
+  const activationUrl = 'http://paperclip.internal/api/plugins/plugin-id/webhooks/employee-activate';
+  const seen: Array<{ url: string; body: string }> = [];
+  const provider = createPaperclipOrganizationAdapterProvider({
+    webhookUrl: WEBHOOK_URL,
+    activationWebhookUrl: activationUrl,
+    resolveHmacSecret: async () => 'fixture-activation-key',
+    fetchImpl: (async (input: string | URL | Request, init?: RequestInit) => {
+      seen.push({ url: String(input), body: String(init?.body ?? '') });
+      return new Response(JSON.stringify({ status: 'success', deliveryId: 'activation-proof' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }) as typeof fetch,
+    now: () => NOW_MS,
+  });
+  assert.ok(provider.activateCatalogEmployee);
+  const result = await provider.activateCatalogEmployee({
+    providerCompanyRef: 'paperclip-company-a',
+    catalogKey: 'ana-commercial-v1',
+  });
+  assert.equal(seen[0]?.url, activationUrl);
+  assert.deepEqual(JSON.parse(seen[0]!.body), {
+    companyId: 'paperclip-company-a',
+    catalogKey: 'ana-commercial-v1',
+  });
+  assert.equal(JSON.stringify(seen[0]).includes('agentId'), false);
+  assert.equal(result.providerAgentRef, paperclipManagedAgentRef('paperclip-company-a', 'ana-commercial-v1'));
+});

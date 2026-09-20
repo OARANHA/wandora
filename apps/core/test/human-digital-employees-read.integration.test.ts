@@ -91,6 +91,7 @@ test('active member reads only canonical digital employees from selected tenant'
       role: 'commercial-assistant',
       status: 'active',
       autonomy: 'supervised',
+      activation: { available: false, state: 'active' },
     },
     {
       id: EMP_A_PAUSED,
@@ -98,6 +99,7 @@ test('active member reads only canonical digital employees from selected tenant'
       role: 'commercial-assistant',
       status: 'paused',
       autonomy: 'supervised',
+      activation: { available: false, state: 'unavailable' },
     },
   ]);
   assert.equal(JSON.stringify(items).includes('Segredo B'), false);
