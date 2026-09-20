@@ -2,7 +2,8 @@ import type { PluginContext } from '@paperclipai/plugin-sdk';
 import { definePlugin, runWorker } from '@paperclipai/plugin-sdk';
 import { activateManagedCatalogEmployee } from './activation.js';
 import { CATALOG_KEY } from './catalog.js';
-import { parseActivationWebhook, parseReconcileWebhook, requireFreshTimestamp, requireHmacSecret, verifySignature } from './contract.js';
+import { parseActivationWebhook, parseReconcileWebhook, parseWorkWebhook, requireFreshTimestamp, requireHmacSecret, verifySignature } from './contract.js';
+import { ensureManagedCatalogEmployeeWork } from './work.js';
 
 let pluginContext: PluginContext | null = null;
 type SecretRef = { type: 'secret_ref'; secretId: string };
@@ -45,6 +46,17 @@ const plugin = definePlugin({
       const request = parseActivationWebhook(input);
       await authenticateRequest(pluginContext, request);
       await activateManagedCatalogEmployee(pluginContext.agents, request.companyId);
+      return;
+    }
+    if (input.endpointKey === 'employee-work') {
+      const request = parseWorkWebhook(input);
+      await authenticateRequest(pluginContext, request);
+      await ensureManagedCatalogEmployeeWork(pluginContext, {
+        companyId: request.companyId,
+        workId: request.workId,
+        title: request.title,
+        description: request.description,
+      });
       return;
     }
     throw new Error('unknown_endpoint');
