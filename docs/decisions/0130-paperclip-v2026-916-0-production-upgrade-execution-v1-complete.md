@@ -279,22 +279,35 @@ Exactly one expected failed diagnostic webhook receipt was created; no employee 
 
 The existing production-only synthetic tenant **Wandora Internal Supervised Proof** was used instead of MEDICSPRO Ana.
 
-The exact live Paperclip `createLocalAgentJwt` implementation minted a token in memory for that existing proof agent and a synthetic run id. No token was printed or persisted.
+A direct helper attempt that would have minted/manipulated a JWT outside the normal run path was blocked by the operator tool before execution. The final acceptance therefore used Paperclip's own application services instead of extracting or handling live credentials:
 
-Results:
+1. `issueService.create()` created one synthetic proof issue (`WAN-1`) in the proof company;
+2. `agentService.resume()` moved only the proof Paperclip agent from `paused` to `idle`;
+3. `heartbeatService.wakeup()` dispatched the normal `wandora_mastra` execution path;
+4. Paperclip minted the run-scoped JWT internally, and Core's execution handler validated it through `/api/agents/me` before mapping/execution;
+5. the on-demand proof run `f9cf153f-1e57-495f-8fdf-a460d0e1286a` completed `succeeded` with no error and a deterministic Mastra result;
+6. while the synthetic agent was briefly idle, one normal timer heartbeat also fired; run `3bbf994d-9819-4f5f-ad98-0a50f718f330` also completed `succeeded`;
+7. both runs were drained/reconciled, the proof agent was returned to `paused`, and the synthetic issue was moved to `cancelled`.
+
+Final synthetic cleanup:
 
 ```text
-/api/agents/me with live token = 200
-agent/company identity match   = true
-tampered token                 = 401
-wandora_mastra testEnvironment = pass
-adapter execute -> Core/Mastra = exitCode 0
-provider                       = wandora
-executionId present            = true
+proof agent status       = paused
+proof pending runs       = 0
+proof succeeded runs     = 2
+proof issue              = cancelled
+proof outbound attempts  = 4 / unchanged from pre-proof baseline
 ```
 
-No Paperclip wakeup or heartbeat run was created for the proof identity.
+The successful bridge execution proves the genuine internally minted run token was accepted by Paperclip `/api/agents/me`, because Core's `verifyRunIdentity` performs that check before employee binding resolution and Mastra execution.
 
+A separate syntactically valid forged HS256 JWT with the proof identity/run claims but a false signature returned:
+
+```text
+/api/agents/me forged JWT = 401
+```
+
+This closes the positive run-token / bridge path and the signature-tamper rejection without printing or persisting any real run token.
 ### Fail-closed / no-effect state
 
 The Core resolver still has no binding for an unknown Paperclip company and the Core itself was not changed in this Paperclip-only upgrade. ADR 0128's unknown-mapping fail-closed proof therefore remains applicable; the live binding table also confirms no unknown mapping exists.
@@ -312,7 +325,7 @@ Gateway outbound           = OFF
 customer messages          = 0 new
 ```
 
-The synthetic proof tenant also gained no wakeup/run and its historical outbound-attempt count did not increase.
+The synthetic proof tenant created only the two bounded acceptance runs above; after cleanup it had zero pending runs, the proof agent was paused, the proof issue was cancelled, and its historical outbound-attempt count remained unchanged at 4.
 
 ## Rollback status
 
