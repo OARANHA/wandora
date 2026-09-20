@@ -232,7 +232,7 @@ test('work provider rejects invalid work correlation before network', async () =
       description: '',
     },
   ]) {
-    await assert.rejects(provider.ensureCatalogEmployeeWork!(input), /invalid_work_/);
+    assert.throws(() => provider.ensureCatalogEmployeeWork!(input), /invalid_work_/);
   }
   assert.equal(networkCalls, 0);
 });
