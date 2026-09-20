@@ -1,6 +1,6 @@
 # ADR 0137 — Customer Owner First Real Tenant Active Digital-Employee First Legitimate Work Contract Implementation V1
 
-- Status: Under qualification — implementation candidate / no production effect
+- Status: Implementation locally qualified — PR CI pending / no production effect
 - Date: 2026-09-20
 - Builds on: ADR 0036, ADR 0037, ADR 0126, ADR 0135, ADR 0136
 - Scope: customer-safe admission of one-off supervised internal work for an already-active managed digital employee
@@ -312,6 +312,48 @@ This ADR remains **Under qualification** until PR CI proves:
 8. work gate OFF by default;
 9. no Human Send/Gateway outbound activation;
 10. production MEDICSPRO state remains unchanged.
+
+## Qualification evidence — 2026-09-20
+
+The candidate was validated only in disposable/local environments. No MEDICSPRO work, live migration, live plugin promotion or outbound effect was performed.
+
+Evidence on the final implementation line before PR CI refresh:
+
+- `apps/core/scripts/verify-ana-v1.sh`: **GREEN / exit 0**
+  - Core typecheck + build GREEN;
+  - **123/123 tests GREEN**;
+  - runtime smoke + compose validation GREEN;
+  - `ANA_VERTICAL_SLICE_V1_VERIFY_OK`.
+- `apps/core/scripts/verify-organization-adapter-service-v1.sh`: **GREEN / exit 0**
+  - migration 010/011/013/014/015 boundaries GREEN;
+  - migration **016** applied twice on disposable PostgreSQL and verified idempotent;
+  - column-level least privilege verifier GREEN;
+  - **29/29 integration tests GREEN**;
+  - `DIGITAL_EMPLOYEE_WORK_ADMISSION_V1_VERIFY_OK`.
+- Organization Adapter v0.3 package verification against exact Paperclip
+  `dffc2b3ca1b9e88fa21cb17493083e682dffd1ca`: **GREEN / exit 0**
+  - TypeScript checked against the real v916 SDK;
+  - **15/15 plugin tests GREEN**;
+  - pinned manifest validator GREEN;
+  - two npm packs reproducible;
+  - package SHA256:
+    `b05f2295dab4034ddd5b39db8398077e5171b0ad1751afe1be413e45aa2ec4b0`.
+- `wandora_mastra@0.2.0`:
+  - unit contract GREEN after correcting work-marker newline parsing;
+  - real Paperclip v916 external adapter loader GREEN;
+  - work marker stripped before Core/Mastra task content;
+  - run token remains header-only.
+- Disposable Paperclip -> Core -> Mastra attestation: **GREEN / exit 0**
+  - exact Paperclip commit: `dffc2b3ca1b9e88fa21cb17493083e682dffd1ca`;
+  - Paperclip run status: `succeeded`;
+  - canonical execution id shape: `exec_sha256`;
+  - synthetic issue present;
+  - migration 014 deliberately remained unapplied in that historical bridge rehearsal.
+- Disposable E2E staging was hardened:
+  - if hard-link staging partially fails, the partial target is deleted before full-copy fallback;
+  - this prevents a nested/incomplete pnpm tree and preserves `server/node_modules/tsx`.
+
+These proofs qualify the implementation candidate locally. **Acceptance/merge still requires a fresh all-GREEN GitHub PR workflow set for the final head.**
 
 ## Production boundary
 
