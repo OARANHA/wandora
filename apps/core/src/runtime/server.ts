@@ -16,6 +16,7 @@ import type {
 import {
   isHumanDigitalEmployeeActivationPath,
   isHumanDigitalEmployeeHirePath,
+  isHumanDigitalEmployeeWorkPath,
   isHumanSendProposalPath,
   type HumanSupervisionRequest,
   type HumanSupervisionResponse,
@@ -32,6 +33,7 @@ export type RuntimeReadiness =
         | 'tenant-scope-leak'
         | 'organization-adapter-database-boundary-unavailable'
         | 'customer-hire-eligibility-database-boundary-unavailable'
+        | 'customer-work-database-boundary-unavailable'
         | 'paperclip-execution-bridge-database-boundary-unavailable';
     };
 
@@ -145,8 +147,9 @@ export function createRuntimeServer(deps: RuntimeServerDeps): Server {
             isHumanSendProposalPath(url.pathname)
             || isHumanDigitalEmployeeHirePath(url.pathname)
             || isHumanDigitalEmployeeActivationPath(url.pathname)
+            || isHumanDigitalEmployeeWorkPath(url.pathname)
           );
-        const rawBody = humanPostBody ? await readBody(request, 2_048) : undefined;
+        const rawBody = humanPostBody ? await readBody(request, 8_192) : undefined;
         const result = await deps.handleHumanSupervision({
           method: request.method,
           pathname: url.pathname,
