@@ -5,6 +5,7 @@ import { createPaperclipOrganizationAdapterFileSecretResolver } from '../organiz
 
 export type RuntimeOrganizationAdapterConfig = {
   webhookUrl: string;
+  activationWebhookUrl?: string;
   secretDirectory: string;
 };
 
@@ -24,6 +25,7 @@ export function createRuntimeOrganizationAdapter(
 
   const provider = createPaperclipOrganizationAdapterProvider({
     webhookUrl: config.webhookUrl,
+    ...(config.activationWebhookUrl ? { activationWebhookUrl: config.activationWebhookUrl } : {}),
     resolveHmacSecret,
     ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}),
     ...(options.now ? { now: options.now } : {}),

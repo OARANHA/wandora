@@ -1,0 +1,5 @@
+services:
+  core:
+    environment:
+      WANDORA_HUMAN_DIGITAL_EMPLOYEE_ACTIVATION_ENABLED: "true"
+      WANDORA_ORGANIZATION_ADAPTER_ACTIVATION_WEBHOOK_URL: "http://wandora-paperclip:3100/api/plugins/wandora.organization-adapter-v1/webhooks/employee-activate"

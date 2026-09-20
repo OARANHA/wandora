@@ -1,9 +1,11 @@
 import { HumanAuthError } from '../human-auth/es256-jwks.js';
 import {
+  DigitalEmployeeActivationError,
   OrganizationAdapterConflictError,
   OrganizationAdapterUnavailableError,
 } from '../organization-adapter/contracts.js';
 import type { OrganizationAdapterService } from '../organization-adapter/service.js';
+import type { HumanDigitalEmployeeActivationService } from '../supervision/human-digital-employee-activation.js';
 import type { HumanDigitalEmployeesReadService } from '../supervision/human-digital-employees-read.js';
 import {
   HumanAccessError,
@@ -21,6 +23,7 @@ const CONFIRMATION_VERSION_RE = /^sha256:[0-9a-f]{64}$/;
 const WORK_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/work\/attention-required$/;
 const SEND_PROPOSAL_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/work\/([^/]+)\/proposals\/([^/]+)\/send$/;
 const DIGITAL_EMPLOYEES_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/digital-employees$/;
+const DIGITAL_EMPLOYEE_ACTIVATE_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/digital-employees\/([^/]+)\/activate$/;
 const CONVERSATIONS_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/conversations$/;
 const CONVERSATION_DETAIL_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/conversations\/([^/]+)$/;
 const SESSION_PATH = '/api/v1/me';
@@ -61,6 +64,11 @@ export function isHumanDigitalEmployeeHirePath(pathname: string): boolean {
   return Boolean(match?.[1] && UUID_RE.test(match[1]));
 }
 
+export function isHumanDigitalEmployeeActivationPath(pathname: string): boolean {
+  const match = DIGITAL_EMPLOYEE_ACTIVATE_PATH_RE.exec(pathname);
+  return Boolean(match?.[1] && match?.[2] && UUID_RE.test(match[1]) && UUID_RE.test(match[2]));
+}
+
 function parseCatalogHireRequest(rawBody: string | undefined): { catalogKey: string } | undefined {
   if (!rawBody || rawBody.length > 1_024) return undefined;
   try {
@@ -96,6 +104,7 @@ export function createHumanSupervisionHandler(
   sendProposalService?: HumanSendProposalService,
   digitalEmployeesService?: HumanDigitalEmployeesReadService,
   digitalEmployeeHireService?: OrganizationAdapterService,
+  digitalEmployeeActivationService?: HumanDigitalEmployeeActivationService,
 ) {
   return async (request: HumanSupervisionRequest): Promise<HumanSupervisionResponse> => {
     try {
@@ -134,6 +143,26 @@ export function createHumanSupervisionHandler(
           confirmationVersion,
         });
         return { status: 200, body: result };
+      }
+
+      const activationMatch = DIGITAL_EMPLOYEE_ACTIVATE_PATH_RE.exec(request.pathname);
+      if (activationMatch) {
+        const organizationId = activationMatch[1];
+        const employeeId = activationMatch[2];
+        if (!organizationId || !employeeId || !UUID_RE.test(organizationId) || !UUID_RE.test(employeeId)) {
+          return { status: 404, body: { error: 'not-found' } };
+        }
+        if (request.method !== 'POST') return { status: 405, body: { error: 'method-not-allowed' } };
+        if (!digitalEmployeeActivationService) return { status: 404, body: { error: 'not-found' } };
+        if (request.rawBody?.trim()) return { status: 400, body: { error: 'invalid-activation-request' } };
+
+        const session = await service.getSessionContext(request.authorization);
+        const employee = await digitalEmployeeActivationService.activate({
+          organizationId,
+          actorUserId: session.user.id,
+          employeeId,
+        });
+        return { status: 200, body: { employee } };
       }
 
       const digitalEmployeesMatch = DIGITAL_EMPLOYEES_PATH_RE.exec(request.pathname);
@@ -254,6 +283,15 @@ export function createHumanSupervisionHandler(
       }
       if (error instanceof HumanNotFoundError) {
         return { status: 404, body: { error: 'not-found' } };
+      }
+      if (error instanceof DigitalEmployeeActivationError) {
+        if (error.code === 'employee-not-activatable') {
+          return { status: 409, body: { error: 'employee-not-activatable' } };
+        }
+        if (error.code === 'provider-activation-uncertain') {
+          return { status: 409, body: { error: 'employee-activation-uncertain', retry: 'same-activation-contract' } };
+        }
+        return { status: 503, body: { error: 'employee-activation-unavailable' } };
       }
       if (error instanceof OrganizationAdapterConflictError) {
         return { status: 409, body: { error: error.code } };

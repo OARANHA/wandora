@@ -11,6 +11,10 @@ export type HumanDigitalEmployee = {
   role: 'commercial-assistant';
   status: 'active' | 'paused';
   autonomy: 'supervised';
+  activation: {
+    available: boolean;
+    state: 'available' | 'active' | 'unavailable';
+  };
 };
 
 export type HumanDigitalEmployeeHireAvailability = {
@@ -39,6 +43,7 @@ export class HumanDigitalEmployeesReadService {
     private readonly pool: Pool,
     private readonly sessionService: HumanSupervisionReadService,
     private readonly catalogHireRuntimeEnabled = false,
+    private readonly activationRuntimeEnabled = false,
   ) {}
 
   private async scoped<T>(
@@ -175,6 +180,34 @@ export class HumanDigitalEmployeesReadService {
     };
   }
 
+  private async activationEligibleEmployeeIds(
+    client: PoolClient,
+    organizationId: string,
+    role: MembershipRole,
+  ): Promise<Set<string>> {
+    if (!this.activationRuntimeEnabled || (role !== 'owner' && role !== 'admin')) return new Set();
+    const result = await client.query<{ employee_id: string }>(
+      `SELECT h.employee_id::text AS employee_id
+         FROM wandora_private.digital_employee_hire_operations h
+         JOIN wandora_private.digital_employee_provider_bindings b
+           ON b.organization_id = h.organization_id
+          AND b.employee_id = h.employee_id
+          AND b.provider = h.provider
+          AND b.provider_agent_ref = h.provider_agent_ref
+         JOIN wandora_private.control_plane_provider_bindings c
+           ON c.organization_id = h.organization_id
+          AND c.provider = h.provider
+          AND c.provider_company_ref = h.provider_company_ref
+        WHERE h.organization_id = $1
+          AND h.provider = $2
+          AND h.catalog_key = $3
+          AND h.status = 'completed'
+          AND h.provider_agent_ref IS NOT NULL`,
+      [organizationId, CUSTOMER_HIRE_PROVIDER, CUSTOMER_HIRE_CATALOG_KEY],
+    );
+    return new Set(result.rows.map((row) => row.employee_id));
+  }
+
   async getDigitalEmployeesView(
     authorization: string | undefined,
     organizationId: string,
@@ -196,12 +229,18 @@ export class HumanDigitalEmployeesReadService {
         [organizationId],
       );
 
+      const activationEligible = await this.activationEligibleEmployeeIds(client, organizationId, role);
       const items = result.rows.map((row) => ({
         id: row.employee_id,
         name: row.employee_name,
         role: row.employee_role,
         status: row.employee_status,
         autonomy: row.employee_autonomy,
+        activation: row.employee_status === 'active'
+          ? { available: false, state: 'active' as const }
+          : activationEligible.has(row.employee_id)
+            ? { available: true, state: 'available' as const }
+            : { available: false, state: 'unavailable' as const },
       }));
 
       return {
