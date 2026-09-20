@@ -992,3 +992,43 @@ The execution bridge remains independently fail-closed: Paperclip `idle` does no
 Human Send and Gateway outbound remain separate Wandora-owned effect gates and are not implied by digital-employee activation.
 
 ADR 0133 also freezes the operational rule that `agents.resume` is the lifecycle point of no automatic rollback in V1. Conventional rollback applies to migration/plugin/Core/Web before resume; post-resume anomalies require explicit fail-closed reconciliation/remediation rather than adding `agents.pause` or direct employee UPDATE authority.
+
+
+## First real MEDICSPRO digital-employee activation — LIVE
+
+ADR 0135 closes the first real customer activation boundary.
+
+The production lifecycle is now:
+
+```text
+customer owner
+  -> Wandora Web authenticated activation action
+  -> Wandora Core authorization/readiness
+  -> Organization Adapter
+  -> Paperclip agents.resume
+  -> provider readback = idle
+  -> Wandora projection paused -> active
+```
+
+The active employee boundary is intentionally distinct from work execution:
+
+```text
+activation != wakeup
+activation != heartbeat
+activation != task/run
+activation != Mastra workflow
+activation != outbound send
+```
+
+MEDICSPRO Ana is now `active + supervised` in Wandora and `idle / wandora_mastra` in Paperclip. Post-effect validation proves zero task sessions, wakeups, heartbeat/routine runs, run identity contexts, runtime token/cost counters and outbound attempts.
+
+Mastra remains a lazy execution dependency. It is reached only when legitimate work enters through the reviewed inbound or Paperclip execution boundary. The activation service does not use Mastra for lifecycle transition.
+
+External-effect barriers remain separate and OFF:
+
+```text
+Human Send = OFF
+Gateway outbound = OFF
+```
+
+Any future deactivation/pause capability or first legitimate post-activation work requires a separately reviewed slice; do not grant broader Paperclip lifecycle authority or create synthetic work merely for demonstration.
