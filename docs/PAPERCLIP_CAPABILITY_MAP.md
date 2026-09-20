@@ -1,11 +1,11 @@
 # Paperclip Capability Map
 
-- Date: 2026-09-19
-- Production runtime: `wandora/paperclip:v2026.831.1`
-- Production source: `65ec059bde30d98c92165b24a30a540800dd1f6f`
+- Date: 2026-09-20
+- Production runtime: `wandora/paperclip:v2026.916.0`
+- Production source: `dffc2b3ca1b9e88fa21cb17493083e682dffd1ca`
 - Current upstream stable reviewed: `v2026.916.0`
 - Upstream stable source: `dffc2b3ca1b9e88fa21cb17493083e682dffd1ca`
-- Status: **Canonical capability map — upgrade is not authorized by this document**
+- Status: **Canonical capability map — production is on v2026.916.0 per ADR 0130; future upgrades are not authorized by this document**
 
 This map answers one question before Wandora adds control-plane/domain state: **does Paperclip already own or supply the capability?**
 
