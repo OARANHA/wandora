@@ -1274,51 +1274,37 @@ Update this file when architecture authority, REAL customer surfaces, live topol
 
 Keep it compact. Detailed history belongs in ADRs/evidence docs.
 
-## Paperclip v2026.916.0 production-upgrade preflight checkpoint
+## Paperclip v2026.916.0 production-upgrade execution checkpoint
 
-ADR 0129 closes the **Production Upgrade Preflight V1** as GREEN while keeping production on v2026.831.1.
-
-Frozen candidate:
+ADR 0130 supersedes the mutable Paperclip production-version lines above.
 
 ```text
-v2026.916.0
-dffc2b3ca1b9e88fa21cb17493083e682dffd1ca
-sha256:4fb5073ff0b09ea50527cfeafe5bcaff4f9dae2b0f508fd06c0dc58661735ced
-```
+Paperclip          = v2026.916.0
+source             = dffc2b3ca1b9e88fa21cb17493083e682dffd1ca
+image ID           = sha256:4fb5073ff0b09ea50527cfeafe5bcaff4f9dae2b0f508fd06c0dc58661735ced
+health/restarts    = healthy / 0
+migration ledger  = 278 / max 278
+new migrations    = 49 / startup files 0231..0279
 
-Fresh recovery set:
+Organization Adapter = 1 / ready / v0.1.0
+wandora_mastra       = 1 / v0.1.0 / testEnvironment pass
 
-```text
-/home/wandora-admin/backups/
-paperclip-v916-production-upgrade-preflight-v1-20260920T004119Z/
-```
-
-It contains the new official Paperclip backup + matching live `master.key`, a PostgreSQL 18.1 schema-faithful `pg_dump -Fc`, frozen v831 Compose/bridge wrapper, adapter store, `wandora_mastra`, Organization Adapter and image provenance.
-
-The fresh custom dump was actually restored and normalized schema equality with live was proven.
-
-Exact v831 rollback image alias:
-
-```text
-wandora/paperclip:rollback-v2026.831.1-pre-v916-20260920T004119Z
--> sha256:76b91ae947fe3b379223a1f4bff80318595daf31f12904927c7e88cba56486b1
-```
-
-Production remains unchanged:
-
-```text
-Paperclip          = v2026.831.1
-migration ledger   = 229 / max 229
-Ana                = paused + supervised
+MEDICSPRO Ana      = paused + supervised
+Paperclip Ana      = paused
+wakeups/runs       = 0 / 0
 agents.resume      = absent
 Human Send         = OFF
 Gateway outbound   = OFF
 outbound attempts  = 0
 ```
 
-The first committed v916 migration is the boundary after which image-only rollback is forbidden. Exact execution/rollback order is frozen in `docs/operations/paperclip-v2026-916-0-production-upgrade-execution-v1.md`.
+The ADR 0129 protected recovery set remains retained. Production has crossed the migration boundary, so v831 image-only rollback is forbidden; v831 recovery requires the schema-faithful PostgreSQL 18.1 pre-upgrade restore + matching `master.key` + frozen runtime/extensions.
 
-Next executable slice: **Paperclip v2026.916.0 Production Upgrade Execution V1**. It must reconcile drift and perform a second adversarial review before any live migration/recreate.
+Post-upgrade acceptance used only the existing **Wandora Internal Supervised Proof** identity. A live Paperclip run-scoped JWT was accepted by `/api/agents/me`, tampering returned 401, and `wandora_mastra -> Core -> Mastra` returned a successful deterministic execution without creating a Paperclip wakeup/run. The local-encrypted Organization Adapter path was proven by resolving the secret before deliberately rejecting an invalid signature. No MEDICSPRO employee or outbound effect was triggered.
+
+No `wandora_mastra` repack, Organization Adapter behavior change or Mastra upgrade was bundled.
+
+Next executable slice: **Customer Owner First Real Tenant Digital-Employee Activation Readiness Refresh V1**. It must reconcile the earlier activation preflight with v916 and the capability maps before any resume/activation.
 
 ## Canonical documents
 
@@ -1407,6 +1393,7 @@ Next executable slice: **Paperclip v2026.916.0 Production Upgrade Execution V1**
 - ADR 0127 — Paperclip v2026.916.0 Disposable Upgrade Compatibility Proof V1 Partial Checkpoint
 - ADR 0128 — Paperclip v2026.916.0 Disposable Upgrade Compatibility Proof V1 Complete
 - ADR 0129 — Paperclip v2026.916.0 Production Upgrade Preflight V1
+- ADR 0130 — Paperclip v2026.916.0 Production Upgrade Execution V1 Complete
 - current Git `main`
 - current runtime/container state when deployment facts matter
 
