@@ -27,6 +27,25 @@ if (!nginx.includes('location /api/ {\n    return 404;\n  }')) {
 }
 
 console.log('WANDORA_WEB_DIGITAL_EMPLOYEE_HIRE_BRIDGE_V1_OK');
+const digitalEmployeeActivationLocation =
+  /location ~ "\^\/api\/v1\/organizations\/\[0-9A-Fa-f\][\s\S]*?\/digital-employees\/\[0-9A-Fa-f\][\s\S]*?\/activate\$" \{([\s\S]*?)\n  \}/
+    .exec(nginx)?.[1];
+
+if (!digitalEmployeeActivationLocation) {
+  throw new Error('digital_employee_activation_bridge_missing');
+}
+if (!digitalEmployeeActivationLocation.includes('proxy_set_header Authorization $http_authorization;')) {
+  throw new Error('digital_employee_activation_authorization_forwarding_missing');
+}
+if (!digitalEmployeeActivationLocation.includes('proxy_set_header Cookie "";')) {
+  throw new Error('digital_employee_activation_cookie_stripping_missing');
+}
+if (digitalEmployeeActivationLocation.includes('Idempotency-Key')) {
+  throw new Error('digital_employee_activation_must_not_forward_hire_idempotency');
+}
+
+console.log('WANDORA_WEB_DIGITAL_EMPLOYEE_ACTIVATION_BRIDGE_V1_OK');
+
 
 const [startPage, teamPage] = await Promise.all([
   readFile(new URL('../src/pages/StartPage.tsx', import.meta.url), 'utf8'),
@@ -61,12 +80,20 @@ const requiredTeamPageFragments = [
   "hire?.available || hire?.state === 'reconciliation-required'",
   'showHireAction',
   "hire?.state === 'reconciliation-required' ? 'Revisar contratação' : 'Contratar Ana'",
+  "/digital-employees/${employeeId}/activate",
+  "{ method: 'POST' }",
+  "employee.activation.available",
+  "Não inicia trabalho",
+  "não libera envios externos",
 ];
 
 for (const fragment of requiredTeamPageFragments) {
   if (!teamPage.includes(fragment)) {
     throw new Error(`customer_hire_team_gate_missing:${fragment}`);
   }
+}
+if (teamPage.includes('providerAgentId') || teamPage.includes('paperclip')) {
+  throw new Error('digital_employee_activation_provider_identifier_leak');
 }
 
 const validationIndex = startPage.indexOf("if (!employee?.id || employee.name !== 'Ana')");
