@@ -21,7 +21,7 @@ function optionalString(value, max = MAX_TASK_TEXT) {
 }
 
 const WORK_MARKER_RE =
-  /^<!-- wandora-work-v1:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}) -->\\r?\\n?/i;
+  /^<!-- wandora-work-v1:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}) -->\r?\n?/i;
 
 function reviewedTask(context) {
   const issue = context?.paperclipIssue && typeof context.paperclipIssue === 'object'
