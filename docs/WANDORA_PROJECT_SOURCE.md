@@ -1,6 +1,6 @@
 # Wandora — Project Source / Continuity Bootstrap
 
-Snapshot date: **2026-09-19**
+Snapshot date: **2026-09-20**
 Repository: `OARANHA/wandora`
 Canonical main entering the self-hosted CI restoration slice: `90ce29465816e4b91fb7bf2d516e0119a6404731`
 Active infrastructure PR at this snapshot: **#162** (`ci: add isolated Wandora self-hosted runner`); implementation-validation head `fad8d64070663aea823325f8970a24b90004295e`.
@@ -1438,3 +1438,50 @@ Current production remains dormant: migration 015 absent; Organization Adapter v
 The live-derived disposable rehearsal qualified migration 015, its verifier and restore rollback. Exact Core/Web/Organization Adapter v0.2.0 candidate provenance and current rollback anchors are frozen in ADR 0133. Activation adds only Paperclip `agents.resume`; it does not invoke work or Mastra.
 
 Next slice: **Customer Owner First Real Tenant Digital-Employee Activation Production Execution V1**, with a fresh execution-time backup and fresh pre-resume gates before any lifecycle effect.
+
+
+## Current real-customer activation checkpoint — 2026-09-20
+
+The first real MEDICSPRO digital employee activation is complete under ADR 0135.
+
+Current production checkpoint:
+
+```text
+canonical main entering checkpoint docs = 3f9f6a580f6e2cadab20cd375c9bee4255344093
+
+MEDICSPRO Wandora Ana = active + supervised
+MEDICSPRO Paperclip Ana = idle / wandora_mastra
+
+migration 015 = live / verifier green
+Organization Adapter = v0.2.0 / ready / agents.resume present
+Core = organization-adapter-candidate-8d2a53e3c264
+Web = candidate-eda946c36ec4
+Paperclip = v2026.916.0
+
+Human Digital-Employee Activation = ON
+Human Send = OFF
+Gateway outbound = OFF
+```
+
+The production activation was executed exactly once through the normal authenticated customer-owner Web flow.
+
+A Web candidate Auth-build defect was discovered before the lifecycle effect, failed closed, and was corrected by PR #185 / ADR 0134. Real owner login then succeeded before activation resumed.
+
+Post-activation evidence proves:
+
+```text
+Wandora Ana active + supervised
+Paperclip Ana idle
+wakeups = 0
+heartbeat runs = 0
+routine runs = 0
+task sessions = 0
+runtime last_run_id = null
+runtime tokens/cost = 0
+run identity contexts = 0
+outbound attempts = 0
+```
+
+Therefore activation did not invoke Mastra or create execution work.
+
+Continuity rule: do not repeat activation after chat failure. Reconcile the real Wandora/Paperclip states first. The next work must be a new, explicitly reviewed post-activation operational slice; do not manufacture work or enable outbound merely to prove that Ana is active.

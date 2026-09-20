@@ -2784,3 +2784,59 @@ Migration 015 + canonical verifier passed against a live-derived disposable rest
 The activation path is proven to use only `agents.resume` as new Paperclip authority and not `agents.invoke`, tasks, wakeups, heartbeats, runs, routines or Mastra. The existing execution bridge continues fail-closed for `Paperclip idle + Wandora paused`.
 
 The next executable slice is **Customer Owner First Real Tenant Digital-Employee Activation Production Execution V1**. It is separately effectful and must not begin without a fresh REAL NOW and second adversarial review.
+
+
+## Customer Owner First Real Tenant Digital-Employee Activation Production Execution V1 — COMPLETE / GREEN
+
+ADR 0135 records the completed first real MEDICSPRO employee activation.
+
+Final live state:
+
+```text
+MEDICSPRO organization = b3fa4d96-4e2d-4d5a-ab59-ffab0d3062e5
+Wandora Ana = b7eb53d4-498a-4277-b11f-17ddc42b3fe3
+Wandora state = active + supervised
+
+Paperclip company = a63f27a8-dbac-4552-a456-b3a21302226b
+Paperclip Ana = da6cfc6b-e16f-483a-95f1-bacee8e54365
+Paperclip state = idle / wandora_mastra
+```
+
+Activation foundation:
+
+```text
+migration 015 = LIVE / canonical verifier GREEN
+Organization Adapter = wandora.organization-adapter-v1@0.2.0 / ready
+Core = wandora/core:organization-adapter-candidate-8d2a53e3c264
+Web = wandora/web:candidate-eda946c36ec4
+Paperclip = wandora/paperclip:v2026.916.0
+Human Digital-Employee Activation = ON
+Human Send = OFF
+Gateway outbound = OFF
+```
+
+The Web Auth artifact defect discovered before activation was corrected by PR #185 / ADR 0134. The replacement Web candidate is login-capable and retains the reviewed activation bridge.
+
+Post-effect proof:
+
+```text
+Ana count = 1
+control bindings = 1
+employee bindings = 1
+completed exact-catalog hire = 1
+unfinished hires = 0
+outbound attempts = 0
+
+Paperclip wakeups = 0
+heartbeat runs = 0
+open routine runs = 0
+total routine runs = 0
+task sessions = 0
+runtime last_run_id = null
+runtime tokens/cost = 0
+MEDICSPRO run_identity_contexts = 0
+```
+
+The owner activation crossed the intended lifecycle point exactly once through the normal authenticated Web contract. Activation did not invoke Mastra and did not create a run. Mastra remains a lazy execution dependency for later legitimate work.
+
+Do not create synthetic work, wakeups, heartbeats, Mastra runs or outbound effects merely to demonstrate that Ana is active. Any first real post-activation work is a separate reviewed slice.
