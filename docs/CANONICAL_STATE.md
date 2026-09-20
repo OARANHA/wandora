@@ -2623,8 +2623,9 @@ Post-upgrade validation additionally proved:
 
 - company/memberships and Organization Adapter config/bindings survived;
 - the `local_encrypted` path resolves successfully without exposing plaintext: a deliberately invalid signed webhook reached `invalid_wandora_signature`, which the fixed plugin order can reach only after secret resolution and before managed reconcile;
-- a live run-scoped JWT minted in memory with Paperclip's exact production `createLocalAgentJwt` implementation was accepted by `/api/agents/me`; a tampered token returned 401;
-- the existing **Wandora Internal Supervised Proof** identity traversed `wandora_mastra -> Core -> deterministic Mastra` with exit code 0 and no Paperclip wakeup/run;
+- the existing **Wandora Internal Supervised Proof** identity was exercised through Paperclip's normal `heartbeatService.wakeup()` path, so Paperclip minted the run-scoped JWT internally and Core validated it through `/api/agents/me` before mapping/execution;
+- the bounded on-demand proof run plus one timer heartbeat that fired during the short synthetic idle window both completed `succeeded`; cleanup returned the proof agent to `paused`, cancelled the proof issue, and left zero pending proof runs;
+- a syntactically valid forged JWT with a false signature returned 401, while the successful proof traversed `wandora_mastra -> Core -> deterministic Mastra`; the proof tenant outbound-attempt count remained unchanged;
 - unknown Paperclip company mapping remains absent/fail-closed;
 - no compatibility-only `wandora_mastra` repack was promoted;
 - no Mastra upgrade or Organization Adapter behavior change occurred.
