@@ -1395,3 +1395,37 @@ Next executable slice: **Customer Owner First Real Tenant Digital-Employee Activ
 ## One-line memory anchor
 
 > **Wandora owns the customer/operator contract; specialist components lend capabilities behind Wandora adapters. Verify real state first, reuse before rebuilding, persist only minimum Wandora-owned safety/state, and never let local implementation convenience redefine the architecture.**
+
+## Customer Owner First Real Tenant Digital-Employee Activation Readiness Refresh V1
+
+ADR 0131 refreshed the first real activation boundary against live Paperclip v2026.916.0.
+
+Resolved from ADR 0116:
+
+- the Paperclip -> Wandora/Mastra execution bridge is live and healthy;
+- `wandora_mastra@0.1.0` is installed exactly once and v916-qualified;
+- the old missing-adapter blocker is closed.
+
+Still blocked:
+
+- the Organization Adapter manifest intentionally still lacks `agents.resume`;
+- Core/Web still have hire/read but no customer-owner activation contract/action.
+
+Exact v916 source inspection proves that Paperclip resume changes a paused agent to `idle` without issuing a wakeup, and managed reconcile does not silently repause an already resumed agent. Therefore Paperclip remains lifecycle authority; Wandora should not build a parallel lifecycle.
+
+The minimum next implementation is a signed company-scoped Organization Adapter action constrained to the fixed managed Ana plus a Wandora owner/admin activation contract that reconciles provider state before the local `paused -> active` projection. No activation journal is approved absent further evidence: native resume is convergent and ambiguous responses can be resolved by exact readback.
+
+Current safety state remains:
+
+```text
+MEDICSPRO Ana / Wandora   = paused + supervised
+MEDICSPRO Ana / Paperclip = paused
+wakeups/runs              = 0 / 0
+agents.resume             = absent
+Human Send                = OFF
+Gateway outbound          = OFF
+outbound attempts         = 0
+```
+
+Next executable slice: **Customer Owner First Real Tenant Digital-Employee Activation Contract Implementation V1**. It is implementation/qualification only and must not resume the real MEDICSPRO Ana.
+
