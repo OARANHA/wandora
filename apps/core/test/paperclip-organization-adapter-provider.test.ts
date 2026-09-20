@@ -159,3 +159,80 @@ test('activation provider sends only company + catalog to the separate signed ac
   assert.equal(JSON.stringify(seen[0]).includes('agentId'), false);
   assert.equal(result.providerAgentRef, paperclipManagedAgentRef('paperclip-company-a', 'ana-commercial-v1'));
 });
+
+
+test('work provider sends only company, catalog, Wandora work id and bounded content', async () => {
+  const workUrl = 'http://paperclip.internal/api/plugins/plugin-id/webhooks/employee-work';
+  const seen: Array<{ url: string; body: string }> = [];
+  const provider = createPaperclipOrganizationAdapterProvider({
+    webhookUrl: WEBHOOK_URL,
+    workWebhookUrl: workUrl,
+    resolveHmacSecret: async () => 'fixture-work-key',
+    fetchImpl: (async (input: string | URL | Request, init?: RequestInit) => {
+      seen.push({ url: String(input), body: String(init?.body ?? '') });
+      return new Response(JSON.stringify({ status: 'success', deliveryId: 'work-proof' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }) as typeof fetch,
+    now: () => NOW_MS,
+  });
+  assert.ok(provider.ensureCatalogEmployeeWork);
+  const result = await provider.ensureCatalogEmployeeWork({
+    providerCompanyRef: 'paperclip-company-a',
+    catalogKey: 'ana-commercial-v1',
+    workId: '11111111-1111-4111-8111-111111111111',
+    title: 'Preparar resumo',
+    description: 'Preparar resultado interno supervisionado.',
+  });
+  assert.equal(seen[0]?.url, workUrl);
+  assert.deepEqual(JSON.parse(seen[0]!.body), {
+    companyId: 'paperclip-company-a',
+    catalogKey: 'ana-commercial-v1',
+    workId: '11111111-1111-4111-8111-111111111111',
+    title: 'Preparar resumo',
+    description: 'Preparar resultado interno supervisionado.',
+  });
+  assert.equal(JSON.stringify(seen[0]).includes('agentId'), false);
+  assert.equal(result.providerAgentRef, paperclipManagedAgentRef('paperclip-company-a', 'ana-commercial-v1'));
+});
+
+test('work provider rejects invalid work correlation before network', async () => {
+  let networkCalls = 0;
+  const provider = createPaperclipOrganizationAdapterProvider({
+    webhookUrl: WEBHOOK_URL,
+    workWebhookUrl: 'http://paperclip.internal/api/plugins/plugin-id/webhooks/employee-work',
+    resolveHmacSecret: async () => 'fixture-work-key',
+    fetchImpl: (async () => {
+      networkCalls += 1;
+      return new Response('{}', { status: 200 });
+    }) as typeof fetch,
+  });
+  assert.ok(provider.ensureCatalogEmployeeWork);
+  for (const input of [
+    {
+      providerCompanyRef: 'paperclip-company-a',
+      catalogKey: 'ana-commercial-v1',
+      workId: 'not-a-uuid',
+      title: 'Resumo',
+      description: 'Descrição.',
+    },
+    {
+      providerCompanyRef: 'paperclip-company-a',
+      catalogKey: 'ana-commercial-v1',
+      workId: '11111111-1111-4111-8111-111111111111',
+      title: '',
+      description: 'Descrição.',
+    },
+    {
+      providerCompanyRef: 'paperclip-company-a',
+      catalogKey: 'ana-commercial-v1',
+      workId: '11111111-1111-4111-8111-111111111111',
+      title: 'Resumo',
+      description: '',
+    },
+  ]) {
+    await assert.rejects(provider.ensureCatalogEmployeeWork!(input), /invalid_work_/);
+  }
+  assert.equal(networkCalls, 0);
+});
