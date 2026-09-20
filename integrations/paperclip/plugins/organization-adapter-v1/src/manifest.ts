@@ -4,12 +4,12 @@ import { CATALOG_KEY, EXECUTION_ADAPTER_TYPE } from './catalog.js';
 const manifest: PaperclipPluginManifestV1 = {
   id: 'wandora.organization-adapter-v1',
   apiVersion: 1,
-  version: '0.2.0',
+  version: '0.3.0',
   displayName: 'Wandora Organization Adapter V1',
   description: 'Headless company-scoped managed catalog employee adapter for Wandora.',
   author: 'Wandora',
   categories: ['automation', 'connector'],
-  capabilities: ['agents.managed', 'agents.resume', 'webhooks.receive', 'secrets.read-ref'],
+  capabilities: ['agents.managed', 'agents.resume', 'issues.read', 'issues.create', 'issues.wakeup', 'plugin.state.read', 'plugin.state.write', 'webhooks.receive', 'secrets.read-ref'],
   entrypoints: { worker: './dist/worker.js' },
   instanceConfigSchema: {
     type: 'object',
@@ -33,6 +33,11 @@ const manifest: PaperclipPluginManifestV1 = {
       endpointKey: 'employee-activate',
       displayName: 'Employee Activate',
       description: 'Convergently resumes the existing managed catalog employee without invoking work.',
+    },
+    {
+      endpointKey: 'employee-work',
+      displayName: 'Employee Work',
+      description: 'Ensures one Wandora-originated supervised work issue and one fail-closed dispatch receipt.',
     },
   ],
   agents: [{
