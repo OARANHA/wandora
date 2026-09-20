@@ -1,0 +1,5 @@
+services:
+  core:
+    environment:
+      WANDORA_HUMAN_DIGITAL_EMPLOYEE_WORK_ENABLED: "true"
+      WANDORA_ORGANIZATION_ADAPTER_WORK_WEBHOOK_URL: "http://wandora-paperclip:3100/api/plugins/wandora.organization-adapter-v1/webhooks/employee-work"
