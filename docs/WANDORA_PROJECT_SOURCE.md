@@ -2000,3 +2000,48 @@ Research/decision set:
 - `docs/research/PAPERCLIP_UPSTREAM_DELTA_AUDIT_2026-09-21.md`
 
 The next production mutation remains a separate reviewed slice. Do not execute it merely because this audit is merged.
+
+## 2026-09-21 — Core companion + wandora_mastra 0.4.0 production promotion — ADR 0154
+
+The lifecycle/usage production correction is now live.
+
+```text
+Core =
+  wandora/core:organization-adapter-candidate-61cbb34d4bfd
+  sha256:6c38930a45591970fd47d699c9881a9c9bd881272028268431ba3bf1c73c2873
+  healthz/readyz = 200/200
+  runtime = mastra-supervised-model
+
+Paperclip =
+  v2026.916.0 / healthy
+  exactly one wandora_mastra@0.4.0
+  loaded=true / test-environment=PASS
+
+MED-1 =
+  done
+  historical runs=2
+  live runs=[]
+  active recovery=none
+
+MEDICSPRO =
+  Ana active + supervised in Wandora
+  work operations=1
+  historical model calls=1
+  new model calls during promotion=0
+  outbound attempts=0
+
+Human Send = OFF
+Gateway outbound = OFF
+```
+
+The operation reused Paperclip native Task Drain, promoted the exact CI-qualified companion Core, installed the exact frozen 0.4.0 package once, restarted only Paperclip once, and then applied the already-qualified Board status-only MED-1 repair. No customer work, inference, historical usage backfill, migration or external effect was created to validate the maintenance action.
+
+After a stalled response, remote execution history was reconciled before any repeat. This proved the mutations had already executed; duplicate install/restart/MED-1 updates were therefore avoided.
+
+One historical control-plane gap remains: Paperclip Ana is still `error / wandora_execution_failed_409` with `updatedAt=2026-09-21T11:49:40.115Z`, the timestamp of the ADR 0150 continuation failure. It predates ADR 0154 and was not changed by this promotion. Do not clear/resume it implicitly.
+
+### NEXT EXECUTABLE SLICE
+
+**Paperclip Historical Agent Error-State Reconciliation Preflight V1 — NO EFFECT**
+
+Determine the narrow provider-native reconciliation for that historical error without work creation, wakeup, run, model inference, outbound effect or historical evidence erasure.
