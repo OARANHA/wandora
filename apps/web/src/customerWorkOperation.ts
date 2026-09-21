@@ -1,5 +1,3 @@
-[Reading 176 lines from start (total: 176 lines, 0 remaining)]
-
 const IDEMPOTENCY_UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SHA256_HEX_RE = /^[0-9a-f]{64}$/i;
