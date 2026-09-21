@@ -260,3 +260,29 @@ Moving an experimental capability into a stable Wandora customer dependency requ
 6. no unauthorized external-effect coupling.
 
 Current examples include Cases, Pipelines, Agent Chat and Chat Connectors.
+
+## Paperclip usage/cost-event authority clarification — ADR 0152
+
+Pinned Paperclip v2026.916.0 proves that positive normalized external-adapter usage is recorded through runtime totals and `costEvents`.
+
+This makes Paperclip the correct operational ledger for provider-work usage evidence once the integration supplies that usage.
+
+However, current Paperclip budget policy supports only `billed_cents`. An event with token usage but no authoritative monetary cost is:
+
+```text
+usage       = recorded
+costCents   = 0
+costStatus  = unpriced
+```
+
+It does not provide monetary hard-stop enforcement.
+
+Authority remains:
+
+```text
+Agent Runtime -> normalized usage source
+Paperclip     -> operational usage/cost-event ledger + billed-cents budget policy
+Wandora       -> customer plan/price/margin/entitlement/billing
+```
+
+No Wandora provider-pricing engine or duplicate operational cost ledger is authorized merely to fill the unpriced-cost gap.
