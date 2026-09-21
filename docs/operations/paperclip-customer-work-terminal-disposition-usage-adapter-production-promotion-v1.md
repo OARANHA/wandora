@@ -1,5 +1,8 @@
 # Paperclip Customer-Work Terminal Disposition + Usage Adapter — Production Promotion Execution V1
 
+> **ADR 0153 amendment:** do not execute the original adapter-only sequence. Fresh production evidence proved the live Core omits normalized usage from its Paperclip bridge response. Preserve all ADR 0151 adapter/Task-Drain/MED-1 safety rules, but use the Core+adapter sequence below.
+
+
 Status: **Frozen by ADR 0151; do not execute from this runbook without fresh reconciliation and second adversarial review.**
 
 ## Immutable inputs
@@ -250,3 +253,39 @@ If adapter replacement/restart does not validate before MED-1 repair:
 - STOP.
 
 Never replay the MEDICSPRO work as a rollback or validation mechanism.
+
+
+## ADR 0153 amended production order
+
+Before any mutation, re-read ADR 0153 and require its companion Core candidate/rollback/provenance gates.
+
+```text
+1. fresh REAL NOW reconciliation
+2. prove Paperclip healthy / exactly one loaded wandora_mastra@0.3.0
+3. prove MED-1 blocked + no live run + no active recovery
+4. prove historical runs=2 / model calls=1 / outbound=0
+5. verify frozen adapter 0.4.0 candidate + rollback
+6. verify companion Core candidate artifact availability/provenance
+7. verify live Core rollback image + all frozen overlay hashes
+8. render future Core composition and require image-only intended delta
+9. start native Paperclip Task Drain
+10. wait for draining=true / activeRuns=0 / pendingWakes=0 / quiescent=true
+11. promote only Core to the companion candidate
+12. preserve every existing overlay/mount/network/feature flag
+13. require Core healthy + healthz/readyz 200
+14. require runtime still mastra-supervised-model
+15. require Human Send OFF / Gateway outbound OFF
+16. prove no new work/run/model/outbound activity
+17. stage and replace exactly one wandora_mastra@0.4.0
+18. ambiguous install => readback first; no blind retry
+19. require 0.4.0 registration + requiresRestart=true
+20. restart/recreate only Paperclip once
+21. require Paperclip healthy + exactly one loaded 0.4.0 + test-environment PASS
+22. re-prove Core healthy / historical counters unchanged / outbound 0
+23. perform MED-1 status-only blocked -> done repair through Board authority
+24. read back MED-1=done
+25. require historical runs=2 / Core model calls=1 / outbound=0
+26. STOP
+```
+
+Do not create a new customer work item merely to prove telemetry. The structural path is qualified; prospective token/cost-event ingestion should be observed on the next legitimate work event.
