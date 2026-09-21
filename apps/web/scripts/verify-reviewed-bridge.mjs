@@ -330,6 +330,17 @@ for (const fragment of requiredWorkPanelFragments) {
     throw new Error(`customer_work_browser_contract_missing:${fragment}`);
   }
 }
+assert(
+  workPanelSource.includes("response.status === 400 || response.status === 403 || response.status === 404")
+    && !workPanelSource.includes("response.status === 400 || response.status === 403 || response.status === 404 || response.status === 503"),
+  'customer_work_503_must_preserve_original_idempotency_key',
+);
+assert(
+  workPanelSource.includes("if (response.status === 503)")
+    && workPanelSource.includes("a identidade original será reutilizada"),
+  'customer_work_503_same_request_retry_contract_missing',
+);
+
 const workClearIndex = workPanelSource.indexOf('clearWorkOperation(operation);');
 const workSuccessIndex = workPanelSource.indexOf('if (response.ok)');
 assert(workSuccessIndex >= 0, 'customer_work_success_boundary_missing');
