@@ -1312,3 +1312,70 @@ This ordering prevents Paperclip's native stranded-issue reconciler from generat
 The first production execution occurred with live `wandora_mastra@0.3.0` before this convergence behavior existed. Its second historical Paperclip recovery run was rejected before model execution, so the business result and external-effect boundary remained safe. `wandora_mastra@0.4.0` is repository-qualified in disposable Paperclip but is not live until a separately reviewed production-promotion slice.
 
 Normalized runtime token usage crosses the Agent Runtime -> Paperclip adapter boundary as provider-neutral `per_run` usage. Concrete Mistral/Mastra identifiers remain implementation telemetry; `wandora-supervised-v1` remains the stable Wandora execution identity.
+
+## Paperclip as replaceable operational control-plane provider — ADR 0152
+
+Wandora's control-plane integration follows this topology:
+
+```text
+Customer / Wandora Web
+        |
+        v
+Wandora product + semantic contracts
+        |
+        +------------------------------+
+        |                              |
+        v                              v
+Organization / Work ports       Wandora effect policy
+        |                              |
+        v                              v
+Paperclip provider              Messaging / external effects
+        |
+        +-- native tasks/runs/routines/skills/policy/budgets
+        +-- Wandora Paperclip adapters/plugins/connectors
+        |
+        v
+Wandora Agent Runtime
+        |
+        v
+Mastra / replaceable model runtime/provider
+```
+
+### Extension roles
+
+- **External adapter**: Paperclip-to-runtime bridge. Current example: `wandora_mastra`.
+- **Paperclip plugin**: additive provider-side control-plane capability.
+- **Connector / Tool Gateway integration**: governed provider-side access to external organizational tools.
+- **Wandora Core/Gateway**: customer/product semantics and final external-effect authorization.
+
+A Paperclip plugin or connector must not become the durable Wandora customer object merely because it supplies the implementation.
+
+### Provider portability
+
+Stable Wandora IDs remain the customer identity. Provider IDs stay internal bindings.
+
+Replacing Paperclip should require:
+
+- a new provider implementation;
+- migration/re-materialization of provider-owned operational state;
+- provider-binding updates;
+- reconciliation of active/ambiguous work.
+
+It should not require changing:
+
+- Wandora tenant/customer IDs;
+- digital-employee product identity;
+- customer work/result semantics;
+- commercial billing;
+- Agent Runtime logical profile;
+- external-effect authorization.
+
+### Experimental provider features
+
+Paperclip features marked experimental are not stable architecture dependencies. Cases, Pipelines, Agent Chat and Chat Connectors are currently quarantined and live-disabled.
+
+### Portability mechanism
+
+Use Paperclip native company export/import where faithful, plus a minimal Wandora provider-binding/receipt manifest and targeted archive of non-portable adopted history. Do not replicate the Paperclip database.
+
+See ADR 0152 and the Paperclip capability/portability research documents for the full matrix and exit strategy.
