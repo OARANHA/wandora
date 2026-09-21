@@ -92,6 +92,7 @@ test('active exact binding reaches AgentTaskRuntime without provider identifiers
 
   assert.equal(result.model, 'wandora-supervised-v1');
   assert.equal(result.summary, 'Proposta supervisionada');
+  assert.deepEqual(result.usage, { inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, totalTokens: 0 });
   assert.match(result.executionId, /^exec_[0-9a-f]{64}$/);
   assert.deepEqual(received, {
     organizationId: ORG,
@@ -210,6 +211,7 @@ test('cached exact work result prevents a duplicate AgentTaskRuntime execution',
     executionId: 'exec_cached',
     model: 'wandora-supervised-v1',
     summary: 'Resultado já registrado',
+    usage: { inputTokens: null, outputTokens: null, cachedInputTokens: null, totalTokens: null },
   });
   assert.equal(runtimeCalls, 0);
   assert.equal(recordCalls, 0);
