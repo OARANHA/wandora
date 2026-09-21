@@ -1,7 +1,7 @@
 # Paperclip Capability & Portability Audit V1
 
-Date: 2026-09-21  
-Status: **IN PROGRESS — research/documentation only; no production effect**
+Date: 2026-09-21
+Status: **COMPLETE — research/documentation only; no production effect**
 
 ## Why this audit exists
 
@@ -262,7 +262,7 @@ Pinned source proves it holds new run admission and exposes `activeRuns`, `pendi
 
 Important portability/safety detail: drain state is process-memory only and is cleared by restart.
 
-Disposition: **REUSE NOW** as pre-restart maintenance/quiescence guard.  
+Disposition: **REUSE NOW** as pre-restart maintenance/quiescence guard.
 Do not build a competing Wandora scheduler/drain for this purpose.
 
 ### 3. Paperclip's plugin direction strengthens the need for Wandora ports
