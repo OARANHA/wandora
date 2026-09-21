@@ -3278,3 +3278,15 @@ Do not repeat adapter installation or Core/Paperclip recreation merely because a
 
 Next effect boundary: **Customer Owner First Real Tenant Active Digital-Employee First Model-Backed Legitimate Work Execution V1**. It requires separate authorization, at most one owner-driven MEDICSPRO work request, Human Send/Gateway outbound OFF, and STOP at supervised result.
 
+
+## ADR 0149 — First model-backed legitimate work pre-effect reconciliation
+
+Status: **NO-GO for effect — technical readiness GREEN; genuine owner work content not yet admitted**.
+
+Fresh reconciliation from `main@506800c45467c020a49aef340866dea806c8cfb5` proved the ADR 0148 runtime remains healthy and dormant: exactly one MEDICSPRO Ana `active + supervised` / Paperclip `idle / wandora_mastra`, work operations/issues/wakeups/heartbeat/task sessions/routines/runtime runs/model usage/outbound all zero, Human Send OFF and Gateway outbound OFF.
+
+The current implementation already satisfies the bounded execution guard: `maxSteps=1`, `maxRetries=0`, structured bounded output, provider 45s deadline below the 60s bridge deadline, exact run correlation, fail-closed uncertain replay and no automatic fallback path.
+
+The remaining gate is product authority, not infrastructure. ADR 0136/0141 requires the first work title/description to be a genuine business instruction submitted by the authenticated MEDICSPRO owner through the Wandora customer work surface. Engineering/operator context must not invent that content, mint/extract an owner session or create a synthetic Paperclip issue/wakeup merely to demonstrate the model path.
+
+Therefore ADR 0149 records **zero production effect** and preserves the same next effect slice. Once the owner submits the genuine work request, reconcile the exact operation before any retry and allow at most one issue/run/model execution, stopping at the supervised Wandora result with outbound still OFF.

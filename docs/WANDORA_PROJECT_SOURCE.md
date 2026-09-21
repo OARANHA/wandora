@@ -1836,3 +1836,13 @@ Exact rollback state is retained under:
 
 It must be separately authorized. Admit at most one legitimate owner-driven MEDICSPRO work request through the existing Wandora -> Paperclip -> Agent Runtime path, keep Human Send and Gateway outbound OFF, and stop at the supervised result. No recurring/unattended/bulk model-backed work is authorized by ADR 0148.
 
+
+## 2026-09-21 — First model-backed legitimate work effect gate (ADR 0149)
+
+Fresh production reconciliation after ADR 0148 found no drift: Core/Paperclip/Web/Gateway healthy, `wandora_mastra@0.3.0` unique/loaded, logical profile `wandora-supervised-v1`, current Mistral implementation mounted read-only, exactly one MEDICSPRO Ana active+supervised / Paperclip idle, and all work/run/usage/outbound counters still zero.
+
+The technical bounded-work contract is ready, including one-step execution, zero automatic model retries, structured bounded output, 45s provider deadline under the 60s bridge timeout, exact run identity and fail-closed uncertain replay.
+
+No real work was executed because the accepted customer-work authority requires the exact title and description to originate from the authenticated MEDICSPRO owner through the Wandora customer surface. The operator must not manufacture the first task or impersonate the owner session. Human Send and Gateway outbound remain OFF.
+
+Next effect remains one genuine owner-submitted MEDICSPRO work request through Wandora -> Paperclip -> `wandora_mastra` -> Core -> Agent Runtime -> current provider -> supervised result -> STOP.
