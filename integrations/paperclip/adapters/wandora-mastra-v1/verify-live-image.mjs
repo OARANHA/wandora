@@ -12,7 +12,7 @@ await writeFile('/tmp/wandora-bridge.hmac', 'synthetic-bridge-secret-0123456789a
 process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_URL =
   'http://wandora-core:8788/internal/v1/paperclip/execution';
 process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE = '/tmp/wandora-bridge.hmac';
-process.env.PORT = '3100';
+process.env.PAPERCLIP_RUNTIME_API_URL = 'http://paperclip.runtime.test:3100';
 
 const issueId = '22222222-2222-4222-8222-222222222222';
 const requests = [];
@@ -31,7 +31,7 @@ globalThis.fetch = async (url, init = {}) => {
       },
     }), { status: 200, headers: { 'content-type': 'application/json' } });
   }
-  assert.equal(String(url), `http://127.0.0.1:3100/api/issues/${issueId}`);
+  assert.equal(String(url), `http://paperclip.runtime.test:3100/api/issues/${issueId}`);
   assert.equal(init.method, 'PATCH');
   return new Response(JSON.stringify({ id: issueId, status: 'done' }), {
     status: 200,
