@@ -66,6 +66,30 @@ Gateway outbound = OFF
 
 If any differs, STOP and reconcile.
 
+## Native Task Drain pre-restart guard
+
+Reuse Paperclip's native instance Task Drain; do not create a Wandora maintenance scheduler/lock.
+
+The pinned `v2026.916.0` contract is:
+
+```text
+POST /api/instance/task-drain
+GET  /api/instance/task-drain
+```
+
+Start the drain with the protected Board/instance-admin authority and an explicit bounded TTL suitable for the maintenance window. Then poll GET until:
+
+```text
+draining    = true
+activeRuns  = 0
+pendingWakes= 0
+quiescent   = true
+```
+
+If quiescence is not reached, STOP before adapter replacement.
+
+Important: the drain is **process-memory state** and a Paperclip process restart clears it. It protects the pre-restart quiescence boundary only; never treat it as a maintenance lock that survives restart.
+
 ## Candidate staging
 
 The execution may copy/extract the frozen 0.4.0 tarball only under:
@@ -124,13 +148,14 @@ If response is ambiguous, DO NOT repeat. Run authenticated `adapter get wandora_
 
 ## Paperclip-only restart
 
-After confirmed replacement:
+After confirmed replacement and after the old process has already proven Task Drain `quiescent=true`:
 
 1. recreate/restart only the existing Paperclip service;
 2. do not change image;
 3. preserve current bridge wrapper/HMAC custody;
 4. wait for health;
-5. require restart/recreate operation happened only once.
+5. require restart/recreate operation happened only once;
+6. treat the pre-restart Task Drain as cleared by design.
 
 Post-restart require:
 
@@ -144,7 +169,7 @@ supportsLocalAgentJwt = true
 test-environment = pass
 ```
 
-Then revalidate:
+Immediately revalidate before MED-1 repair:
 
 ```text
 Ana = active + supervised
@@ -155,6 +180,8 @@ outbound = 0
 Human Send = OFF
 Gateway outbound = OFF
 ```
+
+Any unexpected post-restart run/work/model activity is a hard STOP condition.
 
 ## Historical MED-1 terminal repair
 
