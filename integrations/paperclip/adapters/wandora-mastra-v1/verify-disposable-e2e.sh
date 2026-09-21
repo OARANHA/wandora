@@ -116,7 +116,56 @@ const server = http.createServer(async (request, response) => {
 });
 server.listen(3100, address);
 PROXY
-chmod 0644 "$TMP/bridge.hmac" "$TMP/core-db-password" "$TMP/gateway.hmac" "$TMP/paperclip-loopback-proxy.mjs"
+
+cat > "$TMP/fake-wandora-core.mjs" <<'FAKECORE'
+import http from 'node:http';
+
+const executionId = 'exec_' + 'a'.repeat(64);
+const server = http.createServer((request, response) => {
+  if (request.method === 'GET' && request.url === '/healthz') {
+    response.writeHead(200, { 'content-type': 'application/json' });
+    response.end('{"status":"ok"}');
+    return;
+  }
+  if (request.method !== 'POST' || request.url !== '/internal/v1/paperclip/execution') {
+    response.writeHead(404, { 'content-type': 'application/json' });
+    response.end('{"error":"not_found"}');
+    return;
+  }
+
+  let raw = '';
+  request.on('data', (chunk) => { raw += chunk; });
+  request.on('end', () => {
+    try {
+      const body = JSON.parse(raw);
+      const workId = String(body?.task?.workId ?? '');
+      const issueId = String(body?.task?.issueId ?? '');
+      const token = String(request.headers['x-wandora-paperclip-run-token'] ?? '');
+      if (!workId || !issueId || !token || String(body?.task?.description ?? '').includes('wandora-work-v1:')) {
+        throw new Error('invalid_reviewed_customer_work_request');
+      }
+      response.writeHead(200, { 'content-type': 'application/json' });
+      response.end(JSON.stringify({
+        executionId,
+        model: 'wandora-supervised-v1',
+        summary: 'Disposable supervised customer-work result.',
+        usage: {
+          inputTokens: 11,
+          outputTokens: 7,
+          cachedInputTokens: 2,
+          totalTokens: 18,
+        },
+      }));
+    } catch (error) {
+      response.writeHead(400, { 'content-type': 'application/json' });
+      response.end(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }));
+    }
+  });
+});
+server.listen(8788, '0.0.0.0');
+FAKECORE
+
+chmod 0644 "$TMP/bridge.hmac" "$TMP/core-db-password" "$TMP/gateway.hmac" "$TMP/paperclip-loopback-proxy.mjs" "$TMP/fake-wandora-core.mjs"
 
 docker network create "$NET" >/dev/null
 
@@ -152,7 +201,7 @@ done
 
 docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$WANDORA_DB" -c   "ALTER ROLE wandora_core_runtime CONNECTION LIMIT 4 PASSWORD '$CORE_PASSWORD';" >/dev/null
 
-docker run -d --name "$PAPERCLIP"   --network "$NET" --network-alias wandora-paperclip   --read-only   --tmpfs /tmp:rw,nosuid,size=64m   --tmpfs /paperclip:rw,nosuid,size=256m   -v "$TMP/paperclip-source:/app:ro"   -v "$TMP/wandora-adapter:/proof/wandora-adapter:ro"   -v "$TMP/bridge.hmac:/proof/bridge.hmac:ro"   -e HOST=127.0.0.1   -e PORT=3100   -e SERVE_UI=false   -e PAPERCLIP_HOME=/paperclip   -e PAPERCLIP_INSTANCE_ID=wandora-disposable-attestation   -e PAPERCLIP_DEPLOYMENT_MODE=local_trusted   -e PAPERCLIP_DEPLOYMENT_EXPOSURE=private   -e PAPERCLIP_PUBLIC_URL=http://wandora-paperclip:3100   -e PAPERCLIP_ALLOWED_HOSTNAMES=wandora-paperclip   -e PAPERCLIP_TELEMETRY_DISABLED=1   -e DO_NOT_TRACK=1   -e PAPERCLIP_BUILD_VERSION=v2026.916.0   -e PAPERCLIP_BUILD_COMMIT="$EXPECTED_PAPERCLIP_COMMIT"   -e PAPERCLIP_MIGRATION_AUTO_APPLY=true   -e PAPERCLIP_MIGRATION_PROMPT=never   -e DATABASE_URL="postgresql://paperclip_attestation:$PAPERCLIP_DB_PASSWORD@$DB:5432/paperclip_attestation"   -e BETTER_AUTH_SECRET=disposable-better-auth-secret-0123456789abcdef   -e PAPERCLIP_AGENT_JWT_SECRET=disposable-agent-jwt-secret-0123456789abcdef0123456789abcdef   -e PAPERCLIP_TOOL_ACTION_SIGNING_SECRET=disposable-tool-secret-0123456789abcdef0123456789abcdef   -e WANDORA_PAPERCLIP_EXECUTION_BRIDGE_URL=http://wandora-core:8788/internal/v1/paperclip/execution   -e WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE=/proof/bridge.hmac   "$NODE24_IMAGE"   node --import /app/server/node_modules/tsx/dist/loader.mjs /app/server/src/index.ts >/dev/null
+docker run -d --name "$PAPERCLIP"   --network "$NET" --network-alias wandora-paperclip   --read-only   --tmpfs /tmp:rw,nosuid,size=64m   --tmpfs /paperclip:rw,nosuid,size=256m   -v "$TMP/paperclip-source:/app:ro"   -v "$TMP/wandora-adapter:/proof/wandora-adapter:ro"   -v "$TMP/bridge.hmac:/proof/bridge.hmac:ro"   -e HOST=127.0.0.1   -e PORT=3100   -e SERVE_UI=false   -e PAPERCLIP_HOME=/paperclip   -e PAPERCLIP_INSTANCE_ID=wandora-disposable-attestation   -e PAPERCLIP_DEPLOYMENT_MODE=local_trusted   -e PAPERCLIP_DEPLOYMENT_EXPOSURE=private   -e PAPERCLIP_PUBLIC_URL=http://wandora-paperclip:3100   -e PAPERCLIP_ALLOWED_HOSTNAMES=wandora-paperclip   -e PAPERCLIP_TELEMETRY_DISABLED=1   -e DO_NOT_TRACK=1   -e HEARTBEAT_SCHEDULER_INTERVAL_MS=10000   -e PAPERCLIP_BUILD_VERSION=v2026.916.0   -e PAPERCLIP_BUILD_COMMIT="$EXPECTED_PAPERCLIP_COMMIT"   -e PAPERCLIP_MIGRATION_AUTO_APPLY=true   -e PAPERCLIP_MIGRATION_PROMPT=never   -e DATABASE_URL="postgresql://paperclip_attestation:$PAPERCLIP_DB_PASSWORD@$DB:5432/paperclip_attestation"   -e BETTER_AUTH_SECRET=disposable-better-auth-secret-0123456789abcdef   -e PAPERCLIP_AGENT_JWT_SECRET=disposable-agent-jwt-secret-0123456789abcdef0123456789abcdef   -e PAPERCLIP_TOOL_ACTION_SIGNING_SECRET=disposable-tool-secret-0123456789abcdef0123456789abcdef   -e WANDORA_PAPERCLIP_EXECUTION_BRIDGE_URL=http://wandora-core:8788/internal/v1/paperclip/execution   -e WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE=/proof/bridge.hmac   "$NODE24_IMAGE"   node --import /app/server/node_modules/tsx/dist/loader.mjs /app/server/src/index.ts >/dev/null
 
 pc_api() {
   local method="$1" path="$2" body="${3:-}"
@@ -402,6 +451,81 @@ fi
 agent_me="$(pc_api GET "/api/agents/$AGENT_ID")"
 test "$(printf '%s' "$agent_me" | json_field metadata.pluginManagedAgent.pluginKey)" = "wandora.organization-adapter-v1"
 test "$(printf '%s' "$agent_me" | json_field metadata.pluginManagedAgent.agentKey)" = "ana-commercial-v1"
+
+# Close the historical synthetic non-customer issue before the focused customer-work
+# lifecycle proof so the scheduler cannot create unrelated recovery noise.
+pc_api PATCH "/api/issues/$ISSUE_ID" '{"status":"done"}' >/dev/null
+
+# The existing proof above already covers the real Paperclip -> Wandora Core bridge.
+# For the focused lifecycle proof below, replace Core with a deterministic fake that
+# returns normalized usage without invoking any model. This isolates the adapter's
+# exact issue-finalization behavior against the real pinned Paperclip scheduler.
+docker rm -f "$CORE" >/dev/null
+docker run -d --name "$CORE"   --network "$NET" --network-alias wandora-core   --read-only   --tmpfs /tmp:rw,noexec,nosuid,size=8m   --security-opt no-new-privileges:true   --cap-drop ALL   -v "$TMP/fake-wandora-core.mjs:/proof/fake-wandora-core.mjs:ro"   "$NODE24_IMAGE"   node /proof/fake-wandora-core.mjs >/dev/null
+
+for _ in $(seq 1 30); do
+  if docker exec "$CORE" node -e "fetch('http://127.0.0.1:8788/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 1
+done
+docker exec "$CORE" node -e "fetch('http://127.0.0.1:8788/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" >/dev/null
+
+WORK_ID="33333333-3333-4333-8333-333333333333"
+work_issue_body="$(node -e '
+  process.stdout.write(JSON.stringify({
+    title: "Disposable customer-work single-run proof",
+    description: `<!-- wandora-work-v1:${process.argv[2]} -->\\nPrepare only an internal supervised result.`,
+    status: "todo",
+    priority: "high",
+    assigneeAgentId: process.argv[1]
+  }));
+' "$AGENT_ID" "$WORK_ID")"
+work_issue_json="$(pc_api POST "/api/companies/$COMPANY_ID/issues" "$work_issue_body")"
+WORK_ISSUE_ID="$(printf '%s' "$work_issue_json" | json_field id)"
+
+pc_sql() {
+  local statement="$1"
+  docker exec -e PGPASSWORD="$PAPERCLIP_DB_PASSWORD" "$DB"     psql -X -At -U paperclip_attestation -d paperclip_attestation -c "$statement"
+}
+
+WORK_RUN_ID=""
+WORK_RUN_STATUS=""
+for _ in $(seq 1 60); do
+  WORK_RUN_ID="$(pc_sql "select id::text from heartbeat_runs where company_id='$COMPANY_ID'::uuid and context_snapshot->>'issueId'='$WORK_ISSUE_ID' order by created_at desc limit 1;")"
+  if [ -n "$WORK_RUN_ID" ]; then
+    WORK_RUN_STATUS="$(pc_sql "select status::text from heartbeat_runs where id='$WORK_RUN_ID'::uuid;")"
+    case "$WORK_RUN_STATUS" in
+      succeeded|failed|interrupted|cancelled|timed_out) break ;;
+    esac
+  fi
+  sleep 1
+done
+test "$WORK_RUN_STATUS" = "succeeded"
+
+work_issue_status="$(pc_sql "select status::text from issues where id='$WORK_ISSUE_ID'::uuid;")"
+test "$work_issue_status" = "done"
+
+usage_tuple="$(pc_sql "select coalesce((usage_json->>'inputTokens')::int,-1)||'|'||coalesce((usage_json->>'outputTokens')::int,-1)||'|'||coalesce((usage_json->>'cachedInputTokens')::int,-1) from heartbeat_runs where id='$WORK_RUN_ID'::uuid;")"
+test "$usage_tuple" = "11|7|2"
+
+# Wait beyond the configured 10s scheduler floor. A correctly finalized customer-work
+# issue must not be reconciled as stranded and must not create issue_continuation_needed.
+sleep 12
+
+work_run_count="$(pc_sql "select count(*) from heartbeat_runs where company_id='$COMPANY_ID'::uuid and context_snapshot->>'issueId'='$WORK_ISSUE_ID';")"
+test "$work_run_count" = "1"
+
+continuation_count="$(pc_sql "select count(*) from heartbeat_runs where company_id='$COMPANY_ID'::uuid and context_snapshot->>'issueId'='$WORK_ISSUE_ID' and (context_snapshot->>'wakeReason'='issue_continuation_needed' or context_snapshot->>'retryReason'='issue_continuation_needed');")"
+test "$continuation_count" = "0"
+
+runtime_usage="$(pc_sql "select total_input_tokens||'|'||total_output_tokens||'|'||total_cached_input_tokens from agent_runtime_state where company_id='$COMPANY_ID'::uuid and agent_id='$AGENT_ID'::uuid;")"
+test "$runtime_usage" = "11|7|2"
+
+printf '%s\n' "PAPERCLIP_WANDORA_CUSTOMER_WORK_SINGLE_RUN_COMPLETION_OK"
+printf '%s\n' "customer_work_run_count=$work_run_count"
+printf '%s\n' "customer_work_continuation_count=$continuation_count"
+printf '%s\n' "customer_work_usage=$runtime_usage"
 
 printf '%s\n' "PAPERCLIP_WANDORA_MASTRA_DISPOSABLE_E2E_ATTESTATION_V1_OK"
 printf '%s\n' "migration_014_applied=false"
