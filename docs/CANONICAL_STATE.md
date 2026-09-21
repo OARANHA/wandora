@@ -3210,3 +3210,19 @@ Production remains unchanged: Core mastra-deterministic, no model env/mount, liv
 
 Next effect boundary: **Mistral Production Workspace Spending-Limit + Credential Scope Preflight V1 — NO EFFECT**. Production activation remains blocked until the real custodied production key is proven to belong to a dedicated production Workspace with an explicit finite monthly spending limit.
 
+## ADR 0147 — Provider-neutral runtime risk guard / cost-governance correction
+
+Status: **provider-neutral activation guard GREEN / ADR 0146 Mistral-specific blocker superseded / NO EFFECT**.
+
+Starting from `main@47e5d43ed4419e0608ec34b3d941611a8cbd708d`, the architecture was reconciled against ADR 0144 and the Capability Authority map.
+
+ADR 0146's technical findings are retained, but its requirement for a dedicated capped Mistral Workspace before model-runtime activation is superseded. Provider-account spending controls remain optional/conditional defense in depth; they are not part of the universal Agent Runtime contract.
+
+The activation-critical portable guard is the already-qualified combination of bounded admitted work, exact identity, one step, zero automatic model retries, bounded output, 45-second provider deadline below the 60-second bridge deadline, structured output, fail-closed ambiguity handling, no automatic provider fallback and no implicit external effect.
+
+Runtime activation creates no work or inference. First legitimate MEDICSPRO model-backed work remains a separate bounded owner-driven effect slice. Broad unattended/recurring workloads remain separately gated.
+
+Production was not changed by this correction and remained Core `mastra-deterministic`, no model env/mount, live `wandora_mastra@0.2.0`, Human Send OFF, Gateway outbound OFF, exactly one MEDICSPRO Ana active+supervised, work journal 0 and outbound 0.
+
+**Model Provider / Mistral Production Runtime Activation Execution V1 is architecturally GO as a separate production-effect slice**, subject to fresh state reconciliation and ADR 0145's already-frozen adapter-first/Core-second promotion and rollback order. It must stop before creating customer work.
+
