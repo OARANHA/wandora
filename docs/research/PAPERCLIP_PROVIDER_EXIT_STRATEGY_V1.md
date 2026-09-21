@@ -1,6 +1,6 @@
 # Paperclip Provider Exit Strategy V1
 
-Date: 2026-09-21  
+Date: 2026-09-21
 Status: **Research design — NO EFFECT**
 
 ## Objective
