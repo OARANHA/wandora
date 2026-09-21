@@ -128,6 +128,33 @@ jobs:
           assert data['path'] == sys.argv[2], data
           assert data['body'] == '', data
           PY
+          CUSTOMER_WORK_PATH='/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/digital-employees/30000000-0000-0000-0000-0000000000a1/work'
+          CUSTOMER_WORK_GET_RESPONSE="$(curl -fsS             -H 'Authorization: Bearer ci-token'             -H 'Cookie: browser-session=must-not-cross'             "${WEB_BASE_URL}${CUSTOMER_WORK_PATH}")"
+          python3 - "$CUSTOMER_WORK_GET_RESPONSE" "$CUSTOMER_WORK_PATH" <<'PY'
+          import json, sys
+          data = json.loads(sys.argv[1])
+          assert data['auth'] == 'Bearer ci-token', data
+          assert data['cookie'] == '', data
+          assert data['method'] == 'GET', data
+          assert data['path'] == sys.argv[2], data
+          assert data['idempotency'] == '', data
+          assert data['body'] == '', data
+          PY
+          CUSTOMER_WORK_POST_RESPONSE="$(curl -fsS -X POST             -H 'Authorization: Bearer ci-token'             -H 'Cookie: browser-session=must-not-cross'             -H 'Idempotency-Key: ci-customer-work-key'             -H 'Content-Type: application/json'             --data '{"title":"CI bridge only","description":"No production work is created; this reaches only the isolated mock Core."}'             "${WEB_BASE_URL}${CUSTOMER_WORK_PATH}")"
+          python3 - "$CUSTOMER_WORK_POST_RESPONSE" "$CUSTOMER_WORK_PATH" <<'PY'
+          import json, sys
+          data = json.loads(sys.argv[1])
+          assert data['auth'] == 'Bearer ci-token', data
+          assert data['cookie'] == '', data
+          assert data['method'] == 'POST', data
+          assert data['path'] == sys.argv[2], data
+          assert data['idempotency'] == 'ci-customer-work-key', data
+          assert json.loads(data['body']) == {
+            'title': 'CI bridge only',
+            'description': 'No production work is created; this reaches only the isolated mock Core.',
+          }, data
+          PY
+          echo "WANDORA_WEB_CUSTOMER_WORK_BRIDGE_V1_OK"
           SEND_PATH='/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/work/60000000-0000-0000-0000-0000000000a1/proposals/70000000-0000-0000-0000-0000000000a1/send'
           SEND_RESPONSE="$(curl -fsS -X POST \
             -H 'Authorization: Bearer ci-token' \
@@ -168,6 +195,7 @@ jobs:
           test "$(curl -sS -o /dev/null -w '%{http_code}' ${WEB_BASE_URL}/api/v1/session)" = "404"
           test "$(curl -sS -o /dev/null -w '%{http_code}' ${WEB_BASE_URL}/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/work/not-reviewed)" = "404"
           test "$(curl -sS -o /dev/null -w '%{http_code}' ${WEB_BASE_URL}/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/digital-employees/not-reviewed)" = "404"
+          test "$(curl -sS -o /dev/null -w '%{http_code}' ${WEB_BASE_URL}/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/digital-employees/30000000-0000-0000-0000-0000000000a1/work/not-reviewed)" = "404"
           test "$(curl -sS -o /dev/null -w '%{http_code}' "${WEB_BASE_URL}${SEND_PATH}/again")" = "404"
           test "$(curl -sS -o /dev/null -w '%{http_code}' ${WEB_BASE_URL}/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/conversations/not-reviewed)" = "404"
           test "$(curl -sS -o /dev/null -w '%{http_code}' ${WEB_BASE_URL}/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/conversations/50000000-0000-0000-0000-0000000000a1/messages)" = "404"
