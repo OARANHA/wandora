@@ -502,7 +502,17 @@ for _ in $(seq 1 60); do
   fi
   sleep 1
 done
-test "$WORK_RUN_STATUS" = "succeeded"
+if [ "$WORK_RUN_STATUS" != "succeeded" ]; then
+  printf 'Focused customer-work run failed: issue=%s run=%s status=%s\n' "$WORK_ISSUE_ID" "$WORK_RUN_ID" "$WORK_RUN_STATUS" >&2
+  pc_sql "select id::text,status::text,coalesce(error,''),coalesce(error_code,''),coalesce(result_json::text,''),coalesce(context_snapshot::text,'') from heartbeat_runs where id='$WORK_RUN_ID'::uuid;" >&2 || true
+  pc_sql "select id::text,identifier,status::text,coalesce(execution_run_id::text,''),coalesce(checkout_run_id::text,'') from issues where id='$WORK_ISSUE_ID'::uuid;" >&2 || true
+  pc_sql "select id::text,source,reason,status::text,coalesce(run_id::text,''),coalesce(error,'') from agent_wakeup_requests where company_id='$COMPANY_ID'::uuid and agent_id='$AGENT_ID'::uuid order by created_at desc limit 5;" >&2 || true
+  printf '%s\n' '--- disposable Paperclip logs ---' >&2
+  docker logs "$PAPERCLIP" >&2 || true
+  printf '%s\n' '--- disposable focused Core logs ---' >&2
+  docker logs "$CORE" >&2 || true
+  exit 41
+fi
 
 work_issue_status="$(pc_sql "select status::text from issues where id='$WORK_ISSUE_ID'::uuid;")"
 test "$work_issue_status" = "done"
