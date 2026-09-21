@@ -1,6 +1,7 @@
 import { createHmac } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { isAbsolute } from 'node:path';
+import { networkInterfaces } from 'node:os';
 
 const TYPE = 'wandora_mastra';
 const CANONICAL_BRIDGE_URL = 'http://wandora-core:8788/internal/v1/paperclip/execution';
@@ -116,15 +117,20 @@ function paperclipIssueUrl(issueId, env = process.env) {
     throw new Error('paperclip_listen_port_invalid');
   }
 
-  const localHost = listenHost === '0.0.0.0'
-    ? '127.0.0.1'
-    : listenHost === '::'
-      ? '[::1]'
-      : listenHost.includes(':') && !listenHost.startsWith('[')
-        ? `[${listenHost}]`
-        : listenHost;
+  let localHost = listenHost;
+  if (listenHost === '0.0.0.0' || listenHost === '::') {
+    const family = listenHost === '::' ? 'IPv6' : 'IPv4';
+    const loopback = Object.values(networkInterfaces())
+      .flat()
+      .find((entry) => entry?.internal && entry.family === family)?.address;
+    if (!loopback) throw new Error('paperclip_local_loopback_unavailable');
+    localHost = loopback;
+  }
 
-  return new URL(`http://${localHost}:${listenPort}/api/issues/${issueId}`);
+  const urlHost = localHost.includes(':') && !localHost.startsWith('[')
+    ? `[${localHost}]`
+    : localHost;
+  return new URL(`http://${urlHost}:${listenPort}/api/issues/${issueId}`);
 }
 
 function sign(secret, timestamp, rawBody) {
