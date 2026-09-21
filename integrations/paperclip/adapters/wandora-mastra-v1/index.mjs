@@ -99,16 +99,32 @@ function bridgeTimeoutMs(env = process.env) {
 
 function paperclipIssueUrl(issueId, env = process.env) {
   if (!UUID_RE.test(issueId)) throw new Error('paperclip_work_issue_id_invalid');
-  const runtimeApiUrl = requiredString(
-    env.PAPERCLIP_RUNTIME_API_URL,
-    'paperclip_runtime_api_url_required',
-    2048,
+
+  const listenHost = requiredString(
+    env.PAPERCLIP_LISTEN_HOST,
+    'paperclip_listen_host_required',
+    255,
   );
-  const base = new URL(runtimeApiUrl);
-  if (base.protocol !== 'http:' && base.protocol !== 'https:') {
-    throw new Error('paperclip_runtime_api_url_invalid');
+  const listenPort = Number(
+    requiredString(
+      env.PAPERCLIP_LISTEN_PORT,
+      'paperclip_listen_port_required',
+      16,
+    ),
+  );
+  if (!Number.isInteger(listenPort) || listenPort < 1 || listenPort > 65535) {
+    throw new Error('paperclip_listen_port_invalid');
   }
-  return new URL(`/api/issues/${issueId}`, base);
+
+  const localHost = listenHost === '0.0.0.0'
+    ? '127.0.0.1'
+    : listenHost === '::'
+      ? '[::1]'
+      : listenHost.includes(':') && !listenHost.startsWith('[')
+        ? `[${listenHost}]`
+        : listenHost;
+
+  return new URL(`http://${localHost}:${listenPort}/api/issues/${issueId}`);
 }
 
 function sign(secret, timestamp, rawBody) {
