@@ -322,3 +322,125 @@ REAL NOW
 ```
 
 No production upgrade, plugin activation, connector enablement, migration, outbound effect or customer work is authorized by this research document.
+
+## Proven usage / cost-ledger semantics
+
+The audit closed the previously open cost-event question against pinned Paperclip `v2026.916.0`.
+
+Pinned heartbeat finalization performs:
+
+```text
+external adapter result
+  -> normalize adapterResult.usage
+  -> updateRuntimeState(...)
+  -> if token usage > 0 OR billed cost > 0
+     costService.createEvent(...)
+```
+
+Therefore a `wandora_mastra` result carrying positive normalized token usage **does create a Paperclip cost event automatically**.
+
+When the adapter supplies tokens but no authoritative `costUsd`:
+
+```text
+input/output/cached tokens = recorded
+costCents                  = 0
+costStatus                 = unpriced
+```
+
+This is valid telemetry, not proof of free inference.
+
+Pinned budget code is narrower:
+
+```text
+BUDGET_METRICS = ["billed_cents"]
+computeObservedAmount = sum(costEvents.costCents)
+```
+
+So Paperclip's current monetary warning/hard-stop policy does **not** enforce an unpriced Wandora/Mistral token event. Usage telemetry and monetary budget enforcement are distinct capabilities.
+
+Canonical consequence:
+
+- reuse Paperclip's cost ledger for normalized operational usage/cost evidence;
+- do not invent a Wandora token ledger;
+- do not claim billed-cents budgets cap Wandora model spend until an authoritative price/cost source supplies non-zero billed cost;
+- Wandora commercial plan/price/margin/billing remains separate regardless.
+
+### Historical production evidence
+
+Official MED-1 cost readback remains:
+
+```text
+Paperclip:
+  input tokens  = 0
+  output tokens = 0
+  cost cents    = 0
+  run count     = 2
+
+Core authoritative historical model event:
+  input         = 333
+  output        = 372
+  cached        = 0
+  total         = 705
+  model calls   = 1
+```
+
+No historical backfill is authorized.
+
+## Companion Core gap discovered before production promotion
+
+Fresh read-only production inspection proved live Core is still:
+
+```text
+image  = wandora/core:organization-adapter-candidate-d5f98ed92a29
+source = d5f98ed92a29b351b243c4873bf17a2d13cdfc78
+```
+
+Its compiled `paperclip-execution/service.js` returns:
+
+```text
+{ executionId, model, summary }
+```
+
+and does **not** return normalized `usage`.
+
+Current main contains the required usage-return change. Exact executable diff from the live Core source to `main@2e3a9e41eb0013c14da079d95120f03a85ee8f90` is:
+
+```text
+apps/core/src/paperclip-execution/service.ts
+```
+
+only. No Core package/dependency or other executable Core source changed.
+
+Compatibility was checked in both directions:
+
+- live `wandora_mastra@0.3.0` ignores additional Core response fields, so a Core companion can be promoted while 0.3.0 is still loaded;
+- `wandora_mastra@0.4.0` treats missing `usage` as null, so its lifecycle remediation also remains backward-compatible with the current Core.
+
+The already-GREEN Core Candidate Artifact #135 is:
+
+```text
+workflow run       = 35603026602
+artifact id        = 10640665492
+artifact digest    = sha256:ffebefcbc96596fc97b8506ad0a20fae3f749529f2b75ebddacb3113456cc5b3
+artifact source    = 61cbb34d4bfde0350cc765111dc778b22a2a168f
+image tag          = wandora/core:organization-adapter-candidate-61cbb34d4bfd
+archive sha256     = f278d4466a849a55379297b043dd62eb037eb1659d50513179c35a3d012087a5
+OCI config digest  = sha256:c612aac3269b086eb6c05707cf6debe7ca70b97608b284e2b6a4c2d6df0bf2b4
+OCI manifest       = sha256:6c38930a45591970fd47d699c9881a9c9bd881272028268431ba3bf1c73c2873
+image user         = node
+candidate contract = organization-adapter-core-v1
+```
+
+The Actions source is the PR merge-ref, not the PR head. That provenance ambiguity was explicitly resolved: `apps/core/**` and `infra/stacks/core/**` have **zero diff** between artifact source `61cbb34d...` and current main; the critical service blob is identical:
+
+```text
+6578e72f5e75a5d062bc11ecf7904569efa6bc95
+```
+
+### Production consequence
+
+ADR 0151's adapter-only execution order is insufficient to satisfy its prospective usage claim.
+
+The production promotion execution is therefore **blocked pending a superseding no-effect companion-Core preflight**. Lifecycle remediation itself remains valid; the blocker is truthful end-to-end usage/cost-event propagation.
+
+No production mutation was performed by this discovery.
