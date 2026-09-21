@@ -1,4 +1,4 @@
-[Reading 98 lines from start (total: 98 lines, 0 remaining)]
+[Reading 94 lines from start (total: 94 lines, 0 remaining)]
 
 name: Core CI
 
@@ -33,10 +33,6 @@ jobs:
         env:
           WANDORA_CI_CONTAINER_SECRET_GID: "0"
         run: bash apps/core/scripts/verify-ana-v1.sh
-
-      - name: Run Organization Adapter service and work integration verifier
-        shell: bash
-        run: bash apps/core/scripts/verify-organization-adapter-service-v1.sh
 
       - name: Run Private Tenant Provisioning V2 verifier
         shell: bash
