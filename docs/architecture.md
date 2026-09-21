@@ -1379,3 +1379,35 @@ Paperclip features marked experimental are not stable architecture dependencies.
 Use Paperclip native company export/import where faithful, plus a minimal Wandora provider-binding/receipt manifest and targeted archive of non-portable adopted history. Do not replicate the Paperclip database.
 
 See ADR 0152 and the Paperclip capability/portability research documents for the full matrix and exit strategy.
+
+## Live customer-work lifecycle/usage boundary — ADR 0154
+
+The ADR 0150 convergence design is now the live production composition:
+
+```text
+Paperclip
+  wandora_mastra@0.4.0
+        |
+        v
+Wandora Core
+  companion usage-return bridge
+  mastra-supervised-model
+        |
+        v
+Agent Runtime / current Mastra + model implementation
+```
+
+Current Core is `wandora/core:organization-adapter-candidate-61cbb34d4bfd` with image id `sha256:6c38930a45591970fd47d699c9881a9c9bd881272028268431ba3bf1c73c2873`. Current Paperclip remains `v2026.916.0`, with exactly one loaded `wandora_mastra@0.4.0` whose official environment test passes.
+
+The maintenance execution did not generate customer work or model inference. Historical truth remains one Wandora work, two Paperclip runs and one provider/model call. MED-1 is terminal `done`; no historical usage was backfilled.
+
+For future legitimate work, the live boundary is capable of returning normalized per-run token usage prospectively from Core through the external adapter to Paperclip. This does not change cost authority: unpriced token events remain operational evidence, not authoritative monetary spend.
+
+The Paperclip agent record for Ana still carries the historical `errorReason=wandora_execution_failed_409` from the ADR 0150 continuation failure. Its timestamp predates this promotion. Clearing that provider-owned control-plane state is not implicit in issue terminalization and requires a separately qualified Paperclip-native reconciliation before another legitimate MEDICSPRO work event.
+
+External-effect authority is unchanged:
+
+```text
+Human Send = OFF
+Gateway outbound = OFF
+```
