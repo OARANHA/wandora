@@ -201,3 +201,39 @@ It should **not** require changing:
 - customer-facing Web vocabulary.
 
 Current result: **portability is directionally healthy, with localized medium-risk coupling at the internal Organization Adapter and execution bridge.**
+
+## Customer-boundary verification
+
+A direct source read of the current Wandora Human API confirms the customer DTO for a digital employee contains only:
+
+```text
+id              = Wandora employee ID
+name
+role
+status
+autonomy
+activation availability/state
+work availability/state
+```
+
+Provider company/agent references are used only inside private eligibility/reconciliation SQL and are not returned.
+
+Core tests explicitly reject provider leakage in the human digital-employee route, and Web verification rejects `providerAgentId` / `paperclip` from the customer team surface.
+
+This is a **strong portability invariant** and should be copied to every future provider-backed customer DTO.
+
+### Remaining localized literal
+
+`human-digital-employees-read.ts` currently contains:
+
+```ts
+const CUSTOMER_HIRE_PROVIDER = 'paperclip' as const;
+```
+
+This is internal selection/configuration debt, not customer-contract leakage.
+
+Do not widen it merely to produce an abstract enum. Replace the literal with a provider-neutral selection mechanism only when:
+- a second provider is introduced;
+- tenant-specific control-plane provider selection becomes real; or
+- a migration rehearsal proves the current literal obstructs provider replacement.
+
