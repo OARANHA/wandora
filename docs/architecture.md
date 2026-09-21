@@ -1379,3 +1379,25 @@ Paperclip features marked experimental are not stable architecture dependencies.
 Use Paperclip native company export/import where faithful, plus a minimal Wandora provider-binding/receipt manifest and targeted archive of non-portable adopted history. Do not replicate the Paperclip database.
 
 See ADR 0152 and the Paperclip capability/portability research documents for the full matrix and exit strategy.
+
+
+## Live customer-work lifecycle + usage convergence — ADR 0154
+
+The production Paperclip execution boundary now uses the qualified pair:
+
+```text
+Paperclip task/run
+  -> wandora_mastra@0.4.0
+  -> Wandora Core companion bridge
+  -> Agent Runtime
+  -> current replaceable runtime/provider
+  -> supervised Wandora result
+```
+
+Adapter 0.4.0 owns only Paperclip-side convergence for the exact run: after the durable Wandora result exists, the same run-scoped identity terminalizes the exact Paperclip issue and returns normalized per-run usage. The companion Core supplies that normalized usage at the bridge response. Neither component becomes product, tenant, outbound or billing authority.
+
+Production promotion did not replay the historical work. MED-1 is now `done`, retains exactly two historical runs with null usage, and the historical model-call count remains exactly one. Future successful work can emit normalized runtime usage prospectively; without authoritative price Paperclip records it as unpriced rather than inventing money.
+
+External-effect authority is unchanged: Human Send and Gateway outbound remain Wandora-owned and OFF. Paperclip Task Drain was used only as the native pre-restart quiescence guard.
+
+The Paperclip Ana lifecycle projection remains historical `error` from the rejected continuation run. This is a separate Paperclip-owned readiness concern and must be reconciled in a no-effect slice before another customer work admission; it must not be hidden by a Wandora-native lifecycle duplicate.

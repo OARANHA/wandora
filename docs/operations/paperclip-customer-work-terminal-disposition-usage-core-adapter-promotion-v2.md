@@ -1,13 +1,14 @@
 # Paperclip Customer-Work Terminal Disposition + Usage Core/Adapter Production Promotion V2
 
-Status: **Future execution runbook — NO EFFECT from documentation**
+Status: **EXECUTED / COMPLETE — production promotion closed by ADR 0154**
 
 Canonical authority:
 
 - ADR 0150 — historical first-work truth/remediation;
 - ADR 0151 — adapter 0.4.0 candidate, Task Drain and MED-1 repair;
 - ADR 0152 — capability reuse / provider portability;
-- ADR 0153 — companion Core correction and paired execution order.
+- ADR 0153 — companion Core correction and paired execution order;
+- ADR 0154 — production execution result and final validation.
 
 ## Hard stop conditions
 
@@ -192,3 +193,22 @@ Important drain rule:
 - if Paperclip restarted, drain is already gone.
 
 Never delete retained 0.3.0 package or old Core rollback image during the promotion.
+
+
+## Execution closure — 2026-09-21 / ADR 0154
+
+This runbook has been executed in production and reached its STOP boundary.
+
+- companion Core promotion: complete / healthy / ready;
+- `wandora_mastra@0.4.0`: exactly one / loaded / test-environment PASS;
+- Paperclip recreated exactly once after adapter replacement;
+- MED-1: `done` through one Board status-only mutation;
+- historical Paperclip runs: exactly 2;
+- historical run usage: unchanged/null (no backfill);
+- historical model calls: exactly 1;
+- outbound attempts: 0;
+- Human Send: OFF;
+- Gateway outbound: OFF;
+- no replay, synthetic work, provider validation call, migration or external message.
+
+The inherited Paperclip Ana `error` state from the historical continuation failure was observed and intentionally not mutated. See ADR 0154 for the next no-effect reconciliation slice.

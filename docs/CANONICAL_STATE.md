@@ -3497,3 +3497,35 @@ Gateway outbound = OFF
 ```
 
 Next executable effect remains a separately reviewed **Core companion + wandora_mastra@0.4.0 production promotion execution**, following ADR 0153 and the amended ADR 0151 runbook.
+
+
+## ADR 0154 — Paperclip Customer-Work Terminal Disposition + Usage Core/Adapter Production Promotion Execution V2
+
+Status: **EXECUTED / GREEN for accepted scope**.
+
+Production now runs the qualified companion Core `wandora/core:organization-adapter-candidate-61cbb34d4bfd` (image id `sha256:6c38930a45591970fd47d699c9881a9c9bd881272028268431ba3bf1c73c2873`) and exactly one `wandora_mastra@0.4.0`. Paperclip remains `v2026.916.0`, healthy, and official adapter test-environment is PASS.
+
+The frozen V2 sequence was executed without replay or provider validation call: Task Drain -> companion Core image-only promotion -> persistent adapter 0.4.0 stage -> one official install/replace -> one Paperclip recreate -> validation -> one Board status-only MED-1 repair -> STOP.
+
+Final invariants:
+
+```text
+MEDICSPRO Wandora Ana = exactly 1 / active + supervised
+Wandora work          = exactly 1
+MED-1                 = done / no live run / 2 historical runs
+historical run usage  = null / null (no backfill)
+historical model calls= exactly 1
+outbound attempts     = 0
+Human Send            = OFF
+Gateway outbound      = OFF
+```
+
+The new Core container produced zero model-usage events, so promotion did not call the provider. The historical second Paperclip run remains preserved; no synthetic/customer replay was used to normalize counters.
+
+Paperclip Ana remains `error` with historical `errorReason=wandora_execution_failed_409` and `updatedAt=2026-09-21T11:49:40.115Z`, tying that projection to the pre-promotion continuation failure. ADR 0154 explicitly forbids hiding it with resume/reassignment in this slice.
+
+### NEXT EXECUTABLE SLICE
+
+**Paperclip MEDICSPRO Ana Historical Error-State Reconciliation Preflight V1 — NO EFFECT**.
+
+Before any second legitimate customer work, determine the Paperclip-native least-authority transition back to an execution-ready managed-agent lifecycle state. Do not replay MED-1, do not create task/wakeup/run/heartbeat, do not call the model, do not enable Human Send/Gateway outbound, and do not mutate production merely to obtain context.
