@@ -1,0 +1,1264 @@
+{
+  "classes": {
+    "A": "Critical production integration or qualified operator maintenance dependency; blocking.",
+    "B": "Adopted specialist HTTP capability; blocks its named feature (none invented for V1).",
+    "C": "Radar/unadopted; diagnostic only."
+  },
+  "coverageNotes": [
+    "Private provider implementation inventory only; not a public Wandora contract or capability registry.",
+    "Class A operator-runbook records a maintenance contract. ADR 0154 records that the qualified Core/adapter promotion has since executed successfully; this inventory remains an API dependency contract, not execution authorization.",
+    "Agent resume, issue create/read/wakeup, managed agents, plugin state and secret refs use plugin SDK. Their REST analogues are not runtime dependencies; existing pinned SDK/disposable tests remain mandatory.",
+    "Disposable-only company/agent/issue creation and heartbeat invoke routes are test setup, excluded from production dependency inventory.",
+    "Auth checks freeze declared security plus x-paperclip-authorization. v916 underdeclares adapter/drain instance-admin restrictions and misdescribes signed plugin webhook auth; pinned-source and disposable tests must prove enforcement.",
+    "Generic upstream responses require an explicitly reviewed source-pinned supplement; raw incomplete OpenAPI fails coverage. Never reuse an old supplement for a new candidate.",
+    "OpenAPI does not prove wake behavior, Task Drain process locality, retry ambiguity, scheduler/recovery or transaction/idempotency behavior."
+  ],
+  "operations": [
+    {
+      "class": "A",
+      "context": "operator-runbook",
+      "evidence": [
+        {
+          "anchor": "Paperclip health",
+          "file": "docs/operations/paperclip-customer-work-terminal-disposition-usage-core-adapter-promotion-v2.md"
+        },
+        {
+          "anchor": "GET /api/health",
+          "file": "integrations/paperclip/adapters/wandora-mastra-v1/verify-disposable-e2e.sh"
+        }
+      ],
+      "method": "get",
+      "path": "/api/health",
+      "reason": "Health readiness before and after qualified maintenance.",
+      "request": {
+        "body": null,
+        "parameters": []
+      },
+      "responses": {
+        "200": {
+          "properties": {
+            "status": {
+              "enum": [
+                "ok"
+              ],
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "security": {
+        "authorization": {
+          "actor": "public"
+        },
+        "requirements": [],
+        "schemes": {}
+      }
+    },
+    {
+      "class": "A",
+      "context": "runtime",
+      "evidence": [
+        {
+          "anchor": "const managed =",
+          "file": "apps/core/src/paperclip-execution/paperclip-run-identity.ts"
+        }
+      ],
+      "method": "get",
+      "path": "/api/agents/me",
+      "reason": "Run-scoped identity and managed catalog binding checked by Core.",
+      "request": {
+        "body": null,
+        "parameters": []
+      },
+      "responses": {
+        "200": {
+          "properties": {
+            "companyId": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "metadata": {
+              "properties": {
+                "pluginManagedAgent": {
+                  "properties": {
+                    "agentKey": {
+                      "type": "string"
+                    },
+                    "pluginKey": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              "type": "object"
+            },
+            "name": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "security": {
+        "authorization": {
+          "actor": "board_or_agent"
+        },
+        "requirements": [
+          {
+            "AgentBearerAuth": []
+          },
+          {
+            "BoardApiKeyAuth": []
+          },
+          {
+            "BoardSessionAuth": []
+          }
+        ],
+        "schemes": {
+          "AgentBearerAuth": {
+            "bearerFormat": "Agent API Key or Agent JWT",
+            "scheme": "bearer",
+            "type": "http"
+          },
+          "BoardApiKeyAuth": {
+            "bearerFormat": "Board API Key",
+            "scheme": "bearer",
+            "type": "http"
+          },
+          "BoardSessionAuth": {
+            "in": "cookie",
+            "name": "paperclip_session",
+            "type": "apiKey"
+          }
+        }
+      }
+    },
+    {
+      "class": "A",
+      "context": "operator-runbook",
+      "evidence": [
+        {
+          "anchor": "exactly one wandora_mastra",
+          "file": "docs/operations/paperclip-customer-work-terminal-disposition-usage-core-adapter-promotion-v2.md"
+        },
+        {
+          "anchor": "adapter get",
+          "file": "docs/operations/paperclip-customer-work-terminal-disposition-usage-core-adapter-promotion-v2.md"
+        }
+      ],
+      "method": "get",
+      "path": "/api/adapters",
+      "reason": "Loaded adapter inventory/version readback before and after replacement.",
+      "request": {
+        "body": null,
+        "parameters": []
+      },
+      "responses": {
+        "200": {
+          "items": {
+            "properties": {
+              "loaded": {
+                "type": "boolean"
+              },
+              "type": {
+                "type": "string"
+              },
+              "version": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "security": {
+        "authorization": {
+          "actor": "board_or_agent"
+        },
+        "requirements": [
+          {
+            "AgentBearerAuth": []
+          },
+          {
+            "BoardApiKeyAuth": []
+          },
+          {
+            "BoardSessionAuth": []
+          }
+        ],
+        "schemes": {
+          "AgentBearerAuth": {
+            "bearerFormat": "Agent API Key or Agent JWT",
+            "scheme": "bearer",
+            "type": "http"
+          },
+          "BoardApiKeyAuth": {
+            "bearerFormat": "Board API Key",
+            "scheme": "bearer",
+            "type": "http"
+          },
+          "BoardSessionAuth": {
+            "in": "cookie",
+            "name": "paperclip_session",
+            "type": "apiKey"
+          }
+        }
+      }
+    },
+    {
+      "class": "A",
+      "context": "operator-runbook",
+      "evidence": [
+        {
+          "anchor": "exactly one wandora_mastra",
+          "file": "docs/operations/paperclip-customer-work-terminal-disposition-usage-core-adapter-promotion-v2.md"
+        },
+        {
+          "anchor": "adapter get",
+          "file": "docs/operations/paperclip-customer-work-terminal-disposition-usage-core-adapter-promotion-v2.md"
+        }
+      ],
+      "method": "get",
+      "path": "/api/adapters/{type}",
+      "reason": "Loaded adapter inventory/version readback before and after replacement.",
+      "request": {
+        "body": null,
+        "parameters": [
+          {
+            "alwaysSent": true,
+            "in": "path",
+            "name": "type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "responses": {
+        "200": {
+          "properties": {
+            "loaded": {
+              "type": "boolean"
+            },
+            "type": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "security": {
+        "authorization": {
+          "actor": "board_or_agent"
+        },
+        "requirements": [
+          {
+            "AgentBearerAuth": []
+          },
+          {
+            "BoardApiKeyAuth": []
+          },
+          {
+            "BoardSessionAuth": []
+          }
+        ],
+        "schemes": {
+          "AgentBearerAuth": {
+            "bearerFormat": "Agent API Key or Agent JWT",
+            "scheme": "bearer",
+            "type": "http"
+          },
+          "BoardApiKeyAuth": {
+            "bearerFormat": "Board API Key",
+            "scheme": "bearer",
+            "type": "http"
+          },
+          "BoardSessionAuth": {
+            "in": "cookie",
+            "name": "paperclip_session",
+            "type": "apiKey"
+          }
+        }
+      }
+    },
+    {
+      "class": "A",
+      "context": "operator-runbook",
+      "evidence": [
+        {
+          "anchor": "Install/replace exactly once.",
+          "file": "docs/operations/paperclip-customer-work-terminal-disposition-usage-core-adapter-promotion-v2.md"
+        },
+        {
+          "anchor": "POST /api/adapters/install",
+          "file": "integrations/paperclip/adapters/wandora-mastra-v1/verify-disposable-e2e.sh"
+        }
+      ],
+      "method": "post",
+      "path": "/api/adapters/install",
+      "reason": "Qualified local package replacement; readback on ambiguous response.",
+      "request": {
+        "body": {
+          "properties": {
+            "isLocalPath": {
+              "enum": [
+                true
+              ],
+              "type": "boolean"
+            },
+            "packageName": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "packageName",
+            "isLocalPath"
+          ],
+          "type": "object"
+        },
+        "parameters": []
+      },
+      "responses": {
+        "201": {
+          "properties": {
+            "requiresRestart": {
+              "type": "boolean"
+            },
+            "type": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "security": {
+        "authorization": {
+          "actor": "board_or_agent"
+        },
+        "requirements": [
+          {
+            "AgentBearerAuth": []
+          },
+          {
+            "BoardApiKeyAuth": []
+          },
+          {
+            "BoardSessionAuth": []
+          }
+        ],
+        "schemes": {
+          "AgentBearerAuth": {
+            "bearerFormat": "Agent API Key or Agent JWT",
+            "scheme": "bearer",
+            "type": "http"
+          },
+          "BoardApiKeyAuth": {
+            "bearerFormat": "Board API Key",
+            "scheme": "bearer",
+            "type": "http"
+          },
+          "BoardSessionAuth": {
+            "in": "cookie",
+            "name": "paperclip_session",
+            "type": "apiKey"
+          }
+        }
+      }
+    },
+    {
+      "class": "A",
+      "context": "operator-runbook",
+      "evidence": [
+        {
+          "anchor": "test-environment = PASS",
+          "file": "docs/operations/paperclip-customer-work-terminal-disposition-usage-core-adapter-promotion-v2.md"
+        },
+        {
+          "anchor": "async testEnvironment()",
+          "file": "integrations/paperclip/adapters/wandora-mastra-v1/index.mjs"
+        }
+      ],
+      "method": "post",
+      "path": "/api/companies/{companyId}/adapters/{type}/test-environment",
+      "reason": "Official environment validation of the installed Wandora adapter.",
+      "request": {
+        "body": {
+          "properties": {},
+          "type": "object"
+        },
+        "parameters": [
+          {
+            "alwaysSent": true,
+            "in": "path",
+            "name": "companyId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "alwaysSent": true,
+            "in": "path",
+            "name": "type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "responses": {
+        "200": {
+          "properties": {
+            "status": {
+              "enum": [
+                "pass"
+              ],
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "security": {
+        "authorization": {
+          "actor": "board_or_agent"
+        },
+        "requirements": [
+          {
+            "AgentBearerAuth": []
+          },
+          {
+            "BoardApiKeyAuth": []
+          },
+          {
+            "BoardSessionAuth": []
+          }
+        ],
+        "schemes": {
+          "AgentBearerAuth": {
+            "bearerFormat": "Agent API Key or Agent JWT",
+            "scheme": "bearer",
+            "type": "http"
+          },
+          "BoardApiKeyAuth": {
+            "bearerFormat": "Board API Key",
+            "scheme": "bearer",
+            "type": "http"
+          },
+          "BoardSessionAuth": {
+            "in": "cookie",
+            "name": "paperclip_session",
+            "type": "apiKey"
+          }
+        }
+      }
+    },
+    {
+      "class": "A",
+      "context": "runtime",
+      "evidence": [
+        {
+          "anchor": "async function readIssueStatus",
+          "file": "integrations/paperclip/adapters/wandora-mastra-v1/index.mjs"
+        },
+        {
+          "anchor": "checkoutRunId",
+          "file": "docs/decisions/0151-paperclip-customer-work-terminal-disposition-usage-adapter-production-promotion-preflight-v1.md"
+        }
+      ],
+      "method": "get",
+      "path": "/api/issues/{id}",
+      "reason": "Completion ambiguity readback plus runbook quiescence checks; unrelated issue fields ignored.",
+      "request": {
+        "body": null,
+        "parameters": [
+          {
+            "alwaysSent": true,
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "responses": {
+        "200": {
+          "properties": {
+            "checkoutRunId": {
+              "nullable": true,
+              "type": "string"
+            },
+            "executionRunId": {
+              "nullable": true,
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "todo",
+                "in_progress",
+                "done",
+                "blocked"
+              ],
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "security": {
+        "authorization": {
+          "actor": "board_or_agent"
+        },
+        "requirements": [
+          {
+            "AgentBearerAuth": []
+          },
+          {
+            "BoardApiKeyAuth": []
+          },
+          {
+            "BoardSessionAuth": []
+          }
+        ],
+        "schemes": {
+          "AgentBearerAuth": {
+            "bearerFormat": "Agent API Key or Agent JWT",
+            "scheme": "bearer",
+            "type": "http"
+          },
+          "BoardApiKeyAuth": {
+            "bearerFormat": "Board API Key",
+            "scheme": "bearer",
+            "type": "http"
+          },
+          "BoardSessionAuth": {
+            "in": "cookie",
+            "name": "paperclip_session",
+            "type": "apiKey"
+          }
+        }
+      }
+    },
+    {
+      "class": "A",
+      "context": "runtime",
+      "evidence": [
+        {
+          "anchor": "JSON.stringify({ status: 'done' })",
+          "file": "integrations/paperclip/adapters/wandora-mastra-v1/index.mjs"
+        },
+        {
+          "anchor": "status only",
+          "file": "docs/operations/paperclip-customer-work-terminal-disposition-usage-core-adapter-promotion-v2.md"
+        }
+      ],
+      "method": "patch",
+      "path": "/api/issues/{id}",
+      "reason": "Status-only completion by run JWT; operator repair uses the same HTTP shape under separate authority.",
+      "request": {
+        "body": {
+          "properties": {
+            "status": {
+              "enum": [
+                "done"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "status"
+          ],
+          "type": "object"
+        },
+        "parameters": [
+          {
+            "alwaysSent": true,
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "responses": {
+        "200": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "done"
+              ],
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "security": {
+        "authorization": {
+          "actor": "board_or_agent"
+        },
+        "requirements": [
+          {
+            "AgentBearerAuth": []
+          },
+          {
+            "BoardApiKeyAuth": []
+          },
+          {
+            "BoardSessionAuth": []
+          }
+        ],
+        "schemes": {
+          "AgentBearerAuth": {
+            "bearerFormat": "Agent API Key or Agent JWT",
+            "scheme": "bearer",
+            "type": "http"
+          },
+          "BoardApiKeyAuth": {
+            "bearerFormat": "Board API Key",
+            "scheme": "bearer",
+            "type": "http"
+          },
+          "BoardSessionAuth": {
+            "in": "cookie",
+            "name": "paperclip_session",
+            "type": "apiKey"
+          }
+        }
+      }
+    },
+    {
+      "class": "A",
+      "context": "operator-runbook",
+      "evidence": [
+        {
+          "anchor": "live-runs",
+          "file": "docs/operations/paperclip-customer-work-terminal-disposition-usage-core-adapter-promotion-v2.md"
+        }
+      ],
+      "method": "get",
+      "path": "/api/issues/{issueId}/live-runs",
+      "reason": "Quiescence and historical run count only; no unconsumed per-run fields frozen.",
+      "request": {
+        "body": null,
+        "parameters": [
+          {
+            "alwaysSent": true,
+            "in": "path",
+            "name": "issueId",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "responses": {
+        "200": {
+          "items": {
+            "properties": {},
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "security": {
+        "authorization": {
+          "actor": "board_or_agent"
+        },
+        "requirements": [
+          {
+            "AgentBearerAuth": []
+          },
+          {
+            "BoardApiKeyAuth": []
+          },
+          {
+            "BoardSessionAuth": []
+          }
+        ],
+        "schemes": {
+          "AgentBearerAuth": {
+            "bearerFormat": "Agent API Key or Agent JWT",
+            "scheme": "bearer",
+            "type": "http"
+          },
+          "BoardApiKeyAuth": {
+            "bearerFormat": "Board API Key",
+            "scheme": "bearer",
+            "type": "http"
+          },
+          "BoardSessionAuth": {
+            "in": "cookie",
+            "name": "paperclip_session",
+            "type": "apiKey"
+          }
+        }
+      }
+    },
+    {
+      "class": "A",
+      "context": "operator-runbook",
+      "evidence": [
+        {
+          "anchor": "historical runs = 2",
+          "file": "docs/operations/paperclip-customer-work-terminal-disposition-usage-core-adapter-promotion-v2.md"
+        }
+      ],
+      "method": "get",
+      "path": "/api/issues/{id}/runs",
+      "reason": "Quiescence and historical run count only; no unconsumed per-run fields frozen.",
+      "request": {
+        "body": null,
+        "parameters": [
+          {
+            "alwaysSent": true,
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "responses": {
+        "200": {
+          "items": {
+            "properties": {},
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "security": {
+        "authorization": {
+          "actor": "board_or_agent"
+        },
+        "requirements": [
+          {
+            "AgentBearerAuth": []
+          },
+          {
+            "BoardApiKeyAuth": []
+          },
+          {
+            "BoardSessionAuth": []
+          }
+        ],
+        "schemes": {
+          "AgentBearerAuth": {
+            "bearerFormat": "Agent API Key or Agent JWT",
+            "scheme": "bearer",
+            "type": "http"
+          },
+          "BoardApiKeyAuth": {
+            "bearerFormat": "Board API Key",
+            "scheme": "bearer",
+            "type": "http"
+          },
+          "BoardSessionAuth": {
+            "in": "cookie",
+            "name": "paperclip_session",
+            "type": "apiKey"
+          }
+        }
+      }
+    },
+    {
+      "class": "A",
+      "context": "operator-runbook",
+      "evidence": [
+        {
+          "anchor": "recovery-actions",
+          "file": "docs/operations/paperclip-customer-work-terminal-disposition-usage-core-adapter-promotion-v2.md"
+        }
+      ],
+      "method": "get",
+      "path": "/api/issues/{id}/recovery-actions",
+      "reason": "Require no active recovery before maintenance; do not freeze unrelated history.",
+      "request": {
+        "body": null,
+        "parameters": [
+          {
+            "alwaysSent": true,
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "responses": {
+        "200": {
+          "properties": {
+            "active": {
+              "nullable": true,
+              "properties": {},
+              "type": "object"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "security": {
+        "authorization": {
+          "actor": "board_or_agent"
+        },
+        "requirements": [
+          {
+            "AgentBearerAuth": []
+          },
+          {
+            "BoardApiKeyAuth": []
+          },
+          {
+            "BoardSessionAuth": []
+          }
+        ],
+        "schemes": {
+          "AgentBearerAuth": {
+            "bearerFormat": "Agent API Key or Agent JWT",
+            "scheme": "bearer",
+            "type": "http"
+          },
+          "BoardApiKeyAuth": {
+            "bearerFormat": "Board API Key",
+            "scheme": "bearer",
+            "type": "http"
+          },
+          "BoardSessionAuth": {
+            "in": "cookie",
+            "name": "paperclip_session",
+            "type": "apiKey"
+          }
+        }
+      }
+    },
+    {
+      "class": "A",
+      "context": "operator-runbook",
+      "evidence": [
+        {
+          "anchor": "activeRuns   = 0",
+          "file": "docs/operations/paperclip-customer-work-terminal-disposition-usage-core-adapter-promotion-v2.md"
+        },
+        {
+          "anchor": "GET    /api/instance/task-drain",
+          "file": "docs/decisions/0151-paperclip-customer-work-terminal-disposition-usage-adapter-production-promotion-preflight-v1.md"
+        }
+      ],
+      "method": "get",
+      "path": "/api/instance/task-drain",
+      "reason": "Pre-restart process quiescence; not a persistent maintenance lock.",
+      "request": {
+        "body": null,
+        "parameters": []
+      },
+      "responses": {
+        "200": {
+          "properties": {
+            "activeRuns": {
+              "type": "number"
+            },
+            "draining": {
+              "type": "boolean"
+            },
+            "pendingWakes": {
+              "type": "number"
+            },
+            "quiescent": {
+              "type": "boolean"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "security": {
+        "authorization": {
+          "actor": "board"
+        },
+        "requirements": [
+          {
+            "BoardApiKeyAuth": []
+          },
+          {
+            "BoardSessionAuth": []
+          }
+        ],
+        "schemes": {
+          "BoardApiKeyAuth": {
+            "bearerFormat": "Board API Key",
+            "scheme": "bearer",
+            "type": "http"
+          },
+          "BoardSessionAuth": {
+            "in": "cookie",
+            "name": "paperclip_session",
+            "type": "apiKey"
+          }
+        }
+      }
+    },
+    {
+      "class": "A",
+      "context": "operator-runbook",
+      "evidence": [
+        {
+          "anchor": "bounded maintenance TTL",
+          "file": "docs/operations/paperclip-customer-work-terminal-disposition-usage-core-adapter-promotion-v2.md"
+        },
+        {
+          "anchor": "POST   /api/instance/task-drain",
+          "file": "docs/decisions/0151-paperclip-customer-work-terminal-disposition-usage-adapter-production-promotion-preflight-v1.md"
+        }
+      ],
+      "method": "post",
+      "path": "/api/instance/task-drain",
+      "reason": "Begin bounded native maintenance drain; only GET status is consumed.",
+      "request": {
+        "body": {
+          "properties": {
+            "ttlMs": {
+              "maximum": 86400000,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "ttlMs"
+          ],
+          "type": "object"
+        },
+        "parameters": []
+      },
+      "responses": {
+        "200": null
+      },
+      "security": {
+        "authorization": {
+          "actor": "board"
+        },
+        "requirements": [
+          {
+            "BoardApiKeyAuth": []
+          },
+          {
+            "BoardSessionAuth": []
+          }
+        ],
+        "schemes": {
+          "BoardApiKeyAuth": {
+            "bearerFormat": "Board API Key",
+            "scheme": "bearer",
+            "type": "http"
+          },
+          "BoardSessionAuth": {
+            "in": "cookie",
+            "name": "paperclip_session",
+            "type": "apiKey"
+          }
+        }
+      }
+    },
+    {
+      "class": "A",
+      "context": "operator-runbook",
+      "evidence": [
+        {
+          "anchor": "explicitly end Task Drain",
+          "file": "docs/operations/paperclip-customer-work-terminal-disposition-usage-core-adapter-promotion-v2.md"
+        },
+        {
+          "anchor": "DELETE /api/instance/task-drain",
+          "file": "docs/decisions/0151-paperclip-customer-work-terminal-disposition-usage-adapter-production-promotion-preflight-v1.md"
+        }
+      ],
+      "method": "delete",
+      "path": "/api/instance/task-drain",
+      "reason": "End drain on pre-restart abort after safe rollback.",
+      "request": {
+        "body": null,
+        "parameters": []
+      },
+      "responses": {
+        "200": null
+      },
+      "security": {
+        "authorization": {
+          "actor": "board"
+        },
+        "requirements": [
+          {
+            "BoardApiKeyAuth": []
+          },
+          {
+            "BoardSessionAuth": []
+          }
+        ],
+        "schemes": {
+          "BoardApiKeyAuth": {
+            "bearerFormat": "Board API Key",
+            "scheme": "bearer",
+            "type": "http"
+          },
+          "BoardSessionAuth": {
+            "in": "cookie",
+            "name": "paperclip_session",
+            "type": "apiKey"
+          }
+        }
+      }
+    },
+    {
+      "class": "A",
+      "context": "runtime",
+      "evidence": [
+        {
+          "anchor": "record.status !== 'success'",
+          "file": "apps/core/src/organization-adapter/paperclip-provider.ts"
+        },
+        {
+          "anchor": "async onWebhook(input)",
+          "file": "integrations/paperclip/plugins/organization-adapter-v1/src/worker.ts"
+        }
+      ],
+      "method": "post",
+      "path": "/api/plugins/{pluginId}/webhooks/{endpointKey}",
+      "reason": "Core signed company-scoped reconcile/activate/work webhook delivery acknowledgment; host OpenAPI omits payload schema and misstates Board auth.",
+      "request": {
+        "body": {
+          "properties": {
+            "catalogKey": {
+              "type": "string"
+            },
+            "companyId": {
+              "type": "string"
+            },
+            "description": {
+              "maxLength": 4000,
+              "minLength": 1,
+              "type": "string"
+            },
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            "workId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "companyId",
+            "catalogKey"
+          ],
+          "type": "object"
+        },
+        "parameters": [
+          {
+            "alwaysSent": true,
+            "in": "path",
+            "name": "pluginId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "alwaysSent": true,
+            "in": "path",
+            "name": "endpointKey",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "responses": {
+        "200": {
+          "properties": {
+            "deliveryId": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "success"
+              ],
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "security": {
+        "authorization": {
+          "actor": "board"
+        },
+        "requirements": [
+          {
+            "BoardApiKeyAuth": []
+          },
+          {
+            "BoardSessionAuth": []
+          }
+        ],
+        "schemes": {
+          "BoardApiKeyAuth": {
+            "bearerFormat": "Board API Key",
+            "scheme": "bearer",
+            "type": "http"
+          },
+          "BoardSessionAuth": {
+            "in": "cookie",
+            "name": "paperclip_session",
+            "type": "apiKey"
+          }
+        }
+      }
+    },
+    {
+      "class": "C",
+      "context": "radar",
+      "evidence": [
+        {
+          "anchor": "Cases, Pipelines",
+          "file": "docs/CAPABILITY_AUTHORITY.md"
+        }
+      ],
+      "method": "get",
+      "path": "/api/companies/{companyId}/cases",
+      "reason": "Experimental unadopted radar only; removal never blocks an upgrade.",
+      "request": {
+        "body": null,
+        "parameters": [
+          {
+            "alwaysSent": true,
+            "in": "path",
+            "name": "companyId",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "responses": {},
+      "security": {
+        "authorization": {
+          "actor": "board_or_agent"
+        },
+        "requirements": [
+          {
+            "AgentBearerAuth": []
+          },
+          {
+            "BoardApiKeyAuth": []
+          },
+          {
+            "BoardSessionAuth": []
+          }
+        ],
+        "schemes": {
+          "AgentBearerAuth": {
+            "bearerFormat": "Agent API Key or Agent JWT",
+            "scheme": "bearer",
+            "type": "http"
+          },
+          "BoardApiKeyAuth": {
+            "bearerFormat": "Board API Key",
+            "scheme": "bearer",
+            "type": "http"
+          },
+          "BoardSessionAuth": {
+            "in": "cookie",
+            "name": "paperclip_session",
+            "type": "apiKey"
+          }
+        }
+      }
+    },
+    {
+      "class": "C",
+      "context": "radar",
+      "evidence": [
+        {
+          "anchor": "Cases, Pipelines",
+          "file": "docs/CAPABILITY_AUTHORITY.md"
+        }
+      ],
+      "method": "get",
+      "path": "/api/companies/{companyId}/pipelines",
+      "reason": "Experimental unadopted radar only; removal never blocks an upgrade.",
+      "request": {
+        "body": null,
+        "parameters": [
+          {
+            "alwaysSent": true,
+            "in": "path",
+            "name": "companyId",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "responses": {},
+      "security": {
+        "authorization": {
+          "actor": "board_or_agent"
+        },
+        "requirements": [
+          {
+            "AgentBearerAuth": []
+          },
+          {
+            "BoardApiKeyAuth": []
+          },
+          {
+            "BoardSessionAuth": []
+          }
+        ],
+        "schemes": {
+          "AgentBearerAuth": {
+            "bearerFormat": "Agent API Key or Agent JWT",
+            "scheme": "bearer",
+            "type": "http"
+          },
+          "BoardApiKeyAuth": {
+            "bearerFormat": "Board API Key",
+            "scheme": "bearer",
+            "type": "http"
+          },
+          "BoardSessionAuth": {
+            "in": "cookie",
+            "name": "paperclip_session",
+            "type": "apiKey"
+          }
+        }
+      }
+    }
+  ],
+  "providerVersion": "v2026.916.0",
+  "schemaVersion": 1,
+  "sourceCommit": "dffc2b3ca1b9e88fa21cb17493083e682dffd1ca",
+  "wandoraSourceCommit": "6d8612fc9e47e07c2049adf4112554f9440570c2"
+}
