@@ -8,9 +8,9 @@ The implementation notes below supersede the original candidate list and artifac
 
 ## Implementation decision and evidence
 
-REAL NOW: remote `main` and the local checkout were independently confirmed at
-`7dbf7d671989c7dd5d41da86ebcb370286c89100` (merged PR #207). No production system,
-credential or customer data was accessed for this implementation.
+REAL NOW at implementation start: remote `main` and the local checkout were independently confirmed at
+`7dbf7d671989c7dd5d41da86ebcb370286c89100` (merged PR #207). After ADR 0154 / PR #209 advanced canonical `main`, this gate was re-reviewed against
+`6d8612fc9e47e07c2049adf4112554f9440570c2`; the only overlapping evidence file changed on main was the V2 operator runbook, whose relevant API anchors remain present. No production system, credential or customer data was accessed for this implementation.
 
 PROVEN EVIDENCE / REUSE:
 
