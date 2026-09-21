@@ -3497,3 +3497,62 @@ Gateway outbound = OFF
 ```
 
 Next executable effect remains a separately reviewed **Core companion + wandora_mastra@0.4.0 production promotion execution**, following ADR 0153 and the amended ADR 0151 runbook.
+
+## ADR 0154 — Paperclip Customer-Work Terminal Disposition + Usage Core/Adapter Production Promotion Execution V2
+
+Status: **COMPLETE / VALIDATED / NO NEW CUSTOMER WORK**.
+
+The paired production promotion authorized by ADR 0151/0153 is live:
+
+```text
+Core image  = wandora/core:organization-adapter-candidate-61cbb34d4bfd
+Core image id = sha256:6c38930a45591970fd47d699c9881a9c9bd881272028268431ba3bf1c73c2873
+Core revision = 61cbb34d4bfde0350cc765111dc778b22a2a168f
+Core healthz/readyz = 200/200
+runtime = mastra-supervised-model
+
+Paperclip = wandora/paperclip:v2026.916.0 / healthy
+wandora_mastra = exactly one 0.4.0 / loaded / test-environment PASS
+
+MED-1 = done
+historical Paperclip runs = exactly 2
+live MED-1 runs = []
+active recovery = none
+
+Wandora work operations = exactly 1
+historical model calls before promotion = exactly 1
+new model calls after Core promotion = 0
+outbound attempts = 0
+Human Send = OFF
+Gateway outbound = OFF
+```
+
+The execution obeyed the frozen order:
+
+```text
+native Task Drain / quiescent
+-> companion Core image-only promotion
+-> zero-activity validation
+-> exact adapter 0.4.0 stage/install
+-> Paperclip-only restart
+-> adapter readback + PASS
+-> MED-1 status-only blocked -> done
+-> final unchanged historical counters
+-> STOP
+```
+
+No customer work was replayed, no historical usage was backfilled, no model-provider call was created for telemetry, no migration was applied and no outbound capability was enabled.
+
+A chat/tool-response stall occurred during execution. State-first recovery proved the Core promotion, adapter replacement, Paperclip restart and MED-1 mutation had already executed, so none was repeated.
+
+Paperclip Ana still reports the historical control-plane state:
+
+```text
+status      = error
+errorReason = wandora_execution_failed_409
+updatedAt   = 2026-09-21T11:49:40.115Z
+```
+
+This predates the promotion and is the already-documented failed continuation from ADR 0150, not promotion drift. ADR 0154 deliberately does not resume, clear-error, wake, reassign or create work to hide that evidence.
+
+Before another legitimate MEDICSPRO work event, qualify a separate **Paperclip Historical Agent Error-State Reconciliation Preflight V1 — NO EFFECT**.
