@@ -1,7 +1,7 @@
 # ADR 0145 — Model Provider / Mistral Production Runtime Activation Preflight V1 — NO EFFECT
 
 Date: 2026-09-21
-Status: **Accepted — preflight technically qualified / production activation NO-GO until native cost governance is qualified / NO EFFECT**
+Status: **Accepted historical preflight — technical mechanics retained; cost-based NO-GO superseded by ADR 0147 / NO EFFECT**
 
 Builds on: ADR 0142, ADR 0143, ADR 0144
 
