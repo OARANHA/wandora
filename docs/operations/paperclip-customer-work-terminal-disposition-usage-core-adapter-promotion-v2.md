@@ -192,3 +192,22 @@ Important drain rule:
 - if Paperclip restarted, drain is already gone.
 
 Never delete retained 0.3.0 package or old Core rollback image during the promotion.
+
+
+## Execution closure — 2026-09-21 / ADR 0154
+
+This runbook has been executed in production and reached its STOP boundary.
+
+- companion Core promotion: complete / healthy / ready;
+- `wandora_mastra@0.4.0`: exactly one / loaded / test-environment PASS;
+- Paperclip recreated exactly once after adapter replacement;
+- MED-1: `done` through one Board status-only mutation;
+- historical Paperclip runs: exactly 2;
+- historical run usage: unchanged/null (no backfill);
+- historical model calls: exactly 1;
+- outbound attempts: 0;
+- Human Send: OFF;
+- Gateway outbound: OFF;
+- no replay, synthetic work, provider validation call, migration or external message.
+
+The inherited Paperclip Ana `error` state from the historical continuation failure was observed and intentionally not mutated. See ADR 0154 for the next no-effect reconciliation slice.
