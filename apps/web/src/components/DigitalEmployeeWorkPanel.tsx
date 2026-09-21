@@ -118,7 +118,7 @@ export function DigitalEmployeeWorkPanel({
         workOperationRef.current = null;
         return { work: body.work };
       }
-      if (response.status === 400 || response.status === 403 || response.status === 404 || response.status === 503) {
+      if (response.status === 400 || response.status === 403 || response.status === 404) {
         clearWorkOperation(operation);
         workOperationRef.current = null;
       }
@@ -144,7 +144,10 @@ export function DigitalEmployeeWorkPanel({
         );
       }
       if (response.status === 503) {
-        throw new WorkRequestError('A admissão de trabalho está temporariamente indisponível.');
+        throw new WorkRequestError(
+          'A admissão está temporariamente indisponível. Repita exatamente a mesma solicitação; a identidade original será reutilizada.',
+          true,
+        );
       }
       if (!response.ok) {
         throw new WorkRequestError(
