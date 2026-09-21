@@ -1884,3 +1884,33 @@ This repository qualification does not promote production. Live Paperclip still 
 **Paperclip Customer-Work Terminal Disposition + Usage Adapter Production Promotion Preflight V1 — NO EFFECT**
 
 Reconcile live historical work/model/outbound state, freeze the immutable 0.4.0 artifact and rollback, determine whether/how MED-1 may be terminalized without wakeup, and stop before production mutation or any new customer/model work.
+
+
+## Paperclip customer-work terminal disposition + usage adapter promotion preflight — ADR 0151
+
+The first-work lifecycle remediation is now production-preflight qualified without changing live runtime.
+
+Exact current-main candidate:
+
+```text
+wandora_mastra = 0.4.0
+main           = c44634ea8f03b491db32fbde9917a2b7a7fcbd16
+tgz sha256     = 6390812d44afed0918b64388a882e10de0761de08c9b78f440403336612b717c
+```
+
+Exact live rollback was frozen before any promotion:
+
+```text
+live adapter = wandora_mastra@0.3.0
+live tgz hash= 78e4b57ee2f12a898f697f5b9c491e820d8f68d589fce55a3fdde1fc4ed82798
+registration = exactly one / loaded
+test-environment = pass
+```
+
+The protected Paperclip Board/instance-admin credential store remains `/paperclip/operator-cli/activation-v1/auth.json`, mode 0600, and is used only by reference with explicit private API base `http://127.0.0.1:3100`; its value was not read or copied.
+
+Official CLI readback proves MED-1 is still blocked but quiescent: no live runs, no active recovery, no blockers/review path, no checkout/execution run. A future repair will use only the official board `issue update --status done` path after 0.4.0 is healthy. No direct SQL, no agent run token, no comment/resume/reassignment, no replay of the original work.
+
+Preflight effects remained zero: no adapter install, Paperclip restart, issue mutation, work/run/model call, migration or outbound action occurred.
+
+The next executable slice is the separately reviewed **Paperclip Customer-Work Terminal Disposition + Usage Adapter Production Promotion Execution V1**, following the frozen runbook.
