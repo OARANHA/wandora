@@ -4,7 +4,7 @@ import { isAbsolute } from 'node:path';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export type RuntimeMode = 'standby' | 'database';
-export type RuntimeAgentMode = 'disabled' | 'mastra-deterministic';
+export type RuntimeAgentMode = 'disabled' | 'mastra-deterministic' | 'mastra-supervised-model';
 
 export type RuntimeDatabaseConfig = {
   host: string;
@@ -18,9 +18,20 @@ export type RuntimeGatewayIngressConfig = {
   secret: string;
 };
 
-export type RuntimeAgentConfig = {
-  mode: 'mastra-deterministic';
-};
+export type RuntimeAgentConfig =
+  | { mode: 'mastra-deterministic' }
+  | {
+      mode: 'mastra-supervised-model';
+      model: {
+        providerId: 'mistral';
+        modelId: 'mistral-small-2603';
+        baseUrl: 'https://api.mistral.ai/v1';
+        apiKey: string;
+        maxOutputTokens: number;
+        requestTimeoutMs: number;
+        logicalModel: 'wandora-supervised-v1';
+      };
+    };
 
 export type RuntimeHumanApiConfig = {
   jwksUrl: string;
@@ -81,6 +92,20 @@ const parsePort = (value: string | undefined, fallback: number, name: string): n
   return parsed;
 };
 
+const parseBoundedInteger = (
+  value: string | undefined,
+  fallback: number,
+  min: number,
+  max: number,
+  name: string,
+): number => {
+  const parsed = Number(value ?? fallback);
+  if (!Number.isInteger(parsed) || parsed < min || parsed > max) {
+    throw new Error(`${name} must be an integer between ${min} and ${max}.`);
+  }
+  return parsed;
+};
+
 const required = (env: NodeJS.ProcessEnv, name: string): string => {
   const value = env[name]?.trim();
   if (!value) throw new Error(`${name} is required in database mode.`);
@@ -96,8 +121,14 @@ const parseEnabled = (value: string | undefined, name: string): boolean => {
 
 const parseAgentRuntimeMode = (value: string | undefined): RuntimeAgentMode => {
   const normalized = (value ?? 'disabled').trim().toLowerCase();
-  if (normalized === 'disabled' || normalized === 'mastra-deterministic') return normalized;
-  throw new Error('WANDORA_AGENT_RUNTIME_MODE must be disabled or mastra-deterministic.');
+  if (
+    normalized === 'disabled'
+    || normalized === 'mastra-deterministic'
+    || normalized === 'mastra-supervised-model'
+  ) return normalized;
+  throw new Error(
+    'WANDORA_AGENT_RUNTIME_MODE must be disabled, mastra-deterministic or mastra-supervised-model.',
+  );
 };
 
 const canonicalUuid = (value: string, name: string): string => {
@@ -273,7 +304,7 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
   }
 
   if (agentRuntimeMode !== 'disabled' && !gatewayIngressEnabled) {
-    throw new Error('Deterministic Agent Runtime requires supervised Gateway ingress to be enabled.');
+    throw new Error('Agent Runtime requires supervised Gateway ingress to be enabled.');
   }
   if (humanSendProposalEnabled && !humanApiEnabled) {
     throw new Error('Human Send Proposal requires the Human API to be enabled.');
@@ -320,6 +351,61 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
   const passwordFile = required(env, 'WANDORA_CORE_DB_PASSWORD_FILE');
   const password = (await readFile(passwordFile, 'utf8')).trim();
   if (!password) throw new Error('Wandora Core database password file is empty.');
+
+  let agentRuntime: RuntimeAgentConfig | undefined;
+  if (agentRuntimeMode === 'mastra-deterministic') {
+    agentRuntime = { mode: 'mastra-deterministic' };
+  } else if (agentRuntimeMode === 'mastra-supervised-model') {
+    const providerId = required(env, 'WANDORA_MODEL_PROVIDER');
+    if (providerId !== 'mistral') {
+      throw new Error('WANDORA_MODEL_PROVIDER must be mistral for mastra-supervised-model V1.');
+    }
+    const modelId = required(env, 'WANDORA_MODEL_ID');
+    if (modelId !== 'mistral-small-2603') {
+      throw new Error('WANDORA_MODEL_ID must be mistral-small-2603 for mastra-supervised-model V1.');
+    }
+    const baseUrl = (env.WANDORA_MODEL_BASE_URL ?? 'https://api.mistral.ai/v1').trim().replace(/\/$/, '');
+    if (baseUrl !== 'https://api.mistral.ai/v1') {
+      throw new Error('WANDORA_MODEL_BASE_URL must be the approved Mistral API base URL.');
+    }
+    const apiKeyFile = required(env, 'WANDORA_MODEL_API_KEY_FILE');
+    if (!isAbsolute(apiKeyFile)) {
+      throw new Error('WANDORA_MODEL_API_KEY_FILE must be an absolute mounted file.');
+    }
+    const apiKeyStat = await stat(apiKeyFile).catch(() => null);
+    if (!apiKeyStat?.isFile()) {
+      throw new Error('WANDORA_MODEL_API_KEY_FILE must be a mounted regular file.');
+    }
+    const apiKey = (await readFile(apiKeyFile, 'utf8')).trim();
+    if (apiKey.length < 20 || apiKey.length > 4096 || /\s/.test(apiKey)) {
+      throw new Error('Wandora model API key is invalid.');
+    }
+
+    agentRuntime = {
+      mode: 'mastra-supervised-model',
+      model: {
+        providerId: 'mistral',
+        modelId: 'mistral-small-2603',
+        baseUrl: 'https://api.mistral.ai/v1',
+        apiKey,
+        maxOutputTokens: parseBoundedInteger(
+          env.WANDORA_MODEL_MAX_OUTPUT_TOKENS,
+          768,
+          64,
+          2048,
+          'WANDORA_MODEL_MAX_OUTPUT_TOKENS',
+        ),
+        requestTimeoutMs: parseBoundedInteger(
+          env.WANDORA_MODEL_REQUEST_TIMEOUT_MS,
+          45_000,
+          1_000,
+          50_000,
+          'WANDORA_MODEL_REQUEST_TIMEOUT_MS',
+        ),
+        logicalModel: 'wandora-supervised-v1',
+      },
+    };
+  }
 
   let gatewayIngress: RuntimeGatewayIngressConfig | undefined;
   if (gatewayIngressEnabled) {
@@ -442,8 +528,6 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     ...(humanDigitalEmployeeWorkEnabled
       ? { humanDigitalEmployeeWork: { enabled: true as const } }
       : {}),
-    ...(agentRuntimeMode === 'mastra-deterministic'
-      ? { agentRuntime: { mode: 'mastra-deterministic' as const } }
-      : {}),
+    ...(agentRuntime ? { agentRuntime } : {}),
   };
 }

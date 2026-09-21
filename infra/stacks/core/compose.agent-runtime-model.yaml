@@ -1,0 +1,13 @@
+services:
+  core:
+    environment:
+      WANDORA_AGENT_RUNTIME_MODE: mastra-supervised-model
+      WANDORA_MODEL_PROVIDER: mistral
+      WANDORA_MODEL_ID: mistral-small-2603
+      WANDORA_MODEL_BASE_URL: https://api.mistral.ai/v1
+      WANDORA_MODEL_API_KEY_FILE: /run/secrets/wandora/model-provider.api-key
+      WANDORA_MODEL_MAX_OUTPUT_TOKENS: "768"
+      WANDORA_MODEL_REQUEST_TIMEOUT_MS: "45000"
+      MASTRA_TELEMETRY_DISABLED: "true"
+    volumes:
+      - "${WANDORA_MODEL_API_KEY_FILE_HOST:?required}:/run/secrets/wandora/model-provider.api-key:ro"

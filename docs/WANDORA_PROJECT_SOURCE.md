@@ -1609,3 +1609,46 @@ Next executable slice:
 **Customer Owner First Real Tenant Active Digital-Employee First Legitimate Work Production Execution V1 — NO REAL WORK**
 
 Promotion must stop after enabling and validating the customer-work contract. Do not manufacture a work request. The first real work must come from a genuine authenticated MEDICSPRO owner instruction and still stops before external effect.
+
+## Model Provider / Mistral supervised assigned-work foundation — ADR 0142
+
+ADR 0142 qualifies the first real model-provider boundary in repository code/CI while keeping production unchanged.
+
+Accepted path:
+
+```text
+owner work
+-> Wandora admission
+-> Organization Adapter
+-> Paperclip issue/run
+-> wandora_mastra
+-> Core execution bridge
+-> Mastra Agent
+-> Mistral V1 model provider
+-> structured supervised internal summary
+-> STOP before external effect
+```
+
+The V1 runtime mode is `mastra-supervised-model`; provider/model are pinned to `mistral / mistral-small-2603` behind a file-backed operator secret. The customer result uses only `wandora-supervised-v1`, not provider identity.
+
+Important containment:
+
+- supervised inbound/WhatsApp remains deterministic and does not gain model-provider egress;
+- only Paperclip assigned-work `title` + `description` may enter the provider request;
+- provider request deadline is 45 seconds;
+- `wandora_mastra@0.3.0` candidate bridge deadline is 60 seconds;
+- automatic model retries are disabled;
+- Human Send and Gateway outbound are unchanged and remain OFF.
+
+Qualification evidence:
+
+```text
+focused runtime tests = 8 / 8 GREEN
+Paperclip adapter contract = 1 / 1 GREEN
+canonical Core disposable verifier = 126 / 126 GREEN
+post-migration work/adapter harness = 30 / 30 GREEN
+```
+
+Fresh production readback still shows `mastra-deterministic`, no model-provider env/secret, exactly one MEDICSPRO Ana `active + supervised`, work journal 0, outbound attempts 0 and live `wandora_mastra@0.2.0`.
+
+Next slice after merge/CI: **Model Provider / Mistral Production Credential Custody + Disposable Real-Provider Attestation Preflight V1**. It may custody a fresh key and perform one synthetic non-customer provider call, but must stop before live runtime activation or real MEDICSPRO work.

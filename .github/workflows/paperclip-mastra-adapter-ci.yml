@@ -14,6 +14,7 @@ on:
       - 'apps/core/src/runtime/readiness.ts'
       - 'apps/core/src/runtime/server.ts'
       - 'infra/stacks/core/compose.paperclip-execution-bridge.yaml'
+      - 'infra/stacks/core/compose.agent-runtime-model.yaml'
       - 'infra/stacks/paperclip/compose.paperclip-execution-bridge.yaml'
       - 'infra/stacks/paperclip/paperclip-bridge-secret-entrypoint.sh'
       - 'infra/stacks/supabase/migrations/20260919_014_paperclip_execution_binding_resolver_v1.sql'
@@ -35,6 +36,7 @@ on:
       - 'apps/core/src/runtime/readiness.ts'
       - 'apps/core/src/runtime/server.ts'
       - 'infra/stacks/core/compose.paperclip-execution-bridge.yaml'
+      - 'infra/stacks/core/compose.agent-runtime-model.yaml'
       - 'infra/stacks/paperclip/compose.paperclip-execution-bridge.yaml'
       - 'infra/stacks/paperclip/paperclip-bridge-secret-entrypoint.sh'
       - 'infra/stacks/supabase/migrations/20260919_014_paperclip_execution_binding_resolver_v1.sql'
@@ -116,6 +118,8 @@ jobs:
             config)"
           grep -q 'WANDORA_PAPERCLIP_EXECUTION_BRIDGE_URL: http://wandora-core:8788/internal/v1/paperclip/execution' <<<"$effective"
           grep -q 'WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE: /run/secrets/wandora/paperclip-execution-bridge.hmac' <<<"$effective"
+          grep -q 'WANDORA_PAPERCLIP_EXECUTION_BRIDGE_TIMEOUT_MS: "60000"' <<<"$effective"
+          grep -q '"wandoraBridgeTimeoutMs": 60000' integrations/paperclip/adapters/wandora-mastra-v1/compatibility.json
           grep -q "source: $WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE_HOST" <<<"$effective"
           grep -q 'target: /run/secrets-root/wandora/paperclip-execution-bridge.hmac' <<<"$effective"
           grep -q 'target: /run/wandora/paperclip-bridge-secret-entrypoint.sh' <<<"$effective"

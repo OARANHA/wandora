@@ -3040,3 +3040,62 @@ Paperclip v916 source review proved adapter replacement requires a restart and t
 The execution may promote the already-qualified components only in the frozen order above. It must not create MEDICSPRO work, issue/wakeup/run or any outbound effect.
 
 After that promotion is independently green, first real work still requires a genuine authenticated MEDICSPRO owner instruction and must stop at the supervised internal result.
+
+## Model Provider / Mistral supervised assigned-work foundation V1 — QUALIFIED / PRODUCTION DORMANT
+
+ADR 0142 accepts the repository implementation of a real model-provider path for Paperclip-assigned supervised internal work.
+
+Repository boundary:
+
+```text
+Paperclip work/run authority
+-> wandora_mastra
+-> private Core bridge
+-> Mastra Agent Runtime
+-> Mistral V1 provider
+-> bounded structured internal summary
+-> Wandora logical model = wandora-supervised-v1
+-> no external effect
+```
+
+V1 pins:
+
+```text
+runtime mode = mastra-supervised-model
+provider = mistral
+model = mistral-small-2603
+base URL = https://api.mistral.ai/v1
+max output tokens = 768
+provider timeout = 45000 ms
+bridge timeout candidate = 60000 ms
+automatic model retries = 0
+```
+
+The provider credential is file-backed only. No real credential is committed or currently mounted in production.
+
+The inbound proposal path remains `mastra-deterministic`; model egress is limited to `executeAssignedTask(...)` and only bounded task title/description cross that boundary.
+
+Qualification completed with 8/8 focused runtime tests, 1/1 Paperclip adapter contract, 126/126 canonical Core disposable tests and 30/30 post-migration work/adapter tests.
+
+Fresh production remains:
+
+```text
+Core Agent Runtime = mastra-deterministic
+model provider env = absent
+model secret = absent
+customer work gate = ON
+Human Send = OFF
+Gateway outbound = OFF
+MEDICSPRO Ana = exactly 1 / active + supervised
+work journal = 0
+outbound attempts = 0
+live wandora_mastra = 0.2.0
+```
+
+Repository acceptance does not authorize production activation.
+
+### NEXT EXECUTABLE SLICE
+
+**Model Provider / Mistral Production Credential Custody + Disposable Real-Provider Attestation Preflight V1**
+
+Reconcile merged main and live state, provision a fresh key only through the reviewed secret-file path, run one synthetic non-customer provider attestation, prove zero customer/Paperclip/outbound state delta, and stop before changing the live Core runtime mode.

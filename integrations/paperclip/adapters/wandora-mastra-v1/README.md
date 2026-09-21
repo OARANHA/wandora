@@ -19,6 +19,9 @@ Required runtime environment when this adapter is installed later:
 ```text
 WANDORA_PAPERCLIP_EXECUTION_BRIDGE_URL=http://wandora-core:8788/internal/v1/paperclip/execution
 WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE=/run/secrets/wandora/paperclip-execution-bridge.hmac
+WANDORA_PAPERCLIP_EXECUTION_BRIDGE_TIMEOUT_MS=60000
 ```
 
 The secret file must contain at least 32 characters and is never logged or returned.
+
+The bridge timeout is bounded to 10-120 seconds and the production contract pins it to 60 seconds. Model-backed Core execution must terminate earlier than this bridge deadline so Paperclip does not abandon a request while Core is still waiting on a model provider.

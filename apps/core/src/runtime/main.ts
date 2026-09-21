@@ -1,5 +1,6 @@
 import { Pool } from 'pg';
 import { MastraDeterministicAgentRuntime } from '../agent-runtime/mastra-deterministic.js';
+import { MastraSupervisedModelAgentRuntime } from '../agent-runtime/mastra-supervised-model.js';
 import { PostgresAnaRepository } from '../ana/postgres-repository.js';
 import { AnaSupervisedIngressService } from '../ana/supervised-ingress.js';
 import { Es256JwksHumanTokenVerifier } from '../human-auth/es256-jwks.js';
@@ -36,7 +37,9 @@ const pool = config.mode === 'database' && config.database
 
 const agentRuntime = config.agentRuntime?.mode === 'mastra-deterministic'
   ? new MastraDeterministicAgentRuntime()
-  : undefined;
+  : config.agentRuntime?.mode === 'mastra-supervised-model'
+    ? new MastraSupervisedModelAgentRuntime(config.agentRuntime.model)
+    : undefined;
 
 const organizationAdapterService = pool && config.organizationAdapter
   ? createRuntimeOrganizationAdapter(pool, config.organizationAdapter)

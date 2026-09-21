@@ -6,6 +6,9 @@ const TYPE = 'wandora_mastra';
 const CANONICAL_BRIDGE_URL = 'http://wandora-core:8788/internal/v1/paperclip/execution';
 const MAX_SECRET_LENGTH = 8192;
 const MAX_TASK_TEXT = 12000;
+const DEFAULT_BRIDGE_TIMEOUT_MS = 60000;
+const MIN_BRIDGE_TIMEOUT_MS = 10000;
+const MAX_BRIDGE_TIMEOUT_MS = 120000;
 
 function requiredString(value, code, max = 4096) {
   const normalized = typeof value === 'string' ? value.trim() : '';
@@ -72,6 +75,18 @@ function bridgeUrl(env = process.env) {
   return url;
 }
 
+function bridgeTimeoutMs(env = process.env) {
+  const value = Number(env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_TIMEOUT_MS ?? DEFAULT_BRIDGE_TIMEOUT_MS);
+  if (
+    !Number.isInteger(value)
+    || value < MIN_BRIDGE_TIMEOUT_MS
+    || value > MAX_BRIDGE_TIMEOUT_MS
+  ) {
+    throw new Error('wandora_bridge_timeout_invalid');
+  }
+  return value;
+}
+
 function sign(secret, timestamp, rawBody) {
   return createHmac('sha256', secret)
     .update(`${timestamp}.${rawBody}`)
@@ -100,6 +115,7 @@ export function createServerAdapter() {
     async testEnvironment() {
       try {
         bridgeUrl();
+        bridgeTimeoutMs();
         await bridgeSecret();
         return {
           adapterType: TYPE,
@@ -143,7 +159,7 @@ export function createServerAdapter() {
             'x-wandora-paperclip-run-token': runToken,
           },
           body: rawBody,
-          signal: AbortSignal.timeout(10_000),
+          signal: AbortSignal.timeout(bridgeTimeoutMs()),
         });
       } catch {
         throw new Error('wandora_execution_unavailable');

@@ -54,6 +54,7 @@ jobs:
           WANDORA_HUMAN_SEND_PROPOSAL_CONNECTION_ID: 22222222-2222-2222-2222-222222222222
           WANDORA_ORGANIZATION_ADAPTER_SECRET_DIR_HOST: /tmp/ci-organization-adapter-secrets
           WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE_HOST: /tmp/ci-paperclip-execution-bridge-secret
+          WANDORA_MODEL_API_KEY_FILE_HOST: ${{ runner.temp }}/model-provider.synthetic
         run: |
           effective="$(docker compose \
             -f infra/stacks/core/compose.yaml \
@@ -92,3 +93,30 @@ jobs:
           grep -q 'target: /run/secrets/wandora/paperclip-execution-bridge.hmac' <<<"$effective"
           grep -q 'read_only: true' <<<"$effective"
           ! grep -q 'WANDORA_HUMAN_AUTH_' <<<"$effective"
+
+          printf '%s\n' 'synthetic-mistral-api-key-0123456789abcdef' > "$WANDORA_MODEL_API_KEY_FILE_HOST"
+          chmod 0640 "$WANDORA_MODEL_API_KEY_FILE_HOST"
+          model_effective="$(docker compose \
+            -f infra/stacks/core/compose.yaml \
+            -f infra/stacks/core/compose.database.yaml \
+            -f infra/stacks/core/compose.gateway-ingress.yaml \
+            -f infra/stacks/core/compose.agent-runtime-model.yaml \
+            -f infra/stacks/core/compose.human-api.yaml \
+            -f infra/stacks/core/compose.organization-adapter.yaml \
+            -f infra/stacks/core/compose.paperclip-execution-bridge.yaml \
+            -f infra/stacks/core/compose.human-digital-employee-activation.yaml \
+            -f infra/stacks/core/compose.human-digital-employee-work.yaml \
+            config)"
+          grep -q 'WANDORA_AGENT_RUNTIME_MODE: mastra-supervised-model' <<<"$model_effective"
+          grep -q 'WANDORA_MODEL_PROVIDER: mistral' <<<"$model_effective"
+          grep -q 'WANDORA_MODEL_ID: mistral-small-2603' <<<"$model_effective"
+          grep -q 'WANDORA_MODEL_BASE_URL: https://api.mistral.ai/v1' <<<"$model_effective"
+          grep -q 'WANDORA_MODEL_API_KEY_FILE: /run/secrets/wandora/model-provider.api-key' <<<"$model_effective"
+          grep -q 'WANDORA_MODEL_MAX_OUTPUT_TOKENS: "768"' <<<"$model_effective"
+          grep -q 'WANDORA_MODEL_REQUEST_TIMEOUT_MS: "45000"' <<<"$model_effective"
+          grep -Fq "source: $WANDORA_MODEL_API_KEY_FILE_HOST" <<<"$model_effective"
+          grep -q 'target: /run/secrets/wandora/model-provider.api-key' <<<"$model_effective"
+          grep -q 'WANDORA_HUMAN_DIGITAL_EMPLOYEE_WORK_ENABLED: "true"' <<<"$model_effective"
+          ! grep -q 'WANDORA_HUMAN_SEND_PROPOSAL_ENABLED' <<<"$model_effective"
+          ! grep -q 'WANDORA_CORE_OUTBOUND_SECRET_FILE' <<<"$model_effective"
+          rm -f "$WANDORA_MODEL_API_KEY_FILE_HOST"

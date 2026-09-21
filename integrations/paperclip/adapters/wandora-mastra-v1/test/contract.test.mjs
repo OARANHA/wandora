@@ -11,11 +11,22 @@ test('wandora_mastra adapter keeps the bridge narrow and file-backed', async () 
   const originalFetch = globalThis.fetch;
   const oldUrl = process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_URL;
   const oldSecret = process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE;
+  const oldTimeout = process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_TIMEOUT_MS;
   try {
     await writeFile(secretFile, 'synthetic-bridge-secret-0123456789abcdef0123456789abcdef\n');
     process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_URL =
       'http://wandora-core:8788/internal/v1/paperclip/execution';
     process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE = secretFile;
+    process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_TIMEOUT_MS = '60000';
+
+    const environment = await createServerAdapter().testEnvironment();
+    assert.equal(environment.status, 'pass');
+
+    process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_TIMEOUT_MS = '999';
+    const invalidEnvironment = await createServerAdapter().testEnvironment();
+    assert.equal(invalidEnvironment.status, 'fail');
+    assert.match(invalidEnvironment.checks[0].message, /wandora_bridge_timeout_invalid/);
+    process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_TIMEOUT_MS = '60000';
 
     let received;
     globalThis.fetch = async (url, init) => {
@@ -69,6 +80,8 @@ test('wandora_mastra adapter keeps the bridge narrow and file-backed', async () 
     else process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_URL = oldUrl;
     if (oldSecret === undefined) delete process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE;
     else process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE = oldSecret;
+    if (oldTimeout === undefined) delete process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_TIMEOUT_MS;
+    else process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_TIMEOUT_MS = oldTimeout;
     await rm(dir, { recursive: true, force: true });
   }
 });

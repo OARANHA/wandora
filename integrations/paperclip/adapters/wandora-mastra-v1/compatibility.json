@@ -3,5 +3,6 @@
   "paperclipSourceCommit": "dffc2b3ca1b9e88fa21cb17493083e682dffd1ca",
   "adapterType": "wandora_mastra",
   "supportsLocalAgentJwt": true,
-  "wandoraBridgePath": "/internal/v1/paperclip/execution"
+  "wandoraBridgePath": "/internal/v1/paperclip/execution",
+  "wandoraBridgeTimeoutMs": 60000
 }
