@@ -100,7 +100,7 @@ test('wandora_mastra reports normalized usage and finalizes exact customer-work 
           },
         }), { status: 200, headers: { 'content-type': 'application/json' } });
       }
-      assert.equal(String(url), `http://127.0.0.1:3100/api/issues/${ISSUE_ID}`);
+      assert.equal(String(url), `http://localhost:3100/api/issues/${ISSUE_ID}`);
       assert.equal(init.method, 'PATCH');
       return new Response(JSON.stringify({ id: ISSUE_ID, status: 'done' }), {
         status: 200,
