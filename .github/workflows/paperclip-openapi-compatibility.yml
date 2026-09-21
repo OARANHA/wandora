@@ -1,0 +1,60 @@
+name: Paperclip OpenAPI Compatibility
+
+on:
+  pull_request:
+    paths:
+      - 'integrations/paperclip/**'
+      - 'infra/stacks/paperclip/compose.yaml'
+      - '.github/workflows/paperclip-mastra-adapter-ci.yml'
+      - '.github/workflows/organization-adapter-plugin-ci.yml'
+      - 'apps/core/src/paperclip-execution/**'
+      - 'apps/core/src/organization-adapter/**'
+      - 'apps/core/test/paperclip-execution-bridge.test.ts'
+      - 'docs/operations/paperclip-customer-work-terminal-disposition-usage-core-adapter-promotion-v2.md'
+      - 'docs/research/PAPERCLIP_OPENAPI_COMPATIBILITY_GATE_PROPOSAL_V1.md'
+      - '.github/workflows/paperclip-openapi-compatibility.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'integrations/paperclip/**'
+      - 'infra/stacks/paperclip/compose.yaml'
+      - '.github/workflows/paperclip-mastra-adapter-ci.yml'
+      - '.github/workflows/organization-adapter-plugin-ci.yml'
+      - 'apps/core/src/paperclip-execution/**'
+      - 'apps/core/src/organization-adapter/**'
+      - 'apps/core/test/paperclip-execution-bridge.test.ts'
+      - 'docs/operations/paperclip-customer-work-terminal-disposition-usage-core-adapter-promotion-v2.md'
+      - 'docs/research/PAPERCLIP_OPENAPI_COMPATIBILITY_GATE_PROPOSAL_V1.md'
+      - '.github/workflows/paperclip-openapi-compatibility.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: paperclip-openapi-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  offline-contract:
+    runs-on: [self-hosted, linux, x64, wandora-ci]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify dependency inventory, baseline and breaking-change tests offline
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Reuse the Node version provisioned by canonical Paperclip adapter CI.
+          # Fail if absent; this gate must never download a runtime/dependency.
+          gate_node="$RUNNER_TOOL_CACHE/node/24.21.0/x64/bin/node"
+          test -x "$gate_node" || { echo 'FAIL: canonical Node 24.21.0 runner cache missing'; exit 1; }
+          "$gate_node" --version
+          gate_dir=integrations/paperclip/openapi-compatibility-v1
+          "$gate_node" "$gate_dir/scripts/baseline.mjs" verify "$gate_dir"
+          "$gate_node" "$gate_dir/scripts/check.mjs" \
+            "$gate_dir/fixtures/paperclip-v2026.916.0.openapi.json" \
+            "$gate_dir/wandora-paperclip-api-contract.json"
+          "$gate_node" --test "$gate_dir"/test/*.test.mjs

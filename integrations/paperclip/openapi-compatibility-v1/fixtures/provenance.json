@@ -1,0 +1,24 @@
+{
+  "artifactSha256": {
+    "fixtures/paperclip-v2026.916.0.openapi.json": "70da16d99c254518f22aaeb2b7e07f47ff4cbc3958416e258560c3c450b89d33",
+    "fixtures/source-supplement-v2026.916.0.json": "737e9fa08c359eb63d9697473665c3e3b9e18d7005b16b134e63806063c8e43d",
+    "fixtures/upstream-subset-v2026.916.0.json": "2f0af75bee2eb33f85f5edba1f8be6df0baf9b16437ba8db03ea43363e0010a1"
+  },
+  "builder": "server/src/routes/openapi.ts#buildOpenApiDocument",
+  "generatorDependencies": {
+    "express": "5.2.1",
+    "node": "24.19.0",
+    "tsx": "4.23.12",
+    "zod": "4.4.3"
+  },
+  "generatorInputs": {
+    "pnpm-lock.yaml": "af3b879fea127a608b0f9279627f357638299441bbf41835f0b91ab0162e441c",
+    "server/src/routes/openapi.ts": "47116b1365fc27acec2ac57d970672f28120563297ae92d922d7b7a04198db07"
+  },
+  "providerVersion": "v2026.916.0",
+  "schemaVersion": 1,
+  "sourceCommit": "dffc2b3ca1b9e88fa21cb17493083e682dffd1ca",
+  "upstreamPathCount": 685,
+  "upstreamRepository": "paperclipai/paperclip",
+  "upstreamSha256": "55383e4b9aceee52544a5e8a93b7c04526f10cb13ce91082185df0691bd7e740"
+}

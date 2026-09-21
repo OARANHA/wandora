@@ -1,0 +1,378 @@
+{
+  "operations": [
+    {
+      "method": "get",
+      "note": "OpenAPI emits a generic record. Source-derived consumed response projection; not a complete provider response schema.",
+      "path": "/api/agents/me",
+      "responses": {
+        "200": {
+          "properties": {
+            "companyId": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "metadata": {
+              "properties": {
+                "pluginManagedAgent": {
+                  "properties": {
+                    "agentKey": {
+                      "type": "string"
+                    },
+                    "pluginKey": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              "type": "object"
+            },
+            "name": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "sourceFiles": [
+        "server/src/routes/agents.ts",
+        "packages/db/src/schema/agents.ts"
+      ]
+    },
+    {
+      "method": "get",
+      "note": "Source buildAdapterInfo; version is optional provider-wide, consumed for the selected installed Wandora adapter only.",
+      "path": "/api/adapters",
+      "responses": {
+        "200": {
+          "items": {
+            "properties": {
+              "loaded": {
+                "type": "boolean"
+              },
+              "type": {
+                "type": "string"
+              },
+              "version": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "sourceFiles": [
+        "server/src/routes/adapters.ts"
+      ]
+    },
+    {
+      "method": "get",
+      "note": "Source buildAdapterInfo; version is optional provider-wide, consumed for the selected installed Wandora adapter only.",
+      "path": "/api/adapters/{type}",
+      "responses": {
+        "200": {
+          "properties": {
+            "loaded": {
+              "type": "boolean"
+            },
+            "type": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "sourceFiles": [
+        "server/src/routes/adapters.ts"
+      ]
+    },
+    {
+      "method": "post",
+      "note": "OpenAPI emits a generic record. Source-derived consumed response projection; not a complete provider response schema.",
+      "path": "/api/adapters/install",
+      "responses": {
+        "201": {
+          "properties": {
+            "requiresRestart": {
+              "type": "boolean"
+            },
+            "type": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "sourceFiles": [
+        "server/src/routes/adapters.ts"
+      ]
+    },
+    {
+      "method": "post",
+      "note": "OpenAPI emits a generic record. Source-derived consumed response projection; not a complete provider response schema.",
+      "path": "/api/companies/{companyId}/adapters/{type}/test-environment",
+      "responses": {
+        "200": {
+          "properties": {
+            "status": {
+              "enum": [
+                "pass",
+                "warn",
+                "fail"
+              ],
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "sourceFiles": [
+        "server/src/routes/agents.ts",
+        "packages/adapter-utils/src/types.ts"
+      ]
+    },
+    {
+      "method": "get",
+      "note": "OpenAPI emits a generic record. Source-derived consumed response projection; not a complete provider response schema.",
+      "path": "/api/issues/{id}",
+      "responses": {
+        "200": {
+          "properties": {
+            "checkoutRunId": {
+              "nullable": true,
+              "type": "string"
+            },
+            "executionRunId": {
+              "nullable": true,
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "backlog",
+                "todo",
+                "in_progress",
+                "in_review",
+                "done",
+                "blocked",
+                "cancelled"
+              ],
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "sourceFiles": [
+        "server/src/routes/issues.ts",
+        "packages/db/src/schema/issues.ts",
+        "packages/shared/src/constants.ts"
+      ]
+    },
+    {
+      "method": "patch",
+      "note": "OpenAPI emits a generic record. Source-derived consumed response projection; not a complete provider response schema.",
+      "path": "/api/issues/{id}",
+      "responses": {
+        "200": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "backlog",
+                "todo",
+                "in_progress",
+                "in_review",
+                "done",
+                "blocked",
+                "cancelled"
+              ],
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "sourceFiles": [
+        "server/src/routes/issues.ts",
+        "packages/db/src/schema/issues.ts",
+        "packages/shared/src/constants.ts"
+      ]
+    },
+    {
+      "method": "get",
+      "note": "OpenAPI emits a generic record. Source-derived consumed response projection; not a complete provider response schema.",
+      "path": "/api/issues/{issueId}/live-runs",
+      "responses": {
+        "200": {
+          "items": {
+            "properties": {},
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "sourceFiles": [
+        "server/src/routes/agents.ts"
+      ]
+    },
+    {
+      "method": "get",
+      "note": "OpenAPI emits a generic record. Source-derived consumed response projection; not a complete provider response schema.",
+      "path": "/api/issues/{id}/runs",
+      "responses": {
+        "200": {
+          "items": {
+            "properties": {},
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "sourceFiles": [
+        "server/src/routes/activity.ts",
+        "server/src/services/activity.ts"
+      ]
+    },
+    {
+      "method": "get",
+      "note": "OpenAPI emits a generic record. Source-derived consumed response projection; not a complete provider response schema.",
+      "path": "/api/issues/{id}/recovery-actions",
+      "responses": {
+        "200": {
+          "properties": {
+            "active": {
+              "nullable": true,
+              "properties": {},
+              "type": "object"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "sourceFiles": [
+        "server/src/routes/issues.ts",
+        "server/src/services/issue-recovery-actions.ts"
+      ]
+    },
+    {
+      "method": "get",
+      "note": "OpenAPI emits a generic record. Source-derived consumed response projection; not a complete provider response schema.",
+      "path": "/api/instance/task-drain",
+      "responses": {
+        "200": {
+          "properties": {
+            "activeRuns": {
+              "type": "number"
+            },
+            "draining": {
+              "type": "boolean"
+            },
+            "pendingWakes": {
+              "type": "number"
+            },
+            "quiescent": {
+              "type": "boolean"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "sourceFiles": [
+        "server/src/routes/instance-settings.ts",
+        "server/src/services/heartbeat.ts"
+      ]
+    },
+    {
+      "method": "post",
+      "note": "Host forwards plugin-defined payload; reviewed Wandora company/catalog and optional work body projection. The declared Board OpenAPI auth is NOT evidence of webhook HMAC enforcement.",
+      "path": "/api/plugins/{pluginId}/webhooks/{endpointKey}",
+      "requestBody": {
+        "properties": {
+          "catalogKey": {
+            "type": "string"
+          },
+          "companyId": {
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "workId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "companyId",
+          "catalogKey"
+        ],
+        "type": "object"
+      },
+      "responses": {
+        "200": {
+          "properties": {
+            "deliveryId": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "success"
+              ],
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "sourceFiles": [
+        "server/src/routes/plugins.ts"
+      ]
+    }
+  ],
+  "providerVersion": "v2026.916.0",
+  "schemaVersion": 1,
+  "sourceCommit": "dffc2b3ca1b9e88fa21cb17493083e682dffd1ca",
+  "sourceFiles": {
+    "packages/adapter-utils/src/types.ts": "8280af0fa94a90a861985d3537a674c5e5cc1463e3cc082a7faf01206988f67b",
+    "packages/db/src/schema/agents.ts": "fe40a81026d0dfe03f2d9dff0dd59f3a385ebe32c7b3069827ff2fa62417e434",
+    "packages/db/src/schema/issues.ts": "bf63826286b0c4b6e1c8d37f017749f8c88404758b8c6007aeb567c6ff6b0e34",
+    "packages/shared/src/constants.ts": "cda15f91676fb7648c68f6afa1a5a59ffdddc2bb8abd273bb7086c51af69ca46",
+    "server/src/routes/activity.ts": "63841e1d956c1a95894096b0fd7c1ea3de14f597cef05e9464cac75641e07c89",
+    "server/src/routes/adapters.ts": "92ec9fcaa9768e4ce7b9a35cb4cf8474341a5445e1ebc3a1533967eca3eef683",
+    "server/src/routes/agents.ts": "28e24da8660f93373b5bd989531204b8f679d5874d45072b1297617a43a1c056",
+    "server/src/routes/instance-settings.ts": "a07e8bab13c835009f17292bf2e559dae077afec3dda30d43b72e761afd7dcac",
+    "server/src/routes/issues.ts": "d0ebe08935312cced77b16be1b5dac9638618f7852df61c7dcef8ee8edc45e0b",
+    "server/src/routes/plugins.ts": "59276343975519a231f3e921dbd5b21612b1e99df05b5f8bd506a2363ca03799",
+    "server/src/services/activity.ts": "56c54583ff82ffe5824276a8b26f11275f5896fa6008c9869536499e216dcefc",
+    "server/src/services/heartbeat.ts": "50d7b3b58661161af9851685400582840dc8524e4394371029954c0443ac901a",
+    "server/src/services/issue-recovery-actions.ts": "5dba9a4821f71474d1bd510f87c55093ccd62223d1f28eba8adee287325869e0"
+  },
+  "upstreamSha256": "55383e4b9aceee52544a5e8a93b7c04526f10cb13ce91082185df0691bd7e740",
+  "wandoraSourceFiles": {
+    "apps/core/src/organization-adapter/paperclip-provider.ts": "f546de1a70fb71a1781f1ae376cd0972e3f514b8febc4f5550ef9b27fc51ba4d",
+    "integrations/paperclip/plugins/organization-adapter-v1/src/worker.ts": "6e5a7acc31e23b4511f99ec9cb447552538299950d339b84658c60a0c743d74b"
+  }
+}

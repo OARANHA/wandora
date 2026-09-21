@@ -1,0 +1,2825 @@
+{
+  "components": {
+    "schemas": {
+      "Error": {
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "AgentBearerAuth": {
+        "bearerFormat": "Agent API Key or Agent JWT",
+        "description": "Agent API key or Paperclip-issued local agent JWT presented in the Authorization bearer header.",
+        "scheme": "bearer",
+        "type": "http"
+      },
+      "BoardApiKeyAuth": {
+        "bearerFormat": "Board API Key",
+        "description": "Board API key presented in the Authorization bearer header.",
+        "scheme": "bearer",
+        "type": "http"
+      },
+      "BoardSessionAuth": {
+        "description": "Board session cookie in authenticated mode. Paperclip uses Better Auth; cookie transport may vary by deployment.",
+        "in": "cookie",
+        "name": "paperclip_session",
+        "type": "apiKey"
+      }
+    }
+  },
+  "info": {
+    "description": "REST API for the Paperclip AI agent management platform",
+    "title": "Paperclip API",
+    "version": "1.0.0"
+  },
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/adapters": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {},
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "BoardSessionAuth": []
+          },
+          {
+            "BoardApiKeyAuth": []
+          },
+          {
+            "AgentBearerAuth": []
+          }
+        ],
+        "summary": "List all adapters",
+        "tags": [
+          "adapters"
+        ],
+        "x-paperclip-authorization": {
+          "actor": "board_or_agent"
+        }
+      }
+    },
+    "/api/adapters/install": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "isLocalPath": {
+                    "type": "boolean"
+                  },
+                  "packageName": {
+                    "type": "string"
+                  },
+                  "version": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "packageName"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {},
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "BoardSessionAuth": []
+          },
+          {
+            "BoardApiKeyAuth": []
+          },
+          {
+            "AgentBearerAuth": []
+          }
+        ],
+        "summary": "Install an adapter",
+        "tags": [
+          "adapters"
+        ],
+        "x-paperclip-authorization": {
+          "actor": "board_or_agent"
+        }
+      }
+    },
+    "/api/adapters/{type}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "type",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {},
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "BoardSessionAuth": []
+          },
+          {
+            "BoardApiKeyAuth": []
+          },
+          {
+            "AgentBearerAuth": []
+          }
+        ],
+        "summary": "Get adapter registration details",
+        "tags": [
+          "adapters"
+        ],
+        "x-paperclip-authorization": {
+          "actor": "board_or_agent"
+        }
+      }
+    },
+    "/api/agents/me": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {},
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "BoardSessionAuth": []
+          },
+          {
+            "BoardApiKeyAuth": []
+          },
+          {
+            "AgentBearerAuth": []
+          }
+        ],
+        "summary": "Get the current agent",
+        "tags": [
+          "agents"
+        ],
+        "x-paperclip-authorization": {
+          "actor": "board_or_agent"
+        }
+      }
+    },
+    "/api/companies/{companyId}/adapters/{type}/test-environment": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "companyId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "type",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "adapterConfig": {
+                    "additionalProperties": {},
+                    "type": "object"
+                  },
+                  "agentId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "aiConnection": {
+                    "oneOf": [
+                      {
+                        "additionalProperties": false,
+                        "properties": {
+                          "method": {
+                            "enum": [
+                              "subscription",
+                              "api_key"
+                            ],
+                            "type": "string"
+                          },
+                          "mode": {
+                            "enum": [
+                              "responsible_user"
+                            ],
+                            "type": "string"
+                          },
+                          "provider": {
+                            "enum": [
+                              "anthropic",
+                              "openai",
+                              "openrouter",
+                              "xai"
+                            ],
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "provider",
+                          "method",
+                          "mode"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "additionalProperties": false,
+                        "properties": {
+                          "connectionId": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "grantId": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "method": {
+                            "enum": [
+                              "subscription",
+                              "api_key"
+                            ],
+                            "type": "string"
+                          },
+                          "mode": {
+                            "enum": [
+                              "shared"
+                            ],
+                            "type": "string"
+                          },
+                          "provider": {
+                            "enum": [
+                              "anthropic",
+                              "openai",
+                              "openrouter",
+                              "xai"
+                            ],
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "provider",
+                          "method",
+                          "mode",
+                          "connectionId",
+                          "grantId"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "additionalProperties": false,
+                        "properties": {
+                          "connectionId": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "grantId": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "method": {
+                            "enum": [
+                              "subscription",
+                              "api_key"
+                            ],
+                            "type": "string"
+                          },
+                          "mode": {
+                            "enum": [
+                              "delegated"
+                            ],
+                            "type": "string"
+                          },
+                          "provider": {
+                            "enum": [
+                              "anthropic",
+                              "openai",
+                              "openrouter",
+                              "xai"
+                            ],
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "provider",
+                          "method",
+                          "mode",
+                          "connectionId",
+                          "grantId"
+                        ],
+                        "type": "object"
+                      }
+                    ]
+                  },
+                  "environmentId": {
+                    "format": "uuid",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "testCredentials": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "ANTHROPIC_API_KEY": {
+                        "maxLength": 16384,
+                        "type": "string"
+                      },
+                      "API_SERVER_KEY": {
+                        "maxLength": 16384,
+                        "type": "string"
+                      },
+                      "CURSOR_API_KEY": {
+                        "maxLength": 16384,
+                        "type": "string"
+                      },
+                      "GEMINI_API_KEY": {
+                        "maxLength": 16384,
+                        "type": "string"
+                      },
+                      "GROQ_API_KEY": {
+                        "maxLength": 16384,
+                        "type": "string"
+                      },
+                      "KIMI_API_KEY": {
+                        "maxLength": 16384,
+                        "type": "string"
+                      },
+                      "KIMI_MODEL_API_KEY": {
+                        "maxLength": 16384,
+                        "type": "string"
+                      },
+                      "MINIMAX_API_KEY": {
+                        "maxLength": 16384,
+                        "type": "string"
+                      },
+                      "OPENAI_API_KEY": {
+                        "maxLength": 16384,
+                        "type": "string"
+                      },
+                      "OPENCODE_API_KEY": {
+                        "maxLength": 16384,
+                        "type": "string"
+                      },
+                      "OPENROUTER_API_KEY": {
+                        "maxLength": 16384,
+                        "type": "string"
+                      },
+                      "XAI_API_KEY": {
+                        "maxLength": 16384,
+                        "type": "string"
+                      },
+                      "ZAI_API_KEY": {
+                        "maxLength": 16384,
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {},
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "BoardSessionAuth": []
+          },
+          {
+            "BoardApiKeyAuth": []
+          },
+          {
+            "AgentBearerAuth": []
+          }
+        ],
+        "summary": "Validate adapter environment access for a company",
+        "tags": [
+          "adapters"
+        ],
+        "x-paperclip-authorization": {
+          "actor": "board_or_agent"
+        }
+      }
+    },
+    "/api/companies/{companyId}/cases": {
+      "get": {
+        "description": "Experimental API; the corresponding instance feature must be enabled. Existing route authorization applies.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "companyId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "maxLength": 120,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "types",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "maxLength": 120,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "statuses",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "project",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "projectId",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "projectIds",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "includeNoProject",
+            "required": false,
+            "schema": {
+              "enum": [
+                "0",
+                "1",
+                "true",
+                "false"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "label",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "labelId",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "parent",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "includeAncestors",
+            "required": false,
+            "schema": {
+              "enum": [
+                "0",
+                "1",
+                "true",
+                "false"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "maximum": 200,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {},
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad request"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "BoardSessionAuth": []
+          },
+          {
+            "BoardApiKeyAuth": []
+          },
+          {
+            "AgentBearerAuth": []
+          }
+        ],
+        "summary": "GET companies  cases",
+        "tags": [
+          "Experimental"
+        ],
+        "x-paperclip-authorization": {
+          "actor": "board_or_agent"
+        }
+      }
+    },
+    "/api/companies/{companyId}/pipelines": {
+      "get": {
+        "description": "Experimental API; the corresponding instance feature must be enabled. Existing route authorization applies.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "companyId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {},
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad request"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "BoardSessionAuth": []
+          },
+          {
+            "BoardApiKeyAuth": []
+          },
+          {
+            "AgentBearerAuth": []
+          }
+        ],
+        "summary": "GET companies  pipelines",
+        "tags": [
+          "Experimental"
+        ],
+        "x-paperclip-authorization": {
+          "actor": "board_or_agent"
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "bootstrapInviteActive": {
+                      "type": "boolean"
+                    },
+                    "bootstrapStatus": {
+                      "enum": [
+                        "ready",
+                        "bootstrap_pending"
+                      ],
+                      "type": "string"
+                    },
+                    "cloud": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "cloudBaseUrl": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "managed": {
+                          "enum": [
+                            true
+                          ],
+                          "type": "boolean"
+                        },
+                        "managedBy": {
+                          "enum": [
+                            "paperclip-cloud"
+                          ],
+                          "type": "string"
+                        },
+                        "stackDisplayName": {
+                          "type": "string"
+                        },
+                        "stackSlug": {
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "managed",
+                        "managedBy",
+                        "stackSlug",
+                        "cloudBaseUrl"
+                      ],
+                      "type": "object"
+                    },
+                    "commit": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "databaseBackup": {
+                      "properties": {
+                        "backupDir": {
+                          "type": "string"
+                        },
+                        "enabled": {
+                          "type": "boolean"
+                        },
+                        "lastFailure": {
+                          "nullable": true,
+                          "properties": {
+                            "message": {
+                              "type": "string"
+                            },
+                            "mtime": {
+                              "format": "date-time",
+                              "type": "string"
+                            },
+                            "path": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "path",
+                            "mtime",
+                            "message"
+                          ],
+                          "type": "object"
+                        },
+                        "latestBackup": {
+                          "nullable": true,
+                          "properties": {
+                            "ageHours": {
+                              "type": "number"
+                            },
+                            "mtime": {
+                              "format": "date-time",
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "path": {
+                              "type": "string"
+                            },
+                            "sizeBytes": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "path",
+                            "mtime",
+                            "ageHours",
+                            "sizeBytes"
+                          ],
+                          "type": "object"
+                        },
+                        "maxAgeHours": {
+                          "type": "number"
+                        },
+                        "status": {
+                          "enum": [
+                            "ok",
+                            "warning"
+                          ],
+                          "type": "string"
+                        },
+                        "warnings": {
+                          "items": {
+                            "properties": {
+                              "code": {
+                                "enum": [
+                                  "database_backup_check_failed",
+                                  "database_backup_last_failure",
+                                  "database_backup_missing",
+                                  "database_backup_stale"
+                                ],
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "code",
+                              "message"
+                            ],
+                            "type": "object"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "required": [
+                        "enabled",
+                        "status",
+                        "warnings"
+                      ],
+                      "type": "object"
+                    },
+                    "deploymentMode": {
+                      "type": "string"
+                    },
+                    "serverInfo": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "git": {
+                          "oneOf": [
+                            {
+                              "additionalProperties": false,
+                              "properties": {
+                                "available": {
+                                  "enum": [
+                                    true
+                                  ],
+                                  "type": "boolean"
+                                },
+                                "branchName": {
+                                  "nullable": true,
+                                  "type": "string"
+                                },
+                                "committedAt": {
+                                  "format": "date-time",
+                                  "nullable": true,
+                                  "type": "string"
+                                },
+                                "fullSha": {
+                                  "type": "string"
+                                },
+                                "localChanges": {
+                                  "oneOf": [
+                                    {
+                                      "additionalProperties": false,
+                                      "properties": {
+                                        "available": {
+                                          "enum": [
+                                            true
+                                          ],
+                                          "type": "boolean"
+                                        },
+                                        "hasLocalChanges": {
+                                          "type": "boolean"
+                                        },
+                                        "stagedFileCount": {
+                                          "minimum": 0,
+                                          "type": "integer"
+                                        },
+                                        "unstagedFileCount": {
+                                          "minimum": 0,
+                                          "type": "integer"
+                                        },
+                                        "untrackedFileCount": {
+                                          "minimum": 0,
+                                          "type": "integer"
+                                        }
+                                      },
+                                      "required": [
+                                        "available",
+                                        "hasLocalChanges",
+                                        "stagedFileCount",
+                                        "unstagedFileCount",
+                                        "untrackedFileCount"
+                                      ],
+                                      "type": "object"
+                                    },
+                                    {
+                                      "additionalProperties": false,
+                                      "properties": {
+                                        "available": {
+                                          "enum": [
+                                            false
+                                          ],
+                                          "type": "boolean"
+                                        },
+                                        "unavailableReason": {
+                                          "enum": [
+                                            "git_status_unavailable"
+                                          ],
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "available",
+                                        "unavailableReason"
+                                      ],
+                                      "type": "object"
+                                    }
+                                  ]
+                                },
+                                "shortSha": {
+                                  "type": "string"
+                                },
+                                "subject": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "available",
+                                "fullSha",
+                                "shortSha",
+                                "branchName",
+                                "subject",
+                                "committedAt",
+                                "localChanges"
+                              ],
+                              "type": "object"
+                            },
+                            {
+                              "additionalProperties": false,
+                              "properties": {
+                                "available": {
+                                  "enum": [
+                                    false
+                                  ],
+                                  "type": "boolean"
+                                },
+                                "unavailableReason": {
+                                  "enum": [
+                                    "git_unavailable",
+                                    "invalid_git_metadata"
+                                  ],
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "available",
+                                "unavailableReason"
+                              ],
+                              "type": "object"
+                            }
+                          ]
+                        },
+                        "processStartedAt": {
+                          "format": "date-time",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "processStartedAt",
+                        "git"
+                      ],
+                      "type": "object"
+                    },
+                    "status": {
+                      "enum": [
+                        "ok",
+                        "unhealthy"
+                      ],
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    },
+                    "warnings": {
+                      "items": {
+                        "properties": {
+                          "code": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "code",
+                          "message"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "commit"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "commit": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "error": {
+                      "enum": [
+                        "database_unreachable"
+                      ],
+                      "type": "string"
+                    },
+                    "serverInfo": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "git": {
+                          "oneOf": [
+                            {
+                              "additionalProperties": false,
+                              "properties": {
+                                "available": {
+                                  "enum": [
+                                    true
+                                  ],
+                                  "type": "boolean"
+                                },
+                                "branchName": {
+                                  "nullable": true,
+                                  "type": "string"
+                                },
+                                "committedAt": {
+                                  "format": "date-time",
+                                  "nullable": true,
+                                  "type": "string"
+                                },
+                                "fullSha": {
+                                  "type": "string"
+                                },
+                                "localChanges": {
+                                  "oneOf": [
+                                    {
+                                      "additionalProperties": false,
+                                      "properties": {
+                                        "available": {
+                                          "enum": [
+                                            true
+                                          ],
+                                          "type": "boolean"
+                                        },
+                                        "hasLocalChanges": {
+                                          "type": "boolean"
+                                        },
+                                        "stagedFileCount": {
+                                          "minimum": 0,
+                                          "type": "integer"
+                                        },
+                                        "unstagedFileCount": {
+                                          "minimum": 0,
+                                          "type": "integer"
+                                        },
+                                        "untrackedFileCount": {
+                                          "minimum": 0,
+                                          "type": "integer"
+                                        }
+                                      },
+                                      "required": [
+                                        "available",
+                                        "hasLocalChanges",
+                                        "stagedFileCount",
+                                        "unstagedFileCount",
+                                        "untrackedFileCount"
+                                      ],
+                                      "type": "object"
+                                    },
+                                    {
+                                      "additionalProperties": false,
+                                      "properties": {
+                                        "available": {
+                                          "enum": [
+                                            false
+                                          ],
+                                          "type": "boolean"
+                                        },
+                                        "unavailableReason": {
+                                          "enum": [
+                                            "git_status_unavailable"
+                                          ],
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "available",
+                                        "unavailableReason"
+                                      ],
+                                      "type": "object"
+                                    }
+                                  ]
+                                },
+                                "shortSha": {
+                                  "type": "string"
+                                },
+                                "subject": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "available",
+                                "fullSha",
+                                "shortSha",
+                                "branchName",
+                                "subject",
+                                "committedAt",
+                                "localChanges"
+                              ],
+                              "type": "object"
+                            },
+                            {
+                              "additionalProperties": false,
+                              "properties": {
+                                "available": {
+                                  "enum": [
+                                    false
+                                  ],
+                                  "type": "boolean"
+                                },
+                                "unavailableReason": {
+                                  "enum": [
+                                    "git_unavailable",
+                                    "invalid_git_metadata"
+                                  ],
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "available",
+                                "unavailableReason"
+                              ],
+                              "type": "object"
+                            }
+                          ]
+                        },
+                        "processStartedAt": {
+                          "format": "date-time",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "processStartedAt",
+                        "git"
+                      ],
+                      "type": "object"
+                    },
+                    "serverVersion": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "enum": [
+                        "unhealthy"
+                      ],
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "version",
+                    "serverVersion",
+                    "commit",
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Service unavailable"
+          }
+        },
+        "security": [],
+        "summary": "Health check",
+        "tags": [
+          "health"
+        ],
+        "x-paperclip-authorization": {
+          "actor": "public"
+        }
+      }
+    },
+    "/api/instance/task-drain": {
+      "delete": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {},
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "BoardSessionAuth": []
+          },
+          {
+            "BoardApiKeyAuth": []
+          }
+        ],
+        "summary": "End a task drain and restore run admission",
+        "tags": [
+          "instance"
+        ],
+        "x-paperclip-authorization": {
+          "actor": "board"
+        }
+      },
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {},
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "BoardSessionAuth": []
+          },
+          {
+            "BoardApiKeyAuth": []
+          }
+        ],
+        "summary": "Get the task-drain status for this process only; quiescent counts in-process work, and a process restart clears it even when the database still holds running rows",
+        "tags": [
+          "instance"
+        ],
+        "x-paperclip-authorization": {
+          "actor": "board"
+        }
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "ttlMs": {
+                    "exclusiveMinimum": true,
+                    "maximum": 86400000,
+                    "minimum": 0,
+                    "nullable": true,
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {},
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "BoardSessionAuth": []
+          },
+          {
+            "BoardApiKeyAuth": []
+          }
+        ],
+        "summary": "Start a task drain, so new run admission holds until active runs finish",
+        "tags": [
+          "instance"
+        ],
+        "x-paperclip-authorization": {
+          "actor": "board"
+        }
+      }
+    },
+    "/api/issues/{id}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {},
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "BoardSessionAuth": []
+          },
+          {
+            "BoardApiKeyAuth": []
+          },
+          {
+            "AgentBearerAuth": []
+          }
+        ],
+        "summary": "Get an issue",
+        "tags": [
+          "issues"
+        ],
+        "x-paperclip-authorization": {
+          "actor": "board_or_agent"
+        }
+      },
+      "patch": {
+        "description": "When posting a comment, attachmentIds selects up to 20 unique uploaded attachments from this exact task and company. The comment, attachment binding, and issue update commit atomically. attachmentIds without a comment is rejected; Markdown links alone do not bind uploads.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "assigneeAdapterOverrides": {
+                    "additionalProperties": false,
+                    "nullable": true,
+                    "properties": {
+                      "adapterConfig": {
+                        "additionalProperties": {},
+                        "type": "object"
+                      },
+                      "useProjectWorkspace": {
+                        "type": "boolean"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "assigneeAgentId": {
+                    "minLength": 1,
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "assigneeUserId": {
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "attachmentIds": {
+                    "items": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "billingCode": {
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "blockedByIssueIds": {
+                    "items": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "comment": {
+                    "type": "string"
+                  },
+                  "commentClientRequestId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "deferWakeForGoal": {
+                    "type": "boolean"
+                  },
+                  "description": {
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "executionPolicy": {
+                    "nullable": true,
+                    "properties": {
+                      "authorizationPolicy": {
+                        "properties": {
+                          "assignmentPolicy": {
+                            "properties": {
+                              "mode": {
+                                "enum": [
+                                  "company_default",
+                                  "protected"
+                                ],
+                                "type": "string"
+                              },
+                              "protectedAgentRequiresApproval": {
+                                "type": "boolean"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "protectedAgent": {
+                            "properties": {
+                              "approvalReason": {
+                                "type": "string"
+                              },
+                              "blockAssignment": {
+                                "type": "boolean"
+                              },
+                              "blockReason": {
+                                "minLength": 1,
+                                "type": "string"
+                              },
+                              "requiresApproval": {
+                                "type": "boolean"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "reviewPreset": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "id": {
+                                "enum": [
+                                  "low_trust_review"
+                                ],
+                                "type": "string"
+                              },
+                              "rawOutputDisposition": {
+                                "enum": [
+                                  "quarantine"
+                                ],
+                                "type": "string"
+                              },
+                              "version": {
+                                "enum": [
+                                  1
+                                ],
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "version",
+                              "rawOutputDisposition"
+                            ],
+                            "type": "object"
+                          },
+                          "trustBoundary": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "allowedAgentIds": {
+                                "items": {
+                                  "format": "uuid",
+                                  "type": "string"
+                                },
+                                "type": "array"
+                              },
+                              "allowedSecretBindingIds": {
+                                "items": {
+                                  "format": "uuid",
+                                  "type": "string"
+                                },
+                                "type": "array"
+                              },
+                              "allowedToolClasses": {
+                                "items": {
+                                  "minLength": 1,
+                                  "type": "string"
+                                },
+                                "type": "array"
+                              },
+                              "companyId": {
+                                "format": "uuid",
+                                "type": "string"
+                              },
+                              "issueIds": {
+                                "items": {
+                                  "format": "uuid",
+                                  "type": "string"
+                                },
+                                "type": "array"
+                              },
+                              "mode": {
+                                "enum": [
+                                  "low_trust_review"
+                                ],
+                                "type": "string"
+                              },
+                              "outputPromotionTarget": {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "issueId": {
+                                    "format": "uuid",
+                                    "type": "string"
+                                  },
+                                  "type": {
+                                    "enum": [
+                                      "issue"
+                                    ],
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "issueId"
+                                ],
+                                "type": "object"
+                              },
+                              "projectIds": {
+                                "items": {
+                                  "format": "uuid",
+                                  "type": "string"
+                                },
+                                "type": "array"
+                              },
+                              "rootIssueId": {
+                                "format": "uuid",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "mode"
+                            ],
+                            "type": "object"
+                          },
+                          "trustPreset": {
+                            "enum": [
+                              "standard",
+                              "low_trust_review"
+                            ],
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "commentRequired": {
+                        "type": "boolean"
+                      },
+                      "maxReviewRounds": {
+                        "exclusiveMinimum": true,
+                        "maximum": 50,
+                        "minimum": 0,
+                        "nullable": true,
+                        "type": "integer"
+                      },
+                      "mode": {
+                        "enum": [
+                          "normal",
+                          "auto"
+                        ],
+                        "type": "string"
+                      },
+                      "monitor": {
+                        "nullable": true,
+                        "properties": {
+                          "externalRef": {
+                            "maxLength": 500,
+                            "minLength": 1,
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "kind": {
+                            "enum": [
+                              "external_service"
+                            ],
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "maxAttempts": {
+                            "exclusiveMinimum": true,
+                            "maximum": 100,
+                            "minimum": 0,
+                            "nullable": true,
+                            "type": "integer"
+                          },
+                          "nextCheckAt": {
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          "notes": {
+                            "maxLength": 500,
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "recoveryPolicy": {
+                            "enum": [
+                              "wake_owner",
+                              "create_recovery_issue",
+                              "escalate_to_board"
+                            ],
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "scheduledBy": {
+                            "enum": [
+                              "assignee",
+                              "board"
+                            ],
+                            "type": "string"
+                          },
+                          "serviceName": {
+                            "maxLength": 120,
+                            "minLength": 1,
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "timeoutAt": {
+                            "format": "date-time",
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "nextCheckAt"
+                        ],
+                        "type": "object"
+                      },
+                      "reviewPreset": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "enum": [
+                              "low_trust_review"
+                            ],
+                            "type": "string"
+                          },
+                          "rawOutputDisposition": {
+                            "enum": [
+                              "quarantine"
+                            ],
+                            "type": "string"
+                          },
+                          "version": {
+                            "enum": [
+                              1
+                            ],
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "version",
+                          "rawOutputDisposition"
+                        ],
+                        "type": "object"
+                      },
+                      "stages": {
+                        "items": {
+                          "properties": {
+                            "approvalsNeeded": {
+                              "enum": [
+                                1
+                              ],
+                              "type": "number"
+                            },
+                            "id": {
+                              "format": "uuid",
+                              "type": "string"
+                            },
+                            "participants": {
+                              "items": {
+                                "properties": {
+                                  "agentId": {
+                                    "format": "uuid",
+                                    "nullable": true,
+                                    "type": "string"
+                                  },
+                                  "id": {
+                                    "format": "uuid",
+                                    "type": "string"
+                                  },
+                                  "type": {
+                                    "enum": [
+                                      "agent",
+                                      "user"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  "userId": {
+                                    "nullable": true,
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type"
+                                ],
+                                "type": "object"
+                              },
+                              "type": "array"
+                            },
+                            "type": {
+                              "enum": [
+                                "review",
+                                "approval"
+                              ],
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ],
+                          "type": "object"
+                        },
+                        "type": "array"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "executionWorkspaceId": {
+                    "format": "uuid",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "executionWorkspacePreference": {
+                    "enum": [
+                      "inherit",
+                      "shared_workspace",
+                      "isolated_workspace",
+                      "operator_branch",
+                      "reuse_existing",
+                      "agent_default"
+                    ],
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "executionWorkspaceSettings": {
+                    "additionalProperties": false,
+                    "nullable": true,
+                    "properties": {
+                      "environmentId": {
+                        "format": "uuid",
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "mode": {
+                        "enum": [
+                          "inherit",
+                          "shared_workspace",
+                          "isolated_workspace",
+                          "operator_branch",
+                          "reuse_existing",
+                          "agent_default"
+                        ],
+                        "type": "string"
+                      },
+                      "networkEgress": {
+                        "additionalProperties": false,
+                        "nullable": true,
+                        "properties": {
+                          "allowCidrs": {
+                            "items": {
+                              "maxLength": 64,
+                              "pattern": "^(?:(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\/(?:3[0-2]|[12]?\\d)$",
+                              "type": "string"
+                            },
+                            "type": "array"
+                          },
+                          "allowFqdns": {
+                            "items": {
+                              "maxLength": 253,
+                              "pattern": "^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)*[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$",
+                              "type": "string"
+                            },
+                            "type": "array"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "sharedWorkspaceConcurrency": {
+                        "enum": [
+                          "auto",
+                          "serialize",
+                          "allow"
+                        ],
+                        "type": "string"
+                      },
+                      "workspaceRuntime": {
+                        "additionalProperties": {},
+                        "nullable": true,
+                        "type": "object"
+                      },
+                      "workspaceStrategy": {
+                        "additionalProperties": false,
+                        "nullable": true,
+                        "properties": {
+                          "baseRef": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "branchTemplate": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "existingBranch": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "provisionCommand": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "runtimeProvisionCommand": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "teardownCommand": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "type": {
+                            "enum": [
+                              "project_primary",
+                              "git_worktree",
+                              "adapter_managed",
+                              "cloud_sandbox"
+                            ],
+                            "type": "string"
+                          },
+                          "worktreeParentDir": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "goalId": {
+                    "format": "uuid",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "harnessKind": {
+                    "enum": [
+                      "skill_test"
+                    ],
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "hiddenAt": {
+                    "format": "date-time",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "inheritExecutionWorkspaceFromIssueId": {
+                    "format": "uuid",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "interrupt": {
+                    "type": "boolean"
+                  },
+                  "labelIds": {
+                    "items": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "onBehalfOfUserId": {
+                    "minLength": 1,
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "parentId": {
+                    "format": "uuid",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "priority": {
+                    "enum": [
+                      "critical",
+                      "high",
+                      "medium",
+                      "low"
+                    ],
+                    "type": "string"
+                  },
+                  "projectId": {
+                    "format": "uuid",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "projectWorkspaceId": {
+                    "format": "uuid",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "reopen": {
+                    "type": "boolean"
+                  },
+                  "requestDepth": {
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "resume": {
+                    "type": "boolean"
+                  },
+                  "reviewInteractionId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "reviewPolicy": {
+                    "enum": [
+                      "anyone",
+                      "not_creator",
+                      "human_only"
+                    ],
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "reviewRequest": {
+                    "additionalProperties": false,
+                    "nullable": true,
+                    "properties": {
+                      "instructions": {
+                        "maxLength": 20000,
+                        "minLength": 1,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "instructions"
+                    ],
+                    "type": "object"
+                  },
+                  "status": {
+                    "enum": [
+                      "backlog",
+                      "todo",
+                      "in_progress",
+                      "in_review",
+                      "done",
+                      "blocked",
+                      "cancelled"
+                    ],
+                    "type": "string"
+                  },
+                  "title": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "unblockDescriptor": {
+                    "additionalProperties": false,
+                    "nullable": true,
+                    "properties": {
+                      "action": {
+                        "type": "string"
+                      },
+                      "owner": {
+                        "oneOf": [
+                          {
+                            "additionalProperties": false,
+                            "properties": {
+                              "agentId": {
+                                "format": "uuid",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "agentId"
+                            ],
+                            "type": "object"
+                          },
+                          {
+                            "additionalProperties": false,
+                            "properties": {
+                              "userId": {
+                                "minLength": 1,
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "userId"
+                            ],
+                            "type": "object"
+                          },
+                          {
+                            "enum": [
+                              "board"
+                            ],
+                            "type": "string"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "owner",
+                      "action"
+                    ],
+                    "type": "object"
+                  },
+                  "watchdogDiscovery": {
+                    "additionalProperties": false,
+                    "nullable": true,
+                    "properties": {
+                      "evidenceMarkdown": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "kind": {
+                        "enum": [
+                          "product_bug",
+                          "platform_bug"
+                        ],
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind"
+                    ],
+                    "type": "object"
+                  },
+                  "workMode": {
+                    "enum": [
+                      "standard",
+                      "ask",
+                      "planning",
+                      "skill_test"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {},
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unprocessable entity"
+          }
+        },
+        "security": [
+          {
+            "BoardSessionAuth": []
+          },
+          {
+            "BoardApiKeyAuth": []
+          },
+          {
+            "AgentBearerAuth": []
+          }
+        ],
+        "summary": "Update an issue",
+        "tags": [
+          "issues"
+        ],
+        "x-paperclip-authorization": {
+          "actor": "board_or_agent"
+        }
+      }
+    },
+    "/api/issues/{id}/recovery-actions": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {},
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "BoardSessionAuth": []
+          },
+          {
+            "BoardApiKeyAuth": []
+          },
+          {
+            "AgentBearerAuth": []
+          }
+        ],
+        "summary": "List issue recovery actions",
+        "tags": [
+          "issues"
+        ],
+        "x-paperclip-authorization": {
+          "actor": "board_or_agent"
+        }
+      }
+    },
+    "/api/issues/{id}/runs": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {},
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "BoardSessionAuth": []
+          },
+          {
+            "BoardApiKeyAuth": []
+          },
+          {
+            "AgentBearerAuth": []
+          }
+        ],
+        "summary": "List runs for an issue",
+        "tags": [
+          "activity"
+        ],
+        "x-paperclip-authorization": {
+          "actor": "board_or_agent"
+        }
+      }
+    },
+    "/api/issues/{issueId}/live-runs": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "issueId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {},
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "BoardSessionAuth": []
+          },
+          {
+            "BoardApiKeyAuth": []
+          },
+          {
+            "AgentBearerAuth": []
+          }
+        ],
+        "summary": "List live runs for an issue",
+        "tags": [
+          "runs"
+        ],
+        "x-paperclip-authorization": {
+          "actor": "board_or_agent"
+        }
+      }
+    },
+    "/api/plugins/{pluginId}/webhooks/{endpointKey}": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pluginId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "endpointKey",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {},
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "BoardSessionAuth": []
+          },
+          {
+            "BoardApiKeyAuth": []
+          }
+        ],
+        "summary": "Deliver an external webhook payload to a plugin",
+        "tags": [
+          "plugins"
+        ],
+        "x-paperclip-authorization": {
+          "actor": "board"
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "BoardSessionAuth": []
+    },
+    {
+      "BoardApiKeyAuth": []
+    },
+    {
+      "AgentBearerAuth": []
+    }
+  ]
+}

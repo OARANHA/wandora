@@ -1,7 +1,109 @@
 # Paperclip OpenAPI Compatibility Gate Proposal V1
 
 Date: 2026-09-21
-Status: **Proposal — research only; not yet a CI gate**
+Status: **V1 repository implementation — baseline, deterministic checker, mutation tests and offline CI; NO PRODUCTION EFFECT**
+
+Implementation: [`integrations/paperclip/openapi-compatibility-v1/`](../../integrations/paperclip/openapi-compatibility-v1/README.md).
+The implementation notes below supersede the original candidate list and artifact sketch.
+
+## Implementation decision and evidence
+
+REAL NOW: remote `main` and the local checkout were independently confirmed at
+`7dbf7d671989c7dd5d41da86ebcb370286c89100` (merged PR #207). No production system,
+credential or customer data was accessed for this implementation.
+
+PROVEN EVIDENCE / REUSE:
+
+- Paperclip adapter tests already use Node `node:test`, `node:assert/strict` and
+  `.mjs` with no install needed; Core uses TypeScript, `tsx`, Zod and Node tests.
+- Component-local verifiers already live alongside integrations and in `scripts/`:
+  adapter `verify-live-image.mjs`, plugin `scripts/verify-artifact.mjs`, Web `scripts/verify-*.mjs`.
+- JSON contracts already use `JSON.parse` plus explicit shape/assertion checks;
+  Zod is a Core runtime dependency, not an existing standalone OpenAPI gate.
+  No executable OpenAPI comparator/extractor was found in Wandora. Transitive
+  AJV/json-schema packages in Core's lockfile are not an existing verifier.
+- Existing `paperclip-mastra-adapter-ci.yml` and `organization-adapter-plugin-ci.yml`
+  fetch/install pinned Paperclip and qualify loader/SDK/disposable behavior. They
+  remain authoritative for those boundaries. A separate narrow workflow avoids
+  upstream/network/Docker requirements for this fixture-only gate.
+- Actual HTTP consumers are Core `paperclip-run-identity.ts`, the Mastra adapter's
+  issue completion/readback and Core `organization-adapter/paperclip-provider.ts`.
+  Qualified maintenance dependencies come from ADR 0151/0153 and the V2 runbook.
+  Every manifest operation records tested repository evidence anchors.
+
+GAPS: the source-generated v916 OpenAPI has 685 paths but most critical responses
+are untyped generic records; some auth declarations also understate or misdescribe
+handler enforcement. Comparing generic objects would silently miss breaking changes.
+
+CAPABILITY AUTHORITY / REUSE GATE: reuse Paperclip's own source builder and the
+existing Node verifier style. This adds private repository compatibility evidence,
+not a task engine, runtime dependency, public API, database, or capability registry.
+Paperclip remains replaceable; only its implementation dependency inventory is frozen.
+
+DECISION: 15 Class A operations (runtime plus explicitly labeled operator-runbook),
+2 Class C GET routes (cases/pipelines), and no assumed Class B adoption. Include
+the actually consumed plugin webhook. Exclude REST agent pause/resume/wakeup and
+issue-create analogues where current code uses SDK calls instead. SDK coverage
+remains with existing pinned tests.
+
+Freeze an exact extracted dependency subset plus an explicit source-reviewed
+response/payload supplement with per-source-file hashes. Full raw OpenAPI byte
+SHA-256, upstream SHA, dependency versions and artifact hashes are recorded in
+`fixtures/provenance.json`. Normalized input regeneration is deterministic offline;
+full export reproduction is documented in the component README. The checker
+accepts explicit candidate JSON + manifest and never applies the old supplement
+to a candidate. Raw generic responses FAIL coverage, rather than reporting PASS.
+
+## Second adversarial review — implementation
+
+1. **Too much frozen / false positives?** Only sent request values and consumed
+   response projections are checked. Additions, prose and unused optional fields
+   are non-blocking. Enum narrowing outside the sent subset is accepted. Unsupported
+   consumed compositions require qualification instead of an equivalence claim.
+2. **Too little checked?** Generic responses are a blocker. Tests cover nested
+   metadata, arrays, status-only writes, required properties/parameters, nullability,
+   enum changes, success statuses, JSON media and local refs. New caller discovery
+   and data-dependent semantics still require review.
+3. **Assumed classes?** All A entries have source/runbook anchors. Runbook dependency
+   is distinct from executed production state. No B entry was invented; SDK-only
+   lifecycle/wakeup calls do not become assumed REST dependencies.
+4. **Public Paperclip domain?** Files remain under the private integration directory;
+   no Core/Web contract, provider ID, product state or runtime code is changed.
+5. **Reproducible baseline?** Source builder at exact upstream SHA; full output digest;
+   raw subset retained; reviewed supplement hashes; deterministic regeneration test.
+   The manual supplement is review evidence, never claimed to be upstream-generated schema.
+6. **Network/production CI?** After checkout, use cached Node and committed inputs only.
+   No install/download/server/Docker/production call. Missing Node cache fails explicitly.
+7. **Secrets/private URLs/customer IDs?** No live responses were used. Fixtures were
+   inspected for credentials, private URLs and UUID/customer identifiers; none included.
+8. **Duplicated tooling?** No existing Wandora comparator existed. Reuse Node tests
+   and Paperclip's builder; no new runtime/package dependency or generic framework.
+9. **Task Drain/adapters/issues covered?** Yes: path/method, bounded TTL, quiescence,
+   adapter install/readback and issue status/readback mutations are tested. Missing
+   upstream response detail requires candidate-specific reviewed evidence.
+10. **Semantic limits explicit?** Wake behavior, Task Drain process locality, retry
+    ambiguity, scheduler/recovery and transaction/idempotency require pinned-source
+    review + disposable proof. Declared auth comparison does not prove enforcement;
+    known v916 declaration/handler mismatches are documented without silently fixing them.
+
+Rejected alternatives: accept a generic object as response compatibility; silently
+copy baseline fields into future candidates; invent REST dependencies from SDK names;
+freeze every upstream property; add a parallel capability registry; run live OpenAPI
+from CI. The revised narrow implementation is accepted for review.
+
+## Validation boundary
+
+The baseline self-check, SHA-256/regeneration checks, evidence-anchor verification
+and deterministic mutation/CLI tests run offline. The component README contains
+exact commands and limitations. CI checks this checkout's baseline and checker;
+future upgrades must explicitly submit and compare their candidate artifact.
+Tests tie this inventory to both integration compatibility files, both source-pinned
+CI workflows and the Compose build/image pins so an ordinary provider bump cannot
+silently retain a stale baseline. Those inputs are read only, not changed by this slice.
+
+Canonical runtime/source checkpoint documents are intentionally unchanged: this
+branch does not promote a runtime or claim a merged/production capability. This
+document and the component README preserve the repository slice decision.
 
 ## Goal
 
@@ -48,7 +150,7 @@ Never use current upstream master OpenAPI as proof for the production instance.
 
 A breaking difference is a hard upgrade blocker until explicitly reviewed.
 
-Current Class A candidates:
+Original proposal's Class A candidates (historical, **not** the implemented inventory):
 
 ```text
 /api/health
@@ -66,7 +168,8 @@ Current Class A candidates:
 /api/instance/task-drain
 ```
 
-The final list must be derived from actual Wandora integrations/tests, not this proposal alone.
+The actual source-derived inventory is now the versioned manifest linked above.
+In particular, SDK lifecycle calls do not prove use of their REST analogues.
 
 ### Class B — adopted specialist capability
 
@@ -97,7 +200,7 @@ experimental chat connectors
 unqualified Tool Gateway surfaces
 ```
 
-## Proposed artifact
+## Original artifact sketch
 
 For each accepted Paperclip production version, retain:
 
@@ -176,14 +279,10 @@ If Paperclip is replaced, every Class A/B dependency is a concrete item that a n
 
 That makes Paperclip portability measurable rather than aspirational.
 
-## Next implementation slice
+## Implemented repository slice
 
-After the capability audit is accepted, a small repository-only implementation may:
-
-1. add a schema for `wandora-paperclip-api-contract.json`;
-2. add a deterministic extractor/checker;
-3. freeze the current v2026.916.0 contract;
-4. run only in Paperclip compatibility/upgrade CI;
-5. never contact production from CI.
-
-That implementation is not part of this research slice.
+The versioned manifest, strict executable manifest validation, deterministic
+extractor/checker, v2026.916.0 baseline, negative tests and narrow offline CI are
+implemented in the linked component. The original research-only proposal is now
+superseded by the evidence and limitations at the start of this document.
+Review/merge gates and every production effect remain separate.
