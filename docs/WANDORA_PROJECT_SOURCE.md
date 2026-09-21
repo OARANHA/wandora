@@ -1769,3 +1769,28 @@ Mastra TokenCostControl is not accepted as the hard financial ceiling because it
 
 Production remains dormant and unchanged. Before model-runtime activation, the real host-custodied production key must be proven to belong to a dedicated Mistral production Workspace with an explicit finite monthly spending limit. That proof is the next separate NO EFFECT slice.
 
+## ADR 0147 — Provider-Neutral Runtime Risk Guard + Cost Governance Correction V1
+
+ADR 0147 restores ADR 0144's provider/runtime replaceability as the controlling activation architecture.
+
+The Mistral Workspace spending-limit capability found in ADR 0146 remains valid provider-specific defense in depth, but it is no longer a universal prerequisite for activating the model-backed runtime. Wandora must not make one provider's account model part of the stable Agent Runtime contract.
+
+Canonical activation guard:
+
+~~~text
+bounded admitted work
++ exact tenant/employee/run identity
++ maxSteps = 1
++ maxRetries = 0
++ bounded output
++ provider deadline < bridge deadline
++ structured output
++ fail-closed ambiguity
++ no implicit provider fallback
++ no external effect
+~~~
+
+Paperclip retains organizational work/run/budget authority. Provider-account financial controls are applied when appropriate to that provider/commercial exposure. Wandora retains logical AI profile, customer policy/entitlement, commercial billing and effect authorization.
+
+No production mutation was performed by the correction. The separate **Model Provider / Mistral Production Runtime Activation Execution V1** is now architecturally GO, but must freshly reconcile state, promote `wandora_mastra@0.3.0` before Core, switch Core only after Paperclip is healthy, keep Human Send/Gateway outbound OFF and stop before first customer work.
+
