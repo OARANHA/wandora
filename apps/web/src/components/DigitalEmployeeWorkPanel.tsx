@@ -1,7 +1,15 @@
-import { useState } from 'react';
+[Reading 279 lines from start (total: 279 lines, 0 remaining)]
+
+import { useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Bot, LoaderCircle, RotateCcw } from 'lucide-react';
 import { useAuth } from '../AuthProvider';
+import {
+  WorkOperationError,
+  clearWorkOperation,
+  resolveWorkOperation,
+  type WorkOperationRef,
+} from '../customerWorkOperation';
 
 type WorkItem = {
   id: string;
@@ -45,6 +53,7 @@ export function DigitalEmployeeWorkPanel({
     title: string;
     description: string;
   } | null>(null);
+  const workOperationRef = useRef<WorkOperationRef | null>(null);
 
   const path = activeOrganization
     ? `/api/v1/organizations/${activeOrganization.id}/digital-employees/${employeeId}/work`
@@ -62,33 +71,90 @@ export function DigitalEmployeeWorkPanel({
   });
 
   const mutation = useMutation({
-    mutationFn: async (input: { key: string; title: string; description: string }) => {
-      const response = await authFetch(path, {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'idempotency-key': input.key,
-        },
-        body: JSON.stringify({ title: input.title, description: input.description }),
-      });
+    mutationFn: async (input: { title: string; description: string }) => {
+      if (!activeOrganization) throw new WorkRequestError('Escolha uma empresa antes de atribuir trabalho.');
+      let operation: WorkOperationRef;
+      try {
+        operation = await resolveWorkOperation(
+          activeOrganization.id,
+          employeeId,
+          input.title,
+          input.description,
+          workOperationRef.current,
+        );
+      } catch (error) {
+        if (error instanceof WorkOperationError) {
+          throw new WorkRequestError(error.message);
+        }
+        throw error;
+      }
+      workOperationRef.current = operation;
+      setPendingRequest({ key: operation.idempotencyKey, title: input.title, description: input.description });
+
+      let response: Response;
+      try {
+        response = await authFetch(path, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            'idempotency-key': operation.idempotencyKey,
+          },
+          body: JSON.stringify({ title: input.title, description: input.description }),
+        });
+      } catch {
+        throw new WorkRequestError(
+          'A Wandora não conseguiu confirmar a resposta. Repita exatamente a mesma solicitação; a identidade original será reutilizada.',
+          true,
+        );
+      }
+
+      const body = await response.json().catch(() => null) as { error?: string; work?: WorkItem } | null;
+      if (response.ok) {
+        if (!body?.work?.id || body.work.employeeId !== employeeId) {
+          throw new WorkRequestError(
+            'A Wandora recebeu uma confirmação incompleta. Repita exatamente a mesma solicitação para reconciliar com segurança.',
+            true,
+          );
+        }
+        clearWorkOperation(operation);
+        workOperationRef.current = null;
+        return { work: body.work };
+      }
+      if (response.status === 400 || response.status === 403 || response.status === 404 || response.status === 503) {
+        clearWorkOperation(operation);
+        workOperationRef.current = null;
+      }
+      if (response.status === 400) {
+        throw new WorkRequestError('Revise o título e a descrição antes de atribuir este trabalho.');
+      }
       if (response.status === 403) {
         throw new WorkRequestError('Seu acesso não permite atribuir trabalho nesta empresa.');
       }
+      if (response.status === 404) {
+        throw new WorkRequestError('A admissão de trabalho ainda não está habilitada para este funcionário.');
+      }
       if (response.status === 409) {
-        const body = await response.json().catch(() => ({})) as { error?: string };
-        if (body.error === 'employee-work-uncertain') {
+        if (body?.error === 'employee-work-uncertain') {
           throw new WorkRequestError(
             'A Wandora não pode confirmar se o trabalho foi despachado. Repetir preservará exatamente a mesma solicitação; não crie outra.',
             true,
           );
         }
-        throw new WorkRequestError('Este trabalho precisa de reconciliação antes de qualquer nova tentativa.');
+        throw new WorkRequestError(
+          'Este trabalho precisa de reconciliação. Não crie outra solicitação; repita a original ou revise os trabalhos recentes.',
+          true,
+        );
       }
       if (response.status === 503) {
         throw new WorkRequestError('A admissão de trabalho está temporariamente indisponível.');
       }
-      if (!response.ok) throw new WorkRequestError('Não foi possível atribuir este trabalho agora.');
-      return await response.json() as { work: WorkItem };
+      if (!response.ok) {
+        throw new WorkRequestError(
+          'A resposta ficou inconclusiva. Repita exatamente a mesma solicitação; a Wandora reutilizará a identidade original.',
+          true,
+        );
+      }
+      throw new WorkRequestError('Não foi possível atribuir este trabalho agora.');
     },
     onSuccess: async () => {
       setPendingRequest(null);
@@ -107,17 +173,14 @@ export function DigitalEmployeeWorkPanel({
     const normalizedTitle = title.trim();
     const normalizedDescription = description.trim();
     if (!normalizedTitle || !normalizedDescription) return;
-    const request = pendingRequest ?? {
-      key: crypto.randomUUID(),
-      title: normalizedTitle,
-      description: normalizedDescription,
-    };
-    setPendingRequest(request);
-    mutation.mutate(request);
+    mutation.mutate({ title: normalizedTitle, description: normalizedDescription });
   };
 
   const retrySame = () => {
-    if (pendingRequest) mutation.mutate(pendingRequest);
+    if (pendingRequest) mutation.mutate({
+      title: pendingRequest.title,
+      description: pendingRequest.description,
+    });
   };
 
   const uncertainRequest = mutation.error instanceof WorkRequestError
@@ -216,3 +279,5 @@ export function DigitalEmployeeWorkPanel({
     </section>
   );
 }
+
+[executed on device: wandora-vps-01 (4f062e11-0f3c-4c6e-8f71-7d6136c1bee9)]
