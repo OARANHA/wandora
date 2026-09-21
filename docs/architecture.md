@@ -1274,3 +1274,41 @@ Gateway outbound = OFF
 
 The first live model-backed MEDICSPRO work remains a separate owner-driven effect slice. Recurring, bulk or unattended inference remains separately gated.
 
+
+## First model-backed customer work terminal convergence — ADR 0150
+
+The first real MEDICSPRO work proved the product/execution path and exposed a lifecycle convergence requirement at the Paperclip boundary.
+
+The stable architecture is:
+
+```text
+owner-authenticated Wandora work
+  -> Paperclip issue + assigned run
+  -> wandora_mastra
+  -> Core execution bridge
+  -> Agent Runtime
+  -> current runtime/provider implementation
+  -> structured supervised Wandora result committed
+  -> same Paperclip run identity terminalizes exact issue
+  -> Paperclip run completes
+  -> STOP
+```
+
+The terminal issue transition is **Paperclip lifecycle state**, not a Wandora-owned task state. The external adapter uses the same run-scoped JWT and Paperclip's server-resolved local listener. It does not add `issues.update` authority to the Organization Adapter and does not route lifecycle mutation through the customer/public Paperclip URL.
+
+For customer-work completion, the ordering invariant is:
+
+```text
+1. execute exact admitted work
+2. durably record exact supervised Wandora result
+3. terminalize exact Paperclip issue
+4. return Paperclip adapter result + normalized per-run usage
+```
+
+If step 3 is ambiguous, the adapter reads the exact issue before repeating the local state write. It never repeats step 1 merely to recover issue disposition.
+
+This ordering prevents Paperclip's native stranded-issue reconciler from generating an unnecessary `issue_continuation_needed` run after completed one-shot work while keeping Paperclip authoritative for issue/run lifecycle.
+
+The first production execution occurred with live `wandora_mastra@0.3.0` before this convergence behavior existed. Its second historical Paperclip recovery run was rejected before model execution, so the business result and external-effect boundary remained safe. `wandora_mastra@0.4.0` is repository-qualified in disposable Paperclip but is not live until a separately reviewed production-promotion slice.
+
+Normalized runtime token usage crosses the Agent Runtime -> Paperclip adapter boundary as provider-neutral `per_run` usage. Concrete Mistral/Mastra identifiers remain implementation telemetry; `wandora-supervised-v1` remains the stable Wandora execution identity.
