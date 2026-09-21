@@ -310,3 +310,162 @@ clearHireOperation(opB, {
 
 console.log('WANDORA_WEB_CUSTOMER_HIRE_BROWSER_IDEMPOTENCY_V1_OK');
 console.log('WANDORA_WEB_CUSTOMER_HIRE_TENANT_AVAILABILITY_V1_OK');
+
+
+const [workPanelSource, workHelperSource] = await Promise.all([
+  readFile(new URL('../src/components/DigitalEmployeeWorkPanel.tsx', import.meta.url), 'utf8'),
+  readFile(new URL('../src/customerWorkOperation.ts', import.meta.url), 'utf8'),
+]);
+
+const requiredWorkPanelFragments = [
+  'resolveWorkOperation(',
+  "'idempotency-key': operation.idempotencyKey",
+  'clearWorkOperation(operation)',
+  'workOperationRef.current = null',
+  'Repita exatamente a mesma solicitação',
+  "body?.error === 'employee-work-uncertain'",
+];
+for (const fragment of requiredWorkPanelFragments) {
+  if (!workPanelSource.includes(fragment)) {
+    throw new Error(`customer_work_browser_contract_missing:${fragment}`);
+  }
+}
+assert(
+  workPanelSource.includes("response.status === 400 || response.status === 403 || response.status === 404")
+    && !workPanelSource.includes("response.status === 400 || response.status === 403 || response.status === 404 || response.status === 503"),
+  'customer_work_503_must_preserve_original_idempotency_key',
+);
+assert(
+  workPanelSource.includes("if (response.status === 503)")
+    && workPanelSource.includes("a identidade original será reutilizada"),
+  'customer_work_503_same_request_retry_contract_missing',
+);
+
+const workClearIndex = workPanelSource.indexOf('clearWorkOperation(operation);');
+const workSuccessIndex = workPanelSource.indexOf('if (response.ok)');
+assert(workSuccessIndex >= 0, 'customer_work_success_boundary_missing');
+assert(workClearIndex > workSuccessIndex, 'customer_work_idempotency_cleared_before_success_validation');
+assert(
+  !workHelperSource.includes('title: string;\n  description: string;\n  storageKey:'),
+  'customer_work_storage_must_not_persist_plaintext_content',
+);
+
+const compiledWorkHelper = ts.transpileModule(workHelperSource, {
+  compilerOptions: {
+    target: ts.ScriptTarget.ES2022,
+    module: ts.ModuleKind.ES2022,
+  },
+}).outputText;
+const workHelper = await import(
+  `data:text/javascript;base64,${Buffer.from(compiledWorkHelper).toString('base64')}`
+);
+const {
+  WorkOperationError,
+  clearWorkOperation,
+  peekWorkOperation,
+  resolveWorkOperation,
+} = workHelper;
+
+function expectWorkErrorAsync(promise, expectedCode, label) {
+  return promise.then(
+    () => { throw new Error(`${label}:expected_work_error`); },
+    (error) => {
+      assert(error instanceof WorkOperationError, `${label}:unexpected_error_type`);
+      assert(error.code === expectedCode, `${label}:unexpected_code:${error?.code}`);
+    },
+  );
+}
+
+const workStorage = createMemoryStorage();
+const workUuidA = '33333333-3333-4333-8333-333333333333';
+const workUuidB = '44444444-4444-4444-8444-444444444444';
+let workUuidCalls = 0;
+const workA = await resolveWorkOperation(
+  'org-work-a',
+  'employee-work-a',
+  'Preparar resumo',
+  'Resultado interno supervisionado.',
+  null,
+  {
+    storage: workStorage,
+    randomUUID: () => {
+      workUuidCalls += 1;
+      return workUuidA;
+    },
+  },
+);
+assert(workUuidCalls === 1, 'customer_work_first_key_generation_count_invalid');
+assert(workA.idempotencyKey === workUuidA, 'customer_work_first_key_not_generated');
+assert(
+  !String(workStorage.getItem(workA.storageKey)).includes('Preparar resumo')
+    && !String(workStorage.getItem(workA.storageKey)).includes('Resultado interno supervisionado.'),
+  'customer_work_plaintext_leaked_to_session_storage',
+);
+
+const peekedWorkA = peekWorkOperation('org-work-a', 'employee-work-a', { storage: workStorage });
+assert(peekedWorkA?.idempotencyKey === workUuidA, 'customer_work_peek_did_not_recover_key');
+
+const reloadedWorkA = await resolveWorkOperation(
+  'org-work-a',
+  'employee-work-a',
+  'Preparar resumo',
+  'Resultado interno supervisionado.',
+  null,
+  {
+    storage: workStorage,
+    randomUUID: () => { throw new Error('reload_must_not_regenerate_work_key'); },
+  },
+);
+assert(reloadedWorkA.idempotencyKey === workUuidA, 'customer_work_reload_changed_key');
+
+await expectWorkErrorAsync(
+  resolveWorkOperation(
+    'org-work-a',
+    'employee-work-a',
+    'Outra solicitação',
+    'Resultado diferente.',
+    null,
+    { storage: workStorage, randomUUID: () => workUuidB },
+  ),
+  'pending-request-conflict',
+  'customer_work_changed_request_while_pending',
+);
+
+const concurrentStorage = createMemoryStorage();
+let concurrentUuidCalls = 0;
+const concurrentIds = [workUuidA, workUuidB];
+const [concurrentA, concurrentB] = await Promise.all([
+  resolveWorkOperation('org-concurrent', 'employee-concurrent', 'Mesmo trabalho', 'Mesmo conteúdo.', null, {
+    storage: concurrentStorage,
+    randomUUID: () => concurrentIds[concurrentUuidCalls++],
+  }),
+  resolveWorkOperation('org-concurrent', 'employee-concurrent', 'Mesmo trabalho', 'Mesmo conteúdo.', null, {
+    storage: concurrentStorage,
+    randomUUID: () => concurrentIds[concurrentUuidCalls++],
+  }),
+]);
+assert(concurrentA.idempotencyKey === concurrentB.idempotencyKey, 'customer_work_double_click_changed_key');
+assert(concurrentUuidCalls === 1, 'customer_work_double_click_generated_multiple_keys');
+
+const otherEmployee = await resolveWorkOperation(
+  'org-work-a',
+  'employee-work-b',
+  'Preparar resumo',
+  'Resultado interno supervisionado.',
+  null,
+  { storage: workStorage, randomUUID: () => workUuidB },
+);
+assert(otherEmployee.idempotencyKey === workUuidB, 'customer_work_employee_scope_not_isolated');
+assert(otherEmployee.storageKey !== workA.storageKey, 'customer_work_employee_storage_collision');
+
+clearWorkOperation(workA, workStorage);
+assert(
+  peekWorkOperation('org-work-a', 'employee-work-a', { storage: workStorage }) === null,
+  'customer_work_success_key_not_cleared',
+);
+assert(
+  peekWorkOperation('org-work-a', 'employee-work-b', { storage: workStorage })?.idempotencyKey === workUuidB,
+  'customer_work_clear_crossed_employee_boundary',
+);
+
+console.log('WANDORA_WEB_CUSTOMER_WORK_BROWSER_IDEMPOTENCY_V1_OK');

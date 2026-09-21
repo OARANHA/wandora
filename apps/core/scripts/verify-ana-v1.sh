@@ -239,5 +239,9 @@ grep -q 'WANDORA_HUMAN_DIGITAL_EMPLOYEE_HIRE_ENABLED: "true"' <<<"$HIRE_EFFECTIV
 grep -q 'WANDORA_ORGANIZATION_ADAPTER_ENABLED: "true"' <<<"$HIRE_EFFECTIVE"
 grep -q 'WANDORA_HUMAN_API_ENABLED: "true"' <<<"$HIRE_EFFECTIVE"
 
+# Run post-010 Organization Adapter integration tests in their dedicated
+# migration-aware harness so Core CI proves the customer work contract too.
+bash "$ROOT/apps/core/scripts/verify-organization-adapter-service-v1.sh"
+
 echo "WANDORA_CORE_PRIVATE_RUNTIME_V1_OK"
 echo "ANA_VERTICAL_SLICE_V1_VERIFY_OK"

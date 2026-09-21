@@ -147,6 +147,44 @@ test('owner work admission reserves stable Wandora work before one provider effe
   });
 });
 
+test('concurrent same-key work admission converges to one work and one provider effect', async () => {
+  await resetFixture();
+  const provider = new WorkProvider();
+  const ids = [
+    '95000000-0000-4000-8000-0000000000c1',
+    '95000000-0000-4000-8000-0000000000c2',
+  ];
+  const service = new OrganizationAdapterService(
+    runtimePool,
+    provider,
+    undefined,
+    () => ids.shift() ?? '95000000-0000-4000-8000-0000000000cf',
+  );
+  const input = {
+    organizationId: ORG,
+    actorUserId: USER,
+    employeeId: EMPLOYEE,
+    idempotencyKey: 'concurrent-stable-work-key',
+    title: 'Preparar resumo concorrente',
+    description: 'Resultado interno supervisionado.',
+  };
+
+  const [first, second] = await Promise.all([
+    service.ensureCatalogEmployeeWork(input),
+    service.ensureCatalogEmployeeWork(input),
+  ]);
+
+  assert.equal(first.id, second.id);
+  assert.equal(provider.workCalls.length, 1);
+  const rows = await fixturePool.query(
+    `SELECT id::text,status::text AS status
+       FROM wandora_private.digital_employee_work_operations
+      WHERE organization_id=$1 AND idempotency_key=$2`,
+    [ORG, input.idempotencyKey],
+  );
+  assert.deepEqual(rows.rows, [{ id: first.id, status: 'submitted' }]);
+});
+
 test('same idempotency key with changed content fails before provider effect', async () => {
   await resetFixture();
   const provider = new WorkProvider();
