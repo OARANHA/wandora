@@ -1,3 +1,5 @@
+[Reading 247 lines from start (total: 247 lines, 0 remaining)]
+
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -239,5 +241,11 @@ grep -q 'WANDORA_HUMAN_DIGITAL_EMPLOYEE_HIRE_ENABLED: "true"' <<<"$HIRE_EFFECTIV
 grep -q 'WANDORA_ORGANIZATION_ADAPTER_ENABLED: "true"' <<<"$HIRE_EFFECTIVE"
 grep -q 'WANDORA_HUMAN_API_ENABLED: "true"' <<<"$HIRE_EFFECTIVE"
 
+# Run post-010 Organization Adapter integration tests in their dedicated
+# migration-aware harness so Core CI proves the customer work contract too.
+bash "$ROOT/apps/core/scripts/verify-organization-adapter-service-v1.sh"
+
 echo "WANDORA_CORE_PRIVATE_RUNTIME_V1_OK"
 echo "ANA_VERTICAL_SLICE_V1_VERIFY_OK"
+
+[executed on device: wandora-vps-01 (4f062e11-0f3c-4c6e-8f71-7d6136c1bee9)]
