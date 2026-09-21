@@ -2000,4 +2000,3 @@ Research/decision set:
 - `docs/research/PAPERCLIP_UPSTREAM_DELTA_AUDIT_2026-09-21.md`
 
 The next production mutation remains a separate reviewed slice. Do not execute it merely because this audit is merged.
-
