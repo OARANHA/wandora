@@ -977,6 +977,23 @@ export class OrganizationAdapterService {
     });
   }
 
+  private async reserveCatalogEmployeeWorkWithRaceRetry(args: {
+    organizationId: string;
+    actorUserId: string;
+    employeeId: string;
+    idempotencyKey: string;
+    title: string;
+    description: string;
+    requestHash: string;
+  }): Promise<WorkOperationRow> {
+    try {
+      return await this.reserveCatalogEmployeeWork(args);
+    } catch (error) {
+      if (!isUniqueViolation(error)) throw error;
+      return this.reserveCatalogEmployeeWork(args);
+    }
+  }
+
   async ensureCatalogEmployeeWork(args: {
     organizationId: string;
     actorUserId: string;
@@ -1003,7 +1020,7 @@ export class OrganizationAdapterService {
       title,
       description,
     });
-    const reserved = await this.reserveCatalogEmployeeWork({
+    const reserved = await this.reserveCatalogEmployeeWorkWithRaceRetry({
       organizationId: args.organizationId,
       actorUserId: args.actorUserId,
       employeeId: args.employeeId,
