@@ -1,7 +1,7 @@
 # ADR 0152 — Paperclip Capability Reuse + Provider Portability Architecture V1
 
-Date: 2026-09-21  
-Status: **Accepted candidate — repository/documentation only; NO PRODUCTION EFFECT**
+Date: 2026-09-21
+Status: **Accepted — architecture/documentation only; NO PRODUCTION EFFECT**
 
 Builds on: ADR 0036, ADR 0126, ADR 0137, ADR 0144, ADR 0147, ADR 0150, ADR 0151
 
