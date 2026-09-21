@@ -17,14 +17,16 @@ async function withAdapterEnvironment(run) {
     url: process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_URL,
     secret: process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE,
     timeout: process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_TIMEOUT_MS,
-    runtimeApiUrl: process.env.PAPERCLIP_RUNTIME_API_URL,
+    listenHost: process.env.PAPERCLIP_LISTEN_HOST,
+    listenPort: process.env.PAPERCLIP_LISTEN_PORT,
   };
   try {
     await writeFile(secretFile, 'synthetic-bridge-secret-0123456789abcdef0123456789abcdef\n');
     process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_URL = BRIDGE_URL;
     process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE = secretFile;
     process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_TIMEOUT_MS = '60000';
-    process.env.PAPERCLIP_RUNTIME_API_URL = 'http://paperclip.runtime.test:3100';
+    process.env.PAPERCLIP_LISTEN_HOST = '0.0.0.0';
+    process.env.PAPERCLIP_LISTEN_PORT = '3100';
     await run();
   } finally {
     globalThis.fetch = originalFetch;
@@ -34,8 +36,10 @@ async function withAdapterEnvironment(run) {
     else process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE = old.secret;
     if (old.timeout === undefined) delete process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_TIMEOUT_MS;
     else process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_TIMEOUT_MS = old.timeout;
-    if (old.runtimeApiUrl === undefined) delete process.env.PAPERCLIP_RUNTIME_API_URL;
-    else process.env.PAPERCLIP_RUNTIME_API_URL = old.runtimeApiUrl;
+    if (old.listenHost === undefined) delete process.env.PAPERCLIP_LISTEN_HOST;
+    else process.env.PAPERCLIP_LISTEN_HOST = old.listenHost;
+    if (old.listenPort === undefined) delete process.env.PAPERCLIP_LISTEN_PORT;
+    else process.env.PAPERCLIP_LISTEN_PORT = old.listenPort;
     await rm(dir, { recursive: true, force: true });
   }
 }
@@ -96,7 +100,7 @@ test('wandora_mastra reports normalized usage and finalizes exact customer-work 
           },
         }), { status: 200, headers: { 'content-type': 'application/json' } });
       }
-      assert.equal(String(url), `http://paperclip.runtime.test:3100/api/issues/${ISSUE_ID}`);
+      assert.equal(String(url), `http://127.0.0.1:3100/api/issues/${ISSUE_ID}`);
       assert.equal(init.method, 'PATCH');
       return new Response(JSON.stringify({ id: ISSUE_ID, status: 'done' }), {
         status: 200,
