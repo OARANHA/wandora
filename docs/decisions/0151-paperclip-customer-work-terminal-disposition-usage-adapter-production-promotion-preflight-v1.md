@@ -14,11 +14,14 @@ This preflight performed no adapter install, no Paperclip restart/recreate, no i
 The future execution is narrowly authorized to:
 
 1. stage the exact 0.4.0 package under persistent Paperclip content-addressed storage;
-2. replace the single live `wandora_mastra@0.3.0` registration exactly once through Paperclip's official instance-admin local-path adapter install boundary;
-3. restart/recreate only Paperclip because replacement is expected to require restart;
-4. validate health, adapter load, bridge environment and the existing MEDICSPRO safety state;
-5. only after 0.4.0 is healthy, terminalize the historical MED-1 issue from `blocked` to `done` through Paperclip's authenticated board issue-update API/CLI, with no comment, resume, reassignment or run identity;
-6. validate that historical run count/model-call count/outbound count did not increase.
+2. activate Paperclip's native instance Task Drain and wait for `quiescent=true` before replacement/restart;
+3. replace the single live `wandora_mastra@0.3.0` registration exactly once through Paperclip's official instance-admin local-path adapter install boundary;
+4. restart/recreate only Paperclip because replacement is expected to require restart;
+5. validate health, adapter load, bridge environment and the existing MEDICSPRO safety state immediately after restart;
+6. only after 0.4.0 is healthy, terminalize the historical MED-1 issue from `blocked` to `done` through Paperclip's authenticated board issue-update API/CLI, with no comment, resume, reassignment or run identity;
+7. validate that historical run count/model-call count/outbound count did not increase.
+
+Task Drain is a **pre-restart quiescence guard**, not a restart-persistent maintenance lock: pinned Paperclip source proves the drain lives only in process memory and is cleared by process restart.
 
 The historical first work must not be replayed and its historical two-run evidence must remain intact.
 
@@ -213,6 +216,42 @@ The repair command MUST NOT include:
 
 If the issue-update response is ambiguous, read back MED-1 and run counts before any repeat.
 
+## PAPERCLIP TASK DRAIN REUSE GATE
+
+The live `v2026.916.0` OpenAPI and pinned source expose the native instance-admin Task Drain:
+
+```text
+GET    /api/instance/task-drain
+POST   /api/instance/task-drain
+DELETE /api/instance/task-drain
+```
+
+Pinned semantics:
+
+```text
+POST:
+  hold new run admission
+  existing active work may finish
+
+GET:
+  draining
+  startedAt
+  expiresAt
+  activeRuns
+  pendingWakes
+  quiescent
+
+DELETE:
+  end the current-process drain
+
+restart:
+  clears Task Drain state by design
+```
+
+The future execution therefore reuses Task Drain only to prove the **old Paperclip process is quiescent before restart**. It MUST wait until `draining=true` and `quiescent=true` before the adapter replacement/restart sequence proceeds. The runbook must not claim the drain survives restart.
+
+No competing Wandora maintenance scheduler/lock is introduced for this purpose.
+
 ## CAPABILITY AUTHORITY / REUSE GATE
 
 No new capability is introduced.
@@ -254,21 +293,24 @@ The production-promotion execution is GO as a separate slice, with this exact or
 5. verify candidate 0.4.0 hash/provenance
 6. verify rollback 0.3.0 registry/package hashes
 7. stage candidate under persistent hash-addressed Paperclip package storage
-8. official authenticated adapter get readback
-9. dispatch exactly one adapter install/replace using local persistent directory
-10. if response ambiguous: readback first; do not blindly repeat
-11. require version=0.4.0 and requiresRestart=true
-12. recreate/restart only Paperclip exactly once
-13. require Paperclip healthy
-14. require exactly one wandora_mastra / 0.4.0 / loaded
-15. require official test-environment PASS
-16. require Ana still active + supervised and no new live run/model/outbound
-17. board-authenticated MED-1 update: status=done only
-18. read back MED-1=done
-19. require historical heartbeat run count still exactly 2
-20. require Core model call count still exactly 1
-21. require outbound attempts still 0; Human Send OFF; Gateway outbound OFF
-22. STOP
+8. start native Task Drain through board/instance-admin authority
+9. require drain `draining=true` and `quiescent=true`
+10. official authenticated adapter get readback
+11. dispatch exactly one adapter install/replace using local persistent directory
+12. if response ambiguous: readback first; do not blindly repeat
+13. require version=0.4.0 and requiresRestart=true
+14. recreate/restart only Paperclip exactly once
+15. remember that restart clears Task Drain by design
+16. require Paperclip healthy
+17. require exactly one wandora_mastra / 0.4.0 / loaded
+18. require official test-environment PASS
+19. immediately require Ana still active + supervised and no new live run/model/outbound
+20. board-authenticated MED-1 update: status=done only
+21. read back MED-1=done
+22. require historical heartbeat run count still exactly 2
+23. require Core model call count still exactly 1
+24. require outbound attempts still 0; Human Send OFF; Gateway outbound OFF
+25. STOP
 ```
 
 No new customer work belongs to this execution.
@@ -283,9 +325,11 @@ Replacement is non-repeatable by assumption. Exactly one install request may be 
 
 Post-install state must remain exactly one `wandora_mastra` registration. A second registration is a hard failure.
 
-### Paperclip restart
+### Task Drain / Paperclip restart
 
-Replacement of an existing external adapter on v2026.916.0 has historically returned `requiresRestart=true`. Only Paperclip may be recreated/restarted. Core, Web, Gateway, Supabase and model provider state remain untouched.
+Task Drain is reused from Paperclip rather than reimplemented in Wandora. The old process must report `quiescent=true` before restart. Because the drain is process-local, restart clears it; the execution must not assume a maintenance hold survives the restart.
+
+Replacement of an existing external adapter on v2026.916.0 has historically returned `requiresRestart=true`. Only Paperclip may be recreated/restarted. Core, Web, Gateway, Supabase and model provider state remain untouched. Immediately after the new process becomes healthy, counters/live-run state must be reread before MED-1 repair.
 
 ### Historical work replay
 
@@ -329,6 +373,7 @@ Performed:
 - canonical repository reconciliation;
 - live read-only registry/package/version checks;
 - official authenticated adapter readback;
+- live OpenAPI + pinned-source qualification of native Task Drain semantics;
 - official no-effect `test-environment`;
 - deterministic current-main artifact build in isolated preflight storage;
 - rollback copies in isolated preflight storage;
