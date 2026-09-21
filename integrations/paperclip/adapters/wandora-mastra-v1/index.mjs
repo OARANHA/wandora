@@ -1,7 +1,6 @@
 import { createHmac } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { isAbsolute } from 'node:path';
-import { networkInterfaces } from 'node:os';
 
 const TYPE = 'wandora_mastra';
 const CANONICAL_BRIDGE_URL = 'http://wandora-core:8788/internal/v1/paperclip/execution';
@@ -117,15 +116,11 @@ function paperclipIssueUrl(issueId, env = process.env) {
     throw new Error('paperclip_listen_port_invalid');
   }
 
-  let localHost = listenHost;
-  if (listenHost === '0.0.0.0' || listenHost === '::') {
-    const family = listenHost === '::' ? 'IPv6' : 'IPv4';
-    const loopback = Object.values(networkInterfaces())
-      .flat()
-      .find((entry) => entry?.internal && entry.family === family)?.address;
-    if (!loopback) throw new Error('paperclip_local_loopback_unavailable');
-    localHost = loopback;
-  }
+  // Mirror Paperclip's own buildPaperclipEnv resolveHostForUrl rule:
+  // wildcard listeners are reached through localhost for same-process API calls.
+  const localHost = listenHost === '0.0.0.0' || listenHost === '::'
+    ? 'localhost'
+    : listenHost;
 
   const urlHost = localHost.includes(':') && !localHost.startsWith('[')
     ? `[${localHost}]`
