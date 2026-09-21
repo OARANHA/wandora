@@ -1916,3 +1916,87 @@ The live `v2026.916.0` OpenAPI and pinned source also qualify Paperclip's native
 Preflight effects remained zero: no Task Drain mutation, adapter install, Paperclip restart, issue mutation, work/run/model call, migration or outbound action occurred.
 
 The next executable slice is the separately reviewed **Paperclip Customer-Work Terminal Disposition + Usage Adapter Production Promotion Execution V1**, following the frozen runbook.
+
+## 2026-09-21 — Paperclip capability reuse / provider portability audit + companion Core correction
+
+The Paperclip capability audit now establishes the following canonical direction:
+
+```text
+Wandora
+  = customer/product semantic authority
+  = stable IDs and employee identity
+  = customer work/result contract
+  = commercial policy/billing
+  = final external-effect authorization
+
+Paperclip
+  = current specialist operational control-plane provider
+  = issue/run/routine/skills/policy/budget/etc. authority where adopted
+
+wandora_mastra
+  = Paperclip external runtime adapter
+
+Wandora Agent Runtime
+  = stable execution boundary
+
+Mastra / Mistral
+  = current replaceable runtime/model implementation
+```
+
+Use Paperclip adapters/plugins/connectors as provider-side implementation mechanisms when they fit the capability. Do not expose Paperclip IDs/state machines as customer-facing Wandora contracts.
+
+New generic Wandora subsystems that overlap Paperclip require the Capability Authority / Reuse Gate first. Portability is achieved with stable Wandora contracts + provider bindings + export/reconciliation, not a shadow Paperclip database.
+
+Paperclip experimental features are QUARANTINE by default. Live production currently has Cases, Pipelines, Agent Chat and Chat Connectors disabled.
+
+Pinned Paperclip company export/import is useful for provider exit, but its own export-fidelity report states approval history, cost history and activity history are not included. Exit strategy therefore uses native export + minimum Wandora binding/receipt manifest + targeted historical archive only where required.
+
+Pinned v2026.916.0 also proves positive external-adapter usage creates Paperclip cost events. Events without authoritative cost remain `unpriced` with `costCents=0`; current Paperclip budgets observe only `billed_cents`. Do not confuse usage telemetry with monetary hard-stop enforcement.
+
+### ADR 0153 correction to the pending production promotion
+
+Read-only production inspection found the live Core bridge still returns only `executionId/model/summary`, not normalized usage.
+
+Current main has the usage-return change in exactly one executable Core source file. The existing GREEN Core Candidate Artifact is executable-source equivalent to current main.
+
+Therefore ADR 0151's adapter-only execution order is superseded by ADR 0153:
+
+```text
+fresh REAL NOW
+-> native Paperclip Task Drain
+-> companion Core image-only promotion
+-> Core health/readiness + zero-activity validation
+-> wandora_mastra@0.4.0 replacement
+-> Paperclip-only restart
+-> adapter validation
+-> status-only MED-1 blocked -> done repair
+-> prove historical runs=2 / model calls=1 / outbound=0
+-> STOP
+```
+
+No new customer/model work is permitted merely to validate telemetry.
+
+Current production remains unchanged:
+
+```text
+Paperclip = v2026.916.0 / wandora_mastra@0.3.0 / healthy
+Core      = d5f98ed... image / mastra-supervised-model / healthy
+MED-1     = blocked / quiescent
+Paperclip historical runs = 2
+Core historical model calls = 1
+outbound = 0
+Human Send = OFF
+Gateway outbound = OFF
+```
+
+Research/decision set:
+
+- `docs/decisions/0152-paperclip-capability-reuse-provider-portability-architecture-v1.md`
+- `docs/decisions/0153-paperclip-customer-work-usage-companion-core-promotion-preflight-v1.md`
+- `docs/research/PAPERCLIP_CAPABILITY_PORTABILITY_AUDIT_V1.md`
+- `docs/research/PAPERCLIP_CAPABILITY_PORTABILITY_MATRIX_V1.md`
+- `docs/research/PAPERCLIP_PROVIDER_EXIT_STRATEGY_V1.md`
+- `docs/research/PAPERCLIP_OPENAPI_COMPATIBILITY_GATE_PROPOSAL_V1.md`
+- `docs/research/PAPERCLIP_UPSTREAM_DELTA_AUDIT_2026-09-21.md`
+
+The next production mutation remains a separate reviewed slice. Do not execute it merely because this audit is merged.
