@@ -7,5 +7,5 @@
   "wandoraBridgeTimeoutMs": 60000,
   "customerWorkCompletion": "run-scoped-issue-done-after-result",
   "usageBasis": "per_run",
-  "paperclipIssueApi": "PAPERCLIP_RUNTIME_API_URL"
+  "paperclipIssueApi": "PAPERCLIP_LISTEN_HOST+PAPERCLIP_LISTEN_PORT"
 }
