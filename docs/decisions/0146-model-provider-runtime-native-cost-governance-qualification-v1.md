@@ -1,7 +1,7 @@
 # ADR 0146 — Model Provider Runtime Native Cost Governance Qualification V1 — NO EFFECT
 
 Date: 2026-09-21
-Status: **Accepted — native aggregate provider-spend guard qualified / production configuration still pending / NO EFFECT**
+Status: **Partially superseded by ADR 0147 — evidence retained; Mistral-specific activation blocker withdrawn / NO EFFECT**
 
 Builds on: ADR 0142, ADR 0143, ADR 0144, ADR 0145
 
