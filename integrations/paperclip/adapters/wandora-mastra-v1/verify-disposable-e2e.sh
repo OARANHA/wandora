@@ -486,7 +486,8 @@ WORK_ISSUE_ID="$(printf '%s' "$work_issue_json" | json_field id)"
 
 pc_sql() {
   local statement="$1"
-  docker exec -e PGPASSWORD="$PAPERCLIP_DB_PASSWORD" "$DB"     psql -X -At -U paperclip_attestation -d paperclip_attestation -c "$statement"
+  docker exec -e PGPASSWORD="$PAPERCLIP_DB_PASSWORD" "$DB" \
+    psql -X -At -h 127.0.0.1 -U paperclip_attestation -d paperclip_attestation -c "$statement"
 }
 
 WORK_RUN_ID=""
