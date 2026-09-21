@@ -2000,3 +2000,14 @@ Research/decision set:
 - `docs/research/PAPERCLIP_UPSTREAM_DELTA_AUDIT_2026-09-21.md`
 
 The next production mutation remains a separate reviewed slice. Do not execute it merely because this audit is merged.
+
+
+## 2026-09-21 — Customer-work terminal disposition + usage production promotion V2
+
+ADR 0154 records the completed production promotion. The live Core is now `wandora/core:organization-adapter-candidate-61cbb34d4bfd` / `sha256:6c38930a45591970fd47d699c9881a9c9bd881272028268431ba3bf1c73c2873`, while Paperclip remains `wandora/paperclip:v2026.916.0` with exactly one loaded/enabled `wandora_mastra@0.4.0` and official test-environment PASS.
+
+MED-1 was terminalized once through the protected Board status-only path from `blocked` to `done`. It still has exactly two historical Paperclip runs and no live run; their historical usage remains null because backfill was explicitly forbidden. The first legitimate work remains exactly one Wandora work and one model call. Outbound attempts remain zero, Human Send OFF and Gateway outbound OFF.
+
+Prospective lifecycle + normalized usage now require/use the companion Core + adapter 0.4.0 pair. This does not make Paperclip monetary budget authoritative for provider spend: unpriced usage has `costCents=0`, and Wandora does not fabricate monetary cost.
+
+A residual historical provider-state fact remains: Paperclip Ana is `error` with `errorReason=wandora_execution_failed_409`, last updated at the pre-promotion failed continuation. It was deliberately preserved. The next slice is a **Paperclip MEDICSPRO Ana Historical Error-State Reconciliation Preflight V1 — NO EFFECT** before admitting another legitimate work item.
