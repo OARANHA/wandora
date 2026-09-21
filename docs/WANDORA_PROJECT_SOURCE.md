@@ -1750,3 +1750,22 @@ Next canonical slice:
 
 It must choose the minimum Mastra/Paperclip-native aggregate spend guard using synthetic/disposable evidence only. Production Core must remain deterministic; the Mistral secret must remain unmounted; Mistral must not be called. Only after that slice is GREEN may a separate Model Provider / Mistral Production Runtime Activation Execution V1 be authorized.
 
+## ADR 0146 — Model Provider Runtime Native Cost Governance Qualification V1
+
+The ADR 0145 cost-governance architecture gap is resolved without adding a Wandora pricing/cost engine.
+
+Canonical authority is now:
+
+~~~text
+Mistral Workspace spending limit = hard aggregate provider-spend boundary
+Mastra / Agent Runtime           = per-execution technical guardrails
+Paperclip                        = organizational operational budgets / billed-cents ledger
+Wandora                          = commercial plan / price / margin / billing
+~~~
+
+Current official Mistral documentation proves that API keys are scoped to a Workspace and Workspace monthly spending limits reject requests with HTTP 429 when exhausted. A disposable local synthetic 429 through the exact qualified Wandora runtime made one request and zero retries.
+
+Mastra TokenCostControl is not accepted as the hard financial ceiling because its cumulative observability path is approximate and can fail open. Paperclip v2026.916.0 currently budgets billed_cents and requires caller-supplied costCents, so Wandora must not invent provider pricing merely to feed that ledger.
+
+Production remains dormant and unchanged. Before model-runtime activation, the real host-custodied production key must be proven to belong to a dedicated Mistral production Workspace with an explicit finite monthly spending limit. That proof is the next separate NO EFFECT slice.
+
