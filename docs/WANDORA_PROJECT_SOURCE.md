@@ -1652,3 +1652,58 @@ post-migration work/adapter harness = 30 / 30 GREEN
 Fresh production readback still shows `mastra-deterministic`, no model-provider env/secret, exactly one MEDICSPRO Ana `active + supervised`, work journal 0, outbound attempts 0 and live `wandora_mastra@0.2.0`.
 
 Next slice after merge/CI: **Model Provider / Mistral Production Credential Custody + Disposable Real-Provider Attestation Preflight V1**. It may custody a fresh key and perform one synthetic non-customer provider call, but must stop before live runtime activation or real MEDICSPRO work.
+
+
+## Mistral real-provider attestation preflight — GREEN / PRODUCTION DORMANT
+
+ADR 0143 closes **Model Provider / Mistral Production Credential Custody + Disposable Real-Provider Attestation Preflight V1**.
+
+Canonical repository base for the proof:
+
+```text
+main = 82ea046ede32605f8d5511ef06bc47ecf060d2ea
+```
+
+The intended Mistral key is now custodied only at:
+
+```text
+/opt/wandora/stacks/core/secrets/wandora_model_provider_api_key
+mode 0640 / wandora-admin:wandora-ops
+```
+
+It is **not mounted into the live Core**.
+
+One synthetic non-customer invocation through the exact qualified Core candidate succeeded against `mistral-small-2603`:
+
+```text
+logical model      = wandora-supervised-v1
+input tokens       = 222
+output tokens      = 44
+total tokens       = 266
+cached input tokens= 0
+exit               = 0
+```
+
+Post-call production remains:
+
+```text
+Core runtime        = mastra-deterministic
+model env/key mount = absent
+Human Send          = OFF
+Gateway outbound    = OFF
+MEDICSPRO Ana       = exactly 1 / active + supervised
+work journal        = 0
+outbound attempts   = 0
+Paperclip Ana       = idle / wandora_mastra
+issues/wakeups/heartbeat runs/task sessions/routines/routine runs = 0
+Paperclip runtime session/run = null/null
+Paperclip runtime token/cost counters = 0
+```
+
+An earlier operator-entered credential was not the intended current key and is not provider-qualification evidence. It was replaced through the same reviewed custody path; only the later intended-key success is canonical.
+
+### NEXT EXECUTABLE SLICE
+
+**Model Provider / Mistral Production Runtime Activation Preflight V1 — NO EFFECT**
+
+Reconcile live adapter version/provenance, freeze the `wandora_mastra@0.3.0` + 60s bridge-timeout promotion, freeze the Core model overlay + read-only secret mount, prove rollback/order and outbound boundaries, and stop before changing live Paperclip or Core.

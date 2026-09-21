@@ -3099,3 +3099,45 @@ Repository acceptance does not authorize production activation.
 **Model Provider / Mistral Production Credential Custody + Disposable Real-Provider Attestation Preflight V1**
 
 Reconcile merged main and live state, provision a fresh key only through the reviewed secret-file path, run one synthetic non-customer provider attestation, prove zero customer/Paperclip/outbound state delta, and stop before changing the live Core runtime mode.
+
+
+## 2026-09-21 Mistral credential custody + real-provider attestation — GREEN / RUNTIME STILL DORMANT
+
+ADR 0143 is the newest model-provider checkpoint.
+
+```text
+main used for attestation = 82ea046ede32605f8d5511ef06bc47ecf060d2ea
+credential custody        = /opt/wandora/stacks/core/secrets/wandora_model_provider_api_key
+credential metadata       = 0640 / wandora-admin:wandora-ops
+live Core model key mount = absent
+live Core runtime         = mastra-deterministic
+
+real provider proof:
+  provider              = mistral
+  model                 = mistral-small-2603
+  logical model         = wandora-supervised-v1
+  input/output/total    = 222 / 44 / 266
+  cached input          = 0
+  exit                  = 0
+
+post-call MEDICSPRO:
+  Ana                   = exactly 1 / active + supervised
+  work journal          = 0
+  outbound attempts     = 0
+
+post-call Paperclip Ana:
+  status / adapter      = idle / wandora_mastra
+  issues                = 0
+  wakeups               = 0
+  heartbeat runs        = 0
+  task sessions         = 0
+  routines / runs       = 0 / 0
+  runtime session/run   = null / null
+  runtime token/cost    = 0
+```
+
+Human Send and Gateway outbound remain OFF. All critical production containers remained healthy with restart count zero.
+
+Do not repeat the successful real-provider call merely because a chat changes. Re-attest only for a concrete freshness reason.
+
+Next slice: **Model Provider / Mistral Production Runtime Activation Preflight V1 — NO EFFECT**. It must stop before any live Paperclip adapter replacement or Core runtime switch.
