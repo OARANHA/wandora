@@ -21,6 +21,25 @@ The current Ana runtime is deterministic and supervised. It creates a proposal w
 
 No persistent Mastra memory, external observability exporter, Mastra eval loop, workspace sandbox or runtime skill system is currently active in the live Core.
 
+## Repository-qualified model-backed assigned-work candidate
+
+ADR 0142 qualifies a second Agent Runtime mode without changing the current live deterministic runtime:
+
+```text
+Paperclip assigned issue/run
+  -> wandora_mastra
+  -> private Core execution bridge
+  -> Mastra Agent
+  -> approved model-provider boundary
+  -> bounded structured internal summary
+```
+
+The candidate uses Mastra `Agent.generate(...)` with OpenAI-compatible model configuration and JSON-schema structured output. A disposable Node 22 contract server proved the concrete request shape before any real provider credential was used: one `/v1/chat/completions` request, Bearer authorization, model pin, `response_format=json_schema`, `max_tokens`, and token-usage return.
+
+The production-dormant V1 provider is Mistral / `mistral-small-2603`, but the customer contract exposes only `wandora-supervised-v1`. Provider/model identity is operational metadata, not a public Wandora business identifier.
+
+The same runtime object deliberately keeps `proposeCommercialReply(...)` deterministic. Model egress is limited to `executeAssignedTask(...)`; only bounded task title/description enter the request. Human Send/Gateway outbound authorization is unchanged.
+
 ## Canonical ownership map
 
 | Capability | Mastra capability | Wandora disposition |

@@ -447,7 +447,26 @@ The Organization Adapter live cross-company isolation gate is now closed by ADR 
 
 ## Model provider status
 
-Deterministic Mastra mode requires no model credential. The previously Git-exposed Mistral token is compromised and must never be reused. Request a fresh token only when the first real model call is materially required. Chutes remains deferred.
+Production remains on deterministic Mastra and currently has no model-provider configuration or model-provider secret mounted.
+
+ADR 0142 adds a repository-qualified, production-dormant model-provider boundary for **Paperclip-assigned supervised internal work only**:
+
+```text
+Agent Runtime mode = mastra-supervised-model
+approved V1 provider = Mistral
+approved V1 model = mistral-small-2603
+provider URL = https://api.mistral.ai/v1
+customer-facing logical model = wandora-supervised-v1
+provider request timeout = 45s
+Paperclip -> Core bridge timeout = 60s
+automatic model retries = 0
+```
+
+The credential is file-backed through an operator-controlled mounted secret. No credential value belongs in Git, Compose environment values, customer/browser contracts or logs. The previously Git-exposed Mistral credential remains permanently invalid for reuse.
+
+This candidate does **not** route supervised inbound/WhatsApp content to the model provider. The inbound proposal path remains deterministic. Only an authenticated Paperclip-assigned task that has already crossed the reviewed execution bridge may invoke the model, and only bounded task title/description are forwarded. Human Send and Gateway outbound remain independent Wandora-owned effect gates.
+
+Chutes and additional providers remain deferred; adding one must preserve the same Wandora model contract rather than introducing provider identity into customer APIs.
 
 ## Operator/infrastructure boundary
 

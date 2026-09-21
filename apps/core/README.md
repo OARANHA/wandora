@@ -78,6 +78,38 @@ Stronger commercial commitments remain on `wandora.approvals`.
 
 The Compose activation overlay is `infra/stacks/core/compose.agent-runtime-deterministic.yaml`.
 
+## Model-backed supervised assigned work
+
+ADR 0142 introduces a second Agent Runtime mode for Paperclip-assigned internal work without changing the supervised inbound/WhatsApp path:
+
+```text
+WANDORA_AGENT_RUNTIME_MODE=mastra-supervised-model
+```
+
+V1 approves only:
+
+```text
+provider = mistral
+model    = mistral-small-2603
+base URL = https://api.mistral.ai/v1
+logical customer-facing model = wandora-supervised-v1
+```
+
+The provider credential is read only from the absolute mounted file configured by `WANDORA_MODEL_API_KEY_FILE`; it is never committed, logged or passed in browser/customer contracts. The reviewed Compose overlay is `infra/stacks/core/compose.agent-runtime-model.yaml`.
+
+The model-backed runtime is deliberately asymmetric:
+
+- `proposeCommercialReply(...)` delegates to the existing deterministic runtime, so inbound customer/WhatsApp content does not gain model-provider egress from this slice;
+- only `executeAssignedTask(...)`, reached through the authenticated Paperclip execution bridge for an already-active supervised employee, calls the external model;
+- only bounded task `title` and `description` enter the model request;
+- Wandora organization/employee IDs, Paperclip IDs/run tokens, customer address/phone and provider-control metadata do not enter the model prompt;
+- model output is schema-validated to one bounded internal `summary`;
+- `maxOutputTokens=768`, model request timeout = 45 seconds and automatic model retries = 0;
+- `wandora_mastra` bridge timeout = 60 seconds, so Core is expected to terminate first;
+- Human Send and Gateway outbound remain separate capabilities and are not enabled by model-backed execution.
+
+Provider/model identity remains operational metadata. Customer work results expose the logical Wandora model identifier `wandora-supervised-v1`, not the concrete model vendor/model name.
+
 ## Human session and read APIs
 
 ADRs 0017–0021 define the current customer human read boundary.

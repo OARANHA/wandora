@@ -13,6 +13,7 @@ services:
     environment:
       WANDORA_PAPERCLIP_EXECUTION_BRIDGE_URL: "http://wandora-core:8788/internal/v1/paperclip/execution"
       WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE: "/run/secrets/wandora/paperclip-execution-bridge.hmac"
+      WANDORA_PAPERCLIP_EXECUTION_BRIDGE_TIMEOUT_MS: "60000"
     volumes:
       - "${WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE_HOST:?required}:/run/secrets-root/wandora/paperclip-execution-bridge.hmac:ro"
       - "./paperclip-bridge-secret-entrypoint.sh:/run/wandora/paperclip-bridge-secret-entrypoint.sh:ro"
