@@ -6,5 +6,6 @@
   "wandoraBridgePath": "/internal/v1/paperclip/execution",
   "wandoraBridgeTimeoutMs": 60000,
   "customerWorkCompletion": "run-scoped-issue-done-after-result",
-  "usageBasis": "per_run"
+  "usageBasis": "per_run",
+  "paperclipIssueApi": "PAPERCLIP_RUNTIME_API_URL"
 }
