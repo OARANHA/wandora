@@ -1209,23 +1209,30 @@ replaceable model provider
 
 Cost authority is layered rather than duplicated: Paperclip owns operational company/agent/project budgets; the selected runtime owns per-execution native token/cost guardrails; Wandora owns plan, entitlement, price, margin and billing semantics.
 
-## Model-provider aggregate spend boundary — ADR 0146
+## Provider-neutral runtime risk boundary — ADR 0147
 
-The model-provider activation architecture now distinguishes three independent cost/budget layers:
+ADR 0147 supersedes ADR 0146's Mistral-specific activation requirement.
 
 ~~~text
-Mistral Workspace monthly spending limit
-  -> aggregate provider-account spend stop for the production key
+Wandora logical profile / policy
+  -> Agent Runtime Adapter
+      -> bounded admitted work
+      -> bounded steps/output/deadline
+      -> zero automatic model retry
+      -> structured output
+      -> fail-closed ambiguity
+      -> no implicit provider fallback
+      -> no external effect
 
-Agent Runtime / Mastra
-  -> per-execution technical limits and zero automatic model retry
+Provider account
+  -> optional/conditional provider-native financial controls
 
 Paperclip
-  -> organizational operational budgets and cost ledger
+  -> organizational work/run authority and operational budgets
 
 Wandora
-  -> commercial plan / price / margin / entitlement / billing semantics
+  -> commercial plan / price / margin / entitlement / billing
 ~~~
 
-The Mistral production API key must be Workspace-scoped to a dedicated production Workspace with an explicit finite monthly spending limit before the model-backed Core runtime is activated. Provider-side 429 spending-limit rejection fails closed and does not authorize fallback, retry or external effect. Mastra TokenCostControl is not treated as the hard financial ceiling because its cumulative metric path is approximate and can fail open. No Wandora provider-pricing or parallel cost engine is introduced.
+A Mistral Workspace spending limit remains valid provider-specific defense in depth, but it is not a universal Agent Runtime prerequisite. Runtime activation itself creates no work or inference. First legitimate work remains a separate bounded effect slice. No Wandora provider-pricing or parallel cost engine is introduced.
 
