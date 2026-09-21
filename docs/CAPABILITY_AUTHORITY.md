@@ -239,3 +239,24 @@ Two localized internal couplings remain acceptable for the current single-provid
 - the private execution bridge/run-identity integration is Paperclip-specific.
 
 Do not perform a broad abstraction refactor merely for aesthetics. Generalize these boundaries when a second provider, migration rehearsal or concrete portability requirement proves the value.
+
+## Experimental-provider dependency rule
+
+Paperclip's official operator documentation states that an experimental feature:
+
+- is not part of the stable operator contract;
+- may change or disappear;
+- carries no compatibility, rollback, migration or long-term-support guarantee.
+
+Therefore a Paperclip feature that is marked experimental is **QUARANTINE by default for Wandora**, even when its routes already exist in the production OpenAPI.
+
+Moving an experimental capability into a stable Wandora customer dependency requires a separate ADR proving at least:
+
+1. exact pinned-version semantics;
+2. disposable/live qualification appropriate to the risk;
+3. provider-neutral Wandora semantic boundary;
+4. migration/export strategy independent of Paperclip's compatibility promise;
+5. rollback and disable behavior;
+6. no unauthorized external-effect coupling.
+
+Current examples include Cases, Pipelines, Agent Chat and Chat Connectors.
