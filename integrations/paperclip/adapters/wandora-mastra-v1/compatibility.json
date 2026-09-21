@@ -4,5 +4,7 @@
   "adapterType": "wandora_mastra",
   "supportsLocalAgentJwt": true,
   "wandoraBridgePath": "/internal/v1/paperclip/execution",
-  "wandoraBridgeTimeoutMs": 60000
+  "wandoraBridgeTimeoutMs": 60000,
+  "customerWorkCompletion": "run-scoped-issue-done-after-result",
+  "usageBasis": "per_run"
 }
