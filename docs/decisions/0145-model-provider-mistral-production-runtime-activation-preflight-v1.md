@@ -3,6 +3,9 @@
 Date: 2026-09-21
 Status: **Accepted historical preflight — technical mechanics retained; cost-based NO-GO superseded by ADR 0147 / NO EFFECT**
 
+> **Supersession notice:** ADR 0147 supersedes only this ADR's aggregate-cost activation blocker. Candidate qualification, adapter-first/Core-second activation order, rollback, secret custody, zero-retry, timeout and outbound boundaries remain authoritative.
+
+
 Builds on: ADR 0142, ADR 0143, ADR 0144
 
 ## Decision summary
