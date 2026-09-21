@@ -2980,3 +2980,63 @@ main               = 97290031e1aa567e6207c88873fa92d2ff3698ba
 No production artifact was promoted by this merge. Fresh post-merge read-only checks kept Core/Web/Paperclip/Gateway healthy, MEDICSPRO Ana exactly one and `active + supervised`, migration 016 absent, customer work flag absent/OFF and outbound attempts zero. The last successful exact Paperclip readback immediately before merge remained `idle / wandora_mastra` with zero assigned issues, wakeups, heartbeat runs, routine runs, task sessions and runtime usage.
 
 Do not execute first MEDICSPRO work from this checkpoint. The next slice is **Customer Owner First Real Tenant Active Digital-Employee First Legitimate Work Production Preflight V1 — NO EFFECT**.
+
+
+## First legitimate work Production Preflight V1 — COMPLETE / GREEN
+
+ADR 0138 records the no-effect production preflight after ADR 0137.
+
+The preflight discovered and closed two additional end-to-end idempotency gaps through PR #190:
+
+- concurrent same-key Core admission now reconciles a unique race to the existing operation;
+- browser work identity survives timeout, refresh, rapid duplicate submit and 503 availability responses through an opaque session-scoped UUID + SHA-256 fingerprint.
+
+Final repository checkpoint:
+
+```text
+PR #190 final head = 768be4e0177f52cbc957a517640457a4b6905a2a
+PR #190 CI         = 5 / 5 GREEN
+main after merge   = e867585622abd0ee020bf45756eda6b53ef4fec8
+```
+
+Fresh production remained dormant:
+
+```text
+Wandora Ana                  = exactly 1 / active + supervised
+Paperclip Ana                = exactly 1 / idle / wandora_mastra
+assigned issues              = 0
+heartbeat runs               = 0
+task sessions                = 0
+routine runs                 = 0
+runtime session / last run   = null / null
+runtime tokens / cost        = 0 / 0
+MEDICSPRO outbound attempts  = 0
+migration 016                = absent
+customer work gate           = OFF
+Human Send                   = OFF
+Gateway outbound             = OFF
+```
+
+Production promotion order is frozen as:
+
+```text
+fresh rollback/provenance capture
+-> migration 016 + verifier
+-> wandora_mastra@0.2.0 + required Paperclip restart
+-> Organization Adapter v0.3 + exact capability/config validation
+-> Core candidate with work gate still OFF
+-> Web candidate
+-> customer-work overlay LAST
+-> readiness/customer-safe availability validation
+-> STOP before any work submission
+```
+
+Paperclip v916 source review proved adapter replacement requires a restart and that local same-key plugin installation does not itself provide the capability-escalation approval semantics described by the generic upgrade comments. ADR 0138 therefore explicitly approves only the exact Organization Adapter v0.3 capability set and requires hash/manifest verification before promotion.
+
+### NEXT EXECUTABLE SLICE
+
+**Customer Owner First Real Tenant Active Digital-Employee First Legitimate Work Production Execution V1 — NO REAL WORK**
+
+The execution may promote the already-qualified components only in the frozen order above. It must not create MEDICSPRO work, issue/wakeup/run or any outbound effect.
+
+After that promotion is independently green, first real work still requires a genuine authenticated MEDICSPRO owner instruction and must stop at the supervised internal result.
