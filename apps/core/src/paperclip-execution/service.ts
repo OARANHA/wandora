@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { Pool, PoolClient } from 'pg';
-import type { AgentTaskRuntime, AssignedTask } from '../agent-runtime/task-runtime.js';
+import type { AgentTaskRuntime, AssignedTask, NormalizedExecutionUsage } from '../agent-runtime/task-runtime.js';
 import { paperclipManagedAgentRef } from '../organization-adapter/paperclip-provider.js';
 import type { PaperclipRunIdentity } from './paperclip-run-identity.js';
 import type { OrganizationAdapterService } from '../organization-adapter/service.js';
@@ -66,7 +66,7 @@ export class PaperclipExecutionService {
     paperclipRunId: string;
     workId?: string | null;
     task: AssignedTask;
-  }): Promise<{ executionId: string; model: string; summary: string }> {
+  }): Promise<{ executionId: string; model: string; summary: string; usage: NormalizedExecutionUsage }> {
     const organizationId = await this.resolveOrganization(input.identity.paperclipCompanyId);
     const providerAgentRef = paperclipManagedAgentRef(
       input.identity.paperclipCompanyId,
@@ -116,6 +116,12 @@ export class PaperclipExecutionService {
             executionId: prepared.executionId,
             model: prepared.model,
             summary: prepared.summary,
+            usage: {
+              inputTokens: null,
+              outputTokens: null,
+              cachedInputTokens: null,
+              totalTokens: null,
+            },
           };
         }
       } catch {
@@ -170,6 +176,6 @@ export class PaperclipExecutionService {
       }
     }
 
-    return { executionId, model: result.model, summary: result.summary };
+    return { executionId, model: result.model, summary: result.summary, usage: result.usage };
   }
 }

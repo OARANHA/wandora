@@ -45,7 +45,7 @@ test('Paperclip execution handler fails closed before runtime and forwards only 
   const service = {
     execute: async (input: unknown) => {
       executionInput = input;
-      return { executionId: 'exec_abc', model: 'wandora-supervised-v1', summary: 'accepted' };
+      return { executionId: 'exec_abc', model: 'wandora-supervised-v1', summary: 'accepted', usage: { inputTokens: 11, outputTokens: 7, cachedInputTokens: 2, totalTokens: 18 } };
     },
   };
   const handler = createPaperclipExecutionHandler({
@@ -94,6 +94,7 @@ test('Paperclip execution handler fails closed before runtime and forwards only 
     executionId: 'exec_abc',
     model: 'wandora-supervised-v1',
     summary: 'accepted',
+    usage: { inputTokens: 11, outputTokens: 7, cachedInputTokens: 2, totalTokens: 18 },
   });
   assert.equal(verifyCalls, 1);
   assert.deepEqual(executionInput, {

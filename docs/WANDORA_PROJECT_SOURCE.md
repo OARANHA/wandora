@@ -1846,3 +1846,41 @@ The technical bounded-work contract is ready, including one-step execution, zero
 No real work was executed because the accepted customer-work authority requires the exact title and description to originate from the authenticated MEDICSPRO owner through the Wandora customer surface. The operator must not manufacture the first task or impersonate the owner session. Human Send and Gateway outbound remain OFF.
 
 Next effect remains one genuine owner-submitted MEDICSPRO work request through Wandora -> Paperclip -> `wandora_mastra` -> Core -> Agent Runtime -> current provider -> supervised result -> STOP.
+
+
+## First real model-backed MEDICSPRO work — result valid, lifecycle deviation contained (ADR 0150)
+
+The authenticated MEDICSPRO owner has now submitted the first genuine commercial work through the Wandora customer surface. Wandora admitted exactly one work operation and recorded a supervised `wandora-supervised-v1` result.
+
+Core observed exactly one real inference through the current implementation:
+
+```text
+provider/model = mistral / mistral-small-2603
+input/output   = 333 / 372
+cached/total   = 0 / 705
+model calls    = 1
+```
+
+Human Send and Gateway outbound remained OFF and outbound attempts stayed zero.
+
+Paperclip historical truth is deliberately not normalized away: MED-1 had one intended successful run followed by one native `issue_continuation_needed` recovery run. The recovery run was rejected by Wandora's exact-run binding with HTTP 409 before Agent Runtime/model execution. The issue became blocked and no third run appeared.
+
+Root cause: live `wandora_mastra@0.3.0` is a legacy/direct adapter. Its successful result did not terminalize the Paperclip issue, so Paperclip's own stranded-issue scheduler correctly interpreted the assigned open issue as needing a continuation.
+
+PR #204 qualifies the provider-neutral lifecycle correction in `wandora_mastra@0.4.0`:
+
+- Core normalized usage is returned to Paperclip as per-run adapter usage;
+- after the exact supervised result has been committed, the same run-scoped Paperclip identity marks the exact customer-work issue `done`;
+- the self-call uses Paperclip's resolved local listener, never the public URL/Traefik/customer input;
+- ambiguous issue completion performs readback before any repeat;
+- issue-completion recovery cannot replay Core/model execution.
+
+Pinned disposable Paperclip proof is GREEN for one customer-work run, zero continuation recovery and usage `11|7|2`.
+
+This repository qualification does not promote production. Live Paperclip still has `wandora_mastra@0.3.0`. The legitimate MEDICSPRO work must not be replayed.
+
+### NEXT EXECUTABLE SLICE
+
+**Paperclip Customer-Work Terminal Disposition + Usage Adapter Production Promotion Preflight V1 — NO EFFECT**
+
+Reconcile live historical work/model/outbound state, freeze the immutable 0.4.0 artifact and rollback, determine whether/how MED-1 may be terminalized without wakeup, and stop before production mutation or any new customer/model work.

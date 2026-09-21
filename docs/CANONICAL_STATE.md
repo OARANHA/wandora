@@ -3290,3 +3290,36 @@ The current implementation already satisfies the bounded execution guard: `maxSt
 The remaining gate is product authority, not infrastructure. ADR 0136/0141 requires the first work title/description to be a genuine business instruction submitted by the authenticated MEDICSPRO owner through the Wandora customer work surface. Engineering/operator context must not invent that content, mint/extract an owner session or create a synthetic Paperclip issue/wakeup merely to demonstrate the model path.
 
 Therefore ADR 0149 records **zero production effect** and preserves the same next effect slice. Once the owner submits the genuine work request, reconcile the exact operation before any retry and allow at most one issue/run/model execution, stopping at the supervised Wandora result with outbound still OFF.
+
+
+## ADR 0150 — First legitimate model-backed MEDICSPRO work + lifecycle remediation checkpoint
+
+Status: **real work/result succeeded; exact-one-Paperclip-run invariant failed historically; duplicate model execution contained; adapter remediation qualified in disposable, not live**.
+
+The authenticated MEDICSPRO owner submitted exactly one legitimate work request through Wandora Web. Production evidence is:
+
+```text
+Wandora work id         = 9a4bc45c-cb6e-410d-8e46-3d7b84fc85ab
+work status             = result_recorded
+logical result profile  = wandora-supervised-v1
+
+Paperclip issue         = MED-1 / 42a8a8df-f6d9-4a4e-a3aa-662a05dc6154
+intended run            = 9bbeb869-fe06-4eb2-bfdd-f51a60d536ac / succeeded
+automatic continuation  = dca7387e-07fe-4119-93f0-3c5af8080d1d / failed before model
+historical issue status = blocked
+
+model calls             = exactly 1
+model usage             = 333 input / 372 output / 705 total / 0 cached
+outbound attempts       = 0
+Human Send              = OFF
+Gateway outbound        = OFF
+routines / routine runs = 0 / 0
+task sessions           = 0
+Ana                     = active + supervised
+```
+
+The second Paperclip run was created by native stranded-issue reconciliation because live `wandora_mastra@0.3.0` returned a successful legacy/direct adapter result without terminalizing the issue. Exact Wandora run binding rejected the continuation with 409 before Agent Runtime/provider execution, preventing a second model call.
+
+Repository PR #204 qualifies `wandora_mastra@0.4.0` so customer-work success terminalizes the exact Paperclip issue with the same run-scoped identity only after the Wandora result is committed, and returns normalized per-run usage. Disposable pinned-Paperclip proof requires `run_count=1`, `continuation_count=0` and usage `11|7|2`.
+
+Production remains on `wandora_mastra@0.3.0`; do not replay the legitimate work merely to clean up historical counters. The next effect boundary is **Paperclip Customer-Work Terminal Disposition + Usage Adapter Production Promotion Preflight V1 — NO EFFECT**.

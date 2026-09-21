@@ -5,20 +5,76 @@ import { join } from 'node:path';
 import test from 'node:test';
 import { createServerAdapter } from '../index.mjs';
 
-test('wandora_mastra adapter keeps the bridge narrow and file-backed', async () => {
+const BRIDGE_URL = 'http://wandora-core:8788/internal/v1/paperclip/execution';
+const WORK_ID = '11111111-1111-4111-8111-111111111111';
+const ISSUE_ID = '22222222-2222-4222-8222-222222222222';
+
+async function withAdapterEnvironment(run) {
   const dir = await mkdtemp(join(tmpdir(), 'wandora-mastra-adapter-'));
   const secretFile = join(dir, 'bridge.hmac');
   const originalFetch = globalThis.fetch;
-  const oldUrl = process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_URL;
-  const oldSecret = process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE;
-  const oldTimeout = process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_TIMEOUT_MS;
+  const old = {
+    url: process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_URL,
+    secret: process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE,
+    timeout: process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_TIMEOUT_MS,
+    listenHost: process.env.PAPERCLIP_LISTEN_HOST,
+    listenPort: process.env.PAPERCLIP_LISTEN_PORT,
+  };
   try {
     await writeFile(secretFile, 'synthetic-bridge-secret-0123456789abcdef0123456789abcdef\n');
-    process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_URL =
-      'http://wandora-core:8788/internal/v1/paperclip/execution';
+    process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_URL = BRIDGE_URL;
     process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE = secretFile;
     process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_TIMEOUT_MS = '60000';
+    process.env.PAPERCLIP_LISTEN_HOST = '0.0.0.0';
+    process.env.PAPERCLIP_LISTEN_PORT = '3100';
+    await run();
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (old.url === undefined) delete process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_URL;
+    else process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_URL = old.url;
+    if (old.secret === undefined) delete process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE;
+    else process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE = old.secret;
+    if (old.timeout === undefined) delete process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_TIMEOUT_MS;
+    else process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_TIMEOUT_MS = old.timeout;
+    if (old.listenHost === undefined) delete process.env.PAPERCLIP_LISTEN_HOST;
+    else process.env.PAPERCLIP_LISTEN_HOST = old.listenHost;
+    if (old.listenPort === undefined) delete process.env.PAPERCLIP_LISTEN_PORT;
+    else process.env.PAPERCLIP_LISTEN_PORT = old.listenPort;
+    await rm(dir, { recursive: true, force: true });
+  }
+}
 
+function executionContext(description = `<!-- wandora-work-v1:${WORK_ID} -->\nEntender a necessidade.`) {
+  return {
+    runId: '33333333-3333-4333-8333-333333333333',
+    authToken: 'opaque-run-token-never-in-body',
+    agent: {
+      id: '44444444-4444-4444-8444-444444444444',
+      companyId: '55555555-5555-4555-8555-555555555555',
+      name: 'Ana',
+      adapterType: 'wandora_mastra',
+      adapterConfig: {},
+    },
+    runtime: { sessionId: null, sessionParams: null, sessionDisplayId: null, taskKey: null },
+    config: {},
+    context: {
+      paperclipIssue: {
+        id: ISSUE_ID,
+        identifier: 'MED-1',
+        title: 'Qualificar contato',
+        description,
+        workMode: 'standard',
+      },
+      wakeReason: 'wandora_customer_work_v1',
+      managedMcp: { token: 'must-not-cross' },
+      providerInternal: 'must-not-cross',
+    },
+    onLog: async () => {},
+  };
+}
+
+test('wandora_mastra reports normalized usage and finalizes exact customer-work issue after bridge success', async () => {
+  await withAdapterEnvironment(async () => {
     const environment = await createServerAdapter().testEnvironment();
     assert.equal(environment.status, 'pass');
 
@@ -28,60 +84,105 @@ test('wandora_mastra adapter keeps the bridge narrow and file-backed', async () 
     assert.match(invalidEnvironment.checks[0].message, /wandora_bridge_timeout_invalid/);
     process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_TIMEOUT_MS = '60000';
 
-    let received;
-    globalThis.fetch = async (url, init) => {
-      received = { url: String(url), init };
-      return new Response(JSON.stringify({
-        executionId: 'exec_test_1',
-        model: 'mastra-deterministic',
-        summary: 'accepted',
-      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    const requests = [];
+    globalThis.fetch = async (url, init = {}) => {
+      requests.push({ url: String(url), init });
+      if (String(url) === BRIDGE_URL) {
+        return new Response(JSON.stringify({
+          executionId: 'exec_test_1',
+          model: 'wandora-supervised-v1',
+          summary: 'accepted',
+          usage: {
+            inputTokens: 11,
+            outputTokens: 7,
+            cachedInputTokens: 2,
+            totalTokens: 18,
+          },
+        }), { status: 200, headers: { 'content-type': 'application/json' } });
+      }
+      assert.equal(String(url), `http://localhost:3100/api/issues/${ISSUE_ID}`);
+      assert.equal(init.method, 'PATCH');
+      return new Response(JSON.stringify({ id: ISSUE_ID, status: 'done' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
     };
 
     const adapter = createServerAdapter();
     assert.equal(adapter.type, 'wandora_mastra');
     assert.equal(adapter.supportsLocalAgentJwt, true);
-    const result = await adapter.execute({
-      runId: 'run-1',
-      authToken: 'opaque-run-token-never-in-body',
-      agent: { id: 'agent-1', companyId: 'company-1', name: 'Ana', adapterType: 'wandora_mastra', adapterConfig: {} },
-      runtime: { sessionId: null, sessionParams: null, sessionDisplayId: null, taskKey: null },
-      config: {},
-      context: {
-        paperclipIssue: {
-          id: 'issue-1',
-          identifier: 'MED-1',
-          title: 'Qualificar contato',
-          description: '<!-- wandora-work-v1:11111111-1111-4111-8111-111111111111 -->\nEntender a necessidade.',
-          workMode: 'standard',
-        },
-        wakeReason: 'issue_assigned',
-        managedMcp: { token: 'must-not-cross' },
-        providerInternal: 'must-not-cross',
-      },
-      onLog: async () => {},
-    });
+    const result = await adapter.execute(executionContext());
 
     assert.equal(result.exitCode, 0);
     assert.equal(result.resultJson.executionId, 'exec_test_1');
-    assert.equal(received.url, 'http://wandora-core:8788/internal/v1/paperclip/execution');
-    const body = String(received.init.body);
+    assert.deepEqual(result.usage, { inputTokens: 11, outputTokens: 7, cachedInputTokens: 2 });
+    assert.equal(result.usageBasis, 'per_run');
+    assert.equal(requests.length, 2);
+
+    const bridge = requests[0];
+    const body = String(bridge.init.body);
     const parsedBody = JSON.parse(body);
-    assert.equal(parsedBody.task.workId, '11111111-1111-4111-8111-111111111111');
+    assert.equal(parsedBody.task.workId, WORK_ID);
     assert.equal(parsedBody.task.description, 'Entender a necessidade.');
     assert.equal(body.includes('wandora-work-v1:'), false);
     assert.equal(body.includes('opaque-run-token-never-in-body'), false);
     assert.equal(body.includes('must-not-cross'), false);
-    assert.equal(received.init.headers['x-wandora-paperclip-run-token'], 'opaque-run-token-never-in-body');
-    assert.match(received.init.headers['x-wandora-paperclip-signature'], /^sha256=[0-9a-f]{64}$/);
-  } finally {
-    globalThis.fetch = originalFetch;
-    if (oldUrl === undefined) delete process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_URL;
-    else process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_URL = oldUrl;
-    if (oldSecret === undefined) delete process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE;
-    else process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE = oldSecret;
-    if (oldTimeout === undefined) delete process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_TIMEOUT_MS;
-    else process.env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_TIMEOUT_MS = oldTimeout;
-    await rm(dir, { recursive: true, force: true });
-  }
+    assert.equal(bridge.init.headers['x-wandora-paperclip-run-token'], 'opaque-run-token-never-in-body');
+    assert.match(bridge.init.headers['x-wandora-paperclip-signature'], /^sha256=[0-9a-f]{64}$/);
+
+    const completion = requests[1];
+    assert.equal(completion.init.headers.authorization, 'Bearer opaque-run-token-never-in-body');
+    assert.equal(completion.init.headers['x-paperclip-run-id'], executionContext().runId);
+    assert.deepEqual(JSON.parse(String(completion.init.body)), { status: 'done' });
+  });
+});
+
+test('ambiguous issue completion is read back before any repeat update', async () => {
+  await withAdapterEnvironment(async () => {
+    const requests = [];
+    globalThis.fetch = async (url, init = {}) => {
+      requests.push({ url: String(url), init });
+      if (String(url) === BRIDGE_URL) {
+        return new Response(JSON.stringify({
+          executionId: 'exec_test_2',
+          model: 'wandora-supervised-v1',
+          summary: 'accepted',
+          usage: { inputTokens: 3, outputTokens: 2, cachedInputTokens: 0, totalTokens: 5 },
+        }), { status: 200, headers: { 'content-type': 'application/json' } });
+      }
+      if (init.method === 'PATCH') {
+        throw new TypeError('synthetic local completion timeout');
+      }
+      assert.equal(init.method, 'GET');
+      return new Response(JSON.stringify({ id: ISSUE_ID, status: 'done' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    };
+
+    const result = await createServerAdapter().execute(executionContext());
+    assert.equal(result.exitCode, 0);
+    assert.deepEqual(requests.map((request) => request.init.method), ['POST', 'PATCH', 'GET']);
+  });
+});
+
+test('non-customer work preserves legacy lifecycle and does not patch Paperclip issue status', async () => {
+  await withAdapterEnvironment(async () => {
+    const requests = [];
+    globalThis.fetch = async (url, init = {}) => {
+      requests.push({ url: String(url), init });
+      assert.equal(String(url), BRIDGE_URL);
+      return new Response(JSON.stringify({
+        executionId: 'exec_test_3',
+        model: 'wandora-supervised-v1',
+        summary: 'accepted',
+        usage: { inputTokens: null, outputTokens: null, cachedInputTokens: null, totalTokens: null },
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    };
+
+    const result = await createServerAdapter().execute(executionContext('Sem marcador de customer work.'));
+    assert.equal(result.exitCode, 0);
+    assert.equal(result.usage, undefined);
+    assert.equal(requests.length, 1);
+  });
 });
