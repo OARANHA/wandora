@@ -1236,3 +1236,41 @@ Wandora
 
 A Mistral Workspace spending limit remains valid provider-specific defense in depth, but it is not a universal Agent Runtime prerequisite. Runtime activation itself creates no work or inference. First legitimate work remains a separate bounded effect slice. No Wandora provider-pricing or parallel cost engine is introduced.
 
+## Live model-backed runtime checkpoint — ADR 0148
+
+The provider-neutral boundary from ADR 0144/0147 is now active in production:
+
+~~~text
+Wandora
+  logical profile = wandora-supervised-v1
+       |
+       v
+Agent Runtime Adapter
+       |
+       v
+Mastra-backed runtime (current implementation)
+       |
+       v
+Mistral / mistral-small-2603 (current provider implementation)
+~~~
+
+This is an implementation selection, not durable product identity. A future Runtime X/provider Y must continue to satisfy the same Wandora contract.
+
+The live execution path now uses `wandora_mastra@0.3.0` and Core `mastra-supervised-model`. Runtime activation by itself does not create Paperclip work or call the model.
+
+Current effect boundary remains:
+
+~~~text
+legitimate customer work
+  -> Paperclip work/run
+  -> Wandora execution bridge
+  -> Agent Runtime
+  -> supervised result
+  -> STOP
+
+Human Send = OFF
+Gateway outbound = OFF
+~~~
+
+The first live model-backed MEDICSPRO work remains a separate owner-driven effect slice. Recurring, bulk or unattended inference remains separately gated.
+

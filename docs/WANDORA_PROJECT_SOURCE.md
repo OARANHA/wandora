@@ -1794,3 +1794,45 @@ Paperclip retains organizational work/run/budget authority. Provider-account fin
 
 No production mutation was performed by the correction. The separate **Model Provider / Mistral Production Runtime Activation Execution V1** is now architecturally GO, but must freshly reconcile state, promote `wandora_mastra@0.3.0` before Core, switch Core only after Paperclip is healthy, keep Human Send/Gateway outbound OFF and stop before first customer work.
 
+## 2026-09-21 — Model-backed production runtime activated (ADR 0148)
+
+The production Agent Runtime activation is complete.
+
+~~~text
+Wandora stable logical profile = wandora-supervised-v1
+current Agent Runtime          = Mastra-backed
+current provider/model         = Mistral / mistral-small-2603
+
+Core                           = healthy / ready
+Core runtime                   = mastra-supervised-model
+wandora_mastra                 = 0.3.0 / exactly one / loaded
+Paperclip                      = v2026.916.0 / healthy
+
+Human Send                     = OFF
+Gateway outbound               = OFF
+~~~
+
+The platform credential remains Wandora-owned host custody and is mounted read-only into Core. Provider/model identity remains implementation detail under ADR 0144/0147; this activation does not make Mistral or Mastra part of the customer contract.
+
+Activation itself produced no work/run/model usage:
+
+~~~text
+MEDICSPRO Ana / Wandora = active + supervised
+MEDICSPRO Ana / Paperclip = idle
+work operations = 0
+outbound attempts = 0
+issues/wakeups/heartbeat runs/task sessions/routines/routine runs = 0
+runtime session/run = null/null
+runtime tokens/cost = 0
+model usage events during activation = 0
+~~~
+
+Exact rollback state is retained under:
+`/home/wandora-admin/executions/model-provider-runtime-activation-execution-v1-20260921/rollback`.
+
+### NEXT EXECUTABLE EFFECT SLICE
+
+**Customer Owner First Real Tenant Active Digital-Employee First Model-Backed Legitimate Work Execution V1**
+
+It must be separately authorized. Admit at most one legitimate owner-driven MEDICSPRO work request through the existing Wandora -> Paperclip -> Agent Runtime path, keep Human Send and Gateway outbound OFF, and stop at the supervised result. No recurring/unattended/bulk model-backed work is authorized by ADR 0148.
+

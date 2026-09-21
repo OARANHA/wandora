@@ -3226,3 +3226,55 @@ Production was not changed by this correction and remained Core `mastra-determin
 
 **Model Provider / Mistral Production Runtime Activation Execution V1 is architecturally GO as a separate production-effect slice**, subject to fresh state reconciliation and ADR 0145's already-frozen adapter-first/Core-second promotion and rollback order. It must stop before creating customer work.
 
+## ADR 0148 — Model Provider / Mistral Production Runtime Activation Execution V1
+
+Status: **EXECUTED / GREEN — model-backed runtime live and dormant**.
+
+Starting authority: `main@fd190a4dd8cd42647defaee33fecfb065b00b5e0` / ADR 0147.
+
+Production now is:
+
+~~~text
+Core image           = wandora/core:organization-adapter-candidate-d5f98ed92a29
+Core image id        = sha256:1444f760e2fc61c3c4763e5f9ca8738df88a807bc2a7df1490562cade251cf14
+Core health/ready    = healthy / 200
+Agent Runtime        = mastra-supervised-model
+logical profile      = wandora-supervised-v1
+current provider     = mistral
+current model        = mistral-small-2603
+model secret mount   = read-only
+
+Paperclip            = wandora/paperclip:v2026.916.0 / healthy
+wandora_mastra       = exactly 1 / 0.3.0 / loaded
+adapter environment  = PASS
+
+Human Send           = OFF
+Gateway outbound     = OFF
+~~~
+
+Final MEDICSPRO reconciliation:
+
+~~~text
+Ana / Wandora          = exactly 1 / active + supervised
+Ana / Paperclip        = idle / wandora_mastra
+work operations        = 0
+outbound attempts      = 0
+issues                 = 0
+wakeups                = 0
+heartbeat runs         = 0
+task sessions          = 0
+routines / runs        = 0 / 0
+runtime session/run    = null / null
+runtime tokens / cost  = 0 / 0
+~~~
+
+The activation slice made **zero model calls**. Core readiness does not call Mistral. No database migration was applied.
+
+Rollback assets are retained at:
+
+`/home/wandora-admin/executions/model-provider-runtime-activation-execution-v1-20260921/rollback`
+
+Do not repeat adapter installation or Core/Paperclip recreation merely because a chat changes. Reconcile live state first.
+
+Next effect boundary: **Customer Owner First Real Tenant Active Digital-Employee First Model-Backed Legitimate Work Execution V1**. It requires separate authorization, at most one owner-driven MEDICSPRO work request, Human Send/Gateway outbound OFF, and STOP at supervised result.
+
