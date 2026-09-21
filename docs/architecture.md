@@ -1208,3 +1208,24 @@ replaceable model provider
 `AssignedTaskResult` carries normalized token usage at the runtime boundary. No provider/model SDK object crosses it. Usage is not yet persisted as customer billing state merely because it is available.
 
 Cost authority is layered rather than duplicated: Paperclip owns operational company/agent/project budgets; the selected runtime owns per-execution native token/cost guardrails; Wandora owns plan, entitlement, price, margin and billing semantics.
+
+## Model-provider aggregate spend boundary — ADR 0146
+
+The model-provider activation architecture now distinguishes three independent cost/budget layers:
+
+~~~text
+Mistral Workspace monthly spending limit
+  -> aggregate provider-account spend stop for the production key
+
+Agent Runtime / Mastra
+  -> per-execution technical limits and zero automatic model retry
+
+Paperclip
+  -> organizational operational budgets and cost ledger
+
+Wandora
+  -> commercial plan / price / margin / entitlement / billing semantics
+~~~
+
+The Mistral production API key must be Workspace-scoped to a dedicated production Workspace with an explicit finite monthly spending limit before the model-backed Core runtime is activated. Provider-side 429 spending-limit rejection fails closed and does not authorize fallback, retry or external effect. Mastra TokenCostControl is not treated as the hard financial ceiling because its cumulative metric path is approximate and can fail open. No Wandora provider-pricing or parallel cost engine is introduced.
+

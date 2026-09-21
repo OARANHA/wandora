@@ -149,3 +149,15 @@ The Agent Runtime Adapter is a stable Wandora boundary; Mastra is its current im
 Future BYOK must reuse qualified Paperclip secret scope/responsible-user and, when appropriate, Connections/grants. No parallel Wandora tenant secret manager is authorized.
 
 A provider permission or runtime tool capability never authorizes a customer-visible external effect; the Wandora effect boundary remains final.
+
+## Provider-native aggregate model spend guard — ADR 0146
+
+For the platform-paid Mistral path, aggregate provider-spend enforcement is owned by the provider account boundary rather than by a new Wandora pricing engine.
+
+- **Mistral Workspace monthly spending limit** = hard aggregate provider-spend boundary for the production API key;
+- **Mastra / Agent Runtime** = per-execution max-output, deadline, one-step and zero-retry guardrails; native cumulative cost processors are optional defense in depth and are not the hard billing ceiling;
+- **Paperclip budgets** = organizational operational budget authority and billed-cents ledger when authoritative cost evidence is available;
+- **Wandora** = plan, entitlement, customer price, margin and billing semantics.
+
+API-key Workspace ownership and the finite Workspace cap must be proven before production model-runtime activation. Do not introduce a Wandora provider-pricing table, cost engine, second budget ledger or second model router to replace this specialist capability.
+
