@@ -31,7 +31,7 @@ The bridge timeout is bounded to 10-120 seconds and the production contract pins
 
 For a reviewed Wandora customer-work request carrying the private `wandora-work-v1` correlation marker, Core success means the supervised result has already been committed to the Wandora work receipt.
 
-Only after that success, the adapter uses the same Paperclip run-scoped JWT to update the exact executing Paperclip issue to `done`. This is Paperclip lifecycle state, not a Wandora task-state clone.
+Only after that success, the adapter uses the same Paperclip run-scoped JWT and Paperclip's server-owned `PAPERCLIP_RUNTIME_API_URL` to update the exact executing Paperclip issue to `done`. This is Paperclip lifecycle state, not a Wandora task-state clone.
 
 The completion write is bounded and fail-closed:
 
