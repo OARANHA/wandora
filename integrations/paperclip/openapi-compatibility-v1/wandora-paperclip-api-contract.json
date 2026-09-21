@@ -6,7 +6,7 @@
   },
   "coverageNotes": [
     "Private provider implementation inventory only; not a public Wandora contract or capability registry.",
-    "Class A operator-runbook records a maintenance contract; it does not claim the pending promotion has run.",
+    "Class A operator-runbook records a maintenance contract. ADR 0154 records that the qualified Core/adapter promotion has since executed successfully; this inventory remains an API dependency contract, not execution authorization.",
     "Agent resume, issue create/read/wakeup, managed agents, plugin state and secret refs use plugin SDK. Their REST analogues are not runtime dependencies; existing pinned SDK/disposable tests remain mandatory.",
     "Disposable-only company/agent/issue creation and heartbeat invoke routes are test setup, excluded from production dependency inventory.",
     "Auth checks freeze declared security plus x-paperclip-authorization. v916 underdeclares adapter/drain instance-admin restrictions and misdescribes signed plugin webhook auth; pinned-source and disposable tests must prove enforcement.",
@@ -1260,5 +1260,5 @@
   "providerVersion": "v2026.916.0",
   "schemaVersion": 1,
   "sourceCommit": "dffc2b3ca1b9e88fa21cb17493083e682dffd1ca",
-  "wandoraSourceCommit": "7dbf7d671989c7dd5d41da86ebcb370286c89100"
+  "wandoraSourceCommit": "6d8612fc9e47e07c2049adf4112554f9440570c2"
 }
