@@ -347,3 +347,13 @@ These mutable values must still be reverified before execution. The controlled r
 ## 9. Definition of progress
 
 Progress is not the number of services, screens, tables or integrations installed. Progress means a critical product or architectural uncertainty was removed, the result is reproducible, the human experience became clearer, **existing specialist capability was reused rather than needlessly rebuilt**, the execution survived adversarial review, validation proved the resulting state, and the decision was recorded without weakening Wandora-owned boundaries.
+
+
+## AI runtime portability guardrail — ADR 0144
+
+- Concrete model provider, model ID, base URL and provider SDK objects are runtime/deployment details, never Wandora product identity.
+- `wandora-supervised-v1` is the current Wandora-owned logical execution/AI profile and must survive runtime/provider replacement.
+- Every Agent Runtime implementation must return Wandora-normalized usage; raw Mastra/provider usage objects must not cross the adapter boundary.
+- Do not create a Wandora model router, provider registry/catalog, retry engine, token-accounting engine, cost engine or tenant secret manager while native runtime/Paperclip capability is sufficient.
+- Paperclip operational budgets, runtime execution guardrails and Wandora commercial billing are distinct authorities.
+- External-effect authorization remains Wandora-owned regardless of runtime/tool/provider permissions.

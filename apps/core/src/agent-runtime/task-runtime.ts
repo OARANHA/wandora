@@ -11,9 +11,17 @@ export type AssignedTaskInput = {
   task: AssignedTask;
 };
 
+export type NormalizedExecutionUsage = {
+  inputTokens: number | null;
+  outputTokens: number | null;
+  cachedInputTokens: number | null;
+  totalTokens: number | null;
+};
+
 export type AssignedTaskResult = {
   model: string;
   summary: string;
+  usage: NormalizedExecutionUsage;
 };
 
 export interface AgentTaskRuntime {

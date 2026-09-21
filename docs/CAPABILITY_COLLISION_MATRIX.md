@@ -154,3 +154,19 @@ agents.resume        = absent
 Human Send           = OFF
 Gateway outbound     = OFF
 ```
+
+
+## ADR 0144 additions — AI runtime/provider collisions
+
+| Concern | Paperclip | Mastra / Runtime | Wandora | Canonical resolution |
+|---|---|---|---|---|
+| Concrete model selection/routing | may record operational cost metadata | native router/fallback/provider invocation | logical product/runtime policy only | **Runtime implementation**; no Wandora Model Router |
+| Logical AI/execution profile | not product authority | materializes selected implementation | stable `wandora-supervised-v1` | **Wandora-owned profile; provider/runtime mapping internal** |
+| Model usage counts | can receive cost events | measures native usage | normalized adapter boundary | **Runtime maps -> Wandora normalized usage; no raw Mastra object** |
+| Operational AI budget | company/agent/project budgets | per-run technical guard | commercial policy only | **Paperclip budget + runtime guard; not Wandora billing** |
+| Customer subscription/billing | not invoice authority | not invoice authority | plan/price/margin/entitlement | **Wandora-owned** |
+| Platform model-provider secret | not required to own a Wandora-paid platform key | consumes at execution | platform custody/policy | **Wandora platform secret; runtime receives only for execution** |
+| Tenant/BYOK secret | secret scopes / responsible user / qualified grants candidate | consumes resolved credential | entitlement/policy | **Reuse Paperclip authority; no second secret manager** |
+| Provider retry/fallback | work/run retry semantics remain organizational | native model retry/fallback | ambiguity/effect policy | **Use runtime native mechanisms only within Wandora safety policy** |
+
+A runtime/provider allow-list in deployment configuration is not a provider registry. Do not grow it into one without a separate proven requirement.

@@ -83,8 +83,14 @@ export class MastraDeterministicAgentRuntime implements AgentRuntime, AgentTaskR
     const customerText = input.task.description?.trim() || input.task.title.trim();
     const proposal = await this.generateProposal(input.employee, customerText);
     return {
-      model: 'mastra-deterministic',
+      model: 'wandora-supervised-v1',
       summary: proposal.text,
+      usage: {
+        inputTokens: 0,
+        outputTokens: 0,
+        cachedInputTokens: 0,
+        totalTokens: 0,
+      },
     };
   }
 }

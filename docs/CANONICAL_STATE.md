@@ -3141,3 +3141,24 @@ Human Send and Gateway outbound remain OFF. All critical production containers r
 Do not repeat the successful real-provider call merely because a chat changes. Re-attest only for a concrete freshness reason.
 
 Next slice: **Model Provider / Mistral Production Runtime Activation Preflight V1 — NO EFFECT**. It must stop before any live Paperclip adapter replacement or Core runtime switch.
+
+
+## 2026-09-21 — AI Runtime Portability + Model Provider Authority Review V1 (ADR 0144)
+
+Starting authority: `main@e7f1050a99dbab8da26e4aa06f36556e999ce243` / ADR 0143.
+
+Read-only production reconciliation confirmed Core remains healthy on `mastra-deterministic` with no live provider/model/key env, Mistral credential host-custodied but unmounted, Paperclip v2026.916.0 healthy, MEDICSPRO Ana `active + supervised` / Paperclip `idle`, zero MEDICSPRO work/run/usage/outbound and Human Send/Gateway outbound OFF.
+
+Portability decision: **Case A**. ADR 0142's concrete Mistral configuration is an internal runtime detail, not product identity. `wandora-supervised-v1` is canonically the Wandora logical execution/AI profile and survives replacement of Mastra/provider.
+
+Repository-only hardening for this slice:
+
+- `AssignedTaskResult` now carries normalized input/output/cached/total token usage;
+- Mastra `totalUsage` is mapped at the adapter boundary;
+- deterministic runtime reports zero usage;
+- deterministic assigned-work result now uses `wandora-supervised-v1` instead of the framework-specific `mastra-deterministic` label;
+- no production work rows existed, so no data migration is required.
+
+No AI Profile table/catalog, provider router, budget engine, cost engine, secret manager or usage-history table was added.
+
+Portability GREEN permits a future **Model Provider / Mistral Production Runtime Activation Preflight V1 — NO EFFECT**, but that preflight must independently qualify cost governance because Paperclip cost-event ingestion for Core/Mastra model calls is not yet proven and Mastra TokenCostControl observability/storage prerequisites are not configured.
