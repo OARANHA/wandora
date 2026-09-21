@@ -1561,3 +1561,51 @@ Candidate components remain dormant in production:
 Final read-only production proof still shows exactly one MEDICSPRO Ana, `active + supervised` in Wandora and `idle / wandora_mastra` in Paperclip, with zero assigned issues, wakeups, heartbeat runs, routine runs, task sessions, runtime usage/cost and outbound attempts.
 
 Next executable slice: **Customer Owner First Real Tenant Active Digital-Employee First Legitimate Work Production Preflight V1 — NO EFFECT**.
+
+
+## First legitimate work Production Preflight V1 — ADR 0138
+
+The no-effect production preflight is complete and GREEN.
+
+Current canonical repository checkpoint after the preflight hardening:
+
+```text
+PR #190 head  = 768be4e0177f52cbc957a517640457a4b6905a2a
+PR #190 CI    = 5 / 5 GREEN
+main          = e867585622abd0ee020bf45756eda6b53ef4fec8
+```
+
+The preflight hardened first-work idempotency before any live promotion:
+
+- Core concurrent same-key admission converges to one Wandora work + one provider effect;
+- browser idempotency survives timeout, refresh, duplicate submit and 503 while storing only opaque UUID + SHA-256 fingerprint;
+- migration 016 passed double-apply + canonical verifier on a production-derived disposable restore;
+- final Core/Web candidates are immutable CI artifacts;
+- Organization Adapter v0.3 and `wandora_mastra@0.2.0` remain the qualified provider-side candidates from ADR 0137.
+
+Production is still unchanged:
+
+```text
+Wandora Ana       = active + supervised
+Paperclip Ana     = idle / wandora_mastra
+migration 016     = absent
+work gate         = OFF
+issues/runs       = 0 / 0
+sessions/routines = 0 / 0
+outbound attempts = 0
+Human Send        = OFF
+Gateway outbound  = OFF
+```
+
+Paperclip v2026.916.0 source inspection added two execution constraints:
+
+1. replacing external `wandora_mastra` requires a Paperclip restart before continuing;
+2. same-key local plugin install does not itself perform the capability-escalation approval semantics expected from the generic upgrade comments.
+
+ADR 0138 therefore explicitly freezes the exact Organization Adapter v0.3 capability set and the production promotion order.
+
+Next executable slice:
+
+**Customer Owner First Real Tenant Active Digital-Employee First Legitimate Work Production Execution V1 — NO REAL WORK**
+
+Promotion must stop after enabling and validating the customer-work contract. Do not manufacture a work request. The first real work must come from a genuine authenticated MEDICSPRO owner instruction and still stops before external effect.
