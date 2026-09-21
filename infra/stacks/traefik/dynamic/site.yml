@@ -1,0 +1,15 @@
+http:
+  routers:
+    wandora-site:
+      rule: "Host(`wandora.com.br`) || Host(`www.wandora.com.br`)"
+      entryPoints:
+        - websecure
+      service: wandora-site
+      tls:
+        certResolver: letsencrypt
+
+  services:
+    wandora-site:
+      loadBalancer:
+        servers:
+          - url: "http://wandora-site:3000"
