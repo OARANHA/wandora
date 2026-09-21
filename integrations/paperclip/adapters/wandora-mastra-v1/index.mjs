@@ -9,7 +9,6 @@ const MAX_TASK_TEXT = 12000;
 const DEFAULT_BRIDGE_TIMEOUT_MS = 60000;
 const MIN_BRIDGE_TIMEOUT_MS = 10000;
 const MAX_BRIDGE_TIMEOUT_MS = 120000;
-const DEFAULT_PAPERCLIP_PORT = 3100;
 const ISSUE_COMPLETION_TIMEOUT_MS = 5000;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -100,11 +99,16 @@ function bridgeTimeoutMs(env = process.env) {
 
 function paperclipIssueUrl(issueId, env = process.env) {
   if (!UUID_RE.test(issueId)) throw new Error('paperclip_work_issue_id_invalid');
-  const port = Number(env.PORT ?? DEFAULT_PAPERCLIP_PORT);
-  if (!Number.isInteger(port) || port < 1 || port > 65535) {
-    throw new Error('paperclip_local_api_port_invalid');
+  const runtimeApiUrl = requiredString(
+    env.PAPERCLIP_RUNTIME_API_URL,
+    'paperclip_runtime_api_url_required',
+    2048,
+  );
+  const base = new URL(runtimeApiUrl);
+  if (base.protocol !== 'http:' && base.protocol !== 'https:') {
+    throw new Error('paperclip_runtime_api_url_invalid');
   }
-  return new URL(`http://127.0.0.1:${port}/api/issues/${issueId}`);
+  return new URL(`/api/issues/${issueId}`, base);
 }
 
 function sign(secret, timestamp, rawBody) {
