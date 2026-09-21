@@ -277,5 +277,3 @@ export function DigitalEmployeeWorkPanel({
     </section>
   );
 }
-
-[executed on device: wandora-vps-01 (4f062e11-0f3c-4c6e-8f71-7d6136c1bee9)]
