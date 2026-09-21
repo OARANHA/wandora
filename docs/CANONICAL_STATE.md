@@ -3340,7 +3340,7 @@ The exact live 0.3.0 registry/package were copied read-only to `rollback-0.3.0`.
 
 MED-1 remains `blocked` with no live run, no checkout/execution run, no scheduled retry, no active recovery action, no blockers and no review path. Its only historical recovery action is resolved. Pinned Paperclip source plus official CLI contract establish the safe historical repair as a board-authenticated, status-only `blocked -> done` mutation with no comment/resume/reassignment/run identity; this path does not enqueue an assignee wake.
 
-The future execution order is frozen in ADR 0151 and the production runbook. It must promote 0.4.0 through the official instance-admin local-directory adapter boundary, restart only Paperclip once as required, validate one loaded 0.4.0 registration + test-environment PASS, then terminalize MED-1 exactly once and prove historical runs remain 2, model calls remain 1 and outbound remains 0.
+The future execution order is frozen in ADR 0151 and the production runbook. Before replacement/restart it must reuse Paperclip's native instance Task Drain and wait for `quiescent=true`; the drain is process-local and is cleared by restart, so it is only a pre-restart quiescence guard. Then promote 0.4.0 through the official instance-admin local-directory adapter boundary, restart only Paperclip once as required, validate one loaded 0.4.0 registration + test-environment PASS and immediately prove no new run/model/outbound activity, then terminalize MED-1 exactly once and prove historical runs remain 2, model calls remain 1 and outbound remains 0.
 
 No historical usage backfill is authorized. The 705-token historical model event remains evidenced by Core; 0.4.0 reports normalized per-run usage prospectively.
 
