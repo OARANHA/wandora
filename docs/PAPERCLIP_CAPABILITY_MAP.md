@@ -161,3 +161,71 @@ For Wandora model execution:
 A current integration gap remains: model calls executed inside Wandora Core/Mastra are not yet proven to post their cost evidence into Paperclip's cost-event ledger. Therefore Paperclip budgets must not be described as already governing Mistral spend on this path.
 
 Future tenant/BYOK credentials should reuse Paperclip secret scopes/responsible-user resolution where they belong to Paperclip-governed work. Connections/grants may own provider identity/delegation only after the provider integration is qualified. Do not create a Wandora tenant secret manager.
+
+## Capability portability additions — 2026-09-21 audit
+
+### Native Task Drain
+
+Production v2026.916.0 exposes native instance-admin Task Drain through GET/POST/DELETE `/api/instance/task-drain`.
+
+Pinned source proves it is a **process-local pre-restart quiescence guard**:
+
+- new run admission is held while draining;
+- status reports active runs, pending wakes and `quiescent`;
+- restart clears the drain by design.
+
+Disposition: **REUSE NOW**. Do not build a competing Wandora drain/scheduler for Paperclip maintenance.
+
+### Cases / Pipelines
+
+Production v2026.916.0 already contains substantial Case/Pipeline state:
+
+- durable Cases linked to tasks;
+- stages/transitions;
+- automations/Routines;
+- blockers;
+- review;
+- documents/outputs;
+- leases/liveness;
+- upstream drift/event history.
+
+Both `enableCases` and `enablePipelines` are managed feature flags that default false.
+
+Disposition: **QUARANTINE + DO NOT BUILD a generic Wandora Case/Pipeline engine**. Do not activate or adopt these surfaces without a concrete Wandora use case and dedicated exit contract.
+
+### Company portability / export fidelity
+
+Pinned Paperclip has native company export/import/preview/fidelity services and can export company, agents, projects, issues and skills.
+
+The native `paperclip-export-fidelity-v1` report explicitly warns that:
+
+- approval history is not exported;
+- cost-event history is not exported;
+- activity history is not exported.
+
+Therefore native export improves replaceability but is not complete provider exit by itself.
+
+Disposition: reuse native export + a minimal Wandora provider-binding/receipt manifest + targeted export/archive for any adopted non-portable operational history. Do not shadow-copy Paperclip tables.
+
+### Current-master radar
+
+Upstream master observed during the audit at `8813a501058b29ae293fee7e94038a737d7d1594` materially expands:
+
+- distribution plugins;
+- independent MCP connectors;
+- GitHub review agents;
+- Railway runtime operations;
+- AI Connections;
+- Runner-created Skills;
+- eval infrastructure;
+- hot-restart/run-adoption semantics.
+
+These are **radar only** until a future pinned Paperclip upgrade qualifies them. Current master never authorizes live dependency.
+
+See:
+
+- `docs/research/PAPERCLIP_CAPABILITY_PORTABILITY_AUDIT_V1.md`
+- `docs/research/PAPERCLIP_CAPABILITY_PORTABILITY_MATRIX_V1.md`
+- `docs/research/PAPERCLIP_PROVIDER_EXIT_STRATEGY_V1.md`
+- `docs/research/PAPERCLIP_OPENAPI_COMPATIBILITY_GATE_PROPOSAL_V1.md`
+- `docs/research/PAPERCLIP_UPSTREAM_DELTA_AUDIT_2026-09-21.md`

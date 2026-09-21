@@ -3345,3 +3345,155 @@ The future execution order is frozen in ADR 0151 and the production runbook. Bef
 No historical usage backfill is authorized. The 705-token historical model event remains evidenced by Core; 0.4.0 reports normalized per-run usage prospectively.
 
 Next slice: **Paperclip Customer-Work Terminal Disposition + Usage Adapter Production Promotion Execution V1**.
+
+## ADR 0152 / ADR 0153 — Paperclip capability reuse, provider portability and companion Core promotion correction
+
+A full Paperclip capability/portability audit was completed as a repository/no-effect slice against:
+
+```text
+Wandora base main = 2e3a9e41eb0013c14da079d95120f03a85ee8f90
+Paperclip live    = v2026.916.0
+Paperclip source  = dffc2b3ca1b9e88fa21cb17493083e682dffd1ca
+upstream radar    = master@8813a501058b29ae293fee7e94038a737d7d1594
+```
+
+### Canonical architecture decision
+
+Paperclip is the current **specialist operational control-plane provider**, not the Wandora product contract.
+
+Wandora remains semantic authority for customer/product identity, customer work/result semantics, commercial policy and final external-effect authorization.
+
+Provider integration may use:
+
+```text
+external adapter  -> runtime bridge (current: wandora_mastra)
+Paperclip plugin  -> provider-side additive control-plane capability
+connector / MCP   -> governed provider-side tool access
+```
+
+without making Paperclip IDs, enums, UI or state machines customer-facing Wandora contracts.
+
+The mandatory Exit Test is:
+
+> If Paperclip were replaced, only provider adapter/bindings plus migration of provider-owned operational state should need to change.
+
+Do not achieve portability by duplicating Paperclip tables/state into Wandora.
+
+### Reuse / quarantine decisions
+
+Do not build generic Wandora duplicates for task/run lifecycle, recurrence, watchdog/recovery, organizational Skills, task approval/review, operational budget ledger, generic workspace manager, connector/MCP grant authority, Case/Pipeline engine, provider pricing engine or model router without a proven Wandora-owned gap and a superseding ADR.
+
+Paperclip experimental features default to QUARANTINE. Live production readback confirms these are currently OFF:
+
+```text
+Cases
+Pipelines
+Agent Chat
+Chat Connectors
+```
+
+### Provider exit strategy
+
+Pinned Paperclip already provides company export/import + export fidelity for company/agents/projects/issues/skills.
+
+Its own fidelity report explicitly states that approval history, cost-event history and activity history are not included.
+
+Provider exit therefore uses:
+
+```text
+Paperclip native export
++ minimal Wandora provider-binding/receipt manifest
++ targeted archive/export for adopted non-portable history
+```
+
+not a shadow database.
+
+### Usage / cost-event finding
+
+Pinned Paperclip proves:
+
+```text
+positive adapter usage
+  -> runtime usage totals
+  -> Paperclip costEvents
+```
+
+If no authoritative monetary cost is supplied, tokens are recorded with:
+
+```text
+costCents  = 0
+costStatus = unpriced
+```
+
+Current v2026.916.0 budget policy supports only `billed_cents`, so unpriced token events do not enforce monetary hard stops.
+
+Wandora must not create a provider-pricing engine merely to manufacture a monetary value.
+
+### Critical production-promotion correction
+
+Fresh inspection of the **compiled live Core** proved the current Paperclip execution bridge returns only:
+
+```text
+executionId
+model
+summary
+```
+
+and omits normalized usage.
+
+Current main differs from the live Core executable by exactly one Core source file:
+
+```text
+apps/core/src/paperclip-execution/service.ts
+```
+
+The live adapter 0.3.0 safely ignores an additive Core `usage` field, and adapter 0.4.0 safely accepts missing usage.
+
+Therefore ADR 0153 supersedes only ADR 0151's **adapter-only execution order**:
+
+```text
+Task Drain
+-> companion Core image promotion
+-> validate Core / no activity
+-> adapter 0.4.0 replacement
+-> restart Paperclip
+-> validate 0.4.0
+-> status-only MED-1 repair
+-> final unchanged historical counters
+-> STOP
+```
+
+No new customer work is authorized as telemetry smoke.
+
+### Companion Core candidate
+
+Existing GREEN Core Candidate Artifact:
+
+```text
+workflow run      = 35603026602
+artifact id       = 10640665492
+artifact ZIP sha  = ffebefcbc96596fc97b8506ad0a20fae3f749529f2b75ebddacb3113456cc5b3
+artifact source   = 61cbb34d4bfde0350cc765111dc778b22a2a168f
+image tag         = wandora/core:organization-adapter-candidate-61cbb34d4bfd
+archive sha256    = f278d4466a849a55379297b043dd62eb037eb1659d50513179c35a3d012087a5
+OCI manifest      = sha256:6c38930a45591970fd47d699c9881a9c9bd881272028268431ba3bf1c73c2873
+```
+
+The artifact source and current main have zero diff under `apps/core/**` and `infra/stacks/core/**`.
+
+If the artifact is expired/unavailable when execution begins, STOP and regenerate through canonical CI. Do not rebuild an unqualified Core candidate on the VPS.
+
+### Production remains unchanged by ADR 0152/0153
+
+```text
+Paperclip = healthy / wandora_mastra@0.3.0
+Core      = healthy / image source d5f98ed...
+MED-1     = blocked / no live runs / no active recovery
+historical Paperclip runs = 2
+historical Core model calls = 1
+outbound attempts = 0
+Human Send = OFF
+Gateway outbound = OFF
+```
+
+Next executable effect remains a separately reviewed **Core companion + wandora_mastra@0.4.0 production promotion execution**, following ADR 0153 and the amended ADR 0151 runbook.

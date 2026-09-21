@@ -170,3 +170,29 @@ Gateway outbound     = OFF
 | Provider retry/fallback | work/run retry semantics remain organizational | native model retry/fallback | ambiguity/effect policy | **Use runtime native mechanisms only within Wandora safety policy** |
 
 A runtime/provider allow-list in deployment configuration is not a provider registry. Do not grow it into one without a separate proven requirement.
+
+## Paperclip portability/reuse additions — 2026-09-21
+
+| Concern | Tempting duplicate | Current specialist evidence | Canonical resolution |
+|---|---|---|---|
+| Paperclip maintenance drain | Wandora maintenance scheduler/lock | native process-local Task Drain with quiescence | **Reuse Paperclip Task Drain** for Paperclip pre-restart quiescence; do not claim it survives restart |
+| Generic cases/work pipelines | Wandora Case/Pipeline engine | v916 already contains experimental Cases/Pipelines with stages, transitions, automation, blockers, review and documents | **QUARANTINE provider feature; DO NOT BUILD generic duplicate** without a proven Wandora-owned gap |
+| Provider migration | shadow-copy every Paperclip table | native company portability + export fidelity | **Native export + minimum Wandora binding/receipt manifest + targeted history export** |
+| Approval history portability | duplicate approval DB by default | Paperclip export fidelity says approvals are not in company bundle | **Define migration/archive only when approvals become a customer dependency** |
+| Cost history portability | Wandora operational cost ledger clone | Paperclip export fidelity says cost events are not in company bundle | **Keep normalized runtime usage + targeted ledger export; Wandora billing remains separate** |
+| Provider activity history | duplicate specialist activity log | Paperclip export fidelity says activity history is not in company bundle | **Paperclip specialist audit + Wandora product/effect/compliance audit; archive only if retention requires** |
+| MCP/provider connector ecosystem | second generic connection/grant engine | Tool Gateway/Connections live; upstream is consolidating direct MCP providers into it | **Qualify/adapt Paperclip first; keep Wandora external-effect authority final** |
+| Paperclip plugin distribution | fork Paperclip or embed Wandora domain in provider | upstream distribution plugins/platform modules | **FUTURE provider packaging option; never make Wandora customer contract depend on plugin UI/data shape** |
+
+### Explicit DO NOT BUILD additions
+
+Until a proven Wandora-owned requirement and superseding authority decision exist, do not add a new generic Wandora:
+
+- Case/Pipeline/workflow state machine;
+- Paperclip maintenance drain/scheduler;
+- provider-history shadow database;
+- organizational connector/MCP grant engine;
+- task-review engine that duplicates Paperclip Execution Policy;
+- operational cost/budget ledger that duplicates Paperclip cost events/budgets.
+
+Provider portability is achieved with **ports, bindings, export/reconciliation contracts and negative leakage tests**, not by duplicating every provider capability.

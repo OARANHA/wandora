@@ -1,5 +1,8 @@
 # ADR 0151 — Paperclip Customer-Work Terminal Disposition + Usage Adapter Production Promotion Preflight V1 — NO EFFECT
 
+> **Supersession notice (ADR 0153):** the adapter candidate, Task Drain semantics, adapter replacement/rollback rules and MED-1 repair contract remain authoritative. ADR 0153 supersedes only the adapter-only production execution order after live evidence proved the current Core does not return normalized usage to the adapter. The future execution must promote the qualified companion Core and adapter 0.4.0 in the amended order before MED-1 repair.
+
+
 Date: 2026-09-21  
 Status: **Accepted preflight — GO for a separate production execution slice; zero production mutation**
 
