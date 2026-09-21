@@ -3497,4 +3497,3 @@ Gateway outbound = OFF
 ```
 
 Next executable effect remains a separately reviewed **Core companion + wandora_mastra@0.4.0 production promotion execution**, following ADR 0153 and the amended ADR 0151 runbook.
-
