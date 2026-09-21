@@ -1,7 +1,7 @@
 # ADR 0153 — Paperclip Customer-Work Usage Companion Core Promotion Preflight V1 — NO EFFECT
 
-Date: 2026-09-21  
-Status: **Accepted candidate — superseding execution-order amendment to ADR 0151; NO PRODUCTION EFFECT**
+Date: 2026-09-21
+Status: **Accepted preflight — GO for a separate amended production execution; NO EFFECT performed here**
 
 Builds on: ADR 0144, ADR 0148, ADR 0150, ADR 0151, ADR 0152
 
