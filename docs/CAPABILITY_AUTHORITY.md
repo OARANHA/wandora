@@ -132,3 +132,20 @@ For the first legitimate active-employee work contract:
 Approved candidate Organization Adapter authority for this contract is limited to `issues.read`, `issues.create`, `issues.wakeup`, `plugin.state.read` and `plugin.state.write` in addition to the already-approved lifecycle/webhook/secret-ref capabilities. `agents.invoke` remains forbidden.
 
 The migration-016 journal is explicitly **integration-safety state**, not a task engine. It may store the stable work request, provider/run correlation and supervised result receipt, but Paperclip remains authority for organizational task status, assignment, dependencies, recurrence and run lifecycle.
+
+
+## AI runtime portability and model-provider authority — ADR 0144
+
+The Agent Runtime Adapter is a stable Wandora boundary; Mastra is its current implementation, not product authority.
+
+- concrete provider/model/base URL: runtime implementation configuration;
+- logical profile `wandora-supervised-v1`: Wandora-owned stable execution identity;
+- platform-paid model credential: Wandora platform secret, regardless of its current host path;
+- normalized token usage: Wandora adapter contract;
+- Paperclip company/agent/project budgets: operational control-plane authority;
+- runtime-native token/cost guard: execution-plane authority;
+- Wandora plan/price/margin/entitlement: commercial product authority.
+
+Future BYOK must reuse qualified Paperclip secret scope/responsible-user and, when appropriate, Connections/grants. No parallel Wandora tenant secret manager is authorized.
+
+A provider permission or runtime tool capability never authorizes a customer-visible external effect; the Wandora effect boundary remains final.

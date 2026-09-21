@@ -162,3 +162,18 @@ Do not allow a Mastra hook, signal, goal, task list, schedule, skill, memory or 
 - Filesystem skills: https://mastra.ai/blog/introducing-filesystem-skills
 - Memory: https://mastra.ai/docs/memory/overview
 - Observability: https://mastra.ai/docs/observability/overview
+
+
+## ADR 0144 — model/provider portability and cost controls
+
+Mastra is already the technical model execution layer; Wandora must not create a second model router or retry engine.
+
+Current model-backed V1 uses a single pinned provider/model and explicitly disables automatic model retries. This is a Wandora safety policy expressed through native Mastra behavior, not a replacement for Mastra routing.
+
+The stable Wandora result identity is `wandora-supervised-v1`. The deterministic and model-backed runtime implementations both map to that logical profile; `mastra-deterministic` must not be persisted as the result identity.
+
+Runtime usage is normalized at the Agent Runtime boundary as input/output/cached/total token counts. Raw `result.totalUsage` remains Mastra-internal.
+
+Mastra `TokenLimiterProcessor` is supported by the deployed `@mastra/core@1.66.0` line (upstream minimum 1.56). `TokenCostControl` is also version-supported (upstream minimum 1.59), but its production cost-control contract depends on Mastra observability plus durable observability storage. Wandora currently has no `@mastra/observability` package/storage configured, so TokenCostControl is **not operationally qualified**.
+
+Decision: qualify native Mastra controls when needed; do not build a Wandora token/cost engine.

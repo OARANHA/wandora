@@ -147,3 +147,17 @@ For the first activation, the Organization Adapter may be adapted to request nat
 
 Paperclip `idle` means resumed and waiting. It is not equivalent to a running execution and it does not imply Human Send or Gateway outbound authority.
 
+
+## ADR 0144 — AI spend and tenant-credential authority
+
+Paperclip v2026.916.0 already provides company and per-agent monthly budgets, project lifetime budgets, cost events with provider/model/token/cost evidence, company/user secret scopes and subject-aware Connections/grants.
+
+For Wandora model execution:
+
+- Paperclip = operational employee/company/project spend control plane;
+- Mastra/runtime = per-execution technical guardrails;
+- Wandora = customer plan, price, margin, entitlement and billing semantics.
+
+A current integration gap remains: model calls executed inside Wandora Core/Mastra are not yet proven to post their cost evidence into Paperclip's cost-event ledger. Therefore Paperclip budgets must not be described as already governing Mistral spend on this path.
+
+Future tenant/BYOK credentials should reuse Paperclip secret scopes/responsible-user resolution where they belong to Paperclip-governed work. Connections/grants may own provider identity/delegation only after the provider integration is qualified. Do not create a Wandora tenant secret manager.

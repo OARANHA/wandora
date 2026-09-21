@@ -1183,3 +1183,28 @@ A lost/ambiguous provider response must fail closed. The client may retry only t
 The runtime capability is disabled by default and requires the separate work overlay plus migration-016 readiness. Repository merge cannot activate it.
 
 Human Send and Gateway outbound remain independent authority boundaries and are not implied by successful work execution.
+
+
+## Provider-neutral AI runtime boundary — ADR 0144
+
+```text
+Wandora logical profile / policy
+        |
+        v
+Agent Runtime Adapter
+        |
+        +--> Mastra today
+        |      -> native model/router/structured output/usage/guardrails
+        |
+        +--> Runtime X later
+               -> equivalent native capabilities
+        |
+        v
+replaceable model provider
+```
+
+`wandora-supervised-v1` is the stable Wandora logical execution/AI profile. Concrete `mistral / mistral-small-2603`, base URL and provider key location remain deployment/runtime details.
+
+`AssignedTaskResult` carries normalized token usage at the runtime boundary. No provider/model SDK object crosses it. Usage is not yet persisted as customer billing state merely because it is available.
+
+Cost authority is layered rather than duplicated: Paperclip owns operational company/agent/project budgets; the selected runtime owns per-execution native token/cost guardrails; Wandora owns plan, entitlement, price, margin and billing semantics.

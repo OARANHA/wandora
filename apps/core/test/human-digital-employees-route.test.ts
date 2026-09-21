@@ -498,7 +498,7 @@ test('customer work GET exposes only the Wandora supervised result projection', 
         title: 'Resumo comercial',
         description: 'Preparar resultado interno.',
         state: 'review-ready' as const,
-        result: { summary: 'Resumo pronto para revisão.', model: 'mastra-deterministic' },
+        result: { summary: 'Resumo pronto para revisão.', model: 'wandora-supervised-v1' },
         createdAt: '2026-09-20T00:00:00.000Z',
         updatedAt: '2026-09-20T00:01:00.000Z',
       }];

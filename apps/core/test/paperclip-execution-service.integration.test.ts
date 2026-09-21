@@ -59,7 +59,7 @@ test('private execution requires the canonical Wandora employee to be active', a
   const service = new PaperclipExecutionService(runtimePool, {
     executeAssignedTask: async () => {
       runtimeCalls += 1;
-      return { model: 'test', summary: 'should-not-run' };
+      return { model: 'test', summary: 'should-not-run', usage: { inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, totalTokens: 0 } };
     },
   });
 
@@ -80,7 +80,7 @@ test('active exact binding reaches AgentTaskRuntime without provider identifiers
   const service = new PaperclipExecutionService(runtimePool, {
     executeAssignedTask: async (input) => {
       received = input;
-      return { model: 'mastra-deterministic', summary: 'Proposta supervisionada' };
+      return { model: 'wandora-supervised-v1', summary: 'Proposta supervisionada', usage: { inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, totalTokens: 0 } };
     },
   });
 
@@ -90,7 +90,7 @@ test('active exact binding reaches AgentTaskRuntime without provider identifiers
     task: { title: 'Qualificar', description: 'Entender necessidade' },
   });
 
-  assert.equal(result.model, 'mastra-deterministic');
+  assert.equal(result.model, 'wandora-supervised-v1');
   assert.equal(result.summary, 'Proposta supervisionada');
   assert.match(result.executionId, /^exec_[0-9a-f]{64}$/);
   assert.deepEqual(received, {
@@ -121,7 +121,7 @@ test('Wandora work correlation is verified and result is committed without enter
     {
       executeAssignedTask: async (input) => {
         received = input;
-        return { model: 'mastra-deterministic', summary: 'Resultado supervisionado' };
+        return { model: 'wandora-supervised-v1', summary: 'Resultado supervisionado', usage: { inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, totalTokens: 0 } };
       },
     },
     {
@@ -164,7 +164,7 @@ test('Wandora work correlation is verified and result is committed without enter
     workId: WORK,
     paperclipRunId: RUN,
     executionId: result.executionId,
-    model: 'mastra-deterministic',
+    model: 'wandora-supervised-v1',
     summary: 'Resultado supervisionado',
   });
 });
@@ -179,7 +179,7 @@ test('cached exact work result prevents a duplicate AgentTaskRuntime execution',
     {
       executeAssignedTask: async () => {
         runtimeCalls += 1;
-        return { model: 'unexpected', summary: 'unexpected' };
+        return { model: 'unexpected', summary: 'unexpected', usage: { inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, totalTokens: 0 } };
       },
     },
     {
@@ -187,7 +187,7 @@ test('cached exact work result prevents a duplicate AgentTaskRuntime execution',
         return {
           kind: 'cached' as const,
           executionId: 'exec_cached',
-          model: 'mastra-deterministic',
+          model: 'wandora-supervised-v1',
           summary: 'Resultado já registrado',
         };
       },
@@ -208,7 +208,7 @@ test('cached exact work result prevents a duplicate AgentTaskRuntime execution',
   });
   assert.deepEqual(result, {
     executionId: 'exec_cached',
-    model: 'mastra-deterministic',
+    model: 'wandora-supervised-v1',
     summary: 'Resultado já registrado',
   });
   assert.equal(runtimeCalls, 0);

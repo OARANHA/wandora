@@ -1707,3 +1707,14 @@ An earlier operator-entered credential was not the intended current key and is n
 **Model Provider / Mistral Production Runtime Activation Preflight V1 — NO EFFECT**
 
 Reconcile live adapter version/provenance, freeze the `wandora_mastra@0.3.0` + 60s bridge-timeout promotion, freeze the Core model overlay + read-only secret mount, prove rollback/order and outbound boundaries, and stop before changing live Paperclip or Core.
+
+
+## 2026-09-21 — AI runtime portability checkpoint (ADR 0144)
+
+The model-provider foundation is provider/runtime replaceable by contract. Concrete Mistral provider/model/base URL are internal runtime configuration; the stable Wandora result identity is the logical profile `wandora-supervised-v1`.
+
+The Agent Runtime result now includes normalized token usage so a future Runtime X can map its native usage without changing Paperclip/customer contracts. No usage history/cost field was persisted because no consumer requirement yet justifies it.
+
+The current Mistral API key is a Wandora platform credential even though its transitional host path sits under the Core stack. It remains unmounted from live Core until a separately reviewed activation.
+
+Paperclip operational budgets, Mastra/runtime execution guardrails and Wandora commercial billing remain distinct authorities. Paperclip v2026.916.0 has native budgets/cost events/secrets/connections, while Mastra 1.66 has version support for token limiting and TokenCostControl; the latter is not yet operational because Wandora has not installed/configured Mastra observability plus durable observability storage.

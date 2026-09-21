@@ -52,8 +52,9 @@ test('MASTRA DETERMINISTIC AGENT RUNTIME V1', async (t) => {
       },
     });
     assert.deepEqual(result, {
-      model: 'mastra-deterministic',
+      model: 'wandora-supervised-v1',
       summary: 'Olá! Obrigado pelo contato. Para eu entender melhor e te orientar, você pode me contar o que precisa?',
+      usage: { inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, totalTokens: 0 },
     });
     assert.equal(JSON.stringify(result).includes('paperclip'), false);
   });

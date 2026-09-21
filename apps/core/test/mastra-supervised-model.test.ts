@@ -90,6 +90,7 @@ test('mastra supervised model runtime keeps inbound deterministic and model work
     assert.deepEqual(result, {
       model: 'wandora-supervised-v1',
       summary: 'Resumo interno supervisionado.',
+      usage: { inputTokens: 13, outputTokens: 7, cachedInputTokens: 0, totalTokens: 20 },
     });
     assert.equal(requests.length, 1);
 

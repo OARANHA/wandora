@@ -94,20 +94,24 @@ export class MastraSupervisedModelAgentRuntime implements AgentRuntime, AgentTas
     );
 
     const output = taskOutputSchema.parse(result.object);
+    const usage = {
+      inputTokens: result.totalUsage?.inputTokens ?? null,
+      outputTokens: result.totalUsage?.outputTokens ?? null,
+      cachedInputTokens: result.totalUsage?.cachedInputTokens ?? null,
+      totalTokens: result.totalUsage?.totalTokens ?? null,
+    };
     console.log(JSON.stringify({
       event: 'wandora.agent-runtime.model-usage',
       logicalModel: this.config.logicalModel,
       providerId: this.config.providerId,
       modelId: this.config.modelId,
-      inputTokens: result.totalUsage?.inputTokens ?? null,
-      outputTokens: result.totalUsage?.outputTokens ?? null,
-      totalTokens: result.totalUsage?.totalTokens ?? null,
-      cachedInputTokens: result.totalUsage?.cachedInputTokens ?? null,
+      ...usage,
     }));
 
     return {
       model: this.config.logicalModel,
       summary: output.summary,
+      usage,
     };
   }
 }

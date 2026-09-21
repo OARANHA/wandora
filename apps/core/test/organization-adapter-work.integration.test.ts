@@ -350,7 +350,7 @@ test('exact provider run is bound once and supervised result becomes review-read
     workId: work.id,
     paperclipRunId: '96000000-0000-4000-8000-0000000000a1',
     executionId: 'exec_fixture',
-    model: 'mastra-deterministic',
+    model: 'wandora-supervised-v1',
     summary: 'Resumo pronto para revisão.',
   });
 
@@ -362,7 +362,7 @@ test('exact provider run is bound once and supervised result becomes review-read
   assert.equal(listed[0]?.state, 'review-ready');
   assert.deepEqual(listed[0]?.result, {
     summary: 'Resumo pronto para revisão.',
-    model: 'mastra-deterministic',
+    model: 'wandora-supervised-v1',
   });
   assert.deepEqual(await service.prepareCatalogEmployeeWorkExecution({
     organizationId: ORG,
@@ -374,7 +374,7 @@ test('exact provider run is bound once and supervised result becomes review-read
   }), {
     kind: 'cached',
     executionId: 'exec_fixture',
-    model: 'mastra-deterministic',
+    model: 'wandora-supervised-v1',
     summary: 'Resumo pronto para revisão.',
   });
 });
