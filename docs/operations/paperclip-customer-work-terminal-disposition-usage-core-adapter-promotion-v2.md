@@ -1,13 +1,14 @@
 # Paperclip Customer-Work Terminal Disposition + Usage Core/Adapter Production Promotion V2
 
-Status: **Future execution runbook — NO EFFECT from documentation**
+Status: **EXECUTED / COMPLETE — production promotion closed by ADR 0154**
 
 Canonical authority:
 
 - ADR 0150 — historical first-work truth/remediation;
 - ADR 0151 — adapter 0.4.0 candidate, Task Drain and MED-1 repair;
 - ADR 0152 — capability reuse / provider portability;
-- ADR 0153 — companion Core correction and paired execution order.
+- ADR 0153 — companion Core correction and paired execution order;
+- ADR 0154 — production execution result and final validation.
 
 ## Hard stop conditions
 
