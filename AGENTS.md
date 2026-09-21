@@ -357,3 +357,31 @@ Progress is not the number of services, screens, tables or integrations installe
 - Do not create a Wandora model router, provider registry/catalog, retry engine, token-accounting engine, cost engine or tenant secret manager while native runtime/Paperclip capability is sufficient.
 - Paperclip operational budgets, runtime execution guardrails and Wandora commercial billing are distinct authorities.
 - External-effect authorization remains Wandora-owned regardless of runtime/tool/provider permissions.
+
+## Paperclip provider portability guardrail — ADR 0152 / ADR 0153
+
+Paperclip is the current specialist operational control-plane provider, not the Wandora product contract.
+
+Before adding any generic Wandora subsystem that overlaps Paperclip:
+
+1. prove the exact live/pinned Paperclip capability;
+2. apply the Capability Authority / Reuse Gate;
+3. classify the feature as REUSE NOW, ADAPT, FUTURE, WANDORA OWNED, DO NOT BUILD or QUARANTINE;
+4. run the provider Exit Test: if Paperclip were replaced, only provider bindings/adapters plus state migration should change;
+5. keep provider IDs/enums/state machines out of customer-facing Wandora APIs;
+6. require an adoption-time export/migration/rollback strategy for material provider dependencies;
+7. treat Paperclip experimental features as QUARANTINE unless a dedicated ADR proves otherwise.
+
+Do not create a shadow Paperclip database to achieve portability. Prefer native provider export + minimum Wandora bindings/receipts + targeted history archive.
+
+Adapters, Paperclip plugins and connectors are valid provider-side implementation mechanisms, but Wandora customer semantics, commercial policy and final external-effect authorization remain Wandora-owned.
+
+### Usage/cost nuance
+
+For Paperclip v2026.916.0, normalized adapter token usage can create Paperclip cost events. If no authoritative monetary cost is supplied, the event is unpriced with costCents=0. Current Paperclip budget policy observes billed_cents only.
+
+Do not claim that token telemetry alone enforces monetary spend, and do not add a Wandora provider-pricing engine merely to manufacture a budget value.
+
+### Current production-promotion correction
+
+ADR 0153 supersedes ADR 0151's adapter-only execution order. The live Core does not return normalized usage to Paperclip. Any lifecycle+usage promotion must use the qualified companion Core + adapter 0.4.0 sequence from ADR 0153.
