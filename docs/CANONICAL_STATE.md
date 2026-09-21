@@ -3162,3 +3162,35 @@ Repository-only hardening for this slice:
 No AI Profile table/catalog, provider router, budget engine, cost engine, secret manager or usage-history table was added.
 
 Portability GREEN permits a future **Model Provider / Mistral Production Runtime Activation Preflight V1 — NO EFFECT**, but that preflight must independently qualify cost governance because Paperclip cost-event ingestion for Core/Mastra model calls is not yet proven and Mastra TokenCostControl observability/storage prerequisites are not configured.
+
+## ADR 0145 — Model Provider / Mistral Production Runtime Activation Preflight V1
+
+Status: **NO-GO for production activation / NO EFFECT preflight complete.**
+
+The preflight starting from `main@d5f98ed92a29b351b243c4873bf17a2d13cdfc78` qualified the exact current-main Core candidate, `wandora_mastra@0.3.0` promotion, host-side platform-secret injection, local readiness/fail-closed behavior, 45s provider deadline < 60s bridge timeout, zero automatic provider retry, provider-error handling and Runtime-X portability without changing production.
+
+Production remains deliberately unchanged:
+
+```text
+Core runtime        = mastra-deterministic
+model provider env  = absent
+model key mount     = absent
+live wandora_mastra = 0.2.0
+Human Send          = OFF
+Gateway outbound    = OFF
+MEDICSPRO work      = 0
+MEDICSPRO outbound  = 0
+Ana                 = active + supervised / Paperclip idle
+Paperclip run state = zero
+```
+
+The only activation blocker is aggregate cost governance. Paperclip has native budget enforcement, but the Core/Mastra path does not currently emit an authoritative billed-cents cost event into Paperclip; the Paperclip cost-event contract requires caller-supplied `costCents`. Mastra native cumulative cost control is not yet production-qualified because its observability/storage prerequisites are not configured. Per-execution controls (single step, max output 768, 45s deadline, zero retry, bounded task input) are GREEN but are not an aggregate spend ceiling.
+
+Do **not** create a Wandora provider-pricing table, cost engine, second budget ledger, model router or tenant secret manager to close this gap.
+
+Next canonical slice:
+
+**Model Provider Runtime Native Cost Governance Qualification V1 — NO EFFECT**
+
+It must choose the minimum Mastra/Paperclip-native aggregate spend guard using synthetic/disposable evidence only. Production Core must remain deterministic; the Mistral secret must remain unmounted; Mistral must not be called. Only after that slice is GREEN may a separate Model Provider / Mistral Production Runtime Activation Execution V1 be authorized.
+
