@@ -3323,3 +3323,25 @@ The second Paperclip run was created by native stranded-issue reconciliation bec
 Repository PR #204 qualifies `wandora_mastra@0.4.0` so customer-work success terminalizes the exact Paperclip issue with the same run-scoped identity only after the Wandora result is committed, and returns normalized per-run usage. Disposable pinned-Paperclip proof requires `run_count=1`, `continuation_count=0` and usage `11|7|2`.
 
 Production remains on `wandora_mastra@0.3.0`; do not replay the legitimate work merely to clean up historical counters. The next effect boundary is **Paperclip Customer-Work Terminal Disposition + Usage Adapter Production Promotion Preflight V1 — NO EFFECT**.
+
+
+## ADR 0151 — Paperclip customer-work terminal disposition + usage adapter production promotion preflight
+
+Status: **GO for a separate production execution; NO EFFECT performed by the preflight**.
+
+The merged canonical source is `main@c44634ea8f03b491db32fbde9917a2b7a7fcbd16`. The exact `wandora_mastra@0.4.0` package was rebuilt deterministically from that main and frozen at:
+
+```text
+/home/wandora-admin/preflights/paperclip-customer-work-terminal-promotion-v1/candidate-0.4.0
+sha256 = 6390812d44afed0918b64388a882e10de0761de08c9b78f440403336612b717c
+```
+
+The exact live 0.3.0 registry/package were copied read-only to `rollback-0.3.0`. Live Paperclip still has exactly one `wandora_mastra@0.3.0`, loaded, with official `test-environment=pass`.
+
+MED-1 remains `blocked` with no live run, no checkout/execution run, no scheduled retry, no active recovery action, no blockers and no review path. Its only historical recovery action is resolved. Pinned Paperclip source plus official CLI contract establish the safe historical repair as a board-authenticated, status-only `blocked -> done` mutation with no comment/resume/reassignment/run identity; this path does not enqueue an assignee wake.
+
+The future execution order is frozen in ADR 0151 and the production runbook. It must promote 0.4.0 through the official instance-admin local-directory adapter boundary, restart only Paperclip once as required, validate one loaded 0.4.0 registration + test-environment PASS, then terminalize MED-1 exactly once and prove historical runs remain 2, model calls remain 1 and outbound remains 0.
+
+No historical usage backfill is authorized. The 705-token historical model event remains evidenced by Core; 0.4.0 reports normalized per-run usage prospectively.
+
+Next slice: **Paperclip Customer-Work Terminal Disposition + Usage Adapter Production Promotion Execution V1**.
