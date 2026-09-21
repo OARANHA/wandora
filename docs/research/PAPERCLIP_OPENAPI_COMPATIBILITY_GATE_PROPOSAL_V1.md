@@ -1,6 +1,6 @@
 # Paperclip OpenAPI Compatibility Gate Proposal V1
 
-Date: 2026-09-21  
+Date: 2026-09-21
 Status: **Proposal — research only; not yet a CI gate**
 
 ## Goal
