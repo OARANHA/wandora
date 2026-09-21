@@ -32,7 +32,7 @@ globalThis.fetch = async (url, init = {}) => {
       },
     }), { status: 200, headers: { 'content-type': 'application/json' } });
   }
-  assert.equal(String(url), `http://127.0.0.1:3100/api/issues/${issueId}`);
+  assert.equal(String(url), `http://localhost:3100/api/issues/${issueId}`);
   assert.equal(init.method, 'PATCH');
   return new Response(JSON.stringify({ id: issueId, status: 'done' }), {
     status: 200,
