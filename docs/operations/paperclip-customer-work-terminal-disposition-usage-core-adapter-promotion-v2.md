@@ -1,13 +1,14 @@
 # Paperclip Customer-Work Terminal Disposition + Usage Core/Adapter Production Promotion V2
 
-Status: **Future execution runbook — NO EFFECT from documentation**
+Status: **EXECUTED / COMPLETE — production promotion closed by ADR 0154**
 
 Canonical authority:
 
 - ADR 0150 — historical first-work truth/remediation;
 - ADR 0151 — adapter 0.4.0 candidate, Task Drain and MED-1 repair;
 - ADR 0152 — capability reuse / provider portability;
-- ADR 0153 — companion Core correction and paired execution order.
+- ADR 0153 — companion Core correction and paired execution order;
+- ADR 0154 — production execution result and final validation.
 
 ## Hard stop conditions
 
@@ -192,3 +193,37 @@ Important drain rule:
 - if Paperclip restarted, drain is already gone.
 
 Never delete retained 0.3.0 package or old Core rollback image during the promotion.
+
+## Execution result — ADR 0154
+
+This runbook was executed on 2026-09-21 and closed by ADR 0154.
+
+Final production invariants:
+
+```text
+Core = organization-adapter-candidate-61cbb34d4bfd / healthy
+Core healthz = 200
+Core readyz  = 200
+new model calls during promotion = 0
+
+Paperclip = v2026.916.0 / healthy
+wandora_mastra = exactly one 0.4.0 / loaded
+test-environment = PASS
+
+MED-1 = done
+historical Paperclip runs = 2
+live runs = []
+active recovery = none
+
+Wandora work operations = 1
+historical model calls = 1
+outbound attempts = 0
+Human Send = OFF
+Gateway outbound = OFF
+```
+
+No customer work was replayed and no historical usage was backfilled.
+
+Continuity note: a stalled chat response occurred after several mutations had already executed. Remote tool history was read before any retry, preventing duplicate Core/adapter/Paperclip/MED-1 operations.
+
+Residual provider-owned state: Paperclip Ana remains in the historical `error / wandora_execution_failed_409` state created by the ADR 0150 continuation failure. That state predates this promotion and is intentionally not cleared by this runbook. Reconciliation is a separate no-effect preflight.
