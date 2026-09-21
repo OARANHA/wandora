@@ -1,5 +1,3 @@
-[Reading 460 lines from start (total: 460 lines, 0 remaining)]
-
 import { readFile } from 'node:fs/promises';
 import ts from 'typescript';
 
