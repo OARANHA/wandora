@@ -1911,6 +1911,8 @@ The protected Paperclip Board/instance-admin credential store remains `/papercli
 
 Official CLI readback proves MED-1 is still blocked but quiescent: no live runs, no active recovery, no blockers/review path, no checkout/execution run. A future repair will use only the official board `issue update --status done` path after 0.4.0 is healthy. No direct SQL, no agent run token, no comment/resume/reassignment, no replay of the original work.
 
-Preflight effects remained zero: no adapter install, Paperclip restart, issue mutation, work/run/model call, migration or outbound action occurred.
+The live `v2026.916.0` OpenAPI and pinned source also qualify Paperclip's native instance Task Drain for the future execution: it holds new run admission while the current process drains and must report `quiescent=true` before restart. The drain is process-memory state and is cleared by restart, so it is not treated as a persistent maintenance lock.
+
+Preflight effects remained zero: no Task Drain mutation, adapter install, Paperclip restart, issue mutation, work/run/model call, migration or outbound action occurred.
 
 The next executable slice is the separately reviewed **Paperclip Customer-Work Terminal Disposition + Usage Adapter Production Promotion Execution V1**, following the frozen runbook.
