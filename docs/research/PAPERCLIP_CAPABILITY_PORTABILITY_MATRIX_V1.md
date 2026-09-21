@@ -237,3 +237,44 @@ Do not widen it merely to produce an abstract enum. Replace the literal with a p
 - tenant-specific control-plane provider selection becomes real; or
 - a migration rehearsal proves the current literal obstructs provider replacement.
 
+## Usage/cost authority correction
+
+The pinned implementation now proves the exact chain:
+
+```text
+normalized external-adapter usage
+-> heartbeat run usageJson/runtime totals
+-> Paperclip costEvents
+```
+
+when token usage is positive.
+
+However Paperclip budget policy in v2026.916.0 supports only:
+
+```text
+metric = billed_cents
+```
+
+and an event without authoritative `costUsd` is stored with `costCents=0` / `costStatus=unpriced`.
+
+Updated classification:
+
+| Concern | Authority / provider | Current decision |
+|---|---|---|
+| normalized model token telemetry | Agent Runtime produces; adapter normalizes; Paperclip records | **REUSE NOW once Core companion + adapter 0.4 are live** |
+| operational cost-event ledger | Paperclip | **REUSE NOW**, including unpriced token evidence |
+| monetary hard-stop | Paperclip billed-cents budget policy | **NOT YET effective for unpriced Wandora/Mistral usage** |
+| provider pricing | not qualified as Wandora authority | **DO NOT BUILD a Wandora pricing engine merely to make budgets non-zero** |
+| customer price/subscription | Wandora | **WANDORA OWNED** |
+
+### Promotion-portability correction
+
+Live Core currently omits usage from the Paperclip execution bridge. Current main differs from the live Core executable by exactly one Core source file, and a GREEN traceable candidate already exists with byte-equivalent Core inputs to current main.
+
+Therefore:
+
+- adapter 0.4 alone = lifecycle fix, but no new Paperclip usage telemetry with the current Core;
+- Core companion alone = adds response usage, while live adapter 0.3 safely ignores the additive field;
+- Core companion + adapter 0.4 = end-to-end normalized token events in Paperclip for future real runs.
+
+The accepted execution plan must treat these as a single compatibility-qualified promotion slice if it continues to claim both lifecycle and usage.
