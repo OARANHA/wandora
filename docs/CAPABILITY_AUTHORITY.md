@@ -150,14 +150,14 @@ Future BYOK must reuse qualified Paperclip secret scope/responsible-user and, wh
 
 A provider permission or runtime tool capability never authorizes a customer-visible external effect; the Wandora effect boundary remains final.
 
-## Provider-native aggregate model spend guard — ADR 0146
+## Provider-neutral runtime risk guard — ADR 0147
 
-For the platform-paid Mistral path, aggregate provider-spend enforcement is owned by the provider account boundary rather than by a new Wandora pricing engine.
+ADR 0147 supersedes ADR 0146's provider-specific activation blocker.
 
-- **Mistral Workspace monthly spending limit** = hard aggregate provider-spend boundary for the production API key;
-- **Mastra / Agent Runtime** = per-execution max-output, deadline, one-step and zero-retry guardrails; native cumulative cost processors are optional defense in depth and are not the hard billing ceiling;
-- **Paperclip budgets** = organizational operational budget authority and billed-cents ledger when authoritative cost evidence is available;
-- **Wandora** = plan, entitlement, customer price, margin and billing semantics.
+- **Agent Runtime contract** = bounded admitted work, exact identity, bounded output/deadline/steps, zero automatic model retry, structured output, fail-closed config, no implicit fallback and no external effect;
+- **provider-account controls** = provider-specific commercial/financial defense in depth when applicable; they are not universal Agent Runtime prerequisites;
+- **Paperclip budgets** = organizational operational budget authority;
+- **Wandora** = stable logical AI/runtime profile plus plan, entitlement, customer price, margin, billing and effect policy.
 
-API-key Workspace ownership and the finite Workspace cap must be proven before production model-runtime activation. Do not introduce a Wandora provider-pricing table, cost engine, second budget ledger or second model router to replace this specialist capability.
+Mistral Workspace spending limits remain a valid optional provider-account control, but a dedicated capped Mistral Workspace is not required merely to activate a dormant provider-backed runtime. Do not introduce a Wandora provider-pricing table, cost engine, second budget ledger or second model router.
 
