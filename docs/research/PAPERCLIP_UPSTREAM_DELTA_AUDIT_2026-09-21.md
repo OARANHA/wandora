@@ -1,6 +1,6 @@
 # Paperclip Upstream Delta Audit — v2026.916.0 to master
 
-Date: 2026-09-21  
+Date: 2026-09-21
 Status: **Research checkpoint — current master is radar, not production authority**
 
 ## Compared revisions
