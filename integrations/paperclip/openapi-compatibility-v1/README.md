@@ -67,7 +67,7 @@ client; response narrowing is compatible. Path/query parameters are checked as w
 
 All paths have `/api` prefix. There are 15 A operations, no fabricated B entries,
 and 2 C GET routes (company cases/pipelines), from the canonical quarantine map.
-Runbook dependencies do **not** imply the pending production promotion was executed.
+Runbook dependencies describe the maintained operator/API contract. ADR 0154 records that the qualified Core + adapter 0.4.0 promotion has since executed successfully; this gate itself neither authorizes nor performs production execution.
 
 ### Deliberate exclusions
 
