@@ -161,3 +161,81 @@ ADR 0147 supersedes ADR 0146's provider-specific activation blocker.
 
 Mistral Workspace spending limits remain a valid optional provider-account control, but a dedicated capped Mistral Workspace is not required merely to activate a dormant provider-backed runtime. Do not introduce a Wandora provider-pricing table, cost engine, second budget ledger or second model router.
 
+## Provider portability rule — Paperclip Capability & Portability Audit V1
+
+The specialist named in this document is an **operational provider**, not the owner of Wandora's customer semantics.
+
+For every material provider-backed capability distinguish:
+
+```text
+semantic authority
+  = who defines what the capability means to a Wandora customer/product
+
+operational authority
+  = who currently executes/persists the specialist state machine
+
+provider implementation
+  = the concrete component currently supplying that authority
+```
+
+Example:
+
+```text
+customer work semantic contract = Wandora
+issue/run operational authority = Paperclip
+current provider implementation  = Paperclip
+runtime execution contract       = Wandora Agent Runtime
+runtime implementation           = Mastra
+model provider                    = Mistral today
+```
+
+### Mandatory provider Exit Test
+
+Before expanding a Paperclip-backed customer capability, answer:
+
+> If Paperclip were replaced tomorrow, which Wandora contracts would change?
+
+The target answer is:
+
+> only the provider adapter/binding plus migration of provider-owned operational state.
+
+Provider IDs, enums, UI concepts and state machines must not become customer-facing Wandora contracts merely because they are convenient.
+
+### Provider-state rule
+
+Wandora may retain the minimum state needed for:
+
+- stable Wandora identity;
+- provider correlation/binding;
+- authorization and product policy;
+- idempotency/effect receipts;
+- customer-safe projections;
+- reconciliation/ambiguity recovery;
+- compliance/effect audit;
+- provider migration/exit.
+
+This does not authorize a shadow copy of provider operational history.
+
+### Adoption-time migration gate
+
+A material new provider capability must document, before customer dependency:
+
+1. its provider-neutral Wandora semantic contract, if any;
+2. whether it is available in the exact pinned/live provider version;
+3. how configuration/open state is exported;
+4. what historical state is intentionally retained or not migrated;
+5. secret reauthorization/rotation behavior;
+6. its rollback and provider replacement strategy.
+
+If those questions are unresolved, classify the capability as **QUARANTINE** rather than inventing a Wandora duplicate.
+
+### Current Paperclip-specific portability debt
+
+The current persistence model is already provider-neutral through `provider`, `provider_company_ref` and `provider_agent_ref` bindings, and customer Web has a negative provider-leakage verifier.
+
+Two localized internal couplings remain acceptable for the current single-provider deployment:
+
+- `OrganizationAdapterProvider.provider` is currently typed as literal `'paperclip'`;
+- the private execution bridge/run-identity integration is Paperclip-specific.
+
+Do not perform a broad abstraction refactor merely for aesthetics. Generalize these boundaries when a second provider, migration rehearsal or concrete portability requirement proves the value.
