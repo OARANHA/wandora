@@ -1,5 +1,3 @@
-[Reading 279 lines from start (total: 279 lines, 0 remaining)]
-
 import { useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Bot, LoaderCircle, RotateCcw } from 'lucide-react';
