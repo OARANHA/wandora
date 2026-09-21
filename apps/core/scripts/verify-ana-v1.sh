@@ -1,5 +1,3 @@
-[Reading 247 lines from start (total: 247 lines, 0 remaining)]
-
 #!/usr/bin/env bash
 set -euo pipefail
 
