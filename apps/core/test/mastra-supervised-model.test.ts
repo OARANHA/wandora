@@ -85,6 +85,20 @@ test('mastra supervised model runtime keeps inbound deterministic and model work
         title: 'Preparar resumo comercial',
         description: 'Organize os próximos passos para revisão do owner.',
       },
+      grounding: {
+        officialFacts: [{
+          content: 'A empresa atende somente com informações confirmadas.',
+          provenance: { type: 'approved_source', sourceLabel: 'Perfil oficial' },
+        }],
+        houseRules: [{
+          content: 'Quando não souber, declarar desconhecido.',
+          provenance: { type: 'owner_statement', sourceLabel: null },
+        }],
+        workContext: {
+          title: 'Preparar resumo comercial',
+          description: 'Organize os próximos passos para revisão do owner.',
+        },
+      },
     });
 
     assert.deepEqual(result, {
@@ -114,8 +128,18 @@ test('mastra supervised model runtime keeps inbound deterministic and model work
     const messages = request.body.messages as Array<Record<string, unknown>>;
     const userMessage = String(messages.find((message) => message.role === 'user')?.content ?? '');
     assert.deepEqual(JSON.parse(userMessage), {
-      title: 'Preparar resumo comercial',
-      description: 'Organize os próximos passos para revisão do owner.',
+      officialFacts: [{
+        content: 'A empresa atende somente com informações confirmadas.',
+        provenance: { type: 'approved_source', sourceLabel: 'Perfil oficial' },
+      }],
+      houseRules: [{
+        content: 'Quando não souber, declarar desconhecido.',
+        provenance: { type: 'owner_statement', sourceLabel: null },
+      }],
+      workContext: {
+        title: 'Preparar resumo comercial',
+        description: 'Organize os próximos passos para revisão do owner.',
+      },
     });
   } finally {
     server.close();
@@ -151,6 +175,11 @@ test('mastra supervised model runtime aborts before the Paperclip bridge timeout
         organizationId: ORG,
         employee: plannerInput().employee,
         task: { title: 'Timeout proof', description: 'Do not wait forever.' },
+        grounding: {
+          officialFacts: [],
+          houseRules: [],
+          workContext: { title: 'Timeout proof', description: 'Do not wait forever.' },
+        },
       }),
     );
     assert.equal(requests, 1);

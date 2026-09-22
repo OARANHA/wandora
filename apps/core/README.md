@@ -101,14 +101,19 @@ The model-backed runtime is deliberately asymmetric:
 
 - `proposeCommercialReply(...)` delegates to the existing deterministic runtime, so inbound customer/WhatsApp content does not gain model-provider egress from this slice;
 - only `executeAssignedTask(...)`, reached through the authenticated Paperclip execution bridge for an already-active supervised employee, calls the external model;
-- only bounded task `title` and `description` enter the model request;
-- Wandora organization/employee IDs, Paperclip IDs/run tokens, customer address/phone and provider-control metadata do not enter the model prompt;
+- assigned work enters the model through the provider-neutral grounding snapshot `officialFacts[] + houseRules[] + workContext`;
+- only active official Wandora facts/rules are projected; retired entries are excluded and unknown information remains unknown;
+- work title/description stays inside `workContext` and never becomes official truth merely by reaching the model;
+- the projection is tenant-scoped/read-only and fails closed before durable work preparation if grounding cannot be loaded;
+- Wandora organization/employee IDs, grounding row IDs, Paperclip IDs/run tokens, customer address/phone and provider-control metadata do not enter the model prompt;
 - model output is schema-validated to one bounded internal `summary`;
 - `maxOutputTokens=768`, model request timeout = 45 seconds and automatic model retries = 0;
 - `wandora_mastra` bridge timeout = 60 seconds, so Core is expected to terminate first;
 - Human Send and Gateway outbound remain separate capabilities and are not enabled by model-backed execution.
 
 Provider/model identity remains operational metadata. Customer work results expose the logical Wandora model identifier `wandora-supervised-v1`, not the concrete model vendor/model name.
+
+ADR 0171 adds only this read projection. It does not make Core a RAG, memory, retrieval, vector, embedding, chunking or generic context-assembly engine. The execution-bridge readiness check now also requires the migration-017 grounding read boundary before reporting ready.
 
 ## Human session and read APIs
 

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test, { after } from 'node:test';
 import { Pool } from 'pg';
-import type { AssignedTaskInput } from '../src/agent-runtime/task-runtime.js';
+import type { AssignedTask, AssignedTaskInput } from '../src/agent-runtime/task-runtime.js';
 import { paperclipManagedAgentRef } from '../src/organization-adapter/paperclip-provider.js';
 import {
   PaperclipExecutionBindingError,
@@ -15,6 +15,16 @@ const AGENT = '74000000-0000-4000-8000-0000000000a1';
 const RUN = '75000000-0000-4000-8000-0000000000a1';
 const runtimePool = new Pool({ connectionString: process.env.DATABASE_URL });
 const fixturePool = new Pool({ connectionString: process.env.FIXTURE_DATABASE_URL });
+
+const emptyGroundingProjection = {
+  async project(_organizationId: string, workContext: AssignedTask) {
+    return {
+      officialFacts: [],
+      houseRules: [],
+      workContext,
+    };
+  },
+};
 
 after(async () => {
   await Promise.all([runtimePool.end(), fixturePool.end()]);
@@ -61,7 +71,7 @@ test('private execution requires the canonical Wandora employee to be active', a
       runtimeCalls += 1;
       return { model: 'test', summary: 'should-not-run', usage: { inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, totalTokens: 0 } };
     },
-  });
+  }, emptyGroundingProjection);
 
   await assert.rejects(
     service.execute({
@@ -82,7 +92,7 @@ test('active exact binding reaches AgentTaskRuntime without provider identifiers
       received = input;
       return { model: 'wandora-supervised-v1', summary: 'Proposta supervisionada', usage: { inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, totalTokens: 0 } };
     },
-  });
+  }, emptyGroundingProjection);
 
   const result = await service.execute({
     identity: { paperclipAgentId: AGENT, paperclipCompanyId: COMPANY, catalogKey: 'ana-commercial-v1' },
@@ -104,6 +114,11 @@ test('active exact binding reaches AgentTaskRuntime without provider identifiers
       autonomyMode: 'supervised',
     },
     task: { title: 'Qualificar', description: 'Entender necessidade' },
+    grounding: {
+      officialFacts: [],
+      houseRules: [],
+      workContext: { title: 'Qualificar', description: 'Entender necessidade' },
+    },
   });
   assert.equal(JSON.stringify(received).includes(COMPANY), false);
   assert.equal(JSON.stringify(received).includes(AGENT), false);
@@ -125,6 +140,7 @@ test('Wandora work correlation is verified and result is committed without enter
         return { model: 'wandora-supervised-v1', summary: 'Resultado supervisionado', usage: { inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, totalTokens: 0 } };
       },
     },
+    emptyGroundingProjection,
     {
       async prepareCatalogEmployeeWorkExecution(input) {
         preparation.push(input);
@@ -183,6 +199,7 @@ test('cached exact work result prevents a duplicate AgentTaskRuntime execution',
         return { model: 'unexpected', summary: 'unexpected', usage: { inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, totalTokens: 0 } };
       },
     },
+    emptyGroundingProjection,
     {
       async prepareCatalogEmployeeWorkExecution() {
         return {
@@ -230,6 +247,7 @@ test('runtime failure marks exact work execution uncertain and never retries ins
         throw new Error('synthetic model failure');
       },
     },
+    emptyGroundingProjection,
     {
       async prepareCatalogEmployeeWorkExecution() {
         return { kind: 'execute' as const };

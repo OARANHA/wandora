@@ -217,3 +217,14 @@ Provider portability is achieved with **ports, bindings, export/reconciliation c
 | Approved correction history | Durable replacement lineage + audit | Decision Training is not substituted | Memory is not substituted | WANDORA-OWNED |
 | Runtime retrieval/context assembly | Supplies bounded official inputs only | Not grounding authority | Operational runtime authority | DEFER TO RUNTIME PROJECTION |
 | Model inference promotion | Explicit human-approved contract only | No automatic promotion | No automatic promotion | FORBID AUTOMATIC PROMOTION |
+## Runtime grounding projection — ADR 0171
+
+| Concern | Canonical authority | Reuse / collision decision |
+| --- | --- | --- |
+| official facts at runtime | Wandora | project active `fact` rows only; no provider truth store |
+| house rules at runtime | Wandora | project active `rule` rows only |
+| work-specific context | Wandora work contract | separate from official truth; never auto-promote |
+| task/run lifecycle | Paperclip | reuse Paperclip; no Wandora task engine |
+| memory/retrieval/context assembly | Mastra/runtime | reuse/defer; no Wandora RAG/vector/chunking subsystem |
+| model inference | runtime/model | never official truth without explicit authorized Wandora mutation |
+| provider replacement | Wandora `AgentTaskRuntime` boundary | replace adapter/runtime implementation, not semantic contract |

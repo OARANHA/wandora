@@ -32,8 +32,11 @@ const INTERNAL_TASK_INSTRUCTIONS = [
   'Execute somente trabalho interno e supervisionado para revisão humana.',
   'Não envie mensagens, não realize ações externas e não alegue que realizou uma ação externa.',
   'Se a instrução pedir um efeito externo, produza apenas um rascunho, análise ou plano e deixe claro que o efeito não foi executado.',
-  'Não invente fatos, registros, contatos, preços, prazos ou resultados que não estejam no trabalho fornecido.',
-  'Use somente o título e a descrição recebidos como contexto desta execução.',
+  'Não invente fatos, registros, contatos, preços, prazos ou resultados que não estejam no contexto oficial fornecido.',
+  'Trate officialFacts exclusivamente como fatos oficiais da empresa e houseRules exclusivamente como regras oficiais.',
+  'Trate workContext como o contexto específico deste trabalho.',
+  'Se uma informação não estiver em officialFacts, houseRules ou workContext, trate-a como desconhecida e não a apresente como fato.',
+  'Nunca transforme inferência, hipótese ou saída do modelo em fato oficial.',
   'Responda em português do Brasil, de forma objetiva e útil para o owner.',
   'Retorne somente o resultado interno no campo summary.',
 ].join(' ');
@@ -76,8 +79,9 @@ export class MastraSupervisedModelAgentRuntime implements AgentRuntime, AgentTas
       [{
         role: 'user',
         content: JSON.stringify({
-          title: task.title,
-          description: task.description,
+          officialFacts: input.grounding.officialFacts,
+          houseRules: input.grounding.houseRules,
+          workContext: input.grounding.workContext,
         }),
       }],
       {

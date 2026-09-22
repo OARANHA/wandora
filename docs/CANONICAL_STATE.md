@@ -3801,3 +3801,14 @@ ADR 0170 implements the bounded owner/admin mutation + customer read contract ov
 - no Paperclip/Mastra/runtime projection was introduced.
 
 Migration 017 remains absent from production; no real MEDICSPRO grounding was created and outbound gates remain outside this slice.
+## ADR 0171 — Organization Grounding Runtime Projection V1
+
+Status: **IMPLEMENTED IN CODE / NO PRODUCTION EFFECT**.
+
+The Paperclip execution boundary now requires a provider-neutral Wandora grounding snapshot before Agent Runtime execution. Active `fact` entries project to `officialFacts[]`; active `rule` entries project to `houseRules[]`; retired entries are excluded; `workContext` remains separate from official truth.
+
+The projection reuses migration 017 only, runs tenant-scoped/read-only, exposes no provider IDs, gives runtime no write authority, and adds no memory/RAG/vector/embedding/chunking/document subsystem. The existing execution-bridge readiness gate now fails closed when the migration-017 read boundary is unavailable.
+
+Migration 017 remains **ABSENT in production**. No MEDICSPRO grounding was created, no Core/Web/Paperclip/Gateway deployment occurred, no model call/work/run/outbound effect occurred, and Human Send/Gateway outbound remain unchanged/off.
+
+Next recommended slice: **Empresa / Regras da Casa Customer Surface V1 — CODE ONLY / NO PRODUCTION EFFECT**, before any production migration/promotion.
