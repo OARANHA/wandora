@@ -27,7 +27,7 @@ assert(source.includes('Itens retirados'), 'company_grounding_retired_history_mi
 assert(source.includes("provenanceType: input.approvedSource ? 'approved_source' as const : 'owner_statement' as const"), 'company_grounding_provenance_contract_missing');
 assert(source.includes("sourceRef: input.sourceRef.trim() || null"), 'company_grounding_owner_statement_source_evidence_missing');
 assert(source.includes("required={draft.approvedSource}"), 'company_grounding_approved_source_reference_required_missing');
-assert(source.includes("Referência de evidência"), 'company_grounding_evidence_field_missing');
+assert(source.includes("Onde essa informação está registrada?"), 'company_grounding_evidence_field_missing');
 assert(!source.includes('{entry.provenance.sourceRef}'), 'company_grounding_source_ref_must_not_render');
 assert(!source.includes('paperclip'), 'company_grounding_provider_name_leaked');
 assert(!source.includes('mastra'), 'company_grounding_runtime_provider_name_leaked');
