@@ -5,23 +5,24 @@ Date: 2026-09-22
 
 ## Context
 
-ADR 0186 introduced the customer Web design-system/app-shell slice:
+ADR 0186 introduced the owner-approved customer design-system step without production effect:
 
-- Dela Gothic One 400 for display;
+- Dela Gothic One 400 for display/brand;
 - Space Grotesk Variable for body/interface text;
 - JetBrains Mono Variable for operational labels;
-- collapsible desktop sidebar;
-- power-style logout wired to the existing real signOut path;
-- complete six-route customer navigation.
+- explicit global visual tokens;
+- 250px -> 82px collapsible desktop sidebar;
+- power-style Sair control reusing the existing real signOut() path;
+- complete mobile access to all six canonical customer routes.
 
-This ADR records the production state that was already reached during an interrupted chat. The effect was reconciled before any attempt to repeat it.
+The supplied design references remained visual direction only; no demo business data was copied into product state.
 
-## Canonical source
+## Canonical source and CI
 
-```text
+Promotion source:
+
 main = 67966d42d23e1778d89c2430de8d59e2235dedfb
 PR #246 = MERGED
-```
 
 PR-head checks were 5/5 GREEN:
 
@@ -42,105 +43,139 @@ Post-merge push workflows on the exact main were also GREEN:
 
 GitHub Actions Web artifact:
 
-```text
 artifact id = 10722734256
-name = web-candidate-67966d42d23e1778d89c2430de8d59e2235dedfb
-GitHub artifact digest = sha256:0b544336336d47225a54f9b470957afc8a65ea6e53f60006715efa486a88e319
-```
+artifact name = web-candidate-67966d42d23e1778d89c2430de8d59e2235dedfb
+GitHub artifact ZIP sha256 = 0b544336336d47225a54f9b470957afc8a65ea6e53f60006715efa486a88e319
+source sha = 67966d42d23e1778d89c2430de8d59e2235dedfb
+source tree sha = bf9cbe51a70d4fe9fcf584128ffd188cf6761870
+image tag = wandora/web:candidate-67966d42d23e
+artifact manifest image id = sha256:6ebcf1b9646f21d6aa09efd3fdc4bf836cc406b74324ee134872752dbf443dd4
+web-image.tar sha256 = 25576bff1aac7586fa63c73460fe238f891a9562bb9a47afa2c5f31eca0e195c
+manifest.txt sha256 = 93ba32fb811f3fddc856030e2396701faf90420a4daa07e0d73530016f552785
 
-The ZIP present on the VPS independently hashes to the same value.
+The downloaded artifact ZIP matched GitHub metadata exactly. Internal SHA256SUMS verified both Web payload files before Docker load.
 
-Internal manifest:
+Host Docker identifies the loaded image as sha256:d767b522f73b84d1a0fff7061e2a564e53dc5db075ac4306de790d1fd6d0b16d with source revision 67966d42d23e1778d89c2430de8d59e2235dedfb and candidate contract wandora-web-reviewed-bridge-v1.
 
-```text
-candidate_contract = wandora-web-reviewed-bridge-v1
-source_sha = 67966d42d23e1778d89c2430de8d59e2235dedfb
-source_tree_sha = bf9cbe51a70d4fe9fcf584128ffd188cf6761870
-image_tag = wandora/web:candidate-67966d42d23e
-archive_sha256 = 25576bff1aac7586fa63c73460fe238f891a9562bb9a47afa2c5f31eca0e195c
-```
+## Second adversarial review
 
-Internal SHA256SUMS also verifies:
+The exact artifact was run first as a disposable private candidate on the existing wandora-core network.
 
-```text
-web-image.tar = 25576bff1aac7586fa63c73460fe238f891a9562bb9a47afa2c5f31eca0e195c
-manifest.txt = 93ba32fb811f3fddc856030e2396701faf90420a4daa07e0d73530016f552785
-```
+Proof:
 
-The artifact manifest's image identifier and Docker live `.Image` value are different identifier forms and are not asserted to be interchangeable.
+- candidate healthy / restart 0;
+- /healthz = 200;
+- /company = 200;
+- /api/v1/me without session = 401;
+- unknown grounding path = 404;
+- candidate CSS contains Dela Gothic One, Space Grotesk Variable and JetBrains Mono Variable;
+- candidate JS contains the sidebar preference key and Sair do sistema control.
 
-## Reconciled live state
+The disposable candidate was removed after proof.
 
-Before any repeat action, runtime inspection proved the Web had already been promoted:
+Rejected:
 
-```text
-Web image = wandora/web:candidate-67966d42d23e
-Web revision = 67966d42d23e1778d89c2430de8d59e2235dedfb
-Web = healthy / restart 0
-persisted selector = wandora/web:candidate-67966d42d23e
-```
+- rebuilding the artifact on the VPS;
+- changing Core for a Web-only design slice;
+- copying demo people/tool/activity state from the visual references;
+- adding a second auth/logout implementation;
+- turning browser-local sidebar preference into business state;
+- touching grounding or outbound merely to validate visual changes.
 
-Therefore no second promotion was attempted.
+## Pre-effect and rollback state
 
-Other services remained unchanged:
+Immediately before promotion:
 
-```text
-Core = wandora/core:organization-adapter-candidate-d8349b353bb7 / healthy / restart 0
-Paperclip = wandora/paperclip:v2026.916.0 / healthy / restart 0
-Messaging Gateway = wandora/messaging-gateway:origin-fix-94cfb4de / healthy / restart 0
-```
+Web = wandora/web:candidate-d8349b353bb7
+Core = wandora/core:organization-adapter-candidate-d8349b353bb7
+Paperclip = wandora/paperclip:v2026.916.0
+Messaging Gateway = wandora/messaging-gateway:origin-fix-94cfb4de
 
-## Public validation
+MEDICSPRO grounding rows = 0
+works = 2
+outbound attempts = 0
+Ana = active + supervised
+Human Send = OFF
+Gateway outbound = OFF
 
-```text
-/healthz = 200
-/login = 200
-/ = 200
-/team = 200
-/work = 200
-/conversations = 200
-/approvals = 200
-/company = 200
-```
+The pre-effect runtime snapshot is retained at:
 
-The live selector and live revision both match the merged-main Web candidate.
+/home/wandora-admin/executions/web-design-system-app-shell-v1-promotion/runtime.before
 
-## Business-state safety
+The valid rollback selector backup is:
 
-No product/business mutation was part of this visual promotion.
+/home/wandora-admin/executions/web-design-system-app-shell-v1-promotion/web.env.before
 
-Readback remained:
+sha256 = 9bb020ae4ce98b0c63c41789020f968d3e22862ee3cda43de07e23d8b21aeab5
 
-```text
-MEDICSPRO grounding = 0
-MEDICSPRO works = 2
-MEDICSPRO outbound attempts = 0
-```
+Its content is the previous selector:
 
-Core, Paperclip and Messaging Gateway were not recreated for this slice.
+WANDORA_WEB_IMAGE=wandora/web:candidate-d8349b353bb7
 
-## Evidence caveat
+The previous Web image remained locally available.
 
-A local file named `web-image.before` in the interrupted execution directory already contains the promoted Web tag. It is therefore **not accepted as valid rollback evidence** for the pre-promotion image and is not used by this ADR as proof.
+## Execution
 
-This ADR records only independently proven source/artifact/runtime evidence.
+Only the persisted Web selector changed:
 
-## Capability Authority / Reuse Gate
+before = wandora/web:candidate-d8349b353bb7
+after = wandora/web:candidate-67966d42d23e
 
-No capability authority changed.
+Only wandora-web was recreated.
 
-- navigation remains Web presentation;
-- sidebar collapse remains browser-local UI preference;
-- logout reuses existing Wandora/Supabase session semantics;
-- no provider capability was internalized;
-- no database/migration/service/state machine/RAG/retrieval/memory subsystem was added.
+Core, Paperclip and Messaging Gateway container IDs remained unchanged.
 
-ADR 0168 remains binding.
+## Post-promotion validation
+
+Live Web:
+
+image = wandora/web:candidate-67966d42d23e
+source revision = 67966d42d23e1778d89c2430de8d59e2235dedfb
+healthy / restart 0
+
+Public routes:
+
+- /healthz = 200;
+- /login = 200;
+- / = 200;
+- /team = 200;
+- /work = 200;
+- /conversations = 200;
+- /approvals = 200;
+- /company = 200;
+- /api/v1/me without session = 401;
+- grounding without session = 401;
+- unknown grounding route = 404.
+
+Live bundle proof confirms:
+
+- Dela Gothic One;
+- Space Grotesk Variable;
+- JetBrains Mono Variable;
+- wandora.ui.sidebar-collapsed;
+- Sair do sistema.
+
+Final customer state is unchanged:
+
+MEDICSPRO grounding rows = 0
+works = 2
+outbound attempts = 0
+Ana = active + supervised
+Human Send = OFF
+Gateway outbound = OFF
+
+No grounding mutation, model call, customer work, provider run, wakeup, task session or external message occurred during this promotion.
+
+## Capability Authority
+
+No authority changes.
+
+This promotion is customer Web presentation only. Wandora/Paperclip/Mastra/Gateway authority boundaries remain unchanged and ADR 0168 continues to apply.
 
 ## Decision
 
 **Web Design System + App Shell Production Promotion V1 is COMPLETE / GREEN.**
 
-The new design system and app shell are live as a Web-only presentation change.
+The new typography, collapsible sidebar, complete mobile navigation and power-style real logout are production-active.
 
-The separately authorized MEDICSPRO first real grounding execution remains pending normal authenticated owner interaction and is not implied by this visual promotion.
+The separately authorized MEDICSPRO first real grounding execution remains pending and must still originate from the normal authenticated owner/admin customer flow.
