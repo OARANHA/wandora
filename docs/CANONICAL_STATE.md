@@ -1,5 +1,12 @@
 # Wandora — Canonical State / Handoff
 
+## ADR 0183 — Grounding Browser Idempotency Production Promotion — GREEN
+
+Live Web is now `wandora/web:candidate-8fb5201b0229`, healthy/restart 0. Grounding create preserves browser UUID + exact payload fingerprint across ambiguous retries. Core/Paperclip/Gateway were not recreated.
+
+MEDICSPRO grounding remains 0. The next and only remaining effect in this slice is normal authenticated owner/admin creation of F1/F2/F3 as facts and R1 as a rule.
+
+
 ## ADR 0182 — Customer Company Grounding Create Browser Idempotency V1 — CODE ONLY
 
 The `/company` create path now reuses the proven customer-browser safety model: UUID + exact payload fingerprint persisted in sessionStorage and reused after ambiguous responses. Changed payloads fail closed while a create is unresolved.
