@@ -1,5 +1,9 @@
 # Wandora — Project Source / Continuity Bootstrap
 
+## Current continuity checkpoint — ADR 0177
+
+Customer Web Grounding API Bridge Production Promotion Execution V1 is **COMPLETE / GREEN / WEB ONLY**. Exact ADR 0176 artifact `wandora/web:candidate-1800aa3d3fb4` is now live, healthy and restart 0. Public unauthenticated grounding now reaches Core and returns 401 rather than old-Web Nginx 404. Migration 017 remains LIVE/verified with 0 grounding rows; MEDICSPRO works = 2 and outbound attempts = 0. Core/Paperclip/Gateway were unchanged; Human Send and Gateway outbound remain OFF. Any first real MEDICSPRO fact/rule is a separate effect slice.
+
 Snapshot date: **2026-09-22**
 Repository: `OARANHA/wandora`
 
