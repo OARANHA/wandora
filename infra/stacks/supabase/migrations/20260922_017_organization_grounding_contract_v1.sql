@@ -383,5 +383,3 @@ COMMENT ON COLUMN wandora.organization_grounding_entries.status IS
   'Product semantic lifecycle only: active entries may ground work; retired entries remain historical product state until a later retention policy says otherwise.';
 
 COMMIT;
-
-[executed on device: wandora-vps-01 (4f062e11-0f3c-4c6e-8f71-7d6136c1bee9)]
