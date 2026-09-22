@@ -9,6 +9,7 @@ export type RuntimeGroundingStatement = {
   content: string;
   provenance: {
     type: 'owner_statement' | 'approved_source' | 'approved_correction';
+    sourceRef: string | null;
     sourceLabel: string | null;
   };
 };
