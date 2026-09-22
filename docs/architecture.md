@@ -1410,3 +1410,12 @@ Paperclip v2026.916.0 distinguishes run/issue history from the current agent lif
 Wandora must not mirror that diagnostic into a second product lifecycle machine. The customer-facing Ana remains governed by Wandora's `active + supervised` contract while Paperclip owns its operational lifecycle/history.
 
 For the current MEDICSPRO historical continuation failure, no lifecycle mutation is required for readiness. Paperclip's dedicated Board-only `clear-error` exists for a separately authorized operator-facing cleanup and preserves run/runtime diagnostics; `resume`, wakeup, generic status PATCH and direct SQL are not substitutes.
+
+
+## Customer-work admission vs Paperclip invokability — ADR 0156
+
+Organization Adapter must not force a historical Paperclip `error` projection to be cleared merely to admit customer work. Paperclip owns final invokability and re-checks it in `heartbeat.wakeup`.
+
+For the current conservative single-work posture, Wandora may retain a narrower pre-admission gate than Paperclip concurrency semantics, but it must accept both `idle` and historical `error`. `running` remains locally rejected until concurrency is separately designed.
+
+This keeps lifecycle authority in Paperclip while avoiding a customer-work false negative caused by a stale diagnostic projection.
