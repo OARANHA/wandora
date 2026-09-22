@@ -175,3 +175,21 @@ Prototype-only elements remain FUTURO and are not presented as customer truth:
 - candidate/future-hire queue.
 
 The approved Team composition and visual language are retained without inventing state.
+
+
+## Customer-work result presentation checkpoint — ADR 0164
+
+Customer-work results are now presented in code through a bounded, inert Wandora renderer rather than raw Markdown markers.
+
+Supported formatting:
+
+- headings;
+- paragraphs;
+- bold text;
+- inline code;
+- unordered/ordered lists;
+- quotes.
+
+Markdown link/image targets are discarded; only visible label/alt text remains. Raw HTML is never interpreted. The renderer uses no `dangerouslySetInnerHTML`, `innerHTML` or model-provided `href`.
+
+The `Início` latest-work preview uses normalized plain text, so model Markdown markers do not leak into the compact surface.
