@@ -1440,3 +1440,18 @@ qualified immutable package
 ```
 
 Do not hard-purge company config, overwrite the previous package directory, restart Paperclip unnecessarily, or mutate the managed Ana lifecycle merely to satisfy a plugin promotion.
+
+
+## Live Organization Adapter compatibility checkpoint — ADR 0160
+
+The current Paperclip organization plugin boundary is now:
+
+```text
+Wandora customer work
+  -> Organization Adapter 0.3.1
+      -> conservative local gate: idle | error
+      -> Paperclip issues.requestWakeup
+          -> Paperclip final lifecycle/invokability authority
+```
+
+Promotion retained plugin identity/config and required no Paperclip restart. Historical Paperclip agent diagnostics are not mirrored or normalized by Wandora merely to admit work.
