@@ -1,5 +1,12 @@
 # Wandora — Project Source / Continuity Bootstrap
 
+## Current continuity checkpoint — ADR 0182
+
+Customer Company Grounding Create Browser Idempotency V1 is **CODE ONLY / NO PRODUCTION EFFECT**. Grounding create now preserves the same request identity across ambiguous retries using UUID + request fingerprint in sessionStorage, reusing the existing customer work/hire pattern.
+
+No real grounding exists yet. ADR 0179 semantic payloads remain unchanged; its textual planned idempotency keys are superseded before effect by browser-generated retained UUIDs.
+
+
 ## Current continuity checkpoint — ADR 0181
 
 Customer Company Owner-Statement Evidence Surface Production Promotion V1 is **COMPLETE / GREEN / WEB ONLY**. Live Web is `wandora/web:candidate-8ee226bcc0dd`, healthy/restart 0, from exact main `8ee226bcc0ddec2f333348235c501320fb223152`.
