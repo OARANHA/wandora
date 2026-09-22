@@ -265,7 +265,3 @@ test('grounding mutation conflicts remain provider-neutral', async () => {
   assert.equal(response.status, 409);
   assert.deepEqual(response.body, { error: 'idempotency-conflict' });
 });
-
-[executed on device: wandora-vps-01 (4f062e11-0f3c-4c6e-8f71-7d6136c1bee9)]
-
-Note: you've used 81% of this month's Desktop Commander usage. Visit https://mcp.desktopcommander.app/ to learn more about usage and resets.
