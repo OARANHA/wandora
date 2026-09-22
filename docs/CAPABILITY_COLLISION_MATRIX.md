@@ -207,3 +207,15 @@ Provider portability is achieved with **ports, bindings, export/reconciliation c
 | Source references | may hold provider resources/connections | may retrieve/index documents | provider-neutral approved source reference | **Wandora owns reference semantics; storage/retrieval/indexing stays replaceable** |
 | Runtime memory/RAG | task/run history only | memory/retrieval/embeddings/context assembly | privacy/retention + canonical facts only | **Delegate runtime mechanics; no Wandora memory/vector/RAG engine** |
 | Model inference | no automatic fact authority | generates hypotheses/output | decides what is official product truth | **Inference is never an official fact without explicit authorized promotion** |
+
+
+## Grounding owner mutation/read collision resolution — ADR 0170
+
+| Capability | Wandora | Paperclip | Mastra/runtime | Decision |
+| --- | --- | --- | --- | --- |
+| Official company facts / Regras da Casa | Durable semantic authority + customer CRUD contract | No duplicate store | Consumer only in later projection | WANDORA-OWNED |
+| Approved correction history | Durable replacement lineage + audit | Decision Training is not substituted | Memory is not substituted | WANDORA-OWNED |
+| Runtime retrieval/context assembly | Supplies bounded official inputs only | Not grounding authority | Operational runtime authority | DEFER TO RUNTIME PROJECTION |
+| Model inference promotion | Explicit human-approved contract only | No automatic promotion | No automatic promotion | FORBID AUTOMATIC PROMOTION |
+
+[executed on device: wandora-vps-01 (4f062e11-0f3c-4c6e-8f71-7d6136c1bee9)]
