@@ -37,24 +37,25 @@ concurrency:
 
 jobs:
   offline-contract:
-    runs-on: [self-hosted, linux, x64, wandora-ci]
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - name: Set up Node 24.21.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.21.0
+
       - name: Verify dependency inventory, baseline and breaking-change tests offline
         shell: bash
         run: |
           set -euo pipefail
-          # Reuse the Node version provisioned by canonical Paperclip adapter CI.
-          # Fail if absent; this gate must never download a runtime/dependency.
-          gate_node="$RUNNER_TOOL_CACHE/node/24.21.0/x64/bin/node"
-          test -x "$gate_node" || { echo 'FAIL: canonical Node 24.21.0 runner cache missing'; exit 1; }
-          "$gate_node" --version
+          node --version
           gate_dir=integrations/paperclip/openapi-compatibility-v1
-          "$gate_node" "$gate_dir/scripts/baseline.mjs" verify "$gate_dir"
-          "$gate_node" "$gate_dir/scripts/check.mjs" \
+          node "$gate_dir/scripts/baseline.mjs" verify "$gate_dir"
+          node "$gate_dir/scripts/check.mjs" \
             "$gate_dir/fixtures/paperclip-v2026.916.0.openapi.json" \
             "$gate_dir/wandora-paperclip-api-contract.json"
-          "$gate_node" --test "$gate_dir"/test/*.test.mjs
+          node --test "$gate_dir"/test/*.test.mjs
