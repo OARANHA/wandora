@@ -1,5 +1,16 @@
 # Wandora — Project Source / Continuity Bootstrap
 
+## Current continuity checkpoint — ADR 0184
+
+Customer Company Grounding Create Body Bridge + Business-Friendly UX V1 is **CODE ONLY / NO PRODUCTION EFFECT**.
+
+The failed first MEDICSPRO create was traced to Core HTTP body wiring: grounding create/correct POST bodies were not read before dispatch to the existing grounding handler. The fix adds only those canonical mutation paths to the reviewed Human API body boundary and includes a runtime regression test.
+
+The /company surface also uses business language while preserving internal fact/rule/provenance semantics.
+
+Local Core/Web validation is GREEN. Production remains unchanged until separate artifact qualification/promotion.
+
+
 ## Current continuity checkpoint — ADR 0183
 
 Customer Company Grounding Browser Idempotency Production Promotion V1 is **COMPLETE / GREEN / WEB ONLY**. The safe grounding create browser contract is now live on `wandora/web:candidate-8fb5201b0229`.

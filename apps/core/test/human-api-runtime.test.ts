@@ -8,6 +8,7 @@ import { loadRuntimeConfig } from '../src/runtime/config.js';
 import { createRuntimeServer } from '../src/runtime/server.js';
 
 const ORG = '00000000-0000-0000-0000-0000000000a1';
+const ENTRY = '00000000-0000-0000-0000-0000000000b1';
 
 async function withServer(fn: (baseUrl: string) => Promise<void>): Promise<void> {
   const server = createRuntimeServer({
@@ -119,6 +120,64 @@ test('Runtime forwards only reviewed Human API namespaces to human handler', asy
       method: 'POST',
       idempotencyKey: 'hire-runtime-boundary',
       rawBody: hireBody,
+    });
+
+    const groundingBody = JSON.stringify({
+      entryType: 'fact',
+      content: 'Informação confirmada',
+      provenanceType: 'owner_statement',
+      sourceRef: null,
+      sourceLabel: null,
+    });
+    const grounding = await fetch(
+      `${baseUrl}/api/v1/organizations/${ORG}/grounding`,
+      {
+        method: 'POST',
+        headers: {
+          authorization: 'Bearer fixture',
+          'content-type': 'application/json',
+          'idempotency-key': 'grounding-runtime-boundary',
+        },
+        body: groundingBody,
+      },
+    );
+    assert.equal(grounding.status, 200);
+    const groundingResponse = await grounding.json() as {
+      items: Array<{ path: string; method: string; idempotencyKey: string; rawBody: string }>;
+    };
+    assert.deepEqual(groundingResponse.items[0], {
+      path: `/api/v1/organizations/${ORG}/grounding`,
+      method: 'POST',
+      idempotencyKey: 'grounding-runtime-boundary',
+      rawBody: groundingBody,
+    });
+
+    const correctionBody = JSON.stringify({
+      content: 'Informação corrigida',
+      sourceRef: 'wandora:customer-work-operation:fixture',
+      sourceLabel: 'Correção aprovada',
+    });
+    const correction = await fetch(
+      `${baseUrl}/api/v1/organizations/${ORG}/grounding/${ENTRY}/correct`,
+      {
+        method: 'POST',
+        headers: {
+          authorization: 'Bearer fixture',
+          'content-type': 'application/json',
+          'idempotency-key': 'grounding-correct-runtime-boundary',
+        },
+        body: correctionBody,
+      },
+    );
+    assert.equal(correction.status, 200);
+    const correctionResponse = await correction.json() as {
+      items: Array<{ path: string; method: string; idempotencyKey: string; rawBody: string }>;
+    };
+    assert.deepEqual(correctionResponse.items[0], {
+      path: `/api/v1/organizations/${ORG}/grounding/${ENTRY}/correct`,
+      method: 'POST',
+      idempotencyKey: 'grounding-correct-runtime-boundary',
+      rawBody: correctionBody,
     });
 
     const missingToken = await fetch(`${baseUrl}/api/v1/organizations/${ORG}/work/attention-required`);
