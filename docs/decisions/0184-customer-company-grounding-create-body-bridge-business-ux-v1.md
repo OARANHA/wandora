@@ -30,9 +30,9 @@ Internal fact/rule/provenance semantics remain unchanged.
 ## Validation
 
 Local proof is GREEN:
-- Core Human API runtime test 2/2
+- Core Human API runtime proof covers both grounding create and correction body forwarding
 - Core typecheck/build
-- Web grounding verifier
+- Web grounding verifier, including guards against customer-visible internal grounding terminology
 - Web typecheck/build and existing Web gates
 
 ## Boundary
