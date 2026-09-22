@@ -2,6 +2,34 @@
 
 Last synchronized: **2026-09-22**
 
+
+## 2026-09-22 Organization Grounding Production Promotion Execution V1 — PARTIAL SAFE STOP
+
+ADR 0174 records a safe partial production execution.
+
+Current live boundary:
+
+```text
+migration 017 / organization_grounding_entries = LIVE / verified
+grounding rows                                  = 0
+Core = wandora/core:organization-adapter-candidate-d90b225e6cc2
+Core = healthy / restart 0 / readyz 200
+Web  = wandora/web:candidate-65908b76c667
+Web  = healthy / restart 0
+Paperclip = unchanged / healthy
+Messaging Gateway = unchanged / healthy
+MEDICSPRO works = 2
+MEDICSPRO outbound attempts = 0
+Human Send = OFF
+Gateway outbound = OFF
+```
+
+The exact Web grounding candidate from ADR 0173 was rejected after public validation: direct Core returned 401 for the unauthenticated grounding route, while the public Web edge returned Nginx 404. Source inspection proved `apps/web/nginx.conf` lacks the grounding API allowlist/proxy even though `CompanyPage.tsx` calls those routes.
+
+Per ADR 0173, Web alone was rolled back. Do **not** reapply migration 017 and do not restore the database merely to undo this binary/UI gap.
+
+Next slice: **Customer Web Grounding API Bridge / Nginx Allowlist Correction V1 — CODE ONLY / NO PRODUCTION EFFECT**, followed by a separate Web-only promotion qualification/execution. No real MEDICSPRO grounding is authorized yet.
+
 Preflight base checkpoint before ADR 0173 documentation:
 
 ```text

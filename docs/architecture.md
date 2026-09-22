@@ -1528,3 +1528,24 @@ Customer language stays business-facing: **Fatos oficiais**, **Regras da Casa**,
 Raw sourceRef remains evidence, not customer presentation or runtime content. Provider identifiers and provider-specific semantics remain outside the Web contract.
 
 This surface adds no retrieval/context subsystem. Paperclip control-plane and Mastra runtime authority remain unchanged.
+
+
+## Grounding production partial checkpoint — ADR 0174
+
+Migration 017 and the grounding-aware Core are now live, while the customer Web grounding surface is intentionally rolled back pending a transport allowlist correction.
+
+```text
+Wandora Web (current prior image)
+  X grounding API not yet customer-routable
+  |
+  | future corrected Nginx allowlist
+  v
+Wandora Core grounding API — LIVE / healthy
+  |
+  v
+migration 017 semantic state — LIVE / verified / zero rows
+```
+
+The rejected candidate demonstrated that React/UI correctness is not sufficient evidence for a customer API surface: the Web Nginx bridge is an explicit authorization/routing boundary and must have its own verifier.
+
+This is a bridge defect only. It does not change capability authority: Wandora still owns official facts/Regras da Casa semantics; Paperclip and Mastra retain their previously accepted operational authority. No RAG, memory, vector, retrieval or second grounding store is justified by this gap.

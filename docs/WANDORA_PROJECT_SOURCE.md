@@ -39,6 +39,23 @@ Checkpoint entering ADR 0173: PR #229 merged; open PRs = 0; normal repository CI
 >
 > **This file is not the highest authority and never replaces live verification.** If this snapshot conflicts with current Git, accepted ADRs or the running environment, the newer canonical evidence wins.
 
+
+## Current continuity checkpoint — grounding promotion partial safe stop
+
+ADR 0174 is the newest grounding-production checkpoint.
+
+- migration 017 is **LIVE and verified**; do not reapply it;
+- `wandora.organization_grounding_entries` exists with **0 rows**;
+- grounding-aware Core `wandora/core:organization-adapter-candidate-d90b225e6cc2` is live, healthy and ready;
+- the ADR 0173 Web candidate was rejected because its Nginx bridge did not proxy the grounding API;
+- Web was rolled back to `wandora/web:candidate-65908b76c667`, healthy/restart 0;
+- Paperclip and Messaging Gateway were unchanged;
+- MEDICSPRO remains at 2 customer work operations and 0 outbound attempts;
+- Human Send and Gateway outbound remain OFF;
+- no real fact or Regra da Casa was created.
+
+Next code slice: **Customer Web Grounding API Bridge / Nginx Allowlist Correction V1 — CODE ONLY / NO PRODUCTION EFFECT**. It must correct only the Web bridge for the existing Core grounding contract and produce a new immutable Web artifact before another Web promotion attempt.
+
 ## Mandatory session bootstrap and authority order
 
 A new technical session should read this file first for continuity, then immediately apply the real authority chain below. This file is a bootstrap, not higher authority.
