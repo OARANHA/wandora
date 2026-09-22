@@ -1,0 +1,151 @@
+# Wandora Customer Surface — Canonicalization Matrix V1
+
+Status: **CANONICAL DESIGN MAP**
+Authority: ADR 0162.
+
+## Design source
+
+The approved customer-panel prototype establishes the target experience and vocabulary for the Wandora customer product.
+
+Canonical design traits:
+
+- warm paper background;
+- black structural borders;
+- lime as primary motion/action accent;
+- yellow for attention/decision accents;
+- cobalt for selected emphasis where useful;
+- hard offset shadows;
+- oversized business-first headlines;
+- compact mono-style labels for operational metadata;
+- one shared navigation for human and digital work;
+- provider technology hidden from the customer.
+
+The existing product stack remains React + Vite + TanStack. The prototype's Next.js/shadcn implementation is a design/reference implementation, not a runtime migration target.
+
+## Truth rule
+
+Every customer-visible block must be classified before implementation:
+
+| Class | Meaning | Production rule |
+| --- | --- | --- |
+| REAL | Existing authenticated contract/state directly supports it | Connect now |
+| DERIVÁVEL | Safe computation from REAL state without adding semantics | Connect now with explicit derivation |
+| FUTURO | Requires missing capability, state or authority decision | Hide/neutralize until reviewed |
+
+No demo number, demo person, demo customer, demo monetary amount or simulated action is allowed to masquerade as production state.
+
+## Surface matrix
+
+### Início
+
+**REAL now**
+
+- active organization;
+- authenticated user;
+- digital employees;
+- employee status/autonomy;
+- customer-work items per employee;
+- customer-work result/state.
+
+**DERIVÁVEL now**
+
+- digital employee count;
+- active digital employee count;
+- returned customer-work count;
+- review-ready work count;
+- latest customer work.
+
+**FUTURO**
+
+- revenue/opportunity totals;
+- meeting totals;
+- generalized “conversations today” metrics;
+- true approval count until approval authority is unified;
+- arbitrary “team live” activity beyond proven events.
+
+### Equipe
+
+**REAL now**
+
+- Ana identity;
+- function;
+- active/paused state;
+- supervised autonomy;
+- activation availability/state;
+- customer-work availability and recent work.
+
+**FUTURO**
+
+- human teammate directory unless sourced from a canonical Wandora membership/team contract;
+- weekly performance scorecards;
+- learned-training history;
+- response-time claims not derived from canonical telemetry;
+- next-hire queue beyond existing catalog/eligibility contracts.
+
+### Trabalho
+
+**REAL now**
+
+- attention-required supervised inbound work;
+- reviewed proposal state;
+- customer work assigned directly to a digital employee.
+
+**FUTURO**
+
+- generic commercial Kanban stages such as new lead / negotiation / quote / closed unless a real business-work authority is selected;
+- monetary pipeline totals not already canonical.
+
+The prototype Kanban is a product direction, not permission to invent a CRM domain.
+
+### Conversas
+
+**REAL now**
+
+- tenant-authorized conversation list;
+- canonical recent conversation history;
+- inbound/outbound message direction already recorded.
+
+**PARTIAL / FUTURO**
+
+- live typing/presence claims;
+- takeover/assume-conversation behavior unless backed by an accepted human action contract;
+- autonomous outbound while Human Send/Gateway outbound are OFF.
+
+### Aprovações
+
+The prototype's decision-first UX is canonical design direction.
+
+**FUTURO capability review required**
+
+Existing Wandora supervision/proposals and policy boundaries must be inspected before defining a generalized approvals queue. Do not create a second approval engine merely to fill this page.
+
+Until that review, production must not display fictitious approval cards.
+
+### Empresa
+
+The prototype's `Regras da casa` language is canonical product direction for grounding and company instruction.
+
+**REAL now**
+
+- organization identity;
+- memberships/roles already available to the session.
+
+**FUTURO capability review required**
+
+- company rules;
+- approved corrections becoming durable rules;
+- official business knowledge;
+- connected tool inventory/status;
+- training history.
+
+Before creating local tables, review Paperclip, Mastra and existing Wandora policy/knowledge state. Persist only the minimum Wandora-owned truth needed for grounding, safety, audit and replaceability.
+
+## First merged target
+
+The first canonicalization implementation intentionally changes only:
+
+- global visual tokens;
+- customer shell/navigation;
+- Início.
+
+The Início must contain no fictitious commercial metrics. It is the reference implementation for subsequent pages.

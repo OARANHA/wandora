@@ -3641,3 +3641,17 @@ Gateway outbound       = OFF
 No `clear-error`, resume/pause, direct SQL work creation, synthetic work, privileged owner impersonation, retry or external send was used.
 
 Next recommended axis: **Customer Product Surface / Demo Readiness**, prioritizing real canonical product state over placeholders before additional infrastructure expansion.
+
+## ADR 0162 — Customer Product Surface Canonicalization V1
+
+Status: **IMPLEMENTATION FOUNDATION / CODE + CI GREEN / NO PRODUCTION EFFECT**.
+
+The approved Wandora customer-panel prototype is now the canonical design direction for customer-facing surfaces. Its visual language, navigation, hierarchy and business vocabulary are accepted; its demonstration names, counts, money, approvals, tools, rules and activity are not production truth unless backed by a real contract.
+
+The first implementation slice ports the approved cream/black/lime/yellow design language into the existing React/Vite/TanStack Web shell and replaces the fictitious dashboard with a real-state-only Início.
+
+The new Início reuses only existing authenticated digital-employee and customer-work reads and derives only employee count, active employee count, returned work count, review-ready count and latest work. It deliberately does not invent approval, revenue, conversation, opportunity, meeting, outbound or tool-connectivity facts.
+
+No backend capability, migration, runtime mutation or outbound effect is introduced. Human Send and Gateway outbound remain unchanged/off.
+
+Next page-by-page convergence should continue from the canonical matrix in `docs/product/customer-surface-canonicalization-v1.md`, with grounding / `Regras da casa` authority review before expanding autonomous outbound behavior.

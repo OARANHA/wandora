@@ -2,10 +2,18 @@
 
 :root {
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  color: #1f2937;
-  background: #f5f7fb;
+  color: #09090b;
+  background: #f8f4e8;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
+
+  --wandora-ink: #09090b;
+  --wandora-paper: #f8f4e8;
+  --wandora-lime: #d2e823;
+  --wandora-cobalt: #2f5cfd;
+  --wandora-sun: #fdd030;
+  --wandora-tangerine: #ff7a1a;
+  --wandora-leaf: #46c46a;
 }
 
 * {
@@ -15,16 +23,14 @@
 html {
   min-width: 320px;
   min-height: 100%;
-  background: #f5f7fb;
+  background: var(--wandora-paper);
 }
 
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background:
-    radial-gradient(circle at 10% 0%, rgba(99, 102, 241, 0.05), transparent 28rem),
-    #f5f7fb;
+  background: var(--wandora-paper);
 }
 
 button,
@@ -40,13 +46,60 @@ a {
   -webkit-tap-highlight-color: transparent;
 }
 
+button {
+  cursor: pointer;
+}
+
 ::selection {
-  background: rgba(99, 102, 241, 0.16);
+  background: var(--wandora-lime);
+  color: var(--wandora-ink);
+}
+
+.wandora-display {
+  font-family: Impact, Haettenschweiler, "Arial Black", Inter, sans-serif;
+  letter-spacing: -0.04em;
+}
+
+.wandora-mono {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.wandora-pop {
+  box-shadow: 4px 4px 0 0 var(--wandora-ink);
+}
+
+.wandora-pop-sm {
+  box-shadow: 2px 2px 0 0 var(--wandora-ink);
+}
+
+.wandora-press {
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.wandora-press:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 0 var(--wandora-ink);
+}
+
+.wandora-press:active {
+  transform: translate(4px, 4px);
+  box-shadow: none;
+}
+
+@keyframes wandora-live {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .45; transform: scale(.82); }
+}
+
+.wandora-live-dot {
+  animation: wandora-live 1.6s ease-in-out infinite;
 }
 
 .wandora-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: #d1d5db transparent;
+  scrollbar-color: #b8b3a7 transparent;
 }
 
 .wandora-scrollbar::-webkit-scrollbar {
@@ -56,5 +109,5 @@ a {
 
 .wandora-scrollbar::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background: #d1d5db;
+  background: #b8b3a7;
 }

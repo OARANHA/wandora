@@ -2077,3 +2077,15 @@ The issue terminalized as `done`; no continuation or recovery appeared. Papercli
 Total Wandora customer work is now 2. MEDICSPRO outbound attempts remain 0, Human Send remains OFF and Gateway outbound remains OFF.
 
 Next product axis: **Customer Product Surface / Demo Readiness**. Replace visible placeholders and rough internal presentation with real canonical state before expanding infrastructure further.
+
+## 2026-09-22 — customer product surface canonicalization begins
+
+ADR 0162 adopts the owner-approved Wandora customer-panel prototype as the canonical design direction without adopting its demonstration data as truth.
+
+The first code slice keeps the accepted React/Vite/TanStack runtime, ports the cream/black/lime/yellow customer shell and turns Início into a real-state-only surface using existing digital-employee and customer-work reads. The previous fictitious dashboard commercial metrics are removed.
+
+The production truth rule is now explicit: every customer-visible block is REAL, DERIVÁVEL or FUTURO before implementation. FUTURO capability must not be populated with demo values.
+
+`docs/product/customer-surface-canonicalization-v1.md` records the page-by-page map for Início, Equipe, Trabalho, Conversas, Aprovações and Empresa.
+
+No production deployment/effect is part of this checkpoint. Grounding / `Regras da casa` remains an upcoming capability-authority review before broader autonomous outbound.
