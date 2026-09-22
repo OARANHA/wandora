@@ -196,3 +196,14 @@ Until a proven Wandora-owned requirement and superseding authority decision exis
 - operational cost/budget ledger that duplicates Paperclip cost events/budgets.
 
 Provider portability is achieved with **ports, bindings, export/reconciliation contracts and negative leakage tests**, not by duplicating every provider capability.
+
+
+## Company grounding collision resolution — ADR 0169
+
+| Concern | Paperclip | Mastra / Runtime | Wandora | Canonical resolution |
+| --- | --- | --- | --- | --- |
+| Official company facts | may carry instructions/history but is not customer-truth authority | may consume/retrieve context | durable semantic fact + provenance | **Wandora owns minimum fact contract; runtime consumption is delegated** |
+| Regras da Casa / owner instructions | may materialize operational instructions/policy | may receive runtime instructions | durable owner/product rule semantics | **Wandora owns rule meaning; do not clone Paperclip policy engines** |
+| Source references | may hold provider resources/connections | may retrieve/index documents | provider-neutral approved source reference | **Wandora owns reference semantics; storage/retrieval/indexing stays replaceable** |
+| Runtime memory/RAG | task/run history only | memory/retrieval/embeddings/context assembly | privacy/retention + canonical facts only | **Delegate runtime mechanics; no Wandora memory/vector/RAG engine** |
+| Model inference | no automatic fact authority | generates hypotheses/output | decides what is official product truth | **Inference is never an official fact without explicit authorized promotion** |
