@@ -17,6 +17,7 @@ import {
   isHumanDigitalEmployeeActivationPath,
   isHumanDigitalEmployeeHirePath,
   isHumanDigitalEmployeeWorkPath,
+  isHumanGroundingMutationPath,
   isHumanSendProposalPath,
   type HumanSupervisionRequest,
   type HumanSupervisionResponse,
@@ -149,6 +150,7 @@ export function createRuntimeServer(deps: RuntimeServerDeps): Server {
             || isHumanDigitalEmployeeHirePath(url.pathname)
             || isHumanDigitalEmployeeActivationPath(url.pathname)
             || isHumanDigitalEmployeeWorkPath(url.pathname)
+            || isHumanGroundingMutationPath(url.pathname)
           );
         const rawBody = humanPostBody ? await readBody(request, 8_192) : undefined;
         const result = await deps.handleHumanSupervision({
