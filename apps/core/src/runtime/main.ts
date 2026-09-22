@@ -10,6 +10,7 @@ import { createPaperclipRunIdentityClient } from '../paperclip-execution/papercl
 import { PaperclipExecutionService } from '../paperclip-execution/service.js';
 import { HumanDigitalEmployeeActivationService } from '../supervision/human-digital-employee-activation.js';
 import { HumanDigitalEmployeesReadService } from '../supervision/human-digital-employees-read.js';
+import { HumanGroundingService } from '../supervision/human-grounding.js';
 import { HumanSupervisionReadService } from '../supervision/human-read.js';
 import { HumanSendProposalService } from '../supervision/human-send-proposal.js';
 import { loadRuntimeConfig } from './config.js';
@@ -94,6 +95,10 @@ const humanReadService = pool && humanVerifier
   ? new HumanSupervisionReadService(pool, humanVerifier)
   : undefined;
 
+const humanGroundingService = pool && humanReadService
+  ? new HumanGroundingService(pool, humanReadService)
+  : undefined;
+
 const humanDigitalEmployeesReadService = pool && humanReadService
   ? new HumanDigitalEmployeesReadService(
       pool,
@@ -147,6 +152,7 @@ const handleHumanSupervision = humanReadService
       humanDigitalEmployeeHireService,
       humanDigitalEmployeeActivationService,
       humanDigitalEmployeeWorkService,
+      humanGroundingService,
     )
   : undefined;
 
@@ -169,6 +175,7 @@ server.listen(config.port, '0.0.0.0', () => {
     humanDigitalEmployeeHire: Boolean(humanDigitalEmployeeHireService),
     humanDigitalEmployeeActivation: Boolean(humanDigitalEmployeeActivationService),
     humanDigitalEmployeeWork: Boolean(humanDigitalEmployeeWorkService),
+    organizationGrounding: Boolean(humanGroundingService),
     organizationAdapter: Boolean(organizationAdapterService),
     agentRuntime: config.agentRuntime?.mode ?? 'disabled',
   }));
@@ -187,3 +194,5 @@ const shutdown = async (signal: string): Promise<void> => {
 
 process.once('SIGTERM', () => void shutdown('SIGTERM'));
 process.once('SIGINT', () => void shutdown('SIGINT'));
+
+[executed on device: wandora-vps-01 (4f062e11-0f3c-4c6e-8f71-7d6136c1bee9)]
