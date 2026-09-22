@@ -3812,3 +3812,20 @@ The projection reuses migration 017 only, runs tenant-scoped/read-only, exposes 
 Migration 017 remains **ABSENT in production**. No MEDICSPRO grounding was created, no Core/Web/Paperclip/Gateway deployment occurred, no model call/work/run/outbound effect occurred, and Human Send/Gateway outbound remain unchanged/off.
 
 Next recommended slice: **Empresa / Regras da Casa Customer Surface V1 — CODE ONLY / NO PRODUCTION EFFECT**, before any production migration/promotion.
+
+
+## ADR 0172 — Empresa / Regras da Casa Customer Surface V1
+
+Status: **IMPLEMENTED IN CODE / NO PRODUCTION EFFECT**.
+
+The customer /company surface now consumes only the canonical Core grounding API from ADR 0170. Active facts and rules are shown separately as **Fatos oficiais da empresa** and **Regras da Casa**; retired entries remain visible as preserved history.
+
+Owner/admin memberships receive create, correction and retirement controls. Members remain read-only. Correction is append-and-retire with mandatory evidence; there is no hard delete or edit-in-place path. Raw sourceRef is not rendered back to the customer; optional sourceLabel may be shown.
+
+No new table, migration, grounding store, RAG, vector, embedding, chunking, document store, memory or provider-specific customer contract was created.
+
+The production-shaped Web Docker build and all prior Web verifiers are GREEN, including WANDORA_WEB_COMPANY_GROUNDING_SURFACE_V1_OK.
+
+Migration 017 remains **ABSENT in production**. No MEDICSPRO fact/rule was created, no Core/Web deployment occurred, no model/work/run/outbound effect occurred, and Human Send/Gateway outbound remain unchanged.
+
+Next decision after exact-head CI/merge: **Organization Grounding Production Promotion Preflight V1 — NO EFFECT**; production promotion is not implied by this code-only slice.

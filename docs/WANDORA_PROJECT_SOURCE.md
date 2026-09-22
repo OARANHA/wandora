@@ -2189,3 +2189,16 @@ ADR 0171 implements the code-only Wandora → Agent Runtime grounding projection
 No retrieval/memory/RAG/vector/chunking subsystem was internalized. Paperclip remains control-plane authority and Mastra/runtime remains execution/context implementation authority. Runtime has no grounding write or model-output promotion path.
 
 Migration 017 is still not live. The next recommended code-only slice is the customer `Empresa / Regras da Casa` surface; production promotion remains a later separately reviewed effect.
+
+
+## 2026-09-22 — Empresa / Regras da Casa customer surface implemented in code
+
+ADR 0172 replaces the placeholder /company content with the minimum customer-facing projection/editor for the already-approved organization grounding contract.
+
+The Web reuses existing human session, explicit active-organization selection, React Query and Core API boundaries. Active members can read. Owner/admin can create official facts or Regras da Casa, retire entries, and register evidence-backed corrections through ADR 0170 endpoints.
+
+Correction preserves history instead of overwriting it. Raw sourceRef evidence is not rendered; provider IDs/names do not enter the customer surface. No direct browser database path exists.
+
+This adds no new table/migration, RAG, retrieval, vector, embedding, chunking, document store, memory or duplicate Paperclip/Mastra capability. The local production-shaped Web build is GREEN with the dedicated WANDORA_WEB_COMPANY_GROUNDING_SURFACE_V1_OK gate.
+
+Migration 017 is still not live and no production deploy/effect is part of this slice. A separately reviewed production-promotion preflight is required before any migration or Core/Web promotion.
