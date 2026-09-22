@@ -246,5 +246,3 @@ bash "$ROOT/apps/core/scripts/verify-organization-adapter-service-v1.sh"
 
 echo "WANDORA_CORE_PRIVATE_RUNTIME_V1_OK"
 echo "ANA_VERTICAL_SLICE_V1_VERIFY_OK"
-
-[executed on device: wandora-vps-01 (4f062e11-0f3c-4c6e-8f71-7d6136c1bee9)]
