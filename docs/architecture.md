@@ -1475,3 +1475,14 @@ Mastra today / another runtime tomorrow
 ```
 
 Wandora persists only the minimum company-owned declarations and source references required for product truth, audit and provider replacement. It does not become a knowledge-base, memory, RAG, vector, embedding, chunking or prompt-assembly engine. Paperclip Skills/Decisions/Decision Training remain control-plane capabilities; Mastra memory/retrieval/context assembly remain runtime capabilities when separately adopted.
+
+
+### Organization grounding mutation/read boundary
+
+ADR 0170 keeps organization_grounding_entries behind Core. Browser/customer code never receives direct table access.
+
+Core reads under tenant RLS. Mutations are owner/admin-only and pass through bounded database functions that re-check tenant/membership and append audit evidence. Direct Core DML remains denied.
+
+Corrections are append-and-retire: the replacement references the prior entry via supersedes_entry_id; historical company truth is not silently rewritten.
+
+This layer owns semantic truth/provenance only. Runtime retrieval/context assembly remains behind the Agent Runtime boundary and is a separate slice.

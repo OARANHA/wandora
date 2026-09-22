@@ -2173,3 +2173,12 @@ Wandora owns only the durable semantics that must survive provider replacement: 
 The code-only first contract is migration 017, `wandora.organization_grounding_entries`, with tenant-scoped Core SELECT only. Disposable PostgreSQL proof is GREEN. Migration 017 is **not applied to production**; no real MEDICSPRO grounding data exists yet.
 
 The next safe implementation is an owner-authorized mutation + customer read contract, still code-only/no-effect. Runtime projection and production promotion remain separate reviewed slices.
+
+
+## Organization Grounding owner mutation/read contract — code only
+
+ADR 0170 extends ADR 0169 with a bounded customer contract: active members may read tenant-scoped company grounding, while only active owner/admin memberships may create, retire or correct entries.
+
+Core still has no arbitrary table write. Database mutation is restricted to audited tenant-scoped functions; corrections preserve prior content via supersedes_entry_id.
+
+This is still not a knowledge base, RAG, vector, memory, document, skill, decision-training or policy-engine implementation. Migration 017 is not live until a separate production-effect slice.
