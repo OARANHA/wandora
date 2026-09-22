@@ -2102,3 +2102,14 @@ Demo-only prototype concepts — training history, weekly scoring, human teammat
 The visual rewrite preserved the protected activation contract: activating a digital employee **Não inicia trabalho** and **não libera envios externos**.
 
 This is code/CI only. Production Web remains unchanged until a separately reviewed promotion.
+
+
+## 2026-09-22 — customer-work result presentation implemented safely
+
+ADR 0164 fixes the raw-Markdown presentation gap observed in the real MEDICSPRO customer-work result.
+
+Web now parses a bounded Markdown-like subset into inert React nodes and strips link targets. It does not trust model output as HTML and does not create clickable model-provided links. The compact Início preview uses normalized plain text.
+
+A dedicated build gate `WANDORA_WEB_WORK_RESULT_SAFE_RENDERING_V1_OK` validates this contract.
+
+This remains code/CI only until a separately reviewed Web production promotion.
