@@ -73,7 +73,7 @@ function readPersisted(
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
     throw new GroundingCreateOperationError(
       'idempotency-storage-invalid',
-      'Existe uma operação de grounding pendente com identidade inválida e ela precisa de reconciliação.',
+      'Existe um registro anterior ainda sem confirmação e ele precisa de reconciliação segura.',
     );
   }
   const record = parsed as Record<string, unknown>;
@@ -82,7 +82,7 @@ function readPersisted(
   if (!IDEMPOTENCY_UUID_RE.test(idempotencyKey) || !requestFingerprint) {
     throw new GroundingCreateOperationError(
       'idempotency-storage-invalid',
-      'Existe uma operação de grounding pendente com identidade inválida e ela precisa de reconciliação.',
+      'Existe um registro anterior ainda sem confirmação e ele precisa de reconciliação segura.',
     );
   }
   return { organizationId, idempotencyKey, requestFingerprint, storageKey };
