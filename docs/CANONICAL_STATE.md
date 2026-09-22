@@ -3786,3 +3786,20 @@ Disposable Supabase/PostgreSQL proof is GREEN: migration apply, RLS isolation, c
 **Migration 017 is NOT live.** No MEDICSPRO facts/rules were created, no runtime grounding was injected, no model call or outbound effect occurred. Human Send and Gateway outbound remain OFF.
 
 Next recommended slice: **Organization Grounding Owner Mutation + Customer Read Contract V1 — code-only / no production effect**, followed separately by Runtime Grounding Projection V1.
+
+
+## Organization Grounding Owner Mutation + Customer Read Contract V1 — code-only checkpoint
+
+ADR 0170 implements the bounded owner/admin mutation + customer read contract over migration 017.
+
+- Core table authority remains SELECT only under tenant RLS.
+- Owner/admin mutations use narrow audited SECURITY DEFINER functions.
+- member mutation and cross-tenant access fail closed.
+- corrections create a new approved_correction entry and retire, rather than rewrite, prior history.
+- approved_source and approved_correction require explicit evidence references.
+- browser roles have no direct table/function access.
+- no Paperclip/Mastra/runtime projection was introduced.
+
+Migration 017 remains absent from production; no real MEDICSPRO grounding was created and outbound gates remain outside this slice.
+
+[executed on device: wandora-vps-01 (4f062e11-0f3c-4c6e-8f71-7d6136c1bee9)]
