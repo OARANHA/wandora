@@ -354,3 +354,10 @@ Wandora owns the durable semantics and customer contract for official company fa
 - retrieval/context assembly remains specialist runtime capability and is not implemented by this contract.
 
 Portability continues to mean contract decoupling rather than duplicating provider implementations.
+## Organization grounding runtime projection — ADR 0171
+
+Wandora owns the provider-neutral runtime meaning of `officialFacts[]`, `houseRules[]`, `workContext` and provenance semantics. Core may project this state read-only from the existing Wandora grounding contract.
+
+Paperclip remains task/run/control-plane authority. Mastra/runtime remains execution, retrieval and context-assembly implementation authority. The projection contract does not authorize a Wandora memory/RAG/vector/chunking/document subsystem.
+
+The runtime receives no grounding write authority. Model output, inference and task context have no automatic promotion path into official company truth. Provider replacement occurs behind `AgentTaskRuntime`; official grounding semantics remain stable.
