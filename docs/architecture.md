@@ -1510,3 +1510,21 @@ Mastra / replaceable runtime
 The projection is read-only, bounded and fail-closed before durable work preparation. Retired entries and other tenants are excluded. Work context remains structurally separate from official truth. The Paperclip execution readiness gate also verifies that the grounding read boundary exists before reporting ready.
 
 This is not context-assembly ownership: Mastra/runtime remains responsible for runtime execution mechanics, and no RAG/memory/vector/retrieval subsystem is introduced.
+
+
+### Customer Empresa / Regras da Casa surface — ADR 0172
+
+The customer Web now maps the Wandora-owned grounding semantics directly onto the existing Core contract:
+
+Wandora Web /company
+  -> human session + explicit active organization
+  -> Core organization grounding API
+  -> migration 017 semantic state
+
+The UI is not an authority or second store. Members read tenant-scoped state; owner/admin mutations use only the bounded Core create/correct/retire contracts.
+
+Customer language stays business-facing: **Fatos oficiais**, **Regras da Casa**, **Corrigir** and **Retirar**. Correction creates new evidence-backed history and retires the prior entry; hard delete is not exposed.
+
+Raw sourceRef remains evidence, not customer presentation or runtime content. Provider identifiers and provider-specific semantics remain outside the Web contract.
+
+This surface adds no retrieval/context subsystem. Paperclip control-plane and Mastra runtime authority remain unchanged.
