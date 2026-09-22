@@ -1,5 +1,14 @@
 # Wandora — Canonical State / Handoff
 
+## ADR 0179 — MEDICSPRO First Real Grounding Execution — OWNER SESSION GATE
+
+Owner confirmation is complete for F1/F2/F3 and R1. The future customer mutation set is frozen as three `fact` entries and one `rule` entry, all with truthful `owner_statement` provenance and the owner-requested provider-neutral sourceRef.
+
+Production mutation has **not** occurred: MEDICSPRO grounding remains 0. The only remaining effect gate is a normal authenticated MEDICSPRO owner/admin session through the canonical customer-facing grounding contract. Auth-admin/service-role impersonation, token extraction, privileged JWT minting and direct SQL remain forbidden.
+
+See ADR 0179 for exact content, idempotency keys and the R1 `rule` classification.
+
+
 ## ADR 0178 — MEDICSPRO First Real Organization Grounding Content Preflight V1 — NO EFFECT
 
 The first real content review is complete without creating grounding. Live remains at migration 017 present/verified, MEDICSPRO grounding rows = 0, works = 2, outbound attempts = 0, and Ana = one active + supervised employee.
