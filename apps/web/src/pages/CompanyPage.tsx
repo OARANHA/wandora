@@ -66,8 +66,8 @@ export function CompanyPage() {
           entryType: input.type,
           content: input.content.trim(),
           provenanceType: input.approvedSource ? 'approved_source' : 'owner_statement',
-          sourceRef: input.approvedSource ? input.sourceRef.trim() : null,
-          sourceLabel: input.approvedSource && input.sourceLabel.trim() ? input.sourceLabel.trim() : null,
+          sourceRef: input.sourceRef.trim() || null,
+          sourceLabel: input.sourceLabel.trim() || null,
         }),
       });
       if (!response.ok) throw groundingError(response, 'Não foi possível salvar esta informação.');
@@ -231,10 +231,10 @@ function CreatePanel({ draft, setDraft, pending, error, onSubmit }: {
           <input type="checkbox" checked={draft.approvedSource} onChange={(event) => setDraft({ ...draft, approvedSource: event.target.checked })} className="mt-1 size-4" />
           <span><span className="block text-sm font-black">Esta informação vem de uma fonte oficial aprovada</span><span className="mt-1 block text-xs leading-5 text-white/50">A referência técnica fica preservada para evidência e não vira conteúdo de runtime.</span></span>
         </label>
-        {draft.approvedSource ? <div className="grid gap-3 md:grid-cols-2">
-          <label className="grid gap-2"><span className="text-xs font-black text-white/70">Referência da fonte</span><input value={draft.sourceRef} onChange={(event) => setDraft({ ...draft, sourceRef: event.target.value })} maxLength={1024} required className="rounded-xl border-2 border-white/30 bg-white px-3 py-2.5 text-sm text-[#09090b]" /></label>
-          <label className="grid gap-2"><span className="text-xs font-black text-white/70">Nome da fonte (opcional)</span><input value={draft.sourceLabel} onChange={(event) => setDraft({ ...draft, sourceLabel: event.target.value })} maxLength={255} className="rounded-xl border-2 border-white/30 bg-white px-3 py-2.5 text-sm text-[#09090b]" /></label>
-        </div> : null}
+        <div className="grid gap-3 md:grid-cols-2">
+          <label className="grid gap-2"><span className="text-xs font-black text-white/70">Referência de evidência {draft.approvedSource ? '(obrigatória)' : '(opcional)'}</span><input value={draft.sourceRef} onChange={(event) => setDraft({ ...draft, sourceRef: event.target.value })} maxLength={1024} required={draft.approvedSource} className="rounded-xl border-2 border-white/30 bg-white px-3 py-2.5 text-sm text-[#09090b]" /></label>
+          <label className="grid gap-2"><span className="text-xs font-black text-white/70">Nome da evidência (opcional)</span><input value={draft.sourceLabel} onChange={(event) => setDraft({ ...draft, sourceLabel: event.target.value })} maxLength={255} className="rounded-xl border-2 border-white/30 bg-white px-3 py-2.5 text-sm text-[#09090b]" /></label>
+        </div>
         {error ? <InlineError error={error} dark /> : null}
         <div><button type="submit" disabled={pending || !draft.content.trim() || (draft.approvedSource && !draft.sourceRef.trim())}
           className="inline-flex items-center gap-2 rounded-xl border-2 border-[#d2e823] bg-[#d2e823] px-4 py-2.5 text-sm font-black text-[#09090b] wandora-press disabled:opacity-50">

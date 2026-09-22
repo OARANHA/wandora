@@ -1,5 +1,12 @@
 # Wandora — Canonical State / Handoff
 
+## ADR 0180 — Customer Company Owner-Statement Evidence Surface V1 — CODE ONLY
+
+The customer `/company` form now preserves optional provider-neutral `sourceRef/sourceLabel` for direct `owner_statement` provenance instead of exposing evidence only for `approved_source`. Approved-source references remain mandatory.
+
+No Core/schema/provider authority changes. F1/F2/F3 remain facts and R1 remains a formal rule. No production effect or grounding mutation occurred.
+
+
 ## ADR 0179 — MEDICSPRO First Real Grounding Execution — OWNER SESSION GATE
 
 Owner confirmation is complete for F1/F2/F3 and R1. The future customer mutation set is frozen as three `fact` entries and one `rule` entry, all with truthful `owner_statement` provenance and the owner-requested provider-neutral sourceRef.
