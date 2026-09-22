@@ -40,6 +40,8 @@ if (!['idle', 'error'].includes(managed.agent.status)) {
 ```
 
 No capability, webhook, catalog key, HMAC contract, issue origin contract or dispatch-receipt schema changes.
+
+The existing Core production-activation rehearsal carried an exact static candidate-version assertion. CI correctly exposed that stale `0.3.0` pin; the implementation updates only that verifier expectation to `0.3.1` while preserving all activation/work separation assertions.
 ## Regression contract
 
 The work test suite now proves:
