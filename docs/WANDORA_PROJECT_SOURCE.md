@@ -2135,3 +2135,14 @@ ADR 0166 ports the approved Conversas customer experience into the existing Web 
 The new code preserves real contact/status/employee/message state and the 100-message bounded-history contract. It remains explicitly read-only and does not invent unread state, presence, typing, takeover or response/send controls.
 
 No backend, messaging effect or production deployment is part of this slice.
+
+
+## 2026-09-22 — canonical Conversas surface promoted to production
+
+ADR 0167 records the Web-only production promotion of the canonical read-only Conversas surface from `main@65908b76c667e1326b0c73584766b8cc4ad73c0e`.
+
+Production Web is now `wandora/web:candidate-65908b76c667`, healthy with zero restarts. Core, Paperclip and Messaging Gateway were not recreated.
+
+The deployed conversation UX uses only the existing tenant-authorized list/history contracts and does not expose or enable reply/send/takeover/presence behavior.
+
+Next product capability review: Empresa / Regras da casa grounding authority.
