@@ -80,7 +80,7 @@ export function CompanyPage() {
 
   const createMutation = useMutation({
     mutationFn: async (input: CreateDraft) => {
-      if (!activeOrganization) throw new GroundingCreateRequestError('Escolha uma empresa antes de registrar grounding.');
+      if (!activeOrganization) throw new GroundingCreateRequestError('Escolha uma empresa antes de registrar esta informação.');
       const payload = {
         entryType: input.type,
         content: input.content.trim(),
@@ -364,7 +364,7 @@ function CorrectionPanel({ entry, draft, setDraft, pending, error, onCancel, onS
   onCancel: () => void; onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-[#09090b]/55 p-4" role="dialog" aria-modal="true" aria-label="Corrigir grounding oficial">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-[#09090b]/55 p-4" role="dialog" aria-modal="true" aria-label="Corrigir informação oficial da empresa">
       <form onSubmit={onSubmit} className="w-full max-w-2xl rounded-3xl border-[2.5px] border-[#09090b] bg-white p-6 wandora-pop">
         <div className="wandora-mono text-[9px] font-black text-[#09090b]/40">correção com histórico preservado</div>
         <h2 className="wandora-display m-0 mt-2 text-4xl">CORRIGIR SEM APAGAR O PASSADO.</h2>
@@ -372,7 +372,7 @@ function CorrectionPanel({ entry, draft, setDraft, pending, error, onCancel, onS
         <div className="mt-5 rounded-2xl border-2 border-[#09090b]/15 bg-[#f8f4e8] p-4"><div className="text-[9px] font-black uppercase tracking-[0.08em] text-[#09090b]/40">versão atual</div><p className="m-0 mt-2 text-sm leading-6 text-[#09090b]/60">{entry.content}</p></div>
         <label className="mt-5 grid gap-2"><span className="text-xs font-black">Conteúdo corrigido</span><textarea value={draft.content} onChange={(event) => setDraft({ ...draft, content: event.target.value })} maxLength={4000} rows={4} required className="w-full resize-y rounded-2xl border-2 border-[#09090b] bg-white px-4 py-3 text-sm leading-6" /></label>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
-          <label className="grid gap-2"><span className="text-xs font-black">Evidência da correção</span><input value={draft.sourceRef} onChange={(event) => setDraft({ ...draft, sourceRef: event.target.value })} maxLength={1024} required className="rounded-xl border-2 border-[#09090b] bg-white px-3 py-2.5 text-sm" /></label>
+          <label className="grid gap-2"><span className="text-xs font-black">Onde a correção foi confirmada</span><input value={draft.sourceRef} onChange={(event) => setDraft({ ...draft, sourceRef: event.target.value })} maxLength={1024} required className="rounded-xl border-2 border-[#09090b] bg-white px-3 py-2.5 text-sm" /></label>
           <label className="grid gap-2"><span className="text-xs font-black">Nome da fonte (opcional)</span><input value={draft.sourceLabel} onChange={(event) => setDraft({ ...draft, sourceLabel: event.target.value })} maxLength={255} className="rounded-xl border-2 border-[#09090b] bg-white px-3 py-2.5 text-sm" /></label>
         </div>
         {error ? <InlineError error={error} /> : null}
