@@ -1,6 +1,7 @@
 import { Pool } from 'pg';
 import { MastraDeterministicAgentRuntime } from '../agent-runtime/mastra-deterministic.js';
 import { MastraSupervisedModelAgentRuntime } from '../agent-runtime/mastra-supervised-model.js';
+import { PostgresOrganizationGroundingProjection } from '../agent-runtime/organization-grounding.js';
 import { PostgresAnaRepository } from '../ana/postgres-repository.js';
 import { AnaSupervisedIngressService } from '../ana/supervised-ingress.js';
 import { Es256JwksHumanTokenVerifier } from '../human-auth/es256-jwks.js';
@@ -78,6 +79,7 @@ const handlePaperclipExecution = pool
       service: new PaperclipExecutionService(
         pool,
         agentRuntime,
+        new PostgresOrganizationGroundingProjection(pool),
         config.humanDigitalEmployeeWork ? organizationAdapterService : undefined,
       ),
     })
