@@ -2182,5 +2182,3 @@ ADR 0170 extends ADR 0169 with a bounded customer contract: active members may r
 Core still has no arbitrary table write. Database mutation is restricted to audited tenant-scoped functions; corrections preserve prior content via supersedes_entry_id.
 
 This is still not a knowledge base, RAG, vector, memory, document, skill, decision-training or policy-engine implementation. Migration 017 is not live until a separate production-effect slice.
-
-[executed on device: wandora-vps-01 (4f062e11-0f3c-4c6e-8f71-7d6136c1bee9)]
