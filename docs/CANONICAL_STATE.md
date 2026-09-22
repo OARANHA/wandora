@@ -1,5 +1,13 @@
 # Wandora — Canonical State / Handoff
 
+## ADR 0177 — Customer Web Grounding API Bridge Production Promotion Execution V1
+
+Status: **EXECUTED / GREEN / WEB ONLY**.
+
+Production Web is now `wandora/web:candidate-1800aa3d3fb4`, healthy/restart 0, from the exact immutable ADR 0176 artifact. Unauthenticated grounding through `https://app.wandora.com.br` now returns Core `401` rather than the prior Nginx `404`; unknown grounding and generic API paths remain `404`.
+
+Migration 017 remains LIVE/verified, MEDICSPRO grounding rows remain 0, customer works remain 2 and outbound attempts remain 0. Core `d90b225e...`, Paperclip v2026.916.0 and Messaging Gateway were not recreated. Human Send and Gateway outbound remain OFF. No real fact/rule, model call, work/run/wakeup/session or external message was created by the promotion.
+
 Last synchronized: **2026-09-22**
 
 ## 2026-09-22 Customer Web Grounding API Bridge Artifact Qualification V1 — NO PRODUCTION EFFECT
