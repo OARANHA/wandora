@@ -2,6 +2,15 @@
 
 ## ADR 0187 — Web Design System + App Shell Production Promotion V1 — GREEN
 
+Web `wandora/web:candidate-67966d42d23e` from `main@67966d42d23e1778d89c2430de8d59e2235dedfb` is live, healthy and restart 0. The persisted selector and runtime revision are aligned.
+
+The exact GitHub Web artifact is 10722734256 with ZIP digest `sha256:0b544336336d47225a54f9b470957afc8a65ea6e53f60006715efa486a88e319`; the same ZIP hash was independently verified on the VPS. Public routes /, /team, /work, /conversations, /approvals and /company are 200.
+
+Core/Paperclip/Gateway were unchanged. MEDICSPRO remains grounding 0 / works 2 / outbound 0. The interrupted execution was reconciled before any repeat promotion. See ADR 0187.
+
+
+## ADR 0187 — Web Design System + App Shell Production Promotion V1 — GREEN
+
 Production Web is now `wandora/web:candidate-67966d42d23e`, sourced from exact `main@67966d42d23e1778d89c2430de8d59e2235dedfb`, healthy / restart 0.
 
 The bundled Dela Gothic One / Space Grotesk / JetBrains Mono design system, 250px→82px collapsible desktop sidebar, complete mobile route menu and power-style real logout are live. Core, Paperclip and Messaging Gateway were not recreated.
