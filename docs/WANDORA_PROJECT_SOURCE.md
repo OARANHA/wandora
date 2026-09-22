@@ -3,6 +3,36 @@
 Snapshot date: **2026-09-22**
 Repository: `OARANHA/wandora`
 Canonical continuity checkpoint before ADR 0168 guardrail work: `main@97c29eba2e3d6919fa8334d632edd91c45998f72`
+
+## Current grounding promotion checkpoint — ADR 0173
+
+A fresh REAL NOW reconciliation on 2026-09-22 closed **Organization Grounding Production Promotion Preflight V1** as **GO for a separate future execution only**.
+
+```text
+canonical main = fba159db751122bfb5c600296bb7a0d5beb5a474
+PR #229 = merged
+open PRs = 0
+migration 017 = ABSENT live
+MEDICSPRO grounding rows = none
+Human Send = OFF
+Gateway outbound = OFF
+```
+
+The future promotion dependency is strictly:
+
+```text
+fresh execution-time backup + restore-check
+  -> migration 017 + canonical verifier
+  -> exact Core candidate / readyz
+  -> exact Web candidate
+  -> validation
+  -> STOP
+```
+
+The preflight uses only the already-approved Wandora grounding semantic state and contracts. It creates no new RAG/memory/vector/document/provider subsystem and preserves ADR 0168: **portability = contract decoupling, not implementation duplication**.
+
+See ADR 0173 for exact artifact IDs/digests, restore evidence, rollback boundaries and objective stop conditions. Preflight success is not authorization to mutate production.
+
 Checkpoint: PR #223 merged; open PRs = 0; normal repository CI is GitHub-hosted per ADR 0158.
 
 > **Purpose:** compact bootstrap for ChatGPT Project Sources and future development sessions. It prevents architectural drift, accidental reinvention and stale workflow assumptions.
