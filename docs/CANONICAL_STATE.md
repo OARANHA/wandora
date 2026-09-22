@@ -3614,3 +3614,30 @@ Promotion used the ADR 0159 path: exact CI artifact staging -> one soft uninstal
 Safety state is unchanged: Ana remains Wandora `active + supervised` and historical Paperclip `error / wandora_execution_failed_409`; MED-1 remains `done`, live runs 0, historical runs 2, work count 1, added model calls 0, outbound attempts 0, Human Send OFF and Gateway outbound OFF.
 
 No second legitimate customer work is authorized by the promotion itself.
+
+
+## ADR 0161 — MEDICSPRO Ana second legitimate customer work production execution
+
+Status: **EXECUTED / GREEN**.
+
+A genuine authenticated MEDICSPRO owner submitted the second legitimate supervised work through the normal Wandora Web surface while Paperclip Ana still carried the truthful historical `error / wandora_execution_failed_409` projection.
+
+Organization Adapter 0.3.1 admitted the work without lifecycle normalization. The normal path created exactly one new Wandora work and one new Paperclip issue, ran exactly one native assignment execution through `wandora_mastra@0.4.0 -> Core -> Agent Runtime/Mastra -> Mistral`, recorded 273 input + 740 output = 1013 total tokens prospectively, terminalized the issue as `done`, and naturally finalized Ana from historical `error` to `idle`.
+
+Final invariants:
+
+```text
+Wandora works          = 2 total
+Paperclip issues       = 2 total
+new issue runs         = 1
+continuation runs      = 0
+active recovery        = none
+new model calls        = 1
+outbound attempts      = 0
+Human Send             = OFF
+Gateway outbound       = OFF
+```
+
+No `clear-error`, resume/pause, direct SQL work creation, synthetic work, privileged owner impersonation, retry or external send was used.
+
+Next recommended axis: **Customer Product Surface / Demo Readiness**, prioritizing real canonical product state over placeholders before additional infrastructure expansion.
