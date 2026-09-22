@@ -65,5 +65,3 @@ docker run --rm --network "$NET" -v "$ROOT/apps/core:/src:ro"   -e DATABASE_URL=
    node --import tsx --test --test-concurrency=1 test/human-grounding-route.test.ts test/human-grounding.integration.test.ts'
 
 echo "ORGANIZATION_GROUNDING_V1_VERIFY_OK"
-
-[executed on device: wandora-vps-01 (4f062e11-0f3c-4c6e-8f71-7d6136c1bee9)]
