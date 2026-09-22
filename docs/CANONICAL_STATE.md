@@ -13,6 +13,14 @@ ADR 0059 now records the completed internal canary, including the private-hostna
 
 Authority order: `AGENTS.md` → accepted ADRs → `docs/CAPABILITY_AUTHORITY.md` → `docs/architecture.md` → this file → component README/runbook.
 
+## 2026-09-22 GitHub-hosted CI migration — ADR 0158
+
+Current repository visibility is public. Normal CI no longer targets the isolated VPS runner. All nine repository workflows now target `ubuntu-24.04` GitHub-hosted runners with unchanged check/job names.
+
+The OpenAPI compatibility gate now provisions Node 24.21.0 explicitly and no workflow depends on `RUNNER_TOOL_CACHE`. Production deployment/credentials remain outside ordinary CI. The old `wandora-vps-01-ci` runner is fallback-only during validation and should be stopped/deregistered after hosted CI is proven GREEN.
+
+This section supersedes the older 2026-09-19 self-hosted CI checkpoint for current CI execution only; ADR 0113 remains historical evidence.
+
 ## 2026-09-19 execution bridge activation V1 — COMPLETE / EMPLOYEE STILL PAUSED
 
 Canonical Git at execution completion:

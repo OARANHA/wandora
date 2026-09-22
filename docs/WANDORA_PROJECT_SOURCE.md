@@ -26,15 +26,13 @@ Mutable facts such as branch, container image, feature flags, database counts an
 
 ## Current CI execution boundary
 
-The repository remains private. GitHub-hosted Actions quota exhaustion is treated as an unavailable hosted-runner allowance, not as a failed code/test result.
+The repository is public. ADR 0158 supersedes ADR 0113 for normal repository CI execution.
 
-Normal Wandora CI now uses the repository-scoped runner `wandora-vps-01-ci` on the existing Wandora VPS. The runner uses the dedicated `wandora-ci` identity and a separate rootless Docker daemon; it is not in the host `docker`, `wandora-ops` or `sudo` groups and has no production Docker socket authority.
+All nine current GitHub Actions workflows target disposable GitHub-hosted `ubuntu-24.04` runners rather than the VPS-hosted `wandora-ci` runner. Job/check names are unchanged. The Paperclip OpenAPI gate provisions exact Node 24.21.0 with `actions/setup-node` rather than relying on machine-local `RUNNER_TOOL_CACHE`.
 
-The live runner service is bounded to 300% CPU, 3 GiB `MemoryHigh`, 4 GiB `MemoryMax` and 4096 tasks, with `UMask=0022` and `PrivateTmp=yes`. Pre/post job hooks prove the rootless boundary and clean CI Docker state.
+No normal CI workflow is a production deployment workflow or receives production SSH, Docker socket, Board, model-provider, database or customer messaging credentials. Production effects remain explicit operator actions.
 
-Important continuity rule: bind sources needed by rootless Docker must be staged in `RUNNER_TEMP`, not runner-private `/tmp`, because the Docker daemon is a separate user service and therefore does not share the runner service's private tmp namespace.
-
-The implementation-validation head passed all seven repository CI workflows while critical production containers remained healthy with zero restarts. See ADR 0113 for the evidence chain.
+The existing `wandora-vps-01-ci` runner may remain temporarily installed only as migration fallback. Once hosted-runner CI is proven GREEN, stop/deregister it from normal repository Actions.
 
 ## Mandatory development discipline
 
