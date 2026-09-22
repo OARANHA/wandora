@@ -9,6 +9,7 @@ type GroundingRow = {
   entry_type: 'fact' | 'rule';
   content: string;
   provenance_type: 'owner_statement' | 'approved_source' | 'approved_correction';
+  source_ref: string | null;
   source_label: string | null;
 };
 
@@ -31,6 +32,7 @@ const statement = (row: GroundingRow): RuntimeGroundingStatement => ({
   content: row.content,
   provenance: {
     type: row.provenance_type,
+    sourceRef: row.source_ref,
     sourceLabel: row.source_label,
   },
 });
@@ -67,7 +69,7 @@ implements OrganizationGroundingProjection {
   ): Promise<RuntimeGroundingProjection> {
     const rows = await this.scoped(organizationId, async (client) => {
       const result = await client.query<GroundingRow>(
-        `SELECT entry_type, content, provenance_type, source_label
+        `SELECT entry_type, content, provenance_type, source_ref, source_label
            FROM wandora.organization_grounding_entries
           WHERE organization_id = $1
             AND status = 'active'
