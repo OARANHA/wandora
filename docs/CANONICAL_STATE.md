@@ -3771,3 +3771,18 @@ For every material provider-backed capability, separate:
 Paperclip, Mastra and future specialist providers remain replaceable behind Wandora-owned contracts/adapters. Operational lifecycle, orchestration, runtime memory, retrieval, embeddings/vector search, context assembly, tool execution and runtime skills remain delegable unless a newer ADR proves a Wandora-unique reason to own implementation.
 
 ADR 0158 remains the current normal CI authority: GitHub-hosted `ubuntu-24.04`; ADR 0113 is historical/fallback-only.
+
+
+## ADR 0169 — Empresa / Regras da Casa Grounding Authority + Durable Contract V1
+
+Status: **IMPLEMENTED IN CODE / NO PRODUCTION EFFECT**.
+
+The grounding authority review concludes that official company facts, owner house rules and their provenance/source references are Wandora-owned durable product semantics. Paperclip remains control-plane authority for Skills, Decisions/Decision Training, Connections/grants and organizational lifecycle. Mastra/runtime remains implementation authority for memory, retrieval, embeddings/vector search, context assembly, runtime skills/tools and evals when separately qualified.
+
+Migration `20260922_017_organization_grounding_contract_v1.sql` introduces only the minimum `wandora.organization_grounding_entries` contract. Core receives tenant-scoped SELECT only; no Core writes and no direct browser/authenticated table access are authorized.
+
+Disposable Supabase/PostgreSQL proof is GREEN: migration apply, RLS isolation, cross-tenant denial, Core write denial and provenance constraint all passed.
+
+**Migration 017 is NOT live.** No MEDICSPRO facts/rules were created, no runtime grounding was injected, no model call or outbound effect occurred. Human Send and Gateway outbound remain OFF.
+
+Next recommended slice: **Organization Grounding Owner Mutation + Customer Read Contract V1 — code-only / no production effect**, followed separately by Runtime Grounding Projection V1.

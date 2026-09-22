@@ -2162,3 +2162,14 @@ ADR 0168 makes the following rules permanent for future Wandora sessions:
 - every material provider-backed capability must separate semantic authority, minimum durable product state, operational authority, provider implementation and replacement boundary.
 
 This generalizes the existing Paperclip-specific portability work to Paperclip, Mastra and future specialist providers.
+
+
+## 2026-09-22 — Empresa / Regras da Casa grounding authority
+
+ADR 0169 defines the grounding boundary before any customer knowledge/memory subsystem is introduced.
+
+Wandora owns only the durable semantics that must survive provider replacement: official company facts, owner-authored house rules, provenance and provider-neutral approved source references. Paperclip continues to own organizational control-plane capabilities such as Skills, Decisions/Decision Training and Connections/grants. Mastra/runtime continues to own execution mechanics such as memory, retrieval, context assembly, runtime skills/tools and evals when separately qualified.
+
+The code-only first contract is migration 017, `wandora.organization_grounding_entries`, with tenant-scoped Core SELECT only. Disposable PostgreSQL proof is GREEN. Migration 017 is **not applied to production**; no real MEDICSPRO grounding data exists yet.
+
+The next safe implementation is an owner-authorized mutation + customer read contract, still code-only/no-effect. Runtime projection and production promotion remain separate reviewed slices.
