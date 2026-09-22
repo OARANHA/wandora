@@ -17,7 +17,7 @@ concurrency:
 jobs:
   messaging-gateway-verifier:
     name: Messaging Gateway verifier
-    runs-on: [self-hosted, linux, x64, wandora-ci]
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       WANDORA_CI_CONTAINER_SECRET_GID: "0"
