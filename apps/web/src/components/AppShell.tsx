@@ -1,5 +1,3 @@
-[Reading 308 lines from start (total: 308 lines, 0 remaining)]
-
 import { useEffect, useState } from 'react';
 import { Link, Outlet } from '@tanstack/react-router';
 import {
