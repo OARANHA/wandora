@@ -142,11 +142,18 @@ test('dispatching receipt fails closed instead of retrying an ambiguous wake', a
   assert.equal(h.calls.wake, 0);
 });
 
-test('non-idle managed employee cannot receive new work', async () => {
+test('historical error managed employee can receive new work', async () => {
+  const h = harness({ agentStatus: 'error' });
+  await ensureManagedCatalogEmployeeWork(h.ctx, input);
+  assert.equal(h.calls.create, 1);
+  assert.equal(h.calls.wake, 1);
+});
+
+test('non-ready managed employee cannot receive new work', async () => {
   const h = harness({ agentStatus: 'running' });
   await assert.rejects(
     ensureManagedCatalogEmployeeWork(h.ctx, input),
-    /managed_employee_not_idle:running/,
+    /managed_employee_not_ready:running/,
   );
   assert.equal(h.calls.create, 0);
   assert.equal(h.calls.wake, 0);
