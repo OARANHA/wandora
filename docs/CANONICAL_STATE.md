@@ -1,5 +1,14 @@
 # Wandora — Canonical State / Handoff
 
+## ADR 0186 — Web Design System + App Shell V1 — CODE ONLY
+
+The customer Web design system now uses bundled/pinned Dela Gothic One 400 for display, Space Grotesk Variable for body/interface text and JetBrains Mono Variable for operational labels.
+
+The existing six-route customer shell remains authoritative. Desktop sidebar now supports 250px expanded / 82px collapsed modes with browser-local visual preference, and the power-style Sair control reuses the existing AuthProvider signOut/session-revocation path. Mobile exposes the same route authority through a compact menu.
+
+All existing Web gates plus WANDORA_WEB_APP_SHELL_DESIGN_SYSTEM_V1_OK and the production-shaped Docker build are GREEN. No API/auth/grounding/provider contract changed and production is unchanged. See ADR 0186.
+
+
 ## ADR 0185 — Customer Company Grounding Save + Business UX Production Promotion V1
 
 The deterministic customer grounding create failure is fixed and promoted.
