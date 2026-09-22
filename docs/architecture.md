@@ -1419,3 +1419,16 @@ Organization Adapter must not force a historical Paperclip `error` projection to
 For the current conservative single-work posture, Wandora may retain a narrower pre-admission gate than Paperclip concurrency semantics, but it must accept both `idle` and historical `error`. `running` remains locally rejected until concurrency is separately designed.
 
 This keeps lifecycle authority in Paperclip while avoiding a customer-work false negative caused by a stale diagnostic projection.
+
+
+## Organization Adapter historical-error admission compatibility — ADR 0157
+
+Organization Adapter 0.3.1 preserves the conservative no-concurrent-work pre-admission boundary while correcting the historical-error false negative:
+
+```text
+idle  -> locally admissible
+error -> locally admissible
+other -> locally rejected
+```
+
+Paperclip remains final lifecycle authority through `issues.requestWakeup -> heartbeat.wakeup`. No lifecycle mutation is performed merely to normalize a diagnostic state.
