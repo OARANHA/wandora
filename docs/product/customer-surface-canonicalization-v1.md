@@ -193,3 +193,30 @@ Supported formatting:
 Markdown link/image targets are discarded; only visible label/alt text remains. Raw HTML is never interpreted. The renderer uses no `dangerouslySetInnerHTML`, `innerHTML` or model-provided `href`.
 
 The `Início` latest-work preview uses normalized plain text, so model Markdown markers do not leak into the compact surface.
+
+
+## Conversas implementation checkpoint — ADR 0166
+
+`Conversas` is now canonicalized in code against the already-live ADR 0020/0021 read contracts.
+
+Connected as REAL:
+
+- tenant-authorized conversation list;
+- canonical contact label;
+- open/closed conversation status;
+- associated employee when present;
+- latest canonical message;
+- bounded recent history;
+- inbound/outbound direction;
+- `hasEarlierMessages`.
+
+Still FUTURO / unavailable:
+
+- unread state;
+- live presence;
+- typing indicators;
+- takeover/assignment mutation;
+- reply/send/edit-send/dismiss;
+- autonomous outbound controls.
+
+The page remains explicitly read-only and provider-neutral.

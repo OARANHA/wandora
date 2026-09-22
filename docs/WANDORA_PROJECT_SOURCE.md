@@ -2126,3 +2126,12 @@ Before promotion, reconciliation found the persisted Web stack selector still po
 Core, Paperclip and Messaging Gateway were not recreated. MEDICSPRO stayed at two works, Ana stayed active + supervised, outbound stayed zero, and both Human Send and Gateway outbound remained OFF.
 
 Next customer-product convergence target: Conversas, then Empresa / Regras da casa grounding authority.
+
+
+## 2026-09-22 — Conversas surface canonicalization implemented in code
+
+ADR 0166 ports the approved Conversas customer experience into the existing Web while reusing the already-live canonical conversation list/history reads.
+
+The new code preserves real contact/status/employee/message state and the 100-message bounded-history contract. It remains explicitly read-only and does not invent unread state, presence, typing, takeover or response/send controls.
+
+No backend, messaging effect or production deployment is part of this slice.

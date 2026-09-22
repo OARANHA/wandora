@@ -3712,3 +3712,18 @@ Public routes remain available, unauthenticated `/api/v1/me` remains 401, MEDICS
 Only Web was recreated.
 
 Next recommended slice: **Conversas Surface Canonicalization V1**, followed by `Empresa / Regras da casa` grounding authority review.
+
+
+## ADR 0166 — Customer Conversations Surface Canonicalization V1
+
+Status: **IMPLEMENTED IN CODE / NO PRODUCTION EFFECT**.
+
+The customer `Conversas` surface now uses the canonical Wandora visual/product language while reusing only the already-live tenant-authorized list/history contracts from ADRs 0020 and 0021.
+
+Real contact labels, open/closed status, associated employee, latest message, bounded recent history and inbound/outbound direction are rendered. `hasEarlierMessages` remains explicit.
+
+No unread model, presence, typing state, composer, takeover, assignment mutation or outbound action was added. The page remains `somente leitura` and provider-neutral.
+
+Implementation CI was GREEN across Web, Core, Platform Admin and Messaging Gateway.
+
+Production Web remains governed by ADR 0165 until a separate promotion of the new merged-main artifact.
