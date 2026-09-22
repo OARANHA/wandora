@@ -1423,3 +1423,20 @@ other -> locally rejected
 ```
 
 Paperclip remains final lifecycle authority through `issues.requestWakeup -> heartbeat.wakeup`. No lifecycle mutation is performed merely to normalize a diagnostic state.
+
+
+## Organization Adapter package promotion — ADR 0159
+
+For hash-addressed local Paperclip plugins, Wandora promotes a reviewed package without overwriting the old package directory.
+
+The Organization Adapter 0.3.1 promotion pattern is:
+
+```text
+qualified immutable package
+  -> Paperclip instance-admin soft uninstall (no purge)
+  -> same plugin row/config retained
+  -> Paperclip instance-admin install(new local path)
+  -> same plugin ID / ready worker in-process
+```
+
+Do not hard-purge company config, overwrite the previous package directory, restart Paperclip unnecessarily, or mutate the managed Ana lifecycle merely to satisfy a plugin promotion.

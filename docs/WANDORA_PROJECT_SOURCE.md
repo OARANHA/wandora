@@ -2042,3 +2042,14 @@ The candidate remains capability-identical to 0.3.0 and changes no webhook/HMAC/
 Qualified local candidate package hash: `49bc32b4d22b3000310e01db13c51a3348dc66774a4bf880571154136b3d0240`.
 
 Live Organization Adapter remains 0.3.0. Promotion is a separate reviewed slice and no second customer work may run first.
+
+
+## 2026-09-22 — Organization Adapter 0.3.1 production promotion preflight
+
+ADR 0159 freezes the production-promotion path for the repository-qualified Organization Adapter 0.3.1.
+
+Canonical candidate comes from GitHub-hosted Organization Adapter Plugin CI #232 on `main@d4d9ecc69cce33f6b0553b8372e576c56a4d91ac`: artifact ZIP SHA-256 `2a6bba462b4998736493eb70f00da90ba8f4d99117bbae384fbeb87467d9ce2f`; package SHA-256 `06a42a04dd0b6eff8ee377c1d4f1e40bbabce122767d0d77e92ee509d27d811d`.
+
+Live remains 0.3.0. Promotion will use Paperclip-native soft uninstall (no purge) followed by one local-path reinstall from a new immutable content-addressed path. This preserves plugin ID/company config and dynamically reloads the worker in-process; a Paperclip restart is explicitly unnecessary and rejected.
+
+No second legitimate work is authorized before the separate promotion execution completes and is revalidated.

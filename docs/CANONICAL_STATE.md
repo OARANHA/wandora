@@ -3590,3 +3590,14 @@ Disposable qualification in exact `wandora/paperclip:v2026.916.0` passed strict 
 Candidate package SHA-256: `49bc32b4d22b3000310e01db13c51a3348dc66774a4bf880571154136b3d0240`.
 
 Production remains on Organization Adapter 0.3.0. No second legitimate work is authorized until a separate 0.3.1 promotion preflight and execution are completed.
+
+
+## ADR 0159 — Organization Adapter 0.3.1 production promotion preflight
+
+Status: **NO EFFECT / GO FOR SEPARATE EXECUTION**.
+
+Live Organization Adapter remains exactly one `0.3.0 / ready`. The qualified 0.3.1 promotion artifact is the canonical GitHub Actions package from `main@d4d9ecc69cce33f6b0553b8372e576c56a4d91ac`: artifact ZIP SHA-256 `2a6bba462b4998736493eb70f00da90ba8f4d99117bbae384fbeb87467d9ce2f`, package SHA-256 `06a42a04dd0b6eff8ee377c1d4f1e40bbabce122767d0d77e92ee509d27d811d`.
+
+Pinned Paperclip source proves the correct local-path promotion is **soft uninstall without purge + local-path reinstall**. The same plugin row/ID and company config are preserved across that path. Plugin load starts the new worker in-process, so no Paperclip restart is required.
+
+The future execution must not clear/resume Ana or create a second customer work as validation. Current invariants remain Ana `active + supervised` in Wandora, historical `error` in Paperclip, MED-1 done, 0 live runs, 2 historical runs, one recorded Wandora work and zero outbound attempts.
