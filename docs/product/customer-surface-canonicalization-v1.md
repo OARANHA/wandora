@@ -246,3 +246,4 @@ Customer display typography is intentionally constrained so Dela Gothic One acts
 Empresa now mirrors the approved business-first composition using only real state: Regras da Casa first, concise rule cards, an Ensinar à equipe panel, a Como funciona explainer, company facts and preserved history. Optional provenance/evidence controls stay available but are visually secondary.
 
 Demo people, tools, timestamps and operational claims from the mockup remain prohibited unless independently backed by REAL or accepted DERIVÁVEL contracts.
+
