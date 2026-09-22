@@ -27,7 +27,8 @@ assert(source.includes('Itens retirados'), 'company_grounding_retired_history_mi
 assert(source.includes("provenanceType: input.approvedSource ? 'approved_source' as const : 'owner_statement' as const"), 'company_grounding_provenance_contract_missing');
 assert(source.includes("sourceRef: input.sourceRef.trim() || null"), 'company_grounding_owner_statement_source_evidence_missing');
 assert(source.includes("required={draft.approvedSource}"), 'company_grounding_approved_source_reference_required_missing');
-assert(source.includes("Onde essa informação está registrada?"), 'company_grounding_evidence_field_missing');
+assert(source.includes("Adicionar fonte ou documento (opcional)"), 'company_grounding_evidence_disclosure_missing');
+assert(source.includes("Onde está registrada?"), 'company_grounding_evidence_field_missing');
 assert(!source.includes('{entry.provenance.sourceRef}'), 'company_grounding_source_ref_must_not_render');
 assert(!source.includes('paperclip'), 'company_grounding_provider_name_leaked');
 assert(!source.includes('mastra'), 'company_grounding_runtime_provider_name_leaked');
@@ -36,9 +37,14 @@ assert(!source.includes('DELETE'), 'company_grounding_hard_delete_surface_forbid
 
 console.log('WANDORA_WEB_COMPANY_GROUNDING_SURFACE_V1_OK');
 
-assert(source.includes('O que sua equipe digital precisa saber?'.toUpperCase()) || source.includes('O QUE SUA EQUIPE DIGITAL PRECISA SABER?'), 'company_grounding_business_heading_missing');
-assert(source.includes('Informação da empresa'), 'company_grounding_business_fact_label_missing');
-assert(source.includes('Esta informação veio de um documento ou fonte da empresa'), 'company_grounding_business_source_language_missing');
+assert(source.includes('AS REGRAS DA'), 'company_grounding_business_heading_missing');
+assert(source.includes('SUA CASA.'), 'company_grounding_house_heading_missing');
+assert(source.includes('Sobre a empresa'), 'company_grounding_business_fact_label_missing');
+assert(source.includes('Regra de trabalho'), 'company_grounding_business_rule_label_missing');
+assert(source.includes('Ensinar isso'), 'company_grounding_business_action_missing');
+assert(source.includes('como funciona'), 'company_grounding_how_it_works_missing');
+assert(source.includes('Esta informação veio de um documento, site, manual, tabela ou outra fonte oficial da empresa.'), 'company_grounding_business_source_language_missing');
+assert(source.includes('text-[clamp(2.35rem,4.2vw,4rem)]'), 'company_grounding_business_density_heading_missing');
 assert(!source.includes('empresa · grounding oficial'), 'company_grounding_internal_term_leaked');
 
 assert(!source.includes('grounding oficial'), 'company_grounding_internal_grounding_language_leaked');

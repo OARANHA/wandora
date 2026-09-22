@@ -1,5 +1,14 @@
 # Wandora — Canonical State / Handoff
 
+## ADR 0188 — Web Business Density + Company Reference Fidelity V1 — CODE ONLY
+
+The second owner-approved Company / Regras da Casa reference is now the canonical density/scale target. Customer hero titles on Início, Equipe, Conversas and Empresa are capped around 4rem instead of the previous 6–6.7rem range.
+
+Empresa is reorganized around business comprehension: Regras da Casa first, compact two-column cards, Ensinar à equipe + Como funciona, then confirmed company facts and real history. Provenance/source controls remain semantically intact but visually secondary.
+
+All existing Web gates plus WANDORA_WEB_BUSINESS_DENSITY_V1_OK and a production-shaped Docker build are GREEN. No API/auth/grounding/provider contract changed and production remains unchanged. See ADR 0188.
+
+
 ## ADR 0187 — Web Design System + App Shell Production Promotion V1 — GREEN
 
 Production Web is `wandora/web:candidate-67966d42d23e` from exact `main@67966d42d23e1778d89c2430de8d59e2235dedfb`, healthy / restart 0. Persisted selector and live revision are aligned.

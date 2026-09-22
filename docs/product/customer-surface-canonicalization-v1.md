@@ -236,3 +236,13 @@ The global customer shell keeps the same six canonical routes and active-organiz
 The shell also exposes a dedicated power-style Sair control wired to the existing canonical session-revocation path. Mobile keeps the same navigation authority through a compact quick bar plus complete route menu.
 
 The visual references remain subject to the Truth Rule above: demo people, activities, tool status, timestamps and commercial claims are not copied into customer state unless independently backed by REAL or accepted DERIVÁVEL contracts.
+
+## Business Density + Company reference checkpoint — ADR 0188
+
+The second approved Company / Regras da Casa reference is now the density/scale target, not merely a palette reference.
+
+Customer display typography is intentionally constrained so Dela Gothic One acts as emphasis rather than dominating reading. Início, Equipe, Conversas and Empresa cap primary hero scale around 4rem.
+
+Empresa now mirrors the approved business-first composition using only real state: Regras da Casa first, concise rule cards, an Ensinar à equipe panel, a Como funciona explainer, company facts and preserved history. Optional provenance/evidence controls stay available but are visually secondary.
+
+Demo people, tools, timestamps and operational claims from the mockup remain prohibited unless independently backed by REAL or accepted DERIVÁVEL contracts.

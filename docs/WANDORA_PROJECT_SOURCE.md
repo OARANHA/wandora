@@ -1,5 +1,14 @@
 # Wandora — Project Source / Continuity Bootstrap
 
+## Current continuity checkpoint — ADR 0188
+
+Web Business Density + Company Reference Fidelity V1 is **IMPLEMENTED IN CODE / NO PRODUCTION EFFECT**.
+
+The second approved Company / Regras da Casa reference now controls visual density. Início, Equipe, Conversas and Empresa use a substantially smaller display scale; Empresa is reorganized to show real Regras da Casa first, then an intuitive Ensinar à equipe / Como funciona flow and confirmed company facts. Optional evidence remains available without forcing technical provenance language into the primary owner flow.
+
+No fake people, tools, activity or timestamps from the reference were introduced. Production remains at ADR 0187 until a separately reviewed Web-only promotion.
+
+
 ## Current continuity checkpoint — ADR 0187
 
 Web Design System + App Shell Production Promotion V1 is **COMPLETE / GREEN / WEB ONLY**.
