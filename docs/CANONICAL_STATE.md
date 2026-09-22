@@ -2,7 +2,15 @@
 
 Last synchronized: **2026-09-22**
 
-Canonical continuity checkpoint before ADR 0168 guardrail work:
+Preflight base checkpoint before ADR 0173 documentation:
+
+```text
+main = fba159db751122bfb5c600296bb7a0d5beb5a474
+PR #229 = merged
+open PRs = 0
+```
+
+Mutable Git/runtime state must still be reverified before execution.
 
 ## 2026-09-22 Organization Grounding Production Promotion Preflight V1 — GO FOR SEPARATE EXECUTION / NO EFFECT
 
@@ -31,14 +39,6 @@ Preflight qualification is GREEN:
 
 This preflight does **not** authorize production mutation by itself. A separate **Organization Grounding Production Promotion Execution V1** must take a fresh execution-time backup and revalidate all stop conditions. No real MEDICSPRO grounding belongs to that promotion execution.
 
-
-```text
-main = 97c29eba2e3d6919fa8334d632edd91c45998f72
-PR #223 = merged
-open PRs = 0
-```
-
-Mutable Git/runtime state must still be reverified before execution.
 
 Session bootstrap: read `docs/WANDORA_PROJECT_SOURCE.md` first for continuity only. Authority order then remains `AGENTS.md` → relevant accepted ADRs → `docs/CAPABILITY_AUTHORITY.md` → `docs/architecture.md` → this file → component README/runbook.
 
