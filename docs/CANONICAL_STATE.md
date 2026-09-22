@@ -3601,3 +3601,16 @@ Live Organization Adapter remains exactly one `0.3.0 / ready`. The qualified 0.3
 Pinned Paperclip source proves the correct local-path promotion is **soft uninstall without purge + local-path reinstall**. The same plugin row/ID and company config are preserved across that path. Plugin load starts the new worker in-process, so no Paperclip restart is required.
 
 The future execution must not clear/resume Ana or create a second customer work as validation. Current invariants remain Ana `active + supervised` in Wandora, historical `error` in Paperclip, MED-1 done, 0 live runs, 2 historical runs, one recorded Wandora work and zero outbound attempts.
+
+
+## ADR 0160 — Organization Adapter 0.3.1 production promotion execution
+
+Status: **EXECUTED / GREEN**.
+
+Production now runs exactly one `wandora.organization-adapter-v1` at `0.3.1 / ready / healthy`, with the same plugin ID `86e77fe7-c7e4-4bee-afa3-46cdad575d0c`, the same company config hash `83d5cb41938ce4fdf9025b8a51c8df28e55caed70473ed40ed2f3a2835b1f326`, and no Paperclip restart.
+
+Promotion used the ADR 0159 path: exact CI artifact staging -> one soft uninstall without purge -> same-row/config readback -> one local-path install -> in-process worker activation.
+
+Safety state is unchanged: Ana remains Wandora `active + supervised` and historical Paperclip `error / wandora_execution_failed_409`; MED-1 remains `done`, live runs 0, historical runs 2, work count 1, added model calls 0, outbound attempts 0, Human Send OFF and Gateway outbound OFF.
+
+No second legitimate customer work is authorized by the promotion itself.
