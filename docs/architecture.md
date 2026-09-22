@@ -1455,3 +1455,23 @@ Wandora customer work
 ```
 
 Promotion retained plugin identity/config and required no Paperclip restart. Historical Paperclip agent diagnostics are not mirrored or normalized by Wandora merely to admit work.
+
+
+## Company grounding boundary — ADR 0169
+
+The customer-facing `Empresa / Regras da Casa` contract separates durable semantic truth from runtime mechanics:
+
+```text
+Wandora official facts + house rules + provenance
+        |
+        v
+provider-neutral Agent Runtime input contract
+        |
+        v
+replaceable context/retrieval/runtime implementation
+        |
+        v
+Mastra today / another runtime tomorrow
+```
+
+Wandora persists only the minimum company-owned declarations and source references required for product truth, audit and provider replacement. It does not become a knowledge-base, memory, RAG, vector, embedding, chunking or prompt-assembly engine. Paperclip Skills/Decisions/Decision Training remain control-plane capabilities; Mastra memory/retrieval/context assembly remain runtime capabilities when separately adopted.
