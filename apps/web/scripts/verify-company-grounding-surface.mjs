@@ -40,3 +40,6 @@ assert(source.includes('O que sua equipe digital precisa saber?'.toUpperCase()) 
 assert(source.includes('Informação da empresa'), 'company_grounding_business_fact_label_missing');
 assert(source.includes('Esta informação veio de um documento ou fonte da empresa'), 'company_grounding_business_source_language_missing');
 assert(!source.includes('empresa · grounding oficial'), 'company_grounding_internal_term_leaked');
+
+assert(!source.includes('grounding oficial'), 'company_grounding_internal_grounding_language_leaked');
+assert(!source.includes('registrar grounding'), 'company_grounding_internal_action_language_leaked');
