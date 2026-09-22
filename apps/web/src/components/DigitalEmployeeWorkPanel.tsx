@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Bot, LoaderCircle, RotateCcw } from 'lucide-react';
 import { useAuth } from '../AuthProvider';
+import { WorkResultContent } from './WorkResultContent';
 import {
   WorkOperationError,
   clearWorkOperation,
@@ -268,8 +269,11 @@ export function DigitalEmployeeWorkPanel({
                   </span>
                 </div>
                 {item.result ? (
-                  <div className="mt-3 rounded-lg bg-emerald-50 p-3 text-sm leading-6 text-emerald-950">
-                    {item.result.summary}
+                  <div className="mt-3 rounded-xl border-2 border-[#09090b]/15 bg-[#f8f4e8] p-4">
+                    <div className="mb-3 text-[10px] font-black uppercase tracking-[0.12em] text-[#09090b]/40">
+                      Resultado interno
+                    </div>
+                    <WorkResultContent value={item.result.summary} />
                   </div>
                 ) : null}
               </div>
