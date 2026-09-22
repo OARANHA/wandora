@@ -20,7 +20,7 @@ assert(!source.includes("mutationKey('create')"), 'company_grounding_create_rand
 assert(source.includes("activeOrganization?.role === 'owner'"), 'company_grounding_owner_gate_missing');
 assert(source.includes("activeOrganization?.role === 'admin'"), 'company_grounding_admin_gate_missing');
 assert(source.includes('Acesso somente leitura'), 'company_grounding_member_read_only_missing');
-assert(source.includes('Fatos oficiais da empresa'), 'company_grounding_facts_surface_missing');
+assert(source.includes('Informações da empresa'), 'company_grounding_facts_surface_missing');
 assert(source.includes('Regras da Casa'), 'company_grounding_house_rules_surface_missing');
 assert(source.includes('CORRIGIR SEM APAGAR O PASSADO.'), 'company_grounding_history_semantics_missing');
 assert(source.includes('Itens retirados'), 'company_grounding_retired_history_missing');
@@ -35,3 +35,8 @@ assert(!source.includes('supabase'), 'company_grounding_direct_data_provider_lea
 assert(!source.includes('DELETE'), 'company_grounding_hard_delete_surface_forbidden');
 
 console.log('WANDORA_WEB_COMPANY_GROUNDING_SURFACE_V1_OK');
+
+assert(source.includes('O que sua equipe digital precisa saber?'.toUpperCase()) || source.includes('O QUE SUA EQUIPE DIGITAL PRECISA SABER?'), 'company_grounding_business_heading_missing');
+assert(source.includes('Informação da empresa'), 'company_grounding_business_fact_label_missing');
+assert(source.includes('Esta informação veio de um documento ou fonte da empresa'), 'company_grounding_business_source_language_missing');
+assert(!source.includes('empresa · grounding oficial'), 'company_grounding_internal_term_leaked');
