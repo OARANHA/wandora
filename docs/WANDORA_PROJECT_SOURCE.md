@@ -2011,3 +2011,14 @@ MED-1 was terminalized once through the protected Board status-only path from `b
 Prospective lifecycle + normalized usage now require/use the companion Core + adapter 0.4.0 pair. This does not make Paperclip monetary budget authoritative for provider spend: unpriced usage has `costCents=0`, and Wandora does not fabricate monetary cost.
 
 A residual historical provider-state fact remains: Paperclip Ana is `error` with `errorReason=wandora_execution_failed_409`, last updated at the pre-promotion failed continuation. It was deliberately preserved. The next slice is a **Paperclip MEDICSPRO Ana Historical Error-State Reconciliation Preflight V1 — NO EFFECT** before admitting another legitimate work item.
+
+
+## 2026-09-21 — MEDICSPRO Ana historical Paperclip error-state reconciliation preflight
+
+ADR 0155 proves from exact Paperclip v2026.916.0 source that `error` is an invokable agent lifecycle state. The residual MEDICSPRO Ana `error / wandora_execution_failed_409` is a diagnostic projection of the old failed continuation run, not a blocker requiring resume/reassignment before another legitimate work item.
+
+Live readback also proves Ana's scheduler is disabled/inactive, MED-1 is `done`, live runs and active recovery are empty, Wandora still has exactly one recorded work, and MEDICSPRO outbound attempts remain zero.
+
+Paperclip's dedicated reconciliation primitive is Board-only `POST /api/agents/{id}/clear-error`; it performs `error -> idle` and preserves historical runs/runtime diagnostics. Plugin SDK exposes resume but not clear-error, and managed-agent reconcile does not auto-clear lifecycle errors.
+
+Canonical decision: **NO-OP for readiness**. Do not clear/resume/pause/wake/retry/PATCH/SQL merely to normalize the display. If a future operator-facing cleanup becomes an explicit requirement, authorize it separately and use only the native `clear-error` path after fresh reconciliation.

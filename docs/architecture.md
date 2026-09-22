@@ -1401,3 +1401,12 @@ Production promotion did not replay the historical work. MED-1 is now `done`, re
 External-effect authority is unchanged: Human Send and Gateway outbound remain Wandora-owned and OFF. Paperclip Task Drain was used only as the native pre-restart quiescence guard.
 
 The Paperclip Ana lifecycle projection remains historical `error` from the rejected continuation run. This is a separate Paperclip-owned readiness concern and must be reconciled in a no-effect slice before another customer work admission; it must not be hidden by a Wandora-native lifecycle duplicate.
+
+
+## Historical Paperclip agent error projection — ADR 0155
+
+Paperclip v2026.916.0 distinguishes run/issue history from the current agent lifecycle projection. A terminal failed run can project an agent to `error`, but `error` remains assignable/invokable; only `paused`, `pending_approval` and `terminated` are direct lifecycle blockers.
+
+Wandora must not mirror that diagnostic into a second product lifecycle machine. The customer-facing Ana remains governed by Wandora's `active + supervised` contract while Paperclip owns its operational lifecycle/history.
+
+For the current MEDICSPRO historical continuation failure, no lifecycle mutation is required for readiness. Paperclip's dedicated Board-only `clear-error` exists for a separately authorized operator-facing cleanup and preserves run/runtime diagnostics; `resume`, wakeup, generic status PATCH and direct SQL are not substitutes.

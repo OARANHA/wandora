@@ -3529,3 +3529,32 @@ Paperclip Ana remains `error` with historical `errorReason=wandora_execution_fai
 **Paperclip MEDICSPRO Ana Historical Error-State Reconciliation Preflight V1 — NO EFFECT**.
 
 Before any second legitimate customer work, determine the Paperclip-native least-authority transition back to an execution-ready managed-agent lifecycle state. Do not replay MED-1, do not create task/wakeup/run/heartbeat, do not call the model, do not enable Human Send/Gateway outbound, and do not mutate production merely to obtain context.
+
+
+## ADR 0155 — MEDICSPRO Ana historical Paperclip error-state reconciliation preflight
+
+Status: **NO EFFECT / NO LIFECYCLE MUTATION REQUIRED**.
+
+Pinned Paperclip v2026.916.0 source proves agent `error` is still both assignable and invokable. Ana's current scheduler policy is disabled (`heartbeatEnabled=false`, `intervalSec=0`, `schedulerActive=false`), her org chain is healthy, MED-1 is `done`, live runs are empty and no recovery action is active.
+
+Therefore the historical `errorReason=wandora_execution_failed_409` projection does **not** block legitimate future work and must not be normalized merely for readiness.
+
+Paperclip does provide a dedicated Board-only `POST /api/agents/{id}/clear-error` primitive that conditionally performs `error -> idle`, clears lifecycle error/pause fields and preserves historical runs/runtime diagnostics. It is more precise than `resume`, but it is **not authorized or required** by ADR 0155.
+
+Do not use `resume`, `pause -> resume`, wakeup, retry/recovery, generic status PATCH, managed-agent reconcile or direct SQL to erase this historical projection.
+
+Current accepted invariants remain:
+
+```text
+Ana / Wandora               = active + supervised
+Ana / Paperclip             = error (historical diagnostic; invokable)
+MED-1                       = done
+MED-1 live runs             = 0
+MED-1 historical runs       = 2
+Wandora work operations     = 1 / result_recorded
+MEDICSPRO outbound attempts = 0
+Human Send                  = OFF
+Gateway outbound            = OFF
+```
+
+There is **no mandatory historical-error clear execution slice** before future work. Any later operator-facing cleanup of the Paperclip lifecycle display requires a separate explicit effect authorization and must use `clear-error`, not a broader substitute.
