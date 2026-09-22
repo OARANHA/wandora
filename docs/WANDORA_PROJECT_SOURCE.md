@@ -1,5 +1,14 @@
 # Wandora — Project Source / Continuity Bootstrap
 
+## Current continuity checkpoint — ADR 0178
+
+MEDICSPRO First Real Organization Grounding Content Preflight V1 is **COMPLETE / NO EFFECT**. Production remains unchanged with migration 017 live/verified and MEDICSPRO grounding rows = 0.
+
+Exactly one low-ambiguity owner-approved fact candidate is accepted for a later execution: **MedicsPro reúne agenda, pacientes, informações clínicas e gestão financeira em um único ambiente**, sourced to the first authenticated owner work. Candidate positioning/benefit claims and the proposed review-before-send house rule require explicit owner confirmation. No Ana/model output is an official source, and global runtime/effect guardrails are not duplicated into tenant grounding.
+
+Next effect, only after owner confirmation as needed: **MEDICSPRO First Real Organization Grounding Content Execution V1** through the canonical customer-facing Core contract. Do not use direct SQL, model output or inferred content.
+
+
 ## Current continuity checkpoint — ADR 0177
 
 Customer Web Grounding API Bridge Production Promotion Execution V1 is **COMPLETE / GREEN / WEB ONLY**. Exact ADR 0176 artifact `wandora/web:candidate-1800aa3d3fb4` is now live, healthy and restart 0. Public unauthenticated grounding now reaches Core and returns 401 rather than old-Web Nginx 404. Migration 017 remains LIVE/verified with 0 grounding rows; MEDICSPRO works = 2 and outbound attempts = 0. Core/Paperclip/Gateway were unchanged; Human Send and Gateway outbound remain OFF. Any first real MEDICSPRO fact/rule is a separate effect slice.
