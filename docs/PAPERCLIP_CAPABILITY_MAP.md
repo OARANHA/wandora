@@ -229,3 +229,17 @@ See:
 - `docs/research/PAPERCLIP_PROVIDER_EXIT_STRATEGY_V1.md`
 - `docs/research/PAPERCLIP_OPENAPI_COMPATIBILITY_GATE_PROPOSAL_V1.md`
 - `docs/research/PAPERCLIP_UPSTREAM_DELTA_AUDIT_2026-09-21.md`
+
+
+## Historical agent error reconciliation — ADR 0155
+
+Pinned v2026.916.0 semantics now qualified for Wandora:
+
+- agent `error` is assignable and invokable;
+- ordinary terminal run failure can project the agent to `error`;
+- the agent row stores `errorReason` and `updatedAt`/last-heartbeat time, not a dedicated `errorAt`;
+- `resume` is a broad lifecycle operation exposed to plugins through `agents.resume`;
+- `clear-error` is a dedicated Board-only REST operation that conditionally moves `error -> idle`, clears lifecycle error/pause fields and preserves historical run/runtime diagnostics;
+- managed-agent reconcile does not force existing lifecycle back to the manifest's initial status and does not expose a clear-error SDK primitive.
+
+Wandora decision: keep Paperclip as lifecycle/diagnostic authority and **do not mutate an `error` projection merely to make work executable**. Adopt `clear-error` as a production dependency only if a separate operator-facing cleanup requirement is later accepted.
