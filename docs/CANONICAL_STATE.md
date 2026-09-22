@@ -1,17 +1,18 @@
 # Wandora — Canonical State / Handoff
 
-Last synchronized: **2026-09-19**
+Last synchronized: **2026-09-22**
 
-Canonical Git base before this canary-completion checkpoint:
+Canonical continuity checkpoint before ADR 0168 guardrail work:
 
 ```text
-main = 58b792529e8fa7fa9e4b556459f45952b607ee43
-PR #103 = merged
+main = 97c29eba2e3d6919fa8334d632edd91c45998f72
+PR #223 = merged
+open PRs = 0
 ```
 
-ADR 0059 now records the completed internal canary, including the private-hostname correction, successful same-key recovery and the bounded post-canary runtime state. Mutable Git/runtime state must still be reverified before execution.
+Mutable Git/runtime state must still be reverified before execution.
 
-Authority order: `AGENTS.md` → accepted ADRs → `docs/CAPABILITY_AUTHORITY.md` → `docs/architecture.md` → this file → component README/runbook.
+Session bootstrap: read `docs/WANDORA_PROJECT_SOURCE.md` first for continuity only. Authority order then remains `AGENTS.md` → relevant accepted ADRs → `docs/CAPABILITY_AUTHORITY.md` → `docs/architecture.md` → this file → component README/runbook.
 
 ## 2026-09-22 GitHub-hosted CI migration — ADR 0158
 
@@ -3747,3 +3748,26 @@ The canonical `Conversas` surface is now production-active and remains explicitl
 MEDICSPRO remains at exactly 2 customer works, Ana remains `active + supervised`, outbound attempts remain 0, and Core/Paperclip/Gateway were unchanged.
 
 Next axis: **Empresa / Regras da casa Capability Authority Review V1** for grounding.
+
+
+## ADR 0168 — Permanent Session Continuity + Provider Pluggability Guardrails V1
+
+Status: **CANONICAL GUARDRAIL / NO PRODUCTION EFFECT**.
+
+Future sessions must recover from repository + live state rather than visible chat history. Handoff prompts are bridges only. After timeout, disconnect or chat change, verify whether prior operations executed before repeating them.
+
+Provider portability is now explicitly universal:
+
+> **Portability = contract decoupling, not implementation duplication. Provider replacement does not imply internalization.**
+
+For every material provider-backed capability, separate:
+
+- semantic authority;
+- minimum durable product state;
+- operational authority;
+- current provider implementation;
+- replacement/migration boundary.
+
+Paperclip, Mastra and future specialist providers remain replaceable behind Wandora-owned contracts/adapters. Operational lifecycle, orchestration, runtime memory, retrieval, embeddings/vector search, context assembly, tool execution and runtime skills remain delegable unless a newer ADR proves a Wandora-unique reason to own implementation.
+
+ADR 0158 remains the current normal CI authority: GitHub-hosted `ubuntu-24.04`; ADR 0113 is historical/fallback-only.
