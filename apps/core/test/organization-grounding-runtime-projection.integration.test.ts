@@ -66,7 +66,6 @@ test('runtime grounding projects active official facts/rules and keeps work cont
       content: 'MEDICSPRO atende somente com dados confirmados.',
       provenance: {
         type: 'approved_source',
-        sourceRef: 'source:company-profile:v1',
         sourceLabel: 'Perfil oficial',
       },
     }],
@@ -74,7 +73,6 @@ test('runtime grounding projects active official facts/rules and keeps work cont
       content: 'Se algo nao estiver confirmado, declarar desconhecido.',
       provenance: {
         type: 'owner_statement',
-        sourceRef: null,
         sourceLabel: null,
       },
     }],
@@ -106,7 +104,6 @@ test('runtime grounding tenant scope never returns another organization entries'
     content: 'Fato de outro tenant.',
     provenance: {
       type: 'owner_statement',
-      sourceRef: null,
       sourceLabel: null,
     },
   }]);
