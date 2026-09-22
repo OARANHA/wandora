@@ -304,6 +304,12 @@ The review explicitly rejected:
 7. interpreting portability as a reason to copy Mastra/Paperclip operational capabilities into Wandora;
 8. creating real MEDICSPRO grounding to prove the promotion.
 
+## Documentation CI closure
+
+On the first documentation head, the Web workflow was reported `cancelled` at workflow level even though its sole job and every recorded step completed `success`. This is not classified as GREEN. A selective failed-job rerun was correctly rejected by GitHub because there was no failed job.
+
+The documentation head must therefore receive a fresh normal `pull_request/synchronize` CI round, and this PR may be marked ready/merged only if every applicable workflow on that **new exact head** concludes `success`.
+
 ## Decision
 
 **GO for a separate future Organization Grounding Production Promotion Execution V1, and only under the frozen order/stop conditions above.**
