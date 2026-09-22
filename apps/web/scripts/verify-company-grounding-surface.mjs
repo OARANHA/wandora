@@ -13,6 +13,10 @@ assert(source.includes('/grounding'), 'company_grounding_read_contract_missing')
 assert(source.includes('/retire'), 'company_grounding_retire_contract_missing');
 assert(source.includes('/correct'), 'company_grounding_correction_contract_missing');
 assert(source.includes("'Idempotency-Key'"), 'company_grounding_idempotency_missing');
+assert(source.includes('resolveGroundingCreateOperation'), 'company_grounding_persisted_create_idempotency_missing');
+assert(source.includes('operation.idempotencyKey'), 'company_grounding_create_key_reuse_missing');
+assert(source.includes('clearGroundingCreateOperation'), 'company_grounding_create_clear_missing');
+assert(!source.includes("mutationKey('create')"), 'company_grounding_create_random_key_per_retry_forbidden');
 assert(source.includes("activeOrganization?.role === 'owner'"), 'company_grounding_owner_gate_missing');
 assert(source.includes("activeOrganization?.role === 'admin'"), 'company_grounding_admin_gate_missing');
 assert(source.includes('Acesso somente leitura'), 'company_grounding_member_read_only_missing');
