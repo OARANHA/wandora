@@ -1507,6 +1507,6 @@ AgentTaskRuntime
 Mastra / replaceable runtime
 ```
 
-The projection is read-only, bounded and fail-closed before Agent Runtime execution. A previously completed/cached work result can replay without reloading current grounding; a newly reserved work whose grounding cannot load is marked uncertain without calling Agent Runtime. Retired entries and other tenants are excluded. Work context remains structurally separate from official truth. The Paperclip execution readiness gate also verifies that the grounding read boundary exists before reporting ready.
+The projection is read-only, bounded and fail-closed before durable work preparation. Retired entries and other tenants are excluded. Work context remains structurally separate from official truth. The Paperclip execution readiness gate also verifies that the grounding read boundary exists before reporting ready.
 
 This is not context-assembly ownership: Mastra/runtime remains responsible for runtime execution mechanics, and no RAG/memory/vector/retrieval subsystem is introduced.
