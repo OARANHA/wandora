@@ -3655,3 +3655,18 @@ The new Início reuses only existing authenticated digital-employee and customer
 No backend capability, migration, runtime mutation or outbound effect is introduced. Human Send and Gateway outbound remain unchanged/off.
 
 Next page-by-page convergence should continue from the canonical matrix in `docs/product/customer-surface-canonicalization-v1.md`, with grounding / `Regras da casa` authority review before expanding autonomous outbound behavior.
+
+
+## ADR 0163 — Customer Team Surface Canonicalization V1
+
+Status: **IMPLEMENTED IN CODE / NO PRODUCTION EFFECT**.
+
+The owner-approved Equipe design has been ported into the existing React/Vite/TanStack customer Web using only real authenticated digital-employee, activation, hire-availability and customer-work contracts.
+
+Real role/status/supervised-autonomy state remains authoritative. Prototype-only trainings, performance scores, human teammates, response-time claims, candidate queues and unsupported autonomy levels are not promoted as product truth. Non-current autonomy levels are visibly future/non-actionable.
+
+The existing activation safety contract remains intact, including explicit customer copy that activation **Não inicia trabalho** and **não libera envios externos**.
+
+All existing Web/Core/Platform Admin/Messaging Gateway checks were GREEN on the implementation head before this documentation checkpoint. No production deployment, runtime mutation, employee activation, work creation or outbound effect occurred.
+
+Next recommended slice: **Customer Work Result Presentation V1**, including safe rich-text/Markdown presentation for legitimate internal work results.

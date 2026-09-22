@@ -2089,3 +2089,16 @@ The production truth rule is now explicit: every customer-visible block is REAL,
 `docs/product/customer-surface-canonicalization-v1.md` records the page-by-page map for Início, Equipe, Trabalho, Conversas, Aprovações and Empresa.
 
 No production deployment/effect is part of this checkpoint. Grounding / `Regras da casa` remains an upcoming capability-authority review before broader autonomous outbound.
+
+
+## 2026-09-22 — Equipe surface canonicalization implemented in code
+
+ADR 0163 ports the approved Wandora Equipe design into the existing customer Web without inventing capabilities.
+
+The new Team surface uses the canonical customer visual language while preserving the current real contracts for digital-employee identity, role, active/paused status, supervised autonomy, activation availability, customer work and catalog-hire state.
+
+Demo-only prototype concepts — training history, weekly scoring, human teammate cards, response-time claims, candidate queues and actionable alternative autonomy levels — remain future capability and are not shown as production facts.
+
+The visual rewrite preserved the protected activation contract: activating a digital employee **Não inicia trabalho** and **não libera envios externos**.
+
+This is code/CI only. Production Web remains unchanged until a separately reviewed promotion.
