@@ -71,7 +71,7 @@ export function CompanyPage() {
     queryFn: async () => {
       const response = await authFetch('/api/v1/organizations/' + activeOrganization!.id + '/grounding');
       if (response.status === 403) throw new Error('Seu acesso a esta empresa não está ativo.');
-      if (!response.ok) throw new Error('Não foi possível carregar os fatos e Regras da Casa.');
+      if (!response.ok) throw new Error('Não foi possível carregar as informações da empresa e as Regras da Casa.');
       return await response.json() as GroundingResponse;
     },
   });
@@ -130,7 +130,7 @@ export function CompanyPage() {
       }
       if (response.status === 409 || response.status === 503) {
         throw new GroundingCreateRequestError(
-          'O registro ficou sem confirmação conclusiva. Repita exatamente o mesmo conteúdo e evidência; a identidade original será reutilizada.',
+          'O registro ficou sem confirmação conclusiva. Repita exatamente o mesmo conteúdo e a mesma fonte; a tentativa original será reutilizada com segurança.',
           true,
         );
       }
@@ -144,7 +144,7 @@ export function CompanyPage() {
 
   const retireMutation = useMutation({
     mutationFn: async (entry: GroundingEntry) => {
-      if (!activeOrganization) throw new Error('Escolha uma empresa antes de alterar grounding.');
+      if (!activeOrganization) throw new Error('Escolha uma empresa antes de alterar esta informação.');
       const response = await authFetch('/api/v1/organizations/' + activeOrganization.id + '/grounding/' + entry.id + '/retire', {
         method: 'POST',
         headers: { 'Idempotency-Key': mutationKey('retire') },
@@ -157,7 +157,7 @@ export function CompanyPage() {
 
   const correctionMutation = useMutation({
     mutationFn: async ({ entry, input }: { entry: GroundingEntry; input: CorrectionDraft }) => {
-      if (!activeOrganization) throw new Error('Escolha uma empresa antes de corrigir grounding.');
+      if (!activeOrganization) throw new Error('Escolha uma empresa antes de corrigir esta informação.');
       const response = await authFetch('/api/v1/organizations/' + activeOrganization.id + '/grounding/' + entry.id + '/correct', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Idempotency-Key': mutationKey('correct') },
@@ -219,7 +219,7 @@ export function CompanyPage() {
               </div></div>
             </section>
           )}
-          <GroundingSection title="Informações da empresa da empresa" eyebrow="verdade confirmada"
+          <GroundingSection title="Informações da empresa" eyebrow="verdade confirmada"
             description="Informações confirmadas que sua equipe digital pode usar como verdade sobre a empresa."
             empty="Nenhuma informação da empresa foi registrada ainda." entries={facts} canManage={canManage}
             retiringId={retireMutation.isPending ? retireMutation.variables?.id : undefined}
@@ -352,7 +352,7 @@ function HistorySection({ entries }: { entries: GroundingEntry[] }) {
     <section className="rounded-3xl border-[2.5px] border-[#09090b] bg-white p-5 wandora-pop sm:p-6">
       <div className="flex items-center gap-3"><History className="size-5" /><div><div className="wandora-mono text-[9px] font-black text-[#09090b]/40">história preservada</div><h2 className="m-0 mt-1 text-base font-black">Itens retirados</h2></div></div>
       <div className="mt-5 grid gap-3">{entries.map((entry) => <div key={entry.id} className="rounded-2xl border-2 border-[#09090b]/15 bg-[#f8f4e8] p-4">
-        <div className="text-[9px] font-black uppercase tracking-[0.08em] text-[#09090b]/40">{entry.type === 'fact' ? 'fato' : 'regra'} · retirado{entry.provenance.sourceLabel ? ' · ' + entry.provenance.sourceLabel : ''}</div>
+        <div className="text-[9px] font-black uppercase tracking-[0.08em] text-[#09090b]/40">{entry.type === 'fact' ? 'informação' : 'regra'} · retirado{entry.provenance.sourceLabel ? ' · ' + entry.provenance.sourceLabel : ''}</div>
         <p className="m-0 mt-2 whitespace-pre-wrap text-sm leading-6 text-[#09090b]/55">{entry.content}</p>
       </div>)}</div>
     </section>
@@ -364,11 +364,11 @@ function CorrectionPanel({ entry, draft, setDraft, pending, error, onCancel, onS
   onCancel: () => void; onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-[#09090b]/55 p-4" role="dialog" aria-modal="true" aria-label="Corrigir informação oficial da empresa">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-[#09090b]/55 p-4" role="dialog" aria-modal="true" aria-label="Corrigir informação da empresa">
       <form onSubmit={onSubmit} className="w-full max-w-2xl rounded-3xl border-[2.5px] border-[#09090b] bg-white p-6 wandora-pop">
         <div className="wandora-mono text-[9px] font-black text-[#09090b]/40">correção com histórico preservado</div>
         <h2 className="wandora-display m-0 mt-2 text-4xl">CORRIGIR SEM APAGAR O PASSADO.</h2>
-        <p className="m-0 mt-3 text-sm leading-6 text-[#09090b]/55">A versão anterior será retirada e esta correção será registrada como uma nova entrada oficial.</p>
+        <p className="m-0 mt-3 text-sm leading-6 text-[#09090b]/55">A versão anterior ficará no histórico e esta correção será salva como a nova versão confirmada.</p>
         <div className="mt-5 rounded-2xl border-2 border-[#09090b]/15 bg-[#f8f4e8] p-4"><div className="text-[9px] font-black uppercase tracking-[0.08em] text-[#09090b]/40">versão atual</div><p className="m-0 mt-2 text-sm leading-6 text-[#09090b]/60">{entry.content}</p></div>
         <label className="mt-5 grid gap-2"><span className="text-xs font-black">Conteúdo corrigido</span><textarea value={draft.content} onChange={(event) => setDraft({ ...draft, content: event.target.value })} maxLength={4000} rows={4} required className="w-full resize-y rounded-2xl border-2 border-[#09090b] bg-white px-4 py-3 text-sm leading-6" /></label>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -378,7 +378,7 @@ function CorrectionPanel({ entry, draft, setDraft, pending, error, onCancel, onS
         {error ? <InlineError error={error} /> : null}
         <div className="mt-6 flex flex-wrap justify-end gap-2">
           <button type="button" onClick={onCancel} disabled={pending} className="rounded-xl border-2 border-[#09090b] bg-white px-4 py-2.5 text-sm font-black wandora-pop-sm wandora-press disabled:opacity-50">Cancelar</button>
-          <button type="submit" disabled={pending || !draft.content.trim() || !draft.sourceRef.trim()} className="inline-flex items-center gap-2 rounded-xl border-2 border-[#09090b] bg-[#d2e823] px-4 py-2.5 text-sm font-black wandora-pop-sm wandora-press disabled:opacity-50">{pending ? <LoaderCircle className="size-4 animate-spin" /> : <Check className="size-4" />}{pending ? 'Corrigindo…' : 'Registrar correção'}</button>
+          <button type="submit" disabled={pending || !draft.content.trim() || !draft.sourceRef.trim()} className="inline-flex items-center gap-2 rounded-xl border-2 border-[#09090b] bg-[#d2e823] px-4 py-2.5 text-sm font-black wandora-pop-sm wandora-press disabled:opacity-50">{pending ? <LoaderCircle className="size-4 animate-spin" /> : <Check className="size-4" />}{pending ? 'Corrigindo…' : 'Salvar correção'}</button>
         </div>
       </form>
     </div>
