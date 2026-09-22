@@ -1,5 +1,16 @@
 # Wandora — Canonical State / Handoff
 
+## ADR 0178 — MEDICSPRO First Real Organization Grounding Content Preflight V1 — NO EFFECT
+
+The first real content review is complete without creating grounding. Live remains at migration 017 present/verified, MEDICSPRO grounding rows = 0, works = 2, outbound attempts = 0, and Ana = one active + supervised employee.
+
+Owner-authored evidence supports exactly one low-ambiguity first fact candidate: **“O MedicsPro reúne agenda, pacientes, informações clínicas e gestão financeira em um único ambiente.”** The evidence source is the first authenticated MEDICSPRO customer work (wandora:customer-work-operation:9a4bc45c-cb6e-410d-8e46-3d7b84fc85ab).
+
+Market-positioning/benefit statements remain NEEDS OWNER CONFIRMATION. No durable Regras da Casa entry is accepted yet: repeated no-send/review instructions were task-scoped and cannot be promoted into a tenant-wide rule without explicit owner confirmation. Global anti-hallucination and external-effect rules remain Wandora runtime/effect policy and must not be duplicated as tenant grounding.
+
+A future execution may insert the accepted fact only. A first fact+rule set requires explicit owner confirmation of a durable house rule before execution. See ADR 0178.
+
+
 ## ADR 0177 — Customer Web Grounding API Bridge Production Promotion Execution V1
 
 Status: **EXECUTED / GREEN / WEB ONLY**.
