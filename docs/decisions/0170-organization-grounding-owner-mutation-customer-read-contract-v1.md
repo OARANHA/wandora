@@ -81,5 +81,3 @@ This ADR does not authorize production migration, Core promotion, real MEDICSPRO
 ## Next slice
 
 The next architectural slice is **Organization Grounding Runtime Projection V1 — CODE ONLY / NO PRODUCTION EFFECT**. It must consume only bounded active official facts/rules through a provider-neutral Agent Runtime contract, preserve inference/unknown separation, and must not convert this durable contract into a Wandora retrieval/memory subsystem.
-
-[executed on device: wandora-vps-01 (4f062e11-0f3c-4c6e-8f71-7d6136c1bee9)]
