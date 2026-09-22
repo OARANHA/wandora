@@ -3569,3 +3569,16 @@ Pinned Paperclip still treats Ana's historical `error` as invokable, but live Or
 The accepted least-authority correction is repository-side only: preserve the existing conservative serialization posture but accept `idle | error` before calling Paperclip `issues.requestWakeup`. Keep `running` and all other states rejected locally, and keep Paperclip as the final invokability authority.
 
 Do not clear/resume/pause Ana to satisfy the plugin. No second legitimate work is authorized until a corrected Organization Adapter candidate is implemented, qualified, promoted in a separate execution slice and revalidated.
+
+
+## ADR 0157 — Organization Adapter 0.3.1 compatibility implementation
+
+Status: **IMPLEMENTED IN REPOSITORY / NO PRODUCTION EFFECT**.
+
+Organization Adapter 0.3.1 changes only customer-work pre-admission from literal `idle` to `idle | error`, keeps `running` and all other states rejected, and leaves Paperclip `issues.requestWakeup` as final invokability authority.
+
+Disposable qualification in exact `wandora/paperclip:v2026.916.0` passed strict typecheck, bundles, 16/16 tests, artifact verification, pinned manifest validation and reproducible `npm pack`.
+
+Candidate package SHA-256: `49bc32b4d22b3000310e01db13c51a3348dc66774a4bf880571154136b3d0240`.
+
+Production remains on Organization Adapter 0.3.0. No second legitimate work is authorized until a separate 0.3.1 promotion preflight and execution are completed.
