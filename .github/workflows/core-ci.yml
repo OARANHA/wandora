@@ -26,10 +26,12 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Resolve container secret GID
+        shell: bash
+        run: echo "WANDORA_CI_CONTAINER_SECRET_GID=$(id -g)" >> "$GITHUB_ENV"
+
       - name: Run reproducible Ana Core verifier
         shell: bash
-        env:
-          WANDORA_CI_CONTAINER_SECRET_GID: "0"
         run: bash apps/core/scripts/verify-ana-v1.sh
 
       - name: Run Private Tenant Provisioning V2 verifier
