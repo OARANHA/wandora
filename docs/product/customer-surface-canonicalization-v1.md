@@ -149,3 +149,29 @@ The first canonicalization implementation intentionally changes only:
 - Início.
 
 The Início must contain no fictitious commercial metrics. It is the reference implementation for subsequent pages.
+
+
+## Equipe implementation checkpoint — ADR 0163
+
+`Equipe` is now implemented in code against the existing authenticated digital-employee contracts.
+
+Connected as REAL:
+
+- digital-employee identity;
+- role;
+- active/paused status;
+- supervised autonomy;
+- activation availability/state;
+- customer-work availability and panel;
+- hire availability/reconciliation state.
+
+Prototype-only elements remain FUTURO and are not presented as customer truth:
+
+- selectable Aprendiz / De confiança autonomy;
+- training history;
+- weekly performance report;
+- human teammate directory;
+- response-time claims;
+- candidate/future-hire queue.
+
+The approved Team composition and visual language are retained without inventing state.
