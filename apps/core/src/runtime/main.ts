@@ -194,5 +194,3 @@ const shutdown = async (signal: string): Promise<void> => {
 
 process.once('SIGTERM', () => void shutdown('SIGTERM'));
 process.once('SIGINT', () => void shutdown('SIGINT'));
-
-[executed on device: wandora-vps-01 (4f062e11-0f3c-4c6e-8f71-7d6136c1bee9)]
