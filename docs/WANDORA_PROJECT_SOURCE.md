@@ -1,5 +1,14 @@
 # Wandora — Project Source / Continuity Bootstrap
 
+## Current continuity checkpoint — ADR 0186
+
+Web Design System + App Shell V1 is **IMPLEMENTED IN CODE / NO PRODUCTION EFFECT**.
+
+The existing customer shell now has bundled Dela Gothic One / Space Grotesk / JetBrains Mono typography, explicit global design tokens, a 250px→82px collapsible desktop sidebar, a dedicated power-style logout wired to the existing real signOut() path, and a complete mobile route menu. All six canonical routes and existing auth/API contracts remain unchanged.
+
+Production is still the ADR 0185 Core/Web state until a separately reviewed Web artifact qualification/promotion. Do not treat supplied design-reference demo people, tool states, activity or metrics as real Wandora state.
+
+
 ## Current continuity checkpoint — ADR 0185
 
 Customer Company Grounding Save + Business UX Production Promotion V1 is **COMPLETE / GREEN**.
