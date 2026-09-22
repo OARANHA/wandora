@@ -1,187 +1,294 @@
+import { useQuery } from '@tanstack/react-query';
+import { Link } from '@tanstack/react-router';
 import {
   ArrowRight,
-  CalendarCheck2,
-  CircleDollarSign,
-  Clock3,
-  MessageSquareText,
+  Bot,
+  BriefcaseBusiness,
+  CheckCircle2,
+  LoaderCircle,
+  ShieldCheck,
   Sparkles,
-  TrendingUp,
-  UserRoundCheck,
+  UsersRound,
 } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import { useAuth } from '../AuthProvider';
 
-const metrics = [
-  { label: 'Conversas hoje', value: '18', note: '+6 desde ontem', icon: MessageSquareText },
-  { label: 'Oportunidades', value: '5', note: '3 novas', icon: TrendingUp },
-  { label: 'Reuniões marcadas', value: '3', note: 'próxima às 14h', icon: CalendarCheck2 },
-  { label: 'Em negociação', value: 'R$ 8,4 mil', note: '4 oportunidades', icon: CircleDollarSign },
-];
+type DigitalEmployee = {
+  id: string;
+  name: string;
+  role: 'commercial-assistant';
+  status: 'active' | 'paused';
+  autonomy: 'supervised';
+  work: {
+    available: boolean;
+    state: 'available' | 'unavailable';
+  };
+};
 
-const activities: Array<{ name: string; text: string; time: string; icon: LucideIcon }> = [
-  { name: 'Ana', text: 'Qualificou um novo interessado e criou uma oportunidade', time: 'há 3 min', icon: UserRoundCheck },
-  { name: 'Clara', text: 'Concluiu um atendimento sem pendências', time: 'há 8 min', icon: MessageSquareText },
-  { name: 'Ana', text: 'Agendou uma reunião comercial para amanhã às 10h', time: 'há 17 min', icon: CalendarCheck2 },
-];
+type TeamResponse = {
+  items: DigitalEmployee[];
+};
 
-const employees = [
-  {
-    name: 'Ana',
-    role: 'Assistente Comercial',
-    initials: 'AN',
-    status: 'Trabalhando agora',
-    task: 'Respondendo um novo contato do WhatsApp',
-    tone: 'bg-indigo-50 text-indigo-700',
-  },
-  {
-    name: 'Clara',
-    role: 'Atendimento ao Cliente',
-    initials: 'CL',
-    status: 'Disponível',
-    task: 'Nenhuma pendência no momento',
-    tone: 'bg-emerald-50 text-emerald-700',
-  },
-];
+type WorkItem = {
+  id: string;
+  employeeId: string;
+  title: string;
+  state: 'submitting' | 'submitted' | 'uncertain' | 'executing' | 'review-ready' | 'execution-uncertain';
+  result: { summary: string; model: string } | null;
+  createdAt: string;
+  updatedAt: string;
+};
 
-function MetricCard({ label, value, note, icon: Icon }: (typeof metrics)[number]) {
-  return (
-    <article className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="m-0 text-sm font-medium text-slate-500">{label}</p>
-          <p className="m-0 mt-3 text-2xl font-semibold tracking-tight text-slate-950">{value}</p>
-        </div>
-        <span className="grid size-10 place-items-center rounded-xl bg-slate-50 text-slate-600">
-          <Icon className="size-[18px]" strokeWidth={1.8} />
-        </span>
-      </div>
-      <p className="m-0 mt-3 text-xs text-slate-400">{note}</p>
-    </article>
-  );
-}
+type DashboardData = {
+  employees: DigitalEmployee[];
+  workItems: WorkItem[];
+};
 
-function EmployeeCard({ employee }: { employee: (typeof employees)[number] }) {
-  return (
-    <article className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
-      <div className="flex items-start gap-4">
-        <div className={`grid size-12 shrink-0 place-items-center rounded-2xl text-sm font-semibold ${employee.tone}`}>
-          {employee.initials}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h3 className="m-0 font-semibold text-slate-900">{employee.name}</h3>
-              <p className="m-0 mt-0.5 text-sm text-slate-500">{employee.role}</p>
-            </div>
-            <span className="mt-1 size-2.5 rounded-full bg-emerald-400 ring-4 ring-emerald-50" />
-          </div>
-          <div className="mt-4 rounded-xl bg-slate-50 px-3.5 py-3">
-            <p className="m-0 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">{employee.status}</p>
-            <p className="m-0 mt-1.5 text-sm leading-5 text-slate-600">{employee.task}</p>
-          </div>
-        </div>
-      </div>
-    </article>
-  );
-}
+const roleLabel: Record<DigitalEmployee['role'], string> = {
+  'commercial-assistant': 'Assistente comercial',
+};
+
+const workStateLabel: Record<WorkItem['state'], string> = {
+  submitting: 'Preparando',
+  submitted: 'Enviado',
+  uncertain: 'Verificação necessária',
+  executing: 'Em andamento',
+  'review-ready': 'Pronto para sua revisão',
+  'execution-uncertain': 'Execução em verificação',
+};
 
 export function DashboardPage() {
-  return (
-    <div className="space-y-7">
-      <section className="flex flex-col justify-between gap-5 xl:flex-row xl:items-end">
-        <div>
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700">
-            <Sparkles className="size-3.5" /> Sua empresa hoje
-          </div>
-          <h2 className="m-0 max-w-3xl text-3xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-[38px]">
-            Bom dia. Sua equipe já está trabalhando.
-          </h2>
-          <p className="m-0 mt-3 max-w-2xl text-[15px] leading-6 text-slate-500">
-            Acompanhe o que está acontecendo, aprove o que precisa de você e veja os resultados sem entrar na operação.
+  const { activeOrganization, context, authFetch } = useAuth();
+
+  const query = useQuery({
+    queryKey: ['customer-dashboard-real', activeOrganization?.id],
+    enabled: Boolean(activeOrganization),
+    queryFn: async (): Promise<DashboardData> => {
+      const teamResponse = await authFetch(
+        `/api/v1/organizations/${activeOrganization!.id}/digital-employees`,
+      );
+      if (teamResponse.status === 403) throw new Error('Seu acesso a esta empresa não está ativo.');
+      if (!teamResponse.ok) throw new Error('Não foi possível carregar a equipe da empresa.');
+      const team = await teamResponse.json() as TeamResponse;
+
+      const workResponses = await Promise.all(
+        team.items
+          .filter((employee) => employee.work.available)
+          .map(async (employee) => {
+            const response = await authFetch(
+              `/api/v1/organizations/${activeOrganization!.id}/digital-employees/${employee.id}/work`,
+            );
+            if (!response.ok) return [] as WorkItem[];
+            const body = await response.json() as { items: WorkItem[] };
+            return body.items;
+          }),
+      );
+
+      return {
+        employees: team.items,
+        workItems: workResponses.flat().sort(
+          (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+        ),
+      };
+    },
+  });
+
+  if (!activeOrganization) {
+    const hasMultiple = (context?.organizations.length ?? 0) > 1;
+    return (
+      <section className="mx-auto max-w-3xl pt-8">
+        <div className="rounded-3xl border-[2.5px] border-[#09090b] bg-white p-7 wandora-pop">
+          <div className="wandora-mono text-[10px] font-black text-[#09090b]/45">contexto necessário</div>
+          <h1 className="wandora-display m-0 mt-3 text-4xl leading-none text-[#09090b]">
+            {hasMultiple ? 'ESCOLHA SUA EMPRESA.' : 'SUA EMPRESA AINDA NÃO ESTÁ ATIVA.'}
+          </h1>
+          <p className="m-0 mt-4 max-w-xl text-sm leading-6 text-[#09090b]/60">
+            {hasMultiple
+              ? 'Selecione explicitamente a empresa no painel para carregar apenas o estado correto daquele negócio.'
+              : 'Sua conta está autenticada, mas ainda não há uma empresa ativa vinculada para mostrar.'}
           </p>
         </div>
-        <button className="inline-flex h-11 items-center justify-center gap-2 self-start rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 xl:self-auto">
-          Ver atividade da empresa <ArrowRight className="size-4" />
+      </section>
+    );
+  }
+
+  if (query.isLoading) {
+    return (
+      <div className="flex min-h-[55vh] items-center justify-center text-sm font-bold text-[#09090b]/55">
+        <LoaderCircle className="mr-2 size-5 animate-spin" /> Abrindo o dia da empresa…
+      </div>
+    );
+  }
+
+  if (query.isError) {
+    return (
+      <div className="rounded-3xl border-[2.5px] border-[#09090b] bg-white p-7 wandora-pop">
+        <div className="wandora-mono text-[10px] font-black text-[#09090b]/45">não foi possível carregar</div>
+        <h1 className="wandora-display m-0 mt-3 text-4xl leading-none">O ESTADO REAL NÃO CHEGOU.</h1>
+        <p className="m-0 mt-4 text-sm leading-6 text-[#09090b]/60">
+          {query.error instanceof Error ? query.error.message : 'Tente novamente.'}
+        </p>
+        <button
+          type="button"
+          onClick={() => void query.refetch()}
+          className="mt-5 rounded-xl border-2 border-[#09090b] bg-[#d2e823] px-4 py-2.5 text-sm font-black wandora-pop-sm wandora-press"
+        >
+          Tentar novamente
         </button>
-      </section>
+      </div>
+    );
+  }
 
-      <section className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
-        {metrics.map((metric) => <MetricCard key={metric.label} {...metric} />)}
-      </section>
+  const employees = query.data?.employees ?? [];
+  const workItems = query.data?.workItems ?? [];
+  const activeEmployees = employees.filter((employee) => employee.status === 'active').length;
+  const reviewReady = workItems.filter((work) => work.state === 'review-ready').length;
+  const latestWork = workItems[0] ?? null;
+  const latestEmployee = latestWork
+    ? employees.find((employee) => employee.id === latestWork.employeeId) ?? null
+    : null;
 
-      <section className="grid gap-5 2xl:grid-cols-[1.25fr_.75fr]">
-        <div className="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.03)] sm:p-6">
-          <div className="mb-5 flex items-center justify-between gap-3">
-            <div>
-              <h2 className="m-0 text-lg font-semibold tracking-tight text-slate-900">Sua equipe</h2>
-              <p className="m-0 mt-1 text-sm text-slate-400">Quem está disponível e no que está trabalhando.</p>
-            </div>
-            <button className="text-sm font-semibold text-indigo-600 hover:text-indigo-700">Ver equipe</button>
+  return (
+    <div className="space-y-7">
+      <section className="grid gap-6 xl:grid-cols-[1fr_260px] xl:items-start">
+        <div>
+          <div className="inline-flex rounded-full border-2 border-[#09090b] bg-[#d2e823] px-3 py-1.5 wandora-pop-sm">
+            <span className="wandora-mono text-[9px] font-black">estado real · atualizado agora</span>
           </div>
-          <div className="grid gap-4 xl:grid-cols-2">
-            {employees.map((employee) => <EmployeeCard key={employee.name} employee={employee} />)}
+          <h1 className="wandora-display m-0 mt-5 max-w-4xl text-[clamp(3.1rem,7vw,6.7rem)] leading-[0.84] text-[#09090b]">
+            SUA EQUIPE JÁ ESTÁ <span className="inline-block rounded-xl bg-[#d2e823] px-2">EM MOVIMENTO.</span>
+          </h1>
+          <p className="m-0 mt-5 max-w-2xl text-base leading-7 text-[#09090b]/55">
+            Aqui entram somente fatos que a Wandora já consegue provar para {activeOrganization.name}: equipe digital,
+            trabalho supervisionado e resultados registrados.
+          </p>
+        </div>
+
+        <div className="hidden justify-self-end rounded-[2rem] border-[2.5px] border-[#09090b] bg-[#46c46a] p-7 wandora-pop xl:block">
+          <Bot className="size-28 stroke-[2.2]" />
+        </div>
+      </section>
+
+      <section className="grid gap-4 sm:grid-cols-3">
+        <MetricCard icon={UsersRound} value={String(employees.length)} label="funcionários digitais" note={activeEmployees ? `${activeEmployees} ativos agora` : 'nenhum ativo'} tone="lime" />
+        <MetricCard icon={BriefcaseBusiness} value={String(workItems.length)} label="trabalhos registrados" note="pelo contrato atual" tone="white" />
+        <MetricCard icon={CheckCircle2} value={String(reviewReady)} label="prontos para revisão" note="resultado interno" tone="sun" />
+      </section>
+
+      <section className="grid gap-5 xl:grid-cols-[1.1fr_.9fr]">
+        <div className="rounded-3xl border-[2.5px] border-[#09090b] bg-white p-5 wandora-pop sm:p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="wandora-mono text-[9px] font-black text-[#09090b]/40">sua equipe</div>
+              <h2 className="wandora-display m-0 mt-2 text-3xl">GERENCIE COMO GENTE.</h2>
+            </div>
+            <Link to="/team" className="rounded-xl border-2 border-[#09090b] bg-[#d2e823] px-3 py-2 text-xs font-black wandora-pop-sm wandora-press">
+              Ver equipe →
+            </Link>
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {employees.length ? employees.map((employee) => (
+              <div key={employee.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-[#09090b] bg-[#f8f4e8] p-4">
+                <div className="flex items-center gap-3">
+                  <span className="grid size-11 place-items-center rounded-xl border-2 border-[#09090b] bg-[#ff7a1a] text-white">
+                    <Bot className="size-6" />
+                  </span>
+                  <div>
+                    <div className="font-black">{employee.name}</div>
+                    <div className="text-xs text-[#09090b]/50">{roleLabel[employee.role]} · {employee.autonomy === 'supervised' ? 'supervisionada' : employee.autonomy}</div>
+                  </div>
+                </div>
+                <span className={`rounded-full border-2 border-[#09090b] px-3 py-1 text-[10px] font-black uppercase tracking-[0.08em] ${employee.status === 'active' ? 'bg-[#d2e823]' : 'bg-white'}`}>
+                  {employee.status === 'active' ? 'ativa' : 'pausada'}
+                </span>
+              </div>
+            )) : (
+              <p className="m-0 rounded-2xl border-2 border-dashed border-[#09090b]/25 p-5 text-sm text-[#09090b]/50">
+                Nenhum funcionário digital está registrado nesta empresa.
+              </p>
+            )}
           </div>
         </div>
 
-        <div className="rounded-3xl bg-[#111827] p-5 text-white shadow-[0_18px_45px_rgba(15,23,42,0.14)] sm:p-6">
+        <div className="rounded-3xl bg-[#09090b] p-5 text-white wandora-pop sm:p-6">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="m-0 text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Precisa de você</p>
-              <h2 className="m-0 mt-2 text-xl font-semibold tracking-tight">2 aprovações pendentes</h2>
+              <div className="wandora-mono text-[9px] font-black text-white/45">trabalho mais recente</div>
+              <h2 className="wandora-display m-0 mt-2 text-3xl text-white">
+                {latestWork ? 'PRONTO PARA ACOMPANHAR.' : 'SEM ADIVINHAÇÃO.'}
+              </h2>
             </div>
-            <div className="grid size-11 place-items-center rounded-2xl bg-white/10 text-amber-300">
-              <Clock3 className="size-5" />
+            <Sparkles className="size-7 text-[#d2e823]" />
+          </div>
+
+          {latestWork ? (
+            <div className="mt-5 rounded-2xl border-2 border-white/25 bg-white/5 p-4">
+              <div className="text-xs font-black text-[#d2e823]">{latestEmployee?.name ?? 'Funcionário digital'}</div>
+              <h3 className="m-0 mt-2 text-lg font-black leading-6 text-white">{latestWork.title}</h3>
+              <div className="mt-3 inline-flex rounded-full border border-white/25 bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-white/75">
+                {workStateLabel[latestWork.state]}
+              </div>
+              {latestWork.result?.summary ? (
+                <p className="m-0 mt-4 line-clamp-4 whitespace-pre-wrap text-sm leading-6 text-white/65">
+                  {latestWork.result.summary}
+                </p>
+              ) : null}
             </div>
-          </div>
-          <div className="mt-6 space-y-3">
-            <button className="w-full rounded-2xl border border-white/10 bg-white/[0.06] p-4 text-left transition hover:bg-white/[0.09]">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="m-0 text-sm font-semibold text-white">Desconto de 12% para Mariana</p>
-                  <p className="m-0 mt-1.5 text-xs leading-5 text-slate-400">Ana pede sua aprovação antes de enviar a proposta.</p>
-                </div>
-                <ArrowRight className="mt-1 size-4 shrink-0 text-slate-500" />
-              </div>
-            </button>
-            <button className="w-full rounded-2xl border border-white/10 bg-white/[0.06] p-4 text-left transition hover:bg-white/[0.09]">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="m-0 text-sm font-semibold text-white">Exceção de prazo para João</p>
-                  <p className="m-0 mt-1.5 text-xs leading-5 text-slate-400">Clara encontrou uma situação fora da política padrão.</p>
-                </div>
-                <ArrowRight className="mt-1 size-4 shrink-0 text-slate-500" />
-              </div>
-            </button>
-          </div>
-          <button className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-white">
-            Revisar aprovações <ArrowRight className="size-4" />
-          </button>
+          ) : (
+            <p className="m-0 mt-5 text-sm leading-6 text-white/55">
+              Ainda não há trabalho registrado pelo contrato de customer work desta empresa.
+            </p>
+          )}
+
+          <Link to="/team" className="mt-5 inline-flex items-center gap-2 text-sm font-black text-[#d2e823]">
+            Abrir trabalho da equipe <ArrowRight className="size-4" />
+          </Link>
         </div>
       </section>
 
-      <section className="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.03)] sm:p-6">
-        <div className="mb-5 flex items-center justify-between gap-4">
-          <div>
-            <h2 className="m-0 text-lg font-semibold tracking-tight text-slate-900">Acontecendo agora</h2>
-            <p className="m-0 mt-1 text-sm text-slate-400">Uma leitura simples do trabalho da empresa.</p>
-          </div>
-          <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
-            <span className="size-2 rounded-full bg-emerald-400" /> Ao vivo
+      <section className="rounded-3xl border-[2.5px] border-[#09090b] bg-[#f8f4e8] p-5 wandora-pop sm:p-6">
+        <div className="flex items-start gap-4">
+          <span className="grid size-11 shrink-0 place-items-center rounded-xl border-2 border-[#09090b] bg-white">
+            <ShieldCheck className="size-5" />
           </span>
-        </div>
-        <div className="divide-y divide-slate-100">
-          {activities.map(({ name, text, time, icon: Icon }) => (
-            <div key={`${name}-${time}`} className="flex items-start gap-4 py-4 first:pt-0 last:pb-0">
-              <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-xl bg-slate-50 text-slate-500">
-                <Icon className="size-4" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="m-0 text-sm leading-6 text-slate-600"><strong className="font-semibold text-slate-900">{name}</strong> {text}</p>
-                <p className="m-0 mt-0.5 text-xs text-slate-400">{time}</p>
-              </div>
-            </div>
-          ))}
+          <div>
+            <div className="font-black">Sem dados fictícios nesta visão.</div>
+            <p className="m-0 mt-1 text-sm leading-6 text-[#09090b]/55">
+              Métricas comerciais, aprovações, ferramentas e “regras da casa” só entrarão aqui quando houver contrato e estado canônico para sustentá-las.
+            </p>
+          </div>
         </div>
       </section>
     </div>
+  );
+}
+
+function MetricCard({
+  icon: Icon,
+  value,
+  label,
+  note,
+  tone,
+}: {
+  icon: typeof UsersRound;
+  value: string;
+  label: string;
+  note: string;
+  tone: 'lime' | 'sun' | 'white';
+}) {
+  const background = tone === 'lime' ? 'bg-[#d2e823]' : tone === 'sun' ? 'bg-[#fdd030]' : 'bg-white';
+  return (
+    <article className={`rounded-3xl border-[2.5px] border-[#09090b] p-5 wandora-pop ${background}`}>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="wandora-display text-4xl leading-none">{value}</div>
+          <div className="mt-2 text-sm font-black">{label}</div>
+          <div className="mt-1 text-xs text-[#09090b]/50">{note}</div>
+        </div>
+        <span className="grid size-10 place-items-center rounded-xl border-2 border-[#09090b] bg-white">
+          <Icon className="size-5" />
+        </span>
+      </div>
+    </article>
   );
 }
