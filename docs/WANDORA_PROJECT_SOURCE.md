@@ -4,11 +4,11 @@
 
 Web Design System + App Shell Production Promotion V1 is **COMPLETE / GREEN / WEB ONLY**.
 
-Live Web is `wandora/web:candidate-67966d42d23e` from exact `main@67966d42d23e1778d89c2430de8d59e2235dedfb`, healthy/restart 0, with the persisted selector aligned. The owner-approved Dela Gothic One / Space Grotesk / JetBrains Mono typography, collapsible desktop sidebar, complete mobile menu and real power-style logout are production-active.
+Live Web = `wandora/web:candidate-67966d42d23e` from exact `main@67966d42d23e1778d89c2430de8d59e2235dedfb`, healthy/restart 0. The owner-approved typography, collapsible sidebar, complete mobile menu and real power-style logout are production-active.
 
-Core, Paperclip and Messaging Gateway were not recreated. MEDICSPRO grounding remains 0, works 2 and outbound 0; Ana remains active + supervised; Human Send/Gateway outbound remain OFF.
+Core/Paperclip/Gateway were unchanged. MEDICSPRO grounding = 0, works = 2, outbound = 0, Ana = active + supervised, Human Send/Gateway outbound = OFF. Valid rollback selector evidence is `web.env.before` in the ADR 0187 execution directory.
 
-Do not repeat this Web promotion after chat interruption; reconcile runtime first. The separately authorized first MEDICSPRO grounding execution still requires the normal authenticated owner/admin customer flow.
+Do not repeat this promotion after chat interruption; reconcile runtime first. The already-authorized first MEDICSPRO grounding execution still requires the normal authenticated owner/admin customer flow.
 
 
 ## Current continuity checkpoint — ADR 0186
