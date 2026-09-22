@@ -1,5 +1,16 @@
 # Wandora — Project Source / Continuity Bootstrap
 
+## Current continuity checkpoint — ADR 0187
+
+Web Design System + App Shell Production Promotion V1 is **COMPLETE / GREEN / WEB ONLY**.
+
+Live Web = `wandora/web:candidate-67966d42d23e` from exact `main@67966d42d23e1778d89c2430de8d59e2235dedfb`, healthy/restart 0. The owner-approved typography, collapsible sidebar, complete mobile menu and real power-style logout are production-active.
+
+Core/Paperclip/Gateway were unchanged. MEDICSPRO grounding = 0, works = 2, outbound = 0, Ana = active + supervised, Human Send/Gateway outbound = OFF. Valid rollback selector evidence is `web.env.before` in the ADR 0187 execution directory.
+
+Do not repeat this promotion after chat interruption; reconcile runtime first. The already-authorized first MEDICSPRO grounding execution still requires the normal authenticated owner/admin customer flow.
+
+
 ## Current continuity checkpoint — ADR 0186
 
 Web Design System + App Shell V1 is **IMPLEMENTED IN CODE / NO PRODUCTION EFFECT**.

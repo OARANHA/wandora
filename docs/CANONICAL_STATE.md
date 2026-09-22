@@ -1,5 +1,16 @@
 # Wandora — Canonical State / Handoff
 
+## ADR 0187 — Web Design System + App Shell Production Promotion V1 — GREEN
+
+Production Web is `wandora/web:candidate-67966d42d23e` from exact `main@67966d42d23e1778d89c2430de8d59e2235dedfb`, healthy / restart 0. Persisted selector and live revision are aligned.
+
+The bundled Dela Gothic One / Space Grotesk / JetBrains Mono design system, 250px→82px collapsible desktop sidebar, complete mobile menu and power-style real logout are live. Core, Paperclip and Messaging Gateway were not recreated.
+
+The exact GitHub Web artifact is 10722734256 with ZIP digest `sha256:0b544336336d47225a54f9b470957afc8a65ea6e53f60006715efa486a88e319`. The valid rollback selector is retained in `web.env.before` and points to `candidate-d8349b353bb7`.
+
+MEDICSPRO remains grounding 0 / works 2 / outbound 0; Ana is active + supervised; Human Send and Gateway outbound remain OFF. See ADR 0187.
+
+
 ## ADR 0186 — Web Design System + App Shell V1 — CODE ONLY
 
 The customer Web design system now uses bundled/pinned Dela Gothic One 400 for display, Space Grotesk Variable for body/interface text and JetBrains Mono Variable for operational labels.
