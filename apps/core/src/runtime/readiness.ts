@@ -87,6 +87,19 @@ export function createRuntimeReadinessChecker(
           reason: 'paperclip-execution-bridge-database-boundary-unavailable',
         };
       }
+
+      try {
+        await pool.query(`
+          SELECT 1
+            FROM wandora.organization_grounding_entries
+           LIMIT 0;
+        `);
+      } catch {
+        return {
+          ready: false,
+          reason: 'organization-grounding-runtime-boundary-unavailable',
+        };
+      }
     }
 
     return { ready: true };
