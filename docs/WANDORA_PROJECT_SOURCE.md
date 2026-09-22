@@ -1,5 +1,12 @@
 # Wandora — Project Source / Continuity Bootstrap
 
+## Current continuity checkpoint — ADR 0180
+
+Customer Company Owner-Statement Evidence Surface V1 is **CODE ONLY / NO PRODUCTION EFFECT**. The Web form now faithfully exposes the already-live Core contract: direct owner statements may retain optional source evidence, while approved-source references remain required.
+
+The MEDICSPRO execution set remains frozen as F1/F2/F3 = `fact`, R1 = `rule`. Production grounding remains unchanged until a separately reviewed Web promotion and normal owner-session mutation.
+
+
 ## Current continuity checkpoint — ADR 0179
 
 MEDICSPRO First Real Organization Grounding Content Execution V1 is **AUTHORIZED / PRE-EFFECT READY**, with F1/F2/F3 confirmed as `fact` and R1 confirmed as a permanent `rule`.
