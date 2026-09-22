@@ -4,6 +4,34 @@ Last synchronized: **2026-09-22**
 
 Canonical continuity checkpoint before ADR 0168 guardrail work:
 
+## 2026-09-22 Organization Grounding Production Promotion Preflight V1 — GO FOR SEPARATE EXECUTION / NO EFFECT
+
+Canonical Git at preflight decision:
+
+```text
+main = fba159db751122bfb5c600296bb7a0d5beb5a474
+PR #229 = merged
+open PRs = 0
+ADR 0173 = Organization Grounding Production Promotion Preflight V1
+```
+
+All applicable post-merge push workflows on the exact main are GREEN: Core CI, Web CI, Platform Admin CI and Messaging Gateway CI.
+
+Live remains unchanged: migration 017 / `wandora.organization_grounding_entries` is ABSENT; Core/Web/Paperclip/Gateway are healthy with restart 0; MEDICSPRO has exactly 2 customer work operations, exactly 1 active+supervised Ana and 0 outbound attempts; Human Send and Gateway outbound remain OFF.
+
+Preflight qualification is GREEN:
+
+- production-derived `pg_dump -Fc` restore proof on exact Supabase PostgreSQL 17.6.1.136;
+- migration 017 applies idempotently in the disposable restore and canonical verifier returns `ORGANIZATION_GROUNDING_CONTRACT_V1_OK`;
+- exact Core artifact = GitHub artifact 10686954415 from `d90b225e...`, ZIP digest `fca39cf5...`;
+- exact Web artifact = GitHub artifact 10690072338 from `fba159db...`, ZIP digest `73ef5b75...`;
+- `d90b225e..fba159db` has no Core diff;
+- new Core readiness fails closed when the migration-017 grounding boundary is unavailable;
+- future order is frozen as fresh backup/restore-check -> migration 017 + verifier -> Core -> Web -> validate -> STOP.
+
+This preflight does **not** authorize production mutation by itself. A separate **Organization Grounding Production Promotion Execution V1** must take a fresh execution-time backup and revalidate all stop conditions. No real MEDICSPRO grounding belongs to that promotion execution.
+
+
 ```text
 main = 97c29eba2e3d6919fa8334d632edd91c45998f72
 PR #223 = merged
