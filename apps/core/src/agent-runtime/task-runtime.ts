@@ -5,10 +5,25 @@ export type AssignedTask = {
   description: string | null;
 };
 
+export type RuntimeGroundingStatement = {
+  content: string;
+  provenance: {
+    type: 'owner_statement' | 'approved_source' | 'approved_correction';
+    sourceLabel: string | null;
+  };
+};
+
+export type RuntimeGroundingProjection = {
+  officialFacts: RuntimeGroundingStatement[];
+  houseRules: RuntimeGroundingStatement[];
+  workContext: AssignedTask;
+};
+
 export type AssignedTaskInput = {
   organizationId: OrganizationId;
   employee: EmployeeContext;
   task: AssignedTask;
+  grounding: RuntimeGroundingProjection;
 };
 
 export type NormalizedExecutionUsage = {
