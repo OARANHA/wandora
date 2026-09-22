@@ -50,6 +50,14 @@ test('MASTRA DETERMINISTIC AGENT RUNTIME V1', async (t) => {
         title: 'Qualificar contato',
         description: 'Entender a necessidade do contato.',
       },
+      grounding: {
+        officialFacts: [],
+        houseRules: [],
+        workContext: {
+          title: 'Qualificar contato',
+          description: 'Entender a necessidade do contato.',
+        },
+      },
     });
     assert.deepEqual(result, {
       model: 'wandora-supervised-v1',
