@@ -998,3 +998,415 @@ The first real employee activation production preflight confirms the lifecycle b
 customer owner
   -> Wandora Core activation contract
   -> Organization Adapter v0.2
+  -> Paperclip agents.resume
+  -> Paperclip idle readback
+  -> Wandora paused -> active projection
+  -> STOP
+```
+
+Activation does not invoke work. It must not call `agents.invoke`, create tasks/wakeups/heartbeat runs/routine runs, or call `wandora_mastra` / Agent Runtime / Mastra.
+
+The execution bridge remains independently fail-closed: Paperclip `idle` does not authorize runtime execution while the Wandora employee projection is still `paused`.
+
+Human Send and Gateway outbound remain separate Wandora-owned effect gates and are not implied by digital-employee activation.
+
+ADR 0133 also freezes the operational rule that `agents.resume` is the lifecycle point of no automatic rollback in V1. Conventional rollback applies to migration/plugin/Core/Web before resume; post-resume anomalies require explicit fail-closed reconciliation/remediation rather than adding `agents.pause` or direct employee UPDATE authority.
+
+
+## First real MEDICSPRO digital-employee activation — LIVE
+
+ADR 0135 closes the first real customer activation boundary.
+
+The production lifecycle is now:
+
+```text
+customer owner
+  -> Wandora Web authenticated activation action
+  -> Wandora Core authorization/readiness
+  -> Organization Adapter
+  -> Paperclip agents.resume
+  -> provider readback = idle
+  -> Wandora projection paused -> active
+```
+
+The active employee boundary is intentionally distinct from work execution:
+
+```text
+activation != wakeup
+activation != heartbeat
+activation != task/run
+activation != Mastra workflow
+activation != outbound send
+```
+
+MEDICSPRO Ana is now `active + supervised` in Wandora and `idle / wandora_mastra` in Paperclip. Post-effect validation proves zero task sessions, wakeups, heartbeat/routine runs, run identity contexts, runtime token/cost counters and outbound attempts.
+
+Mastra remains a lazy execution dependency. It is reached only when legitimate work enters through the reviewed inbound or Paperclip execution boundary. The activation service does not use Mastra for lifecycle transition.
+
+External-effect barriers remain separate and OFF:
+
+```text
+Human Send = OFF
+Gateway outbound = OFF
+```
+
+Any future deactivation/pause capability or first legitimate post-activation work requires a separately reviewed slice; do not grant broader Paperclip lifecycle authority or create synthetic work merely for demonstration.
+
+## First legitimate work authority boundary — ADR 0136
+
+Activation makes an employee eligible for authorized work; it does not define how customer work enters the system.
+
+The accepted first-work architecture is:
+
+```text
+CUSTOMER OWNER
+  |
+  v
+WANDORA WORK ADMISSION
+  session + tenant + owner/admin authorization
+  exact active + supervised employee
+  stable Wandora request/idempotency identity
+  |
+  v
+ORGANIZATION ADAPTER
+  company-scoped provider boundary
+  no browser/provider IDs
+  |
+  v
+PAPERCLIP
+  durable issue/task authority
+  exact Ana assignment
+  assignment-triggered wakeup/run
+  run-scoped identity
+  |
+  v
+wandora_mastra
+  |
+  v
+WANDORA CORE EXECUTION BRIDGE
+  HMAC + Paperclip identity + company mapping
+  exact employee binding
+  require active + supervised
+  |
+  v
+MASTRA
+  execution-local reasoning/workflow/tools
+  |
+  v
+SUPERVISED INTERNAL RESULT
+  |
+  v
+WANDORA CUSTOMER-SAFE PROJECTION
+  |
+  STOP
+```
+
+The stop boundary is before every customer-visible external effect. A successful internal run is not authority to send WhatsApp/e-mail, create an order/payment or mutate another customer system. Human Send and Gateway outbound remain separate Wandora-owned effect gates.
+
+### Work authority
+
+- Wandora owns customer intent, tenant/actor authorization, stable request identity, policy, reconciliation needed for safe provider interaction and customer-facing result projection.
+- Paperclip owns the durable organizational issue/task, assignment and work-triggered run.
+- Mastra owns execution-local work behind the existing Agent Runtime.
+- The existing Paperclip execution bridge remains the only approved path from a Paperclip run into Mastra.
+
+Do not create a generic Wandora task engine merely because the customer UX needs a "give work" action. Existing `wandora.work_items` and `work_proposals` support the messaging-supervision vertical slice; they are not a second general work control plane.
+
+### Minimum work-admission gap
+
+The current Organization Adapter v0.2.0 has lifecycle capabilities but no issue capabilities. A future implementation may add only the narrow Paperclip operations required for this contract, expected to be `issues.read`, `issues.create` and `issues.wakeup`, subject to implementation qualification.
+
+Paperclip plugin issue creation and wakeup are separate effects. Therefore the Wandora admission boundary must reconcile partial success and must never blindly retry an ambiguous create or dispatch. Minimum durable Wandora state is permitted only for request idempotency/reconciliation; Paperclip remains the task lifecycle authority.
+
+Until a customer-safe work-admission contract and supervised result projection exist, first real MEDICSPRO work remains blocked. Operator Paperclip UI/API, synthetic fixtures, timer heartbeats, direct `agents.invoke` and manual demonstration wakeups are not legitimate customer work sources.
+
+
+## First legitimate work implementation boundary — ADR 0137
+
+ADR 0137 turns the ADR 0136 authority decision into a dormant repository implementation without changing the control-plane ownership model.
+
+```text
+CUSTOMER OWNER / ADMIN
+  |
+  v
+WANDORA WORK ADMISSION
+  human session
+  tenant/role authorization
+  exact active + supervised employee
+  Idempotency-Key
+  immutable title/description
+  |
+  v
+WANDORA PRIVATE INTEGRATION RECEIPT
+  request identity
+  provider dispatch reconciliation
+  exact run/result receipt only
+  X not task lifecycle
+  |
+  v
+ORGANIZATION ADAPTER v0.3
+  signed company-scoped employee-work
+  issues.read/create/wakeup
+  plugin.state read/write
+  X no agents.invoke
+  |
+  v
+PAPERCLIP
+  one durable issue with Wandora originId
+  one fail-closed dispatch receipt
+  authoritative wakeup/run
+  |
+  v
+wandora_mastra@0.2.0
+  extracts opaque Wandora work correlation
+  strips internal marker from task content
+  |
+  v
+CORE EXECUTION BRIDGE
+  run identity + tenant + employee + work receipt
+  |
+  v
+AGENT RUNTIME / MASTRA
+  title + description only
+  |
+  v
+SUPERVISED INTERNAL RESULT
+  |
+  v
+WANDORA CUSTOMER PROJECTION
+  |
+  STOP BEFORE EXTERNAL EFFECT
+```
+
+A lost/ambiguous provider response must fail closed. The client may retry only the same stable Wandora request. A plugin-side `dispatching` receipt is not automatically retried because the wakeup may already have occurred.
+
+The runtime capability is disabled by default and requires the separate work overlay plus migration-016 readiness. Repository merge cannot activate it.
+
+Human Send and Gateway outbound remain independent authority boundaries and are not implied by successful work execution.
+
+
+## Provider-neutral AI runtime boundary — ADR 0144
+
+```text
+Wandora logical profile / policy
+        |
+        v
+Agent Runtime Adapter
+        |
+        +--> Mastra today
+        |      -> native model/router/structured output/usage/guardrails
+        |
+        +--> Runtime X later
+               -> equivalent native capabilities
+        |
+        v
+replaceable model provider
+```
+
+`wandora-supervised-v1` is the stable Wandora logical execution/AI profile. Concrete `mistral / mistral-small-2603`, base URL and provider key location remain deployment/runtime details.
+
+`AssignedTaskResult` carries normalized token usage at the runtime boundary. No provider/model SDK object crosses it. Usage is not yet persisted as customer billing state merely because it is available.
+
+Cost authority is layered rather than duplicated: Paperclip owns operational company/agent/project budgets; the selected runtime owns per-execution native token/cost guardrails; Wandora owns plan, entitlement, price, margin and billing semantics.
+
+## Provider-neutral runtime risk boundary — ADR 0147
+
+ADR 0147 supersedes ADR 0146's Mistral-specific activation requirement.
+
+~~~text
+Wandora logical profile / policy
+  -> Agent Runtime Adapter
+      -> bounded admitted work
+      -> bounded steps/output/deadline
+      -> zero automatic model retry
+      -> structured output
+      -> fail-closed ambiguity
+      -> no implicit provider fallback
+      -> no external effect
+
+Provider account
+  -> optional/conditional provider-native financial controls
+
+Paperclip
+  -> organizational work/run authority and operational budgets
+
+Wandora
+  -> commercial plan / price / margin / entitlement / billing
+~~~
+
+A Mistral Workspace spending limit remains valid provider-specific defense in depth, but it is not a universal Agent Runtime prerequisite. Runtime activation itself creates no work or inference. First legitimate work remains a separate bounded effect slice. No Wandora provider-pricing or parallel cost engine is introduced.
+
+## Live model-backed runtime checkpoint — ADR 0148
+
+The provider-neutral boundary from ADR 0144/0147 is now active in production:
+
+~~~text
+Wandora
+  logical profile = wandora-supervised-v1
+       |
+       v
+Agent Runtime Adapter
+       |
+       v
+Mastra-backed runtime (current implementation)
+       |
+       v
+Mistral / mistral-small-2603 (current provider implementation)
+~~~
+
+This is an implementation selection, not durable product identity. A future Runtime X/provider Y must continue to satisfy the same Wandora contract.
+
+The live execution path now uses `wandora_mastra@0.3.0` and Core `mastra-supervised-model`. Runtime activation by itself does not create Paperclip work or call the model.
+
+Current effect boundary remains:
+
+~~~text
+legitimate customer work
+  -> Paperclip work/run
+  -> Wandora execution bridge
+  -> Agent Runtime
+  -> supervised result
+  -> STOP
+
+Human Send = OFF
+Gateway outbound = OFF
+~~~
+
+The first live model-backed MEDICSPRO work remains a separate owner-driven effect slice. Recurring, bulk or unattended inference remains separately gated.
+
+
+## First model-backed customer work terminal convergence — ADR 0150
+
+The first real MEDICSPRO work proved the product/execution path and exposed a lifecycle convergence requirement at the Paperclip boundary.
+
+The stable architecture is:
+
+```text
+owner-authenticated Wandora work
+  -> Paperclip issue + assigned run
+  -> wandora_mastra
+  -> Core execution bridge
+  -> Agent Runtime
+  -> current runtime/provider implementation
+  -> structured supervised Wandora result committed
+  -> same Paperclip run identity terminalizes exact issue
+  -> Paperclip run completes
+  -> STOP
+```
+
+The terminal issue transition is **Paperclip lifecycle state**, not a Wandora-owned task state. The external adapter uses the same run-scoped JWT and Paperclip's server-resolved local listener. It does not add `issues.update` authority to the Organization Adapter and does not route lifecycle mutation through the customer/public Paperclip URL.
+
+For customer-work completion, the ordering invariant is:
+
+```text
+1. execute exact admitted work
+2. durably record exact supervised Wandora result
+3. terminalize exact Paperclip issue
+4. return Paperclip adapter result + normalized per-run usage
+```
+
+If step 3 is ambiguous, the adapter reads the exact issue before repeating the local state write. It never repeats step 1 merely to recover issue disposition.
+
+This ordering prevents Paperclip's native stranded-issue reconciler from generating an unnecessary `issue_continuation_needed` run after completed one-shot work while keeping Paperclip authoritative for issue/run lifecycle.
+
+The first production execution occurred with live `wandora_mastra@0.3.0` before this convergence behavior existed. Its second historical Paperclip recovery run was rejected before model execution, so the business result and external-effect boundary remained safe. `wandora_mastra@0.4.0` is repository-qualified in disposable Paperclip but is not live until a separately reviewed production-promotion slice.
+
+Normalized runtime token usage crosses the Agent Runtime -> Paperclip adapter boundary as provider-neutral `per_run` usage. Concrete Mistral/Mastra identifiers remain implementation telemetry; `wandora-supervised-v1` remains the stable Wandora execution identity.
+
+## Paperclip as replaceable operational control-plane provider — ADR 0152
+
+Wandora's control-plane integration follows this topology:
+
+```text
+Customer / Wandora Web
+        |
+        v
+Wandora product + semantic contracts
+        |
+        +------------------------------+
+        |                              |
+        v                              v
+Organization / Work ports       Wandora effect policy
+        |                              |
+        v                              v
+Paperclip provider              Messaging / external effects
+        |
+        +-- native tasks/runs/routines/skills/policy/budgets
+        +-- Wandora Paperclip adapters/plugins/connectors
+        |
+        v
+Wandora Agent Runtime
+        |
+        v
+Mastra / replaceable model runtime/provider
+```
+
+### Extension roles
+
+- **External adapter**: Paperclip-to-runtime bridge. Current example: `wandora_mastra`.
+- **Paperclip plugin**: additive provider-side control-plane capability.
+- **Connector / Tool Gateway integration**: governed provider-side access to external organizational tools.
+- **Wandora Core/Gateway**: customer/product semantics and final external-effect authorization.
+
+A Paperclip plugin or connector must not become the durable Wandora customer object merely because it supplies the implementation.
+
+### Provider portability
+
+Stable Wandora IDs remain the customer identity. Provider IDs stay internal bindings.
+
+Replacing Paperclip should require:
+
+- a new provider implementation;
+- migration/re-materialization of provider-owned operational state;
+- provider-binding updates;
+- reconciliation of active/ambiguous work.
+
+It should not require changing:
+
+- Wandora tenant/customer IDs;
+- digital-employee product identity;
+- customer work/result semantics;
+- commercial billing;
+- Agent Runtime logical profile;
+- external-effect authorization.
+
+### Experimental provider features
+
+Paperclip features marked experimental are not stable architecture dependencies. Cases, Pipelines, Agent Chat and Chat Connectors are currently quarantined and live-disabled.
+
+### Portability mechanism
+
+Use Paperclip native company export/import where faithful, plus a minimal Wandora provider-binding/receipt manifest and targeted archive of non-portable adopted history. Do not replicate the Paperclip database.
+
+See ADR 0152 and the Paperclip capability/portability research documents for the full matrix and exit strategy.
+
+
+## Live customer-work lifecycle + usage convergence — ADR 0154
+
+The production Paperclip execution boundary now uses the qualified pair:
+
+```text
+Paperclip task/run
+  -> wandora_mastra@0.4.0
+  -> Wandora Core companion bridge
+  -> Agent Runtime
+  -> current replaceable runtime/provider
+  -> supervised Wandora result
+```
+
+Adapter 0.4.0 owns only Paperclip-side convergence for the exact run: after the durable Wandora result exists, the same run-scoped identity terminalizes the exact Paperclip issue and returns normalized per-run usage. The companion Core supplies that normalized usage at the bridge response. Neither component becomes product, tenant, outbound or billing authority.
+
+Production promotion did not replay the historical work. MED-1 is now `done`, retains exactly two historical runs with null usage, and the historical model-call count remains exactly one. Future successful work can emit normalized runtime usage prospectively; without authoritative price Paperclip records it as unpriced rather than inventing money.
+
+External-effect authority is unchanged: Human Send and Gateway outbound remain Wandora-owned and OFF. Paperclip Task Drain was used only as the native pre-restart quiescence guard.
+
+The Paperclip Ana lifecycle projection remains historical `error` from the rejected continuation run. This is a separate Paperclip-owned readiness concern and must be reconciled in a no-effect slice before another customer work admission; it must not be hidden by a Wandora-native lifecycle duplicate.
+
+
+## Historical Paperclip agent error projection — ADR 0155
+
+Paperclip v2026.916.0 distinguishes run/issue history from the current agent lifecycle projection. A terminal failed run can project an agent to `error`, but `error` remains assignable/invokable; only `paused`, `pending_approval` and `terminated` are direct lifecycle blockers.
+
+Wandora must not mirror that diagnostic into a second product lifecycle machine. The customer-facing Ana remains governed by Wandora's `active + supervised` contract while Paperclip owns its operational lifecycle/history.
+
+For the current MEDICSPRO historical continuation failure, no lifecycle mutation is required for readiness. Paperclip's dedicated Board-only `clear-error` exists for a separately authorized operator-facing cleanup and preserves run/runtime diagnostics; `resume`, wakeup, generic status PATCH and direct SQL are not substitutes.
