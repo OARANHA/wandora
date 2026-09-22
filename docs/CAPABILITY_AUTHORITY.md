@@ -354,5 +354,3 @@ Wandora owns the durable semantics and customer contract for official company fa
 - retrieval/context assembly remains specialist runtime capability and is not implemented by this contract.
 
 Portability continues to mean contract decoupling rather than duplicating provider implementations.
-
-[executed on device: wandora-vps-01 (4f062e11-0f3c-4c6e-8f71-7d6136c1bee9)]
