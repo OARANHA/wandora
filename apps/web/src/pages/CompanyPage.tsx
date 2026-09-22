@@ -215,7 +215,7 @@ export function CompanyPage() {
             <section className="rounded-3xl border-[2.5px] border-[#09090b] bg-white p-5 wandora-pop">
               <div className="flex items-start gap-3"><ShieldCheck className="mt-0.5 size-5 shrink-0" /><div>
                 <div className="font-black">Acesso somente leitura</div>
-                <p className="m-0 mt-1 text-sm leading-6 text-[#09090b]/55">Você pode consultar o grounding oficial. Alterações ficam restritas a owner/admin ativos.</p>
+                <p className="m-0 mt-1 text-sm leading-6 text-[#09090b]/55">Você pode consultar as informações da empresa, mas somente proprietários e administradores podem alterá-las.</p>
               </div></div>
             </section>
           )}
