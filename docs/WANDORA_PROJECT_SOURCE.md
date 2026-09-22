@@ -2022,3 +2022,14 @@ Live readback also proves Ana's scheduler is disabled/inactive, MED-1 is `done`,
 Paperclip's dedicated reconciliation primitive is Board-only `POST /api/agents/{id}/clear-error`; it performs `error -> idle` and preserves historical runs/runtime diagnostics. Plugin SDK exposes resume but not clear-error, and managed-agent reconcile does not auto-clear lifecycle errors.
 
 Canonical decision: **NO-OP for readiness**. Do not clear/resume/pause/wake/retry/PATCH/SQL merely to normalize the display. If a future operator-facing cleanup becomes an explicit requirement, authorize it separately and use only the native `clear-error` path after fresh reconciliation.
+
+
+## 2026-09-21 — second legitimate customer-work preflight found Organization Adapter gate drift
+
+ADR 0156 closes a subtle gap left after ADR 0155: Paperclip v2026.916.0 correctly considers `error` invokable, but Organization Adapter 0.3.0 rejects any managed agent not literally `idle` before customer-work issue/wakeup admission.
+
+The production artifact contains the same idle-only check as source. Therefore a second legitimate work must not be used to discover this incompatibility.
+
+Decision: no lifecycle mutation. Implement a narrow compatibility correction so customer-work pre-admission accepts `idle | error`, still rejects `running` and other states, and still delegates final execution admission to Paperclip `issues.requestWakeup`.
+
+Disposable proof of that minimal change passed 5/5 work-admission tests in the exact pinned Paperclip image, with no network or production data. The next slice is repository implementation only; production promotion remains separate.

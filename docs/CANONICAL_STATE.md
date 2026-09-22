@@ -3558,3 +3558,14 @@ Gateway outbound            = OFF
 ```
 
 There is **no mandatory historical-error clear execution slice** before future work. Any later operator-facing cleanup of the Paperclip lifecycle display requires a separate explicit effect authorization and must use `clear-error`, not a broader substitute.
+
+
+## ADR 0156 — second legitimate customer-work preflight correction
+
+Status: **NO EFFECT / IMPLEMENTATION GAP FOUND**.
+
+Pinned Paperclip still treats Ana's historical `error` as invokable, but live Organization Adapter 0.3.0 contains a stricter Wandora-owned `status === idle` customer-work gate. Therefore the provider is ready while the current normal Wandora work-admission path is not.
+
+The accepted least-authority correction is repository-side only: preserve the existing conservative serialization posture but accept `idle | error` before calling Paperclip `issues.requestWakeup`. Keep `running` and all other states rejected locally, and keep Paperclip as the final invokability authority.
+
+Do not clear/resume/pause Ana to satisfy the plugin. No second legitimate work is authorized until a corrected Organization Adapter candidate is implemented, qualified, promoted in a separate execution slice and revalidated.
