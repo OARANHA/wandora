@@ -52,9 +52,9 @@ MEDICSPRO outbound attempts= 0
 
 This checkpoint activates only the bridge foundation. It does **not** authorize Ana activation/resume or customer messaging. Any future activation/outbound effect must be a separate reviewed slice from fresh REAL NOW evidence.
 
-## 2026-09-19 CI execution checkpoint — LIVE
+## 2026-09-19 CI execution checkpoint — HISTORICAL / SUPERSEDED FOR NORMAL CI
 
-This section is the newest mutable infrastructure checkpoint and supersedes older Git/CI mutable-state lines below where they conflict.
+This section records ADR 0113 historical evidence. ADR 0158 and the 2026-09-22 GitHub-hosted CI section above supersede it for current normal CI execution.
 
 ```text
 main entering CI slice                     = 90ce29465816e4b91fb7bf2d516e0119a6404731
@@ -69,7 +69,7 @@ production Docker socket access             = none
 validated PR checks                         = 7/7 success
 ```
 
-GitHub-hosted Actions quota exhaustion is an external billing/quota condition, not a code failure. Normal repository CI now targets `[self-hosted, linux, x64, wandora-ci]`.
+At this historical ADR 0113 checkpoint, GitHub-hosted Actions quota exhaustion was an external billing/quota condition and normal repository CI temporarily targeted `[self-hosted, linux, x64, wandora-ci]`. This is no longer the current runner policy; ADR 0158 moved normal CI to GitHub-hosted `ubuntu-24.04`.
 
 The runner is deliberately hosted on the existing Wandora VPS but is isolated from production through a dedicated unprivileged identity, no host `docker`/operator/sudo groups, a separate rootless Docker daemon/store, explicit systemd path restrictions, pre/post rootless-boundary hooks and resource ceilings of 300% CPU, 3 GiB `MemoryHigh`, 4 GiB `MemoryMax` and 4096 tasks. The runner service keeps `PrivateTmp=yes`; workflow files that must be bind-mounted into rootless Docker must be staged under `RUNNER_TEMP`, not the runner-private `/tmp`.
 
