@@ -27,7 +27,7 @@ Version 0.3.0 adds a signed company-scoped `employee-work` webhook for Wandora-o
 
 The plugin reuses Paperclip as the durable work authority:
 
-- exact managed employee must already be `idle`;
+- exact managed employee must be `idle` or carry the historical Paperclip `error` projection; `running` and other states remain blocked by the conservative Wandora pre-admission gate;
 - work is materialized as one Paperclip issue with a stable Wandora `originId`;
 - the issue is dispatched through `issues.wakeup`, never `agents.invoke`;
 - plugin-scoped state stores only a fail-closed dispatch receipt;
@@ -35,3 +35,10 @@ The plugin reuses Paperclip as the durable work authority:
 - no customer/browser provider IDs or credentials are accepted.
 
 The work webhook does not enable Human Send, Gateway outbound or any external customer effect.
+
+
+## Historical error work-admission compatibility — 0.3.1
+
+Version 0.3.1 fixes a false-negative customer-work gate discovered after the first real work. Paperclip v2026.916.0 considers agent `error` invokable, but 0.3.0 required literal `idle` before `issues.requestWakeup`.
+
+0.3.1 accepts only `idle | error` at the Wandora pre-admission layer, keeps `running` and all other states rejected, and still delegates final invokability to Paperclip `issues.requestWakeup` / `heartbeat.wakeup`. It adds no capability, webhook, outbound authority or lifecycle mutation.

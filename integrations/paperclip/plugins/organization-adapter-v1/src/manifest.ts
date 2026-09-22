@@ -4,7 +4,7 @@ import { CATALOG_KEY, EXECUTION_ADAPTER_TYPE } from './catalog.js';
 const manifest: PaperclipPluginManifestV1 = {
   id: 'wandora.organization-adapter-v1',
   apiVersion: 1,
-  version: '0.3.0',
+  version: '0.3.1',
   displayName: 'Wandora Organization Adapter V1',
   description: 'Headless company-scoped managed catalog employee adapter for Wandora.',
   author: 'Wandora',

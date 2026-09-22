@@ -64,8 +64,8 @@ export async function ensureManagedCatalogEmployeeWork(
   if (managed.status !== 'resolved' || !managed.agentId || !managed.agent) {
     throw new Error('managed_employee_missing');
   }
-  if (managed.agent.status !== 'idle') {
-    throw new Error(`managed_employee_not_idle:${managed.agent.status}`);
+  if (!['idle', 'error'].includes(managed.agent.status)) {
+    throw new Error(`managed_employee_not_ready:${managed.agent.status}`);
   }
 
   const expectedDescription = workDescription(input.workId, input.description);

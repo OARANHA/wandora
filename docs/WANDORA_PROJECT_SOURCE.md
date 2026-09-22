@@ -2033,3 +2033,14 @@ The production artifact contains the same idle-only check as source. Therefore a
 Decision: no lifecycle mutation. Implement a narrow compatibility correction so customer-work pre-admission accepts `idle | error`, still rejects `running` and other states, and still delegates final execution admission to Paperclip `issues.requestWakeup`.
 
 Disposable proof of that minimal change passed 5/5 work-admission tests in the exact pinned Paperclip image, with no network or production data. The next slice is repository implementation only; production promotion remains separate.
+
+
+## 2026-09-21 — Organization Adapter 0.3.1 historical-error work-admission compatibility
+
+ADR 0157 implements the ADR 0156 correction without production effect. Customer-work pre-admission now accepts `idle | error`, still rejects `running` and other states, and still delegates final execution admission to Paperclip `issues.requestWakeup`.
+
+The candidate remains capability-identical to 0.3.0 and changes no webhook/HMAC/origin/dispatch-receipt contract. Full pinned-image qualification passed 16/16 tests plus typecheck, artifact/manifest validation and reproducible packaging.
+
+Qualified local candidate package hash: `49bc32b4d22b3000310e01db13c51a3348dc66774a4bf880571154136b3d0240`.
+
+Live Organization Adapter remains 0.3.0. Promotion is a separate reviewed slice and no second customer work may run first.
