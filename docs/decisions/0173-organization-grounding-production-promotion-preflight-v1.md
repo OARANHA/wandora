@@ -212,7 +212,22 @@ A final attempt to run an additional disposable binary-level Core proof was bloc
 
 ## Rollback anchors
 
-Current live binary anchors were recorded above. Current live compose file hashes are frozen in the preflight evidence, including all Core overlays and the Web compose file.
+Current live binary anchors were recorded above. The exact live Compose hashes observed at preflight are also frozen here so rollback does not depend on chat history:
+
+```text
+Core compose.yaml                         d028a7bed2af02fcc0bab3bcbe6e7297d0857549792542c54a4760ff0624dda6
+Core compose.database.yaml                8b044de0cd49cab664fe5b0a6b4db6e638d16956b3ec5cb9bb6eb958fe696d9e
+Core compose.gateway-ingress.yaml         36f047128914a846b7a667e67ab9daf40725e67fa9c320ddd35f8be62c9e3eed
+Core compose.agent-runtime-deterministic  aa6661847833a9df0a6f5af56dbf26af28b9041dce5560684b126ffbb849644e
+Core compose.human-api.yaml               f1ace87f21280aa2e41c7d4260b43f66d0cd39ded211d088ecb09864bf7cf8a2
+Core compose.organization-adapter.yaml    1b3f100dfa62a64a6d1cab0d307bcb9b52ba8ee848f3e1b49dece59761d3c394
+Core compose.human-digital-employee-hire  e5f695eb5bfed785b6f441444b8f7334a3da22f71ae14bfd2258afa06e7d0320
+Core compose.paperclip-execution-bridge   98d084c6f3da52b97949e5cdb16d25f7cd972a44173749186ca43794a799f9ab
+Core compose.agent-runtime-model.yaml     f5e1989a6e1d9560c70d06d202d078eecebce597421f949b45657ec6dd8e7f8c
+Web compose.yaml                          b5f70e13e73f1a4fbc381fdaec16725496503deaaa052da4b1b0d60637b25269
+```
+
+The two additional live Core overlays are also part of the running composition and must be preserved/re-hashed at execution time: the accepted activation overlay from ADR 0135 and the customer-work overlay from ADR 0139. Their absolute paths are visible in the live container Compose labels; the future execution must freeze their current bytes before recreating Core rather than infer them from this preflight.
 
 Database rollback has two distinct boundaries:
 
