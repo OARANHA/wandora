@@ -83,6 +83,19 @@ export function isHumanDigitalEmployeeWorkPath(pathname: string): boolean {
   return Boolean(match?.[1] && match?.[2] && UUID_RE.test(match[1]) && UUID_RE.test(match[2]));
 }
 
+export function isHumanGroundingMutationPath(pathname: string): boolean {
+  const create = GROUNDING_PATH_RE.exec(pathname);
+  if (create?.[1] && UUID_RE.test(create[1])) return true;
+
+  const correction = GROUNDING_CORRECT_PATH_RE.exec(pathname);
+  return Boolean(
+    correction?.[1]
+    && correction?.[2]
+    && UUID_RE.test(correction[1])
+    && UUID_RE.test(correction[2])
+  );
+}
+
 function parseDigitalEmployeeWorkRequest(rawBody: string | undefined): {
   title: string;
   description: string;
