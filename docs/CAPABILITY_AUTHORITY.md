@@ -340,3 +340,19 @@ Authority remains layered:
 - Mastra/runtime = memory, retrieval, context assembly, runtime skills/tools/evals when separately qualified.
 
 A model inference is never promoted to official company truth automatically. Unknown information must remain unknown unless an authorized fact/rule/source contract supplies it.
+
+
+## Company grounding mutation/read authority — ADR 0170
+
+Wandora owns the durable semantics and customer contract for official company fact/rule, provenance, approved correction history and lifecycle.
+
+- customer read authority: Wandora Core, tenant-scoped;
+- customer mutation authority: active owner/admin through Wandora Core only;
+- database operational write path: bounded audited functions, not general Core table DML;
+- Paperclip: no authority over official company truth;
+- Mastra/runtime: no authority to promote inference/model output into official truth;
+- retrieval/context assembly remains specialist runtime capability and is not implemented by this contract.
+
+Portability continues to mean contract decoupling rather than duplicating provider implementations.
+
+[executed on device: wandora-vps-01 (4f062e11-0f3c-4c6e-8f71-7d6136c1bee9)]
