@@ -9,22 +9,13 @@ Authority order is `AGENTS.md` → accepted ADRs → `docs/CAPABILITY_AUTHORITY.
 
 ## CI execution boundary
 
-GitHub Actions remains the CI control plane. The private repository's normal Linux/Docker workflows execute on the repository-scoped runner `wandora-vps-01-ci`, labeled `[self-hosted, linux, x64, wandora-ci]`.
+GitHub Actions remains the CI control plane. Normal repository CI executes on disposable GitHub-hosted `ubuntu-24.04` runners. This supersedes ADR 0113 for normal CI execution now that the repository is public.
 
-The runner shares the Wandora VPS kernel but not the production Docker authority:
+The nine current CI workflows keep their existing job/check names and run independently on hosted runners, allowing Core, Web, Messaging Gateway, Platform Admin, Paperclip and plugin checks to execute in parallel instead of queueing behind one VPS runner.
 
-- dedicated host identity `wandora-ci`;
-- no host `docker`, `wandora-ops` or `sudo` membership;
-- separate rootless Docker daemon, socket and image store;
-- no mount or access to the production Docker socket;
-- systemd denial for `/opt/wandora`, operator/root homes and production Docker socket paths;
-- `NoNewPrivileges`, `PrivateDevices`, `ProtectSystem=strict`, `PrivateTmp=yes` and namespace restrictions;
-- one repository runner job at a time;
-- 300% CPU, 3 GiB memory-high, 4 GiB memory-max and 4096-task ceilings.
+The legacy repository-scoped `wandora-vps-01-ci` self-hosted runner remains historical/fallback infrastructure only during migration validation; workflows no longer target `[self-hosted, linux, x64, wandora-ci]`. After hosted CI is proven GREEN, the legacy runner should be stopped/deregistered from normal repository Actions.
 
-Because `PrivateTmp=yes` isolates the runner's `/tmp` namespace from the separate rootless Docker user service, any workflow file/directory that will be bind-mounted into CI Docker must be staged under GitHub's `RUNNER_TEMP` (with a non-GitHub `/tmp` fallback), not created in runner-private `/tmp`.
-
-CI is never authorized to manage or introspect the production Docker control plane. Production deployment remains an explicit, separately reviewed operator effect.
+CI is never authorized to manage or introspect the production Docker control plane and receives no production/customer/provider credentials. Production deployment remains an explicit, separately reviewed operator effect.
 
 ## Product model
 
