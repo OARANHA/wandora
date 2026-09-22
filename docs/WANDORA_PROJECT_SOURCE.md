@@ -1,27 +1,28 @@
 # Wandora — Project Source / Continuity Bootstrap
 
-Snapshot date: **2026-09-20**
+Snapshot date: **2026-09-22**
 Repository: `OARANHA/wandora`
-Canonical main entering the self-hosted CI restoration slice: `90ce29465816e4b91fb7bf2d516e0119a6404731`
-Active infrastructure PR at this snapshot: **#162** (`ci: add isolated Wandora self-hosted runner`); implementation-validation head `fad8d64070663aea823325f8970a24b90004295e`.
+Canonical continuity checkpoint before ADR 0168 guardrail work: `main@97c29eba2e3d6919fa8334d632edd91c45998f72`
+Checkpoint: PR #223 merged; open PRs = 0; normal repository CI is GitHub-hosted per ADR 0158.
 
 > **Purpose:** compact bootstrap for ChatGPT Project Sources and future development sessions. It prevents architectural drift, accidental reinvention and stale workflow assumptions.
 >
 > **This file is not the highest authority and never replaces live verification.** If this snapshot conflicts with current Git, accepted ADRs or the running environment, the newer canonical evidence wins.
 
-## Mandatory authority order
+## Mandatory session bootstrap and authority order
+
+A new technical session should read this file first for continuity, then immediately apply the real authority chain below. This file is a bootstrap, not higher authority.
 
 Before a material product, architecture, code, database or infrastructure decision:
 
 1. `AGENTS.md`;
-2. accepted ADRs in `docs/decisions/`;
+2. relevant accepted ADRs in `docs/decisions/`;
 3. `docs/CAPABILITY_AUTHORITY.md`;
 4. `docs/architecture.md`;
 5. `docs/CANONICAL_STATE.md`;
-6. component README/runbook;
-7. this file only as continuity/bootstrap context.
+6. component README/runbook.
 
-Mutable facts such as branch, container image, feature flags, database counts and deployment status must be reverified.
+A handoff prompt is only a bridge. Mutable facts such as branch, PR, workflow, container image, feature flags, database counts and deployment status must be reverified. After timeout/chat change, inspect whether prior actions executed before repeating them.
 
 
 ## Current CI execution boundary
@@ -2146,3 +2147,18 @@ Production Web is now `wandora/web:candidate-65908b76c667`, healthy with zero re
 The deployed conversation UX uses only the existing tenant-authorized list/history contracts and does not expose or enable reply/send/takeover/presence behavior.
 
 Next product capability review: Empresa / Regras da casa grounding authority.
+
+
+## 2026-09-22 — permanent session continuity + provider pluggability guardrail
+
+ADR 0168 makes the following rules permanent for future Wandora sessions:
+
+- repository/canonical docs + real runtime evidence outrank visible chat history;
+- handoff prompts are bridges, not state authority;
+- after timeout/disconnect/chat change, reconcile before repeating any operation;
+- important slices must leave repository checkpoints so continuity survives chat changes;
+- **portability means contract decoupling, not implementation duplication**;
+- provider replacement does not imply internalizing provider operational capabilities into Wandora;
+- every material provider-backed capability must separate semantic authority, minimum durable product state, operational authority, provider implementation and replacement boundary.
+
+This generalizes the existing Paperclip-specific portability work to Paperclip, Mastra and future specialist providers.
