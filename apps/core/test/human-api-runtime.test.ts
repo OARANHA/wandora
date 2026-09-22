@@ -121,6 +121,36 @@ test('Runtime forwards only reviewed Human API namespaces to human handler', asy
       rawBody: hireBody,
     });
 
+    const groundingBody = JSON.stringify({
+      entryType: 'fact',
+      content: 'Informação confirmada',
+      provenanceType: 'owner_statement',
+      sourceRef: null,
+      sourceLabel: null,
+    });
+    const grounding = await fetch(
+      `${baseUrl}/api/v1/organizations/${ORG}/grounding`,
+      {
+        method: 'POST',
+        headers: {
+          authorization: 'Bearer fixture',
+          'content-type': 'application/json',
+          'idempotency-key': 'grounding-runtime-boundary',
+        },
+        body: groundingBody,
+      },
+    );
+    assert.equal(grounding.status, 200);
+    const groundingResponse = await grounding.json() as {
+      items: Array<{ path: string; method: string; idempotencyKey: string; rawBody: string }>;
+    };
+    assert.deepEqual(groundingResponse.items[0], {
+      path: `/api/v1/organizations/${ORG}/grounding`,
+      method: 'POST',
+      idempotencyKey: 'grounding-runtime-boundary',
+      rawBody: groundingBody,
+    });
+
     const missingToken = await fetch(`${baseUrl}/api/v1/organizations/${ORG}/work/attention-required`);
     assert.equal(missingToken.status, 401);
 
