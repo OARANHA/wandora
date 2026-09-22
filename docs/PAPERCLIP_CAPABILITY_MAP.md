@@ -255,3 +255,16 @@ Additional qualified behavior:
 - least-change correction is `idle | error` at Wandora pre-admission while retaining `running` rejection and Paperclip final re-check.
 
 Do not use provider lifecycle mutation as a workaround for a Wandora-owned admission mismatch.
+
+
+## Organization Adapter 0.3.1 candidate — ADR 0157
+
+Repository candidate 0.3.1 fixes only the customer-work readiness mismatch:
+
+- pre-admission accepts `idle | error`;
+- `running` remains rejected;
+- capabilities remain unchanged;
+- `issues.requestWakeup` remains the Paperclip-native final invokability boundary;
+- no `clear-error` or `resume` workaround is introduced.
+
+Production is still 0.3.0 until a separate promotion slice.
