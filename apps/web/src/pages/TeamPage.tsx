@@ -341,7 +341,7 @@ function EmployeeProfile({
       </div>
 
       {employee.work.available ? (
-        <section className="rounded-3xl border-[2.5px] border-[#090900b] bg-white p-5 wandora-pop sm:p-6">
+        <section className="rounded-3xl border-[2.5px] border-[#09090b] bg-white p-5 wandora-pop sm:p-6">
           <DigitalEmployeeWorkPanel employeeId={employee.id} employeeName={employee.name} />
         </section>
       ) : null}
