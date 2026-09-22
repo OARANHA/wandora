@@ -1486,3 +1486,27 @@ Core reads under tenant RLS. Mutations are owner/admin-only and pass through bou
 Corrections are append-and-retire: the replacement references the prior entry via supersedes_entry_id; historical company truth is not silently rewritten.
 
 This layer owns semantic truth/provenance only. Runtime retrieval/context assembly remains behind the Agent Runtime boundary and is a separate slice.
+### Runtime grounding projection — ADR 0171
+
+Assigned work now has a code-only provider-neutral grounding boundary:
+
+```text
+migration 017 official active facts/rules
+        |
+        v
+Core tenant-scoped read projection
+        |
+        +--> officialFacts[]
+        +--> houseRules[]
+        +--> workContext
+        |
+        v
+AgentTaskRuntime
+        |
+        v
+Mastra / replaceable runtime
+```
+
+The projection is read-only, bounded and fail-closed before Agent Runtime execution. A previously completed/cached work result can replay without reloading current grounding; a newly reserved work whose grounding cannot load is marked uncertain without calling Agent Runtime. Retired entries and other tenants are excluded. Work context remains structurally separate from official truth. The Paperclip execution readiness gate also verifies that the grounding read boundary exists before reporting ready.
+
+This is not context-assembly ownership: Mastra/runtime remains responsible for runtime execution mechanics, and no RAG/memory/vector/retrieval subsystem is introduced.
