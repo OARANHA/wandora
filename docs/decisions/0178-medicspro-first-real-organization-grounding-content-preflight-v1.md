@@ -1,5 +1,3 @@
-[Reading 161 lines from start (total: 161 lines, 0 remaining)]
-
 # ADR 0178 — MEDICSPRO First Real Organization Grounding Content Preflight V1
 
 Status: **ACCEPTED / NO EFFECT / OWNER CONFIRMATION REQUIRED BEFORE FIRST RULE**
@@ -161,5 +159,3 @@ A future **MEDICSPRO First Real Organization Grounding Content Execution V1** ma
 It must not use direct SQL, provider state, model output or inferred content as a substitute for owner approval.
 
 This preflight creates zero grounding rows and changes no production state.
-
-[executed on device: wandora-vps-01 (d266af26-d31e-4f0c-9840-ca03bb02b603)]
