@@ -1528,3 +1528,26 @@ Customer language stays business-facing: **Fatos oficiais**, **Regras da Casa**,
 Raw sourceRef remains evidence, not customer presentation or runtime content. Provider identifiers and provider-specific semantics remain outside the Web contract.
 
 This surface adds no retrieval/context subsystem. Paperclip control-plane and Mastra runtime authority remain unchanged.
+
+
+### Grounding production boundary after ADR 0174
+
+Production has advanced only the durable/runtime side of the grounding chain:
+
+```text
+migration 017 = LIVE
+        |
+        v
+grounding-aware Wandora Core = LIVE / ready
+        |
+        X  current customer Web has no grounding proxy allow-list
+        |
+        v
+customer Empresa grounding surface = NOT YET LIVE
+```
+
+The accepted Web candidate exposed a deployment-bridge defect: its Nginx allow-list lacked the ADR 0170 grounding routes, so the catch-all `/api/` returned 404 even though direct Core access reached the correct auth boundary.
+
+Per the frozen rollback policy, Web was restored to the prior production image while migration 017 and Core remained live. This does not change capability authority and does not justify a second grounding store or runtime subsystem.
+
+Next architecture-safe action is a Web-only proxy correction, not database/Core rework.
