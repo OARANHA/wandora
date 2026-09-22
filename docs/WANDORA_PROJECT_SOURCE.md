@@ -1,5 +1,12 @@
 # Wandora — Project Source / Continuity Bootstrap
 
+## Current continuity checkpoint — ADR 0183
+
+Customer Company Grounding Browser Idempotency Production Promotion V1 is **COMPLETE / GREEN / WEB ONLY**. The safe grounding create browser contract is now live on `wandora/web:candidate-8fb5201b0229`.
+
+No real grounding has been created yet. Next effect: normal authenticated MEDICSPRO owner/admin submits F1/F2/F3 = fact and R1 = rule with owner_statement provenance and the approved sourceRef.
+
+
 ## Current continuity checkpoint — ADR 0182
 
 Customer Company Grounding Create Browser Idempotency V1 is **CODE ONLY / NO PRODUCTION EFFECT**. Grounding create now preserves the same request identity across ambiguous retries using UUID + request fingerprint in sessionStorage, reusing the existing customer work/hire pattern.
