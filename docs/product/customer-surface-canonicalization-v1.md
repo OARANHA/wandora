@@ -220,3 +220,20 @@ Still FUTURO / unavailable:
 - autonomous outbound controls.
 
 The page remains explicitly read-only and provider-neutral.
+
+## Design System + App Shell checkpoint — ADR 0186
+
+The approved customer visual language is now explicit in code:
+
+- Display = Dela Gothic One 400
+- Body = Space Grotesk Variable
+- Mono = JetBrains Mono Variable
+
+The Web artifact bundles these fonts directly; customer rendering does not depend on a runtime font CDN.
+
+The global customer shell keeps the same six canonical routes and active-organization/auth contracts, while desktop navigation can collapse from 250px to 82px. The preference is browser-local presentation state only.
+
+The shell also exposes a dedicated power-style Sair control wired to the existing canonical session-revocation path. Mobile keeps the same navigation authority through a compact quick bar plus complete route menu.
+
+The visual references remain subject to the Truth Rule above: demo people, activities, tool status, timestamps and commercial claims are not copied into customer state unless independently backed by REAL or accepted DERIVÁVEL contracts.
+
