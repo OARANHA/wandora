@@ -3801,5 +3801,3 @@ ADR 0170 implements the bounded owner/admin mutation + customer read contract ov
 - no Paperclip/Mastra/runtime projection was introduced.
 
 Migration 017 remains absent from production; no real MEDICSPRO grounding was created and outbound gates remain outside this slice.
-
-[executed on device: wandora-vps-01 (4f062e11-0f3c-4c6e-8f71-7d6136c1bee9)]
