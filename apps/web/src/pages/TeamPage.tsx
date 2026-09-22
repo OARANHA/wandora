@@ -293,8 +293,8 @@ function EmployeeProfile({
             <div className="mt-6 rounded-2xl border-[2.5px] border-[#09090b] bg-[#fdd030] p-4">
               <div className="font-black">Pronta para ativação.</div>
               <p className="m-0 mt-1 text-sm leading-6 text-[#09090b]/65">
-                Ativar torna {employee.name} apta a receber trabalho supervisionado. Isso não inicia trabalho e não
-                libera envio externo.
+                Ativar torna {employee.name} apta a receber trabalho supervisionado. Não inicia trabalho e não
+                libera envios externos.
               </p>
               <button
                 type="button"
