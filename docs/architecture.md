@@ -1486,5 +1486,3 @@ Core reads under tenant RLS. Mutations are owner/admin-only and pass through bou
 Corrections are append-and-retire: the replacement references the prior entry via supersedes_entry_id; historical company truth is not silently rewritten.
 
 This layer owns semantic truth/provenance only. Runtime retrieval/context assembly remains behind the Agent Runtime boundary and is a separate slice.
-
-[executed on device: wandora-vps-01 (4f062e11-0f3c-4c6e-8f71-7d6136c1bee9)]
