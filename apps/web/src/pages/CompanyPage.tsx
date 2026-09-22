@@ -2,6 +2,11 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { AlertTriangle, ArchiveX, BookOpenCheck, Check, FileCheck2, History, LoaderCircle, PencilLine, Plus, ShieldCheck } from 'lucide-react';
 import { useMemo, useState, type FormEvent } from 'react';
 import { useAuth } from '../AuthProvider';
+import {
+  GroundingCreateOperationError,
+  clearGroundingCreateOperation,
+  resolveGroundingCreateOperation,
+} from '../customerGroundingOperation';
 
 type GroundingEntryType = 'fact' | 'rule';
 type GroundingProvenanceType = 'owner_statement' | 'approved_source' | 'approved_correction';
@@ -27,6 +32,13 @@ const emptyCreateDraft: CreateDraft = { type: 'fact', content: '', approvedSourc
 
 function mutationKey(action: string): string {
   return 'company-grounding:' + action + ':' + crypto.randomUUID();
+}
+
+class GroundingCreateRequestError extends Error {
+  constructor(message: string, readonly retrySameRequest = false) {
+    super(message);
+    this.name = 'GroundingCreateRequestError';
+  }
 }
 
 function groundingError(response: Response, fallback: string): Error {
@@ -58,20 +70,64 @@ export function CompanyPage() {
 
   const createMutation = useMutation({
     mutationFn: async (input: CreateDraft) => {
-      if (!activeOrganization) throw new Error('Escolha uma empresa antes de registrar grounding.');
-      const response = await authFetch('/api/v1/organizations/' + activeOrganization.id + '/grounding', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Idempotency-Key': mutationKey('create') },
-        body: JSON.stringify({
-          entryType: input.type,
-          content: input.content.trim(),
-          provenanceType: input.approvedSource ? 'approved_source' : 'owner_statement',
-          sourceRef: input.sourceRef.trim() || null,
-          sourceLabel: input.sourceLabel.trim() || null,
-        }),
-      });
-      if (!response.ok) throw groundingError(response, 'Não foi possível salvar esta informação.');
-      return await response.json() as { entry: GroundingEntry };
+      if (!activeOrganization) throw new GroundingCreateRequestError('Escolha uma empresa antes de registrar grounding.');
+      const payload = {
+        entryType: input.type,
+        content: input.content.trim(),
+        provenanceType: input.approvedSource ? 'approved_source' as const : 'owner_statement' as const,
+        sourceRef: input.sourceRef.trim() || null,
+        sourceLabel: input.sourceLabel.trim() || null,
+      };
+      let operation;
+      try {
+        operation = resolveGroundingCreateOperation(activeOrganization.id, payload);
+      } catch (error) {
+        if (error instanceof GroundingCreateOperationError) {
+          throw new GroundingCreateRequestError(error.message);
+        }
+        throw error;
+      }
+
+      let response: Response;
+      try {
+        response = await authFetch('/api/v1/organizations/' + activeOrganization.id + '/grounding', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Idempotency-Key': operation.idempotencyKey },
+          body: JSON.stringify(payload),
+        });
+      } catch {
+        throw new GroundingCreateRequestError(
+          'A Wandora não conseguiu confirmar a resposta. Repita exatamente o mesmo registro; a identidade original será reutilizada.',
+          true,
+        );
+      }
+
+      const body = await response.json().catch(() => null) as { entry?: GroundingEntry } | null;
+      if (response.ok) {
+        if (!body?.entry?.id || body.entry.type !== payload.entryType || body.entry.content !== payload.content) {
+          throw new GroundingCreateRequestError(
+            'A confirmação do registro ficou incompleta. Repita exatamente o mesmo registro para reconciliar com segurança.',
+            true,
+          );
+        }
+        clearGroundingCreateOperation(operation);
+        return { entry: body.entry };
+      }
+
+      if (response.status === 400 || response.status === 403 || response.status === 404) {
+        clearGroundingCreateOperation(operation);
+        throw groundingError(response, 'Não foi possível salvar esta informação.');
+      }
+      if (response.status === 409 || response.status === 503) {
+        throw new GroundingCreateRequestError(
+          'O registro ficou sem confirmação conclusiva. Repita exatamente o mesmo conteúdo e evidência; a identidade original será reutilizada.',
+          true,
+        );
+      }
+      throw new GroundingCreateRequestError(
+        'A resposta ficou inconclusiva. Repita exatamente o mesmo registro; a Wandora reutilizará a identidade original.',
+        true,
+      );
     },
     onSuccess: async () => { setDraft(emptyCreateDraft); await query.refetch(); },
   });
