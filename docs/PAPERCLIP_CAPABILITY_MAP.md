@@ -243,3 +243,15 @@ Pinned v2026.916.0 semantics now qualified for Wandora:
 - managed-agent reconcile does not force existing lifecycle back to the manifest's initial status and does not expose a clear-error SDK primitive.
 
 Wandora decision: keep Paperclip as lifecycle/diagnostic authority and **do not mutate an `error` projection merely to make work executable**. Adopt `clear-error` as a production dependency only if a separate operator-facing cleanup requirement is later accepted.
+
+
+## Customer-work admission compatibility — ADR 0156
+
+Additional qualified behavior:
+
+- Paperclip `issues.requestWakeup` already enforces issue status, blockers, budget, wake-on-demand and authoritative agent invokability;
+- Organization Adapter 0.3.0 currently adds a stricter idle-only precondition;
+- that precondition incorrectly rejects the current historical `error` despite Paperclip marking it invokable;
+- least-change correction is `idle | error` at Wandora pre-admission while retaining `running` rejection and Paperclip final re-check.
+
+Do not use provider lifecycle mutation as a workaround for a Wandora-owned admission mismatch.
