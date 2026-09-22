@@ -62,6 +62,10 @@ docker run --rm --network "$NET" -v "$ROOT/apps/core:/src:ro"   -e DATABASE_URL=
    cd /app &&
    npm ci --ignore-scripts --include=dev >/dev/null &&
    npm run typecheck &&
-   node --import tsx --test --test-concurrency=1 test/human-grounding-route.test.ts test/human-grounding.integration.test.ts'
+   node --import tsx --test --test-concurrency=1 \
+     test/human-grounding-route.test.ts \
+     test/human-grounding.integration.test.ts \
+     test/organization-grounding-runtime-contract.test.ts \
+     test/organization-grounding-runtime-projection.integration.test.ts'
 
 echo "ORGANIZATION_GROUNDING_V1_VERIFY_OK"
