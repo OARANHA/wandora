@@ -2113,3 +2113,16 @@ Web now parses a bounded Markdown-like subset into inert React nodes and strips 
 A dedicated build gate `WANDORA_WEB_WORK_RESULT_SAFE_RENDERING_V1_OK` validates this contract.
 
 This remains code/CI only until a separately reviewed Web production promotion.
+
+
+## 2026-09-22 — canonical customer product surface promoted to production
+
+ADR 0165 records the production promotion of the exact merged-main Web artifact from `main@2e23abd8852558155a4e1475c5891962ab03d6fa`.
+
+The live Web is now `wandora/web:candidate-2e23abd88525`, healthy with restart count 0. The deployed bundle contains the canonical customer shell, real-state-only Início, Equipe surface and safe internal work-result renderer.
+
+Before promotion, reconciliation found the persisted Web stack selector still pointed to the older ADR 0135 candidate while the actual live container had already advanced to ADR 0141's `candidate-88facf57466d`. The promotion explicitly resolved this drift and left the persisted selector aligned with the live container.
+
+Core, Paperclip and Messaging Gateway were not recreated. MEDICSPRO stayed at two works, Ana stayed active + supervised, outbound stayed zero, and both Human Send and Gateway outbound remained OFF.
+
+Next customer-product convergence target: Conversas, then Empresa / Regras da casa grounding authority.
