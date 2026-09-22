@@ -2182,3 +2182,10 @@ ADR 0170 extends ADR 0169 with a bounded customer contract: active members may r
 Core still has no arbitrary table write. Database mutation is restricted to audited tenant-scoped functions; corrections preserve prior content via supersedes_entry_id.
 
 This is still not a knowledge base, RAG, vector, memory, document, skill, decision-training or policy-engine implementation. Migration 017 is not live until a separate production-effect slice.
+## Checkpoint — Organization Grounding Runtime Projection V1 (2026-09-22)
+
+ADR 0171 implements the code-only Wandora → Agent Runtime grounding projection over the already-approved migration 017 contract. Active official facts/rules are projected tenant-scoped into required `officialFacts[]` / `houseRules[]`, with `workContext` kept separate and provider-neutral provenance preserved.
+
+No retrieval/memory/RAG/vector/chunking subsystem was internalized. Paperclip remains control-plane authority and Mastra/runtime remains execution/context implementation authority. Runtime has no grounding write or model-output promotion path.
+
+Migration 017 is still not live. The next recommended code-only slice is the customer `Empresa / Regras da Casa` surface; production promotion remains a later separately reviewed effect.
