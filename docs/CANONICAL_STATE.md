@@ -1,5 +1,12 @@
 # Wandora — Canonical State / Handoff
 
+## ADR 0182 — Customer Company Grounding Create Browser Idempotency V1 — CODE ONLY
+
+The `/company` create path now reuses the proven customer-browser safety model: UUID + exact payload fingerprint persisted in sessionStorage and reused after ambiguous responses. Changed payloads fail closed while a create is unresolved.
+
+ADR 0179's planned human-readable idempotency keys are superseded before any grounding effect by browser-generated UUID v4 keys. F1/F2/F3 remain facts, R1 remains a rule, and grounding remains 0 until a later Web promotion + normal owner-session create.
+
+
 ## ADR 0181 — Owner-Statement Evidence Surface Production Promotion — GREEN
 
 Web `wandora/web:candidate-8ee226bcc0dd` is live, healthy/restart 0 from exact `main@8ee226bcc0ddec2f333348235c501320fb223152`. The customer `/company` form can now preserve optional source evidence for truthful `owner_statement` provenance.
