@@ -65,21 +65,23 @@ The Web CI production-shaped mock-Core smoke additionally proves grounding read/
 
 A disposable Web candidate against the live private Core proved healthz 200, company 200, unauthenticated /api/v1/me 401, unauthenticated grounding 401, and an out-of-contract grounding path 404. The candidate was removed after proof.
 
-### Immutable Web candidate qualified by Web CI
+### Immutable Web candidate qualified by post-merge Web CI
 
-PR #233 Web CI produced and uploaded the immutable candidate:
+The post-merge Web CI for canonical `main@1800aa3d3fb4a0928f314eed4f1722f7adb59ef0` produced and uploaded the immutable candidate:
 
-- GitHub Actions artifact id: `10696060670`;
-- artifact name: `web-candidate-7e9a10e38dd576150e77ecc67ed00fbcb467485a`;
-- artifact ZIP SHA-256: `6e1e59bd6a0364086f448fbf9d1dd28cef463e5c9eebdda5cb92a73629718e99`;
-- candidate source SHA recorded by the artifact: `7e9a10e38dd576150e77ecc67ed00fbcb467485a`;
+- GitHub Actions artifact id: `10695249794`;
+- artifact name: `web-candidate-1800aa3d3fb4a0928f314eed4f1722f7adb59ef0`;
+- artifact ZIP SHA-256: `adba9f361b1135e123c555f6ff4afb3b555c13ec3dc129b7347a9467ddc6a109`;
+- candidate source SHA: `1800aa3d3fb4a0928f314eed4f1722f7adb59ef0`;
 - source tree SHA: `c98f0e3a13a4675a0c1b23e476bfa50e649edefe`;
-- image tag: `wandora/web:candidate-7e9a10e38dd5`;
-- image config: `sha256:8ed4146e0ddf0e4770cb6dea68ffbcc685f91bc3ea096fa4af21c1f4fcba89f8`;
-- OCI manifest: `sha256:5a20fa565d19bf564648d7fddc324e00f2873df67c92ba4461b029623fc126a2`;
-- `web-image.tar` SHA-256: `96b4c9a22458524585e4fb7b4f1725ebd424640d8a6cd1daaff927b1e551440b`.
+- image tag: `wandora/web:candidate-1800aa3d3fb4`;
+- image config SHA-256: `270a150454befd2e260c45ebbe9b5985a973a32905ac157ce1738d6acf1a243d`;
+- OCI manifest SHA-256: `eb37a36d787e41d7d14c7675ea1e7689f01800a3ee5355c84e2afc09406d186a`;
+- `web-image.tar` SHA-256: `1d76901fa02ca4b8cfeef8bdf9daf9fbb12c610951a5e629c3cd16c6facc960a`;
+- `manifest.txt` SHA-256: `3846a2f11a84d19d60cfdb81251ac5735385ff8078b3209cf06ffa9781807a5e`;
+- GitHub artifact expiry: `2026-09-29T13:14:54Z`.
 
-The artifact is the promotion input for the future Web-only slice; rebuilding a different image is not equivalent qualification.
+The artifact ZIP and its internal `SHA256SUMS` were independently reverified after download. This exact main-derived artifact is the promotion input for the future Web-only slice; rebuilding a different image is not equivalent qualification.
 
 ## Production boundary
 
