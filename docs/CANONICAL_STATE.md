@@ -3670,3 +3670,18 @@ The existing activation safety contract remains intact, including explicit custo
 All existing Web/Core/Platform Admin/Messaging Gateway checks were GREEN on the implementation head before this documentation checkpoint. No production deployment, runtime mutation, employee activation, work creation or outbound effect occurred.
 
 Next recommended slice: **Customer Work Result Presentation V1**, including safe rich-text/Markdown presentation for legitimate internal work results.
+
+
+## ADR 0164 — Customer Work Result Presentation V1
+
+Status: **IMPLEMENTED IN CODE / NO PRODUCTION EFFECT**.
+
+The customer-work result surface now has a bounded safe renderer for headings, paragraphs, strong text, inline code, lists and quotes. Markdown link/image targets are discarded and raw HTML remains escaped React text.
+
+The result renderer does not use `dangerouslySetInnerHTML`, `innerHTML` or model-provided hyperlinks. A dedicated build verifier proves the safe-rendering contract and remains GREEN alongside the existing customer-work idempotency verifiers.
+
+The `Início` latest-work preview now uses normalized plain text instead of exposing raw Markdown markers.
+
+No backend, execution, model, database, outbound or production runtime effect occurred.
+
+Next product-surface target: canonicalize `Conversas` against existing real reads, then review `Empresa / Regras da casa` authority for grounding.
