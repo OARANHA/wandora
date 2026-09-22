@@ -2,13 +2,13 @@
 
 ## ADR 0187 — Web Design System + App Shell Production Promotion V1 — GREEN
 
-Production Web is `wandora/web:candidate-67966d42d23e`, sourced from exact `main@67966d42d23e1778d89c2430de8d59e2235dedfb`, healthy / restart 0, with the persisted selector aligned to the live revision.
+Production Web is `wandora/web:candidate-67966d42d23e` from exact `main@67966d42d23e1778d89c2430de8d59e2235dedfb`, healthy / restart 0. Persisted selector and live revision are aligned.
 
-The bundled Dela Gothic One / Space Grotesk / JetBrains Mono design system, 250px→82px collapsible desktop sidebar, complete mobile route menu and power-style real logout are live. The exact GitHub Web artifact is `10722734256` with ZIP digest `sha256:0b544336336d47225a54f9b470957afc8a65ea6e53f60006715efa486a88e319`.
+The bundled Dela Gothic One / Space Grotesk / JetBrains Mono design system, 250px→82px collapsible desktop sidebar, complete mobile menu and power-style real logout are live. Core, Paperclip and Messaging Gateway were not recreated.
 
-Public routes `/`, `/team`, `/work`, `/conversations`, `/approvals` and `/company` are 200. Core, Paperclip and Messaging Gateway were not recreated.
+The exact GitHub Web artifact is 10722734256 with ZIP digest `sha256:0b544336336d47225a54f9b470957afc8a65ea6e53f60006715efa486a88e319`. The valid rollback selector is retained in `web.env.before` and points to `candidate-d8349b353bb7`.
 
-MEDICSPRO grounding remains 0, works 2, outbound attempts 0 and Ana remains active + supervised. Human Send and Gateway outbound remain OFF. The interrupted execution was reconciled before any repeat promotion. See ADR 0187.
+MEDICSPRO remains grounding 0 / works 2 / outbound 0; Ana is active + supervised; Human Send and Gateway outbound remain OFF. See ADR 0187.
 
 
 ## ADR 0186 — Web Design System + App Shell V1 — CODE ONLY
