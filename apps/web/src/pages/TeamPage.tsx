@@ -195,7 +195,7 @@ function PageHeader() {
       <div className="inline-flex rounded-full border-2 border-[#09090b] bg-[#d2e823] px-3 py-1.5 wandora-pop-sm">
         <span className="wandora-mono text-[9px] font-black">sua equipe · estado real</span>
       </div>
-      <h1 className="wandora-display m-0 mt-5 max-w-4xl text-[clamp(3rem,6vw,6rem)] leading-[0.86] text-[#09090b]">
+      <h1 className="wandora-display m-0 mt-4 max-w-4xl text-[clamp(2.35rem,4.2vw,4rem)] leading-[0.96] text-[#09090b]">
         GERENCIE COMO <span className="inline-block rounded-xl bg-[#fdd030] px-2">GENTE.</span>
       </h1>
       <p className="m-0 mt-4 max-w-2xl text-[15px] leading-7 text-[#09090b]/60">
