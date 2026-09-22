@@ -48,7 +48,7 @@ workContext
 
 `officialFacts[]` contains only active `fact` entries. `houseRules[]` contains only active `rule` entries. Retired entries are excluded.
 
-Each projected statement contains only content plus the minimum runtime provenance semantics (`type`, optional human-facing `sourceLabel`). Full `sourceRef` evidence remains durable inside Wandora for auditability but is deliberately not sent to Agent Runtime. Grounding entry IDs, Paperclip IDs, Mastra IDs, run IDs and provider selectors do not enter the runtime grounding contract.
+Each projected statement contains only content plus Wandora provenance semantics (`type`, provider-neutral `sourceRef`, `sourceLabel`). Grounding entry IDs, Paperclip IDs, Mastra IDs, run IDs and provider selectors do not enter the runtime grounding contract.
 
 `workContext` remains structurally separate from official truth. Work descriptions, model hypotheses and inference never become facts/rules by being included in a task.
 
