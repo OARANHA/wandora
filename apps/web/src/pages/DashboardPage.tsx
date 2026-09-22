@@ -11,6 +11,7 @@ import {
   UsersRound,
 } from 'lucide-react';
 import { useAuth } from '../AuthProvider';
+import { workResultPlainText } from '../workResultFormat';
 
 type DigitalEmployee = {
   id: string;
@@ -229,8 +230,8 @@ export function DashboardPage() {
                 {workStateLabel[latestWork.state]}
               </div>
               {latestWork.result?.summary ? (
-                <p className="m-0 mt-4 line-clamp-4 whitespace-pre-wrap text-sm leading-6 text-white/65">
-                  {latestWork.result.summary}
+                <p className="m-0 mt-4 line-clamp-4 text-sm leading-6 text-white/65">
+                  {workResultPlainText(latestWork.result.summary, 320)}
                 </p>
               ) : null}
             </div>
