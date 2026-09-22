@@ -14,6 +14,10 @@ import {
   type HumanSupervisionReadService,
 } from '../supervision/human-read.js';
 import {
+  HumanGroundingConflictError,
+  type HumanGroundingService,
+} from '../supervision/human-grounding.js';
+import {
   HumanSendProposalConflictError,
   HumanSendProposalDeliveryUncertainError,
   type HumanSendProposalService,
@@ -28,6 +32,9 @@ const DIGITAL_EMPLOYEE_ACTIVATE_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/d
 const DIGITAL_EMPLOYEE_WORK_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/digital-employees\/([^/]+)\/work$/;
 const CONVERSATIONS_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/conversations$/;
 const CONVERSATION_DETAIL_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/conversations\/([^/]+)$/;
+const GROUNDING_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/grounding$/;
+const GROUNDING_RETIRE_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/grounding\/([^/]+)\/retire$/;
+const GROUNDING_CORRECT_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/grounding\/([^/]+)\/correct$/;
 const SESSION_PATH = '/api/v1/me';
 const CATALOG_KEY_RE = /^[a-z0-9][a-z0-9._-]{2,63}$/;
 
@@ -116,6 +123,61 @@ function parseCatalogHireRequest(rawBody: string | undefined): { catalogKey: str
   }
 }
 
+function parseGroundingCreateRequest(rawBody: string | undefined): {
+  entryType: 'fact' | 'rule';
+  content: string;
+  provenanceType: 'owner_statement' | 'approved_source';
+  sourceRef: string | null;
+  sourceLabel: string | null;
+} | undefined {
+  if (!rawBody || rawBody.length > 8_192) return undefined;
+  try {
+    const parsed = JSON.parse(rawBody) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return undefined;
+    const record = parsed as Record<string, unknown>;
+    const allowed = new Set(['entryType', 'content', 'provenanceType', 'sourceRef', 'sourceLabel']);
+    if (Object.keys(record).some((key) => !allowed.has(key))) return undefined;
+    if (record.entryType !== 'fact' && record.entryType !== 'rule') return undefined;
+    if (record.provenanceType !== 'owner_statement' && record.provenanceType !== 'approved_source') return undefined;
+    if (typeof record.content !== 'string') return undefined;
+    const content = record.content.trim();
+    if (!content || content.length > 4000) return undefined;
+    const sourceRef = record.sourceRef == null ? null : typeof record.sourceRef === 'string' ? record.sourceRef.trim() : undefined;
+    const sourceLabel = record.sourceLabel == null ? null : typeof record.sourceLabel === 'string' ? record.sourceLabel.trim() : undefined;
+    if (sourceRef === undefined || sourceLabel === undefined) return undefined;
+    if (sourceRef !== null && (!sourceRef || sourceRef.length > 1024)) return undefined;
+    if (sourceLabel !== null && (!sourceLabel || sourceLabel.length > 255)) return undefined;
+    if (record.provenanceType === 'approved_source' && sourceRef === null) return undefined;
+    return { entryType: record.entryType, content, provenanceType: record.provenanceType, sourceRef, sourceLabel };
+  } catch {
+    return undefined;
+  }
+}
+
+function parseGroundingCorrectionRequest(rawBody: string | undefined): {
+  content: string;
+  sourceRef: string;
+  sourceLabel: string | null;
+} | undefined {
+  if (!rawBody || rawBody.length > 8_192) return undefined;
+  try {
+    const parsed = JSON.parse(rawBody) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return undefined;
+    const record = parsed as Record<string, unknown>;
+    const allowed = new Set(['content', 'sourceRef', 'sourceLabel']);
+    if (Object.keys(record).some((key) => !allowed.has(key))) return undefined;
+    if (typeof record.content !== 'string' || typeof record.sourceRef !== 'string') return undefined;
+    const content = record.content.trim();
+    const sourceRef = record.sourceRef.trim();
+    const sourceLabel = record.sourceLabel == null ? null : typeof record.sourceLabel === 'string' ? record.sourceLabel.trim() : undefined;
+    if (!content || content.length > 4000 || !sourceRef || sourceRef.length > 1024) return undefined;
+    if (sourceLabel === undefined || (sourceLabel !== null && (!sourceLabel || sourceLabel.length > 255))) return undefined;
+    return { content, sourceRef, sourceLabel };
+  } catch {
+    return undefined;
+  }
+}
+
 function parseConfirmationVersion(rawBody: string | undefined): string | undefined {
   if (!rawBody || rawBody.length > 1_024) return undefined;
   try {
@@ -136,6 +198,7 @@ export function createHumanSupervisionHandler(
   digitalEmployeeHireService?: OrganizationAdapterService,
   digitalEmployeeActivationService?: HumanDigitalEmployeeActivationService,
   digitalEmployeeWorkService?: OrganizationAdapterService,
+  groundingService?: HumanGroundingService,
 ) {
   return async (request: HumanSupervisionRequest): Promise<HumanSupervisionResponse> => {
     try {
@@ -174,6 +237,79 @@ export function createHumanSupervisionHandler(
           confirmationVersion,
         });
         return { status: 200, body: result };
+      }
+
+      const groundingRetireMatch = GROUNDING_RETIRE_PATH_RE.exec(request.pathname);
+      if (groundingRetireMatch) {
+        const organizationId = groundingRetireMatch[1];
+        const entryId = groundingRetireMatch[2];
+        if (!organizationId || !entryId || !UUID_RE.test(organizationId) || !UUID_RE.test(entryId)) {
+          return { status: 404, body: { error: 'not-found' } };
+        }
+        if (!groundingService) return { status: 404, body: { error: 'not-found' } };
+        if (request.method !== 'POST') return { status: 405, body: { error: 'method-not-allowed' } };
+        if (request.rawBody?.trim()) return { status: 400, body: { error: 'invalid-grounding-request' } };
+        const idempotencyKey = request.idempotencyKey?.trim();
+        if (!idempotencyKey || idempotencyKey.length > 255) {
+          return { status: 400, body: { error: 'invalid-grounding-request' } };
+        }
+        const entry = await groundingService.retire({
+          organizationId,
+          authorization: request.authorization,
+          idempotencyKey,
+          entryId,
+        });
+        return { status: 200, body: { entry } };
+      }
+
+      const groundingCorrectMatch = GROUNDING_CORRECT_PATH_RE.exec(request.pathname);
+      if (groundingCorrectMatch) {
+        const organizationId = groundingCorrectMatch[1];
+        const entryId = groundingCorrectMatch[2];
+        if (!organizationId || !entryId || !UUID_RE.test(organizationId) || !UUID_RE.test(entryId)) {
+          return { status: 404, body: { error: 'not-found' } };
+        }
+        if (!groundingService) return { status: 404, body: { error: 'not-found' } };
+        if (request.method !== 'POST') return { status: 405, body: { error: 'method-not-allowed' } };
+        const idempotencyKey = request.idempotencyKey?.trim();
+        const correction = parseGroundingCorrectionRequest(request.rawBody);
+        if (!idempotencyKey || idempotencyKey.length > 255 || !correction) {
+          return { status: 400, body: { error: 'invalid-grounding-request' } };
+        }
+        const entry = await groundingService.correct({
+          organizationId,
+          authorization: request.authorization,
+          idempotencyKey,
+          entryId,
+          ...correction,
+        });
+        return { status: 200, body: { entry } };
+      }
+
+      const groundingMatch = GROUNDING_PATH_RE.exec(request.pathname);
+      if (groundingMatch) {
+        const organizationId = groundingMatch[1];
+        if (!organizationId || !UUID_RE.test(organizationId)) {
+          return { status: 404, body: { error: 'not-found' } };
+        }
+        if (!groundingService) return { status: 404, body: { error: 'not-found' } };
+        if (request.method === 'GET') {
+          const items = await groundingService.list(request.authorization, organizationId);
+          return { status: 200, body: { items } };
+        }
+        if (request.method !== 'POST') return { status: 405, body: { error: 'method-not-allowed' } };
+        const idempotencyKey = request.idempotencyKey?.trim();
+        const creation = parseGroundingCreateRequest(request.rawBody);
+        if (!idempotencyKey || idempotencyKey.length > 255 || !creation) {
+          return { status: 400, body: { error: 'invalid-grounding-request' } };
+        }
+        const entry = await groundingService.create({
+          organizationId,
+          authorization: request.authorization,
+          idempotencyKey,
+          ...creation,
+        });
+        return { status: 200, body: { entry } };
       }
 
       const employeeWorkMatch = DIGITAL_EMPLOYEE_WORK_PATH_RE.exec(request.pathname);
@@ -352,6 +488,9 @@ export function createHumanSupervisionHandler(
       if (error instanceof HumanNotFoundError) {
         return { status: 404, body: { error: 'not-found' } };
       }
+      if (error instanceof HumanGroundingConflictError) {
+        return { status: 409, body: { error: error.code } };
+      }
       if (error instanceof DigitalEmployeeActivationError) {
         if (error.code === 'employee-not-activatable') {
           return { status: 409, body: { error: 'employee-not-activatable' } };
@@ -408,3 +547,5 @@ export function createHumanSupervisionHandler(
     }
   };
 }
+
+[executed on device: wandora-vps-01 (4f062e11-0f3c-4c6e-8f71-7d6136c1bee9)]
