@@ -3,6 +3,13 @@
 Snapshot date: **2026-09-22**
 Repository: `OARANHA/wandora`
 
+## Current continuity checkpoint — ADR 0176
+
+Customer Web Grounding API Bridge Artifact Qualification V1 closes the code-only bridge slice after PR #233. Exact `main@1800aa3d3fb4a0928f314eed4f1722f7adb59ef0` produced immutable Web artifact **10695249794** (`web-candidate-1800aa3d3fb4a0928f314eed4f1722f7adb59ef0`), ZIP digest `sha256:adba9f361b1135e123c555f6ff4afb3b555c13ec3dc129b7347a9467ddc6a109`, image `wandora/web:candidate-1800aa3d3fb4` / `sha256:270a150454befd2e260c45ebbe9b5985a973a32905ac157ce1738d6acf1a243d`.
+
+Post-merge Web/Core/Platform Admin/Messaging Gateway workflows are GREEN. Production was not changed; the public grounding route therefore still returns the old-Web Nginx 404. Next slice is **WEB ONLY** production promotion qualification/execution of the corrected artifact. Migration 017 and the grounding-aware Core are already live and must not be repeated.
+
+
 ## Current continuity checkpoint — ADR 0175
 
 Customer Web Grounding API Bridge / Nginx Allowlist Correction V1 is code-only and no-effect. It fixes only the explicit Web bridge for the canonical grounding Core routes, keeps /api/ fail-closed, adds dedicated static + production-shaped CI verification, and does not change capability authority.

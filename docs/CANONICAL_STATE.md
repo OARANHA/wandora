@@ -2,6 +2,28 @@
 
 Last synchronized: **2026-09-22**
 
+## 2026-09-22 Customer Web Grounding API Bridge Artifact Qualification V1 — NO PRODUCTION EFFECT
+
+The code slice is merged in `main@1800aa3d3fb4a0928f314eed4f1722f7adb59ef0` through PR #233 / ADR 0175. Post-merge Web/Core/Platform Admin/Messaging Gateway workflows are GREEN.
+
+The immutable Web candidate built from that exact `main` is:
+
+```text
+GitHub artifact id   = 10695249794
+artifact name        = web-candidate-1800aa3d3fb4a0928f314eed4f1722f7adb59ef0
+artifact ZIP sha256  = adba9f361b1135e123c555f6ff4afb3b555c13ec3dc129b7347a9467ddc6a109
+source sha           = 1800aa3d3fb4a0928f314eed4f1722f7adb59ef0
+source tree sha      = c98f0e3a13a4675a0c1b23e476bfa50e649edefe
+image tag            = wandora/web:candidate-1800aa3d3fb4
+image id             = sha256:270a150454befd2e260c45ebbe9b5985a973a32905ac157ce1738d6acf1a243d
+OCI archive sha256   = 1d76901fa02ca4b8cfeef8bdf9daf9fbb12c610951a5e629c3cd16c6facc960a
+manifest sha256      = 3846a2f11a84d19d60cfdb81251ac5735385ff8078b3209cf06ffa9781807a5e
+```
+
+The artifact ZIP and its internal `SHA256SUMS` were independently verified. Production remains unchanged: migration 017 is live/verified, grounding rows remain 0, Core remains `wandora/core:organization-adapter-candidate-d90b225e6cc2`, Web remains `wandora/web:candidate-65908b76c667`, MEDICSPRO remains at 2 works and 0 outbound attempts, and Human Send/Gateway outbound remain OFF.
+
+Next slice: **Customer Web Grounding API Bridge Production Promotion Preflight / Execution V1 — WEB ONLY**. It may qualify/promote only this corrected Web artifact; do not reapply migration 017 or repromote Core.
+
 ## 2026-09-22 Customer Web Grounding API Bridge / Nginx Allowlist Correction V1 — CODE ONLY
 
 ADR 0175 corrects only the explicit Web/Nginx transport bridge for the already-live Core grounding contract. The change adds exact allowlists for grounding read/create, retire and correct; preserves Authorization and Idempotency-Key; keeps request methods/bodies intact; preserves existing /me, work and conversations bridges; and keeps the generic /api/ fallback fail-closed at 404.
