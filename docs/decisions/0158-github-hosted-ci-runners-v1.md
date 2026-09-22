@@ -58,6 +58,8 @@ The workflow therefore now provisions the exact runtime explicitly:
 
 The compatibility test itself remains dependency-free/offline after runtime bootstrap.
 
+Fresh hosted-runner validation also exposed one rootless-runner assumption: synthetic `0640` bind-mounted secret files used a hard-coded container supplemental GID `0`. On GitHub-hosted rootful Docker the files retain the hosted runner user's real group ID. Core and Messaging Gateway CI now resolve `WANDORA_CI_CONTAINER_SECRET_GID=$(id -g)` into `GITHUB_ENV` before their Docker secret-mount checks, preserving group-readable least privilege without making synthetic secrets world-readable.
+
 Other workflows already either:
 
 - provision their required Node version explicitly;
