@@ -64,6 +64,45 @@ When a specialist component implements a capability, Wandora may still persist w
 
 This is **not** permission to clone the provider's complete control-plane/runtime domain into PostgreSQL.
 
+## Universal provider pluggability / replacement rule — ADR 0168
+
+**Portability = contract decoupling, not implementation duplication. Provider replacement ≠ capability internalization.**
+
+This rule applies to Paperclip, Mastra, Evolution, model providers and future specialist providers.
+
+For every material provider-backed capability, classify these separately:
+
+| Dimension | Required question |
+| --- | --- |
+| semantic authority | Who defines the customer/operator meaning? |
+| durable product state | What minimum Wandora-owned identity/policy/fact/source-reference/audit/binding must remain portable? |
+| operational authority | Who runs/persists the specialist state machine today? |
+| provider implementation | Which concrete provider supplies it now? |
+| replacement boundary | What adapter/binding/configuration/provider-state migration changes if the provider is replaced? |
+
+A requirement to preserve a customer contract or an official company fact through provider replacement does **not** imply that Wandora should implement the operational engine that consumes it.
+
+Default to delegation for operational mechanics such as:
+
+- control-plane lifecycle and task/run orchestration;
+- runtime/execution memory;
+- retrieval/RAG execution;
+- embeddings, vector search and chunking;
+- prompt/context assembly mechanics;
+- agent loops/workflow execution;
+- runtime skills materialization;
+- tool execution.
+
+Wandora may own the provider-neutral semantic contract and minimum durable product state while a specialist provider owns those mechanics.
+
+Before proposing Wandora-native implementation, require explicit evidence that reuse/adapter delegation is insufficient for a Wandora-unique product, security, compliance, reliability or effect-authorization requirement.
+
+The universal Exit Test is:
+
+> If this provider were replaced tomorrow, would customer-facing Wandora contracts stay stable while only adapter/binding/configuration and legitimately provider-owned operational state changed or migrated?
+
+If not, identify the provider coupling. Do not solve it automatically by copying the provider domain into Wandora.
+
 ## Mandatory question before new domain code
 
 Before adding a material table/entity/service/workflow/state machine, answer:

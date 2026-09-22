@@ -2,37 +2,44 @@
 
 This file is the operational authority for AI coding, infrastructure and research agents working in this repository.
 
-## 1. Mandatory read order
+## 1. Mandatory session bootstrap and authority order
 
-Before changing code, infrastructure, product contracts or architecture, read in this order:
+At the start of every new technical session or after a long interruption, read `docs/WANDORA_PROJECT_SOURCE.md` first as a **continuity bootstrap only**. It is not higher authority and never replaces live verification.
+
+Then, before changing code, infrastructure, product contracts or architecture, apply this authority order:
 
 1. `AGENTS.md`;
-2. accepted ADRs in `docs/decisions/` (newer accepted ADRs override older conflicting guidance);
+2. relevant accepted ADRs in `docs/decisions/` (newer accepted ADRs override older conflicting guidance);
 3. `docs/CAPABILITY_AUTHORITY.md`;
 4. `docs/architecture.md`;
 5. `docs/CANONICAL_STATE.md`;
 6. the README/runbook for the component being changed.
 
+A handoff prompt or visible chat history is only a bridge into this process. It is never the source of truth.
+
+Before continuing previous work:
+
+- reverify the real `main`, relevant PRs/branches and workflows;
+- reverify runtime/VPS state when the slice depends on mutable production state;
+- after timeout, disconnect, tool failure or chat change, inspect whether the prior operation actually executed before repeating it;
+- never repeat an operation merely because the previous assistant response did not arrive;
+- record material decisions/checkpoints in the repository so continuity does not depend on one chat.
+
 Do not silently reopen, reinterpret or override an accepted decision. If new evidence creates a conflict, stop the conflicting change, document the evidence and propose a superseding ADR.
 
 **Urgent architecture rule:** a missing local Wandora table/service/workflow is never, by itself, evidence that Wandora should implement that capability. Before any material new domain state or subsystem is designed, apply ADR 0036's Capability Authority / Reuse Gate.
 
+## 1.1 Current CI execution boundary — ADR 0158
 
-## 1.1 Self-hosted CI safety boundary
+Normal repository CI runs on disposable GitHub-hosted `ubuntu-24.04` runners. ADR 0158 supersedes ADR 0113 for normal CI execution.
 
-The private Wandora repository uses the repository-scoped self-hosted runner `wandora-vps-01-ci` on the Wandora VPS. Treat its isolation contract as production safety infrastructure:
+- normal workflows must not target the legacy `wandora-vps-01-ci` self-hosted runner unless a bounded, explicitly reviewed recovery requires it;
+- normal CI receives no production SSH credentials, production Docker socket, Paperclip Board credentials, live model-provider credentials, live database credentials or customer messaging credentials;
+- GitHub-hosted CI is test/build infrastructure only;
+- CI passing never authorizes deployment, migrations, outbound effects or production Docker changes;
+- production effects remain separately reviewed operator actions.
 
-- workflows must target `[self-hosted, linux, x64, wandora-ci]` unless an accepted ADR explicitly changes the runner strategy;
-- never add the CI identity to host `docker`, `wandora-ops` or `sudo`;
-- never mount or expose the production Docker socket to CI;
-- Docker-based CI must use the dedicated rootless Docker daemon;
-- do not remove `PrivateTmp=yes` merely to make bind mounts work;
-- any host path that a CI container must bind-mount must be staged under `RUNNER_TEMP` (fallback `/tmp` only outside the self-hosted GitHub environment);
-- do not weaken the runner CPU/memory/task ceilings merely to make a heavy job pass; first prove the resource requirement and review production impact;
-- pre/post hooks and the `WANDORA_CI_ROOTLESS_BOUNDARY_OK` / `WANDORA_CI_CLEANUP_OK` evidence are part of the runner contract;
-- CI passing never authorizes deployment, migrations, outbound effects or production Docker changes.
-
-See ADR 0113.
+ADR 0113 remains historical evidence for the isolated self-hosted runner design; it is not the current normal runner policy.
 
 ## 2. Project identity
 
@@ -62,6 +69,30 @@ Wandora owns the **customer/operator product contract and semantics**, including
 Third-party infrastructure and specialist capability providers must always sit behind Wandora-owned adapters. Provider IDs, schemas and authorization semantics must not leak into customer-facing APIs.
 
 Do not clone a provider's complete domain into Wandora PostgreSQL merely to make the product look internally self-contained. Persist only state that is demonstrably Wandora-owned or required to make the adapter safe, replaceable, authorized, auditable or recoverable.
+
+### 3.1 Permanent pluggability / provider-replacement guardrail — ADR 0168
+
+**Portability means contract decoupling, not implementation duplication. Provider replacement does not imply internalization.**
+
+Paperclip, Mastra, Evolution, model providers and future specialist components must remain replaceable behind Wandora-owned contracts/adapters whenever their capability is operational rather than uniquely Wandora product semantics.
+
+For every material provider-backed capability, explicitly distinguish:
+
+1. **semantic authority** — who defines what the capability means to a Wandora customer/operator;
+2. **durable product state** — the minimum identity, policy, official facts/source references, mappings, audit/reconciliation or effect evidence that must remain available to preserve the product contract;
+3. **operational authority** — who currently executes/persists the specialist state machine;
+4. **provider implementation** — the concrete component supplying that capability today;
+5. **replacement boundary** — what adapter/binding/configuration and provider-owned state must change or migrate if that provider is replaced.
+
+The target Exit Test is:
+
+> If the provider were replaced tomorrow, customer-facing Wandora contracts should remain stable; only the adapter/binding/configuration and legitimately provider-owned operational state should need replacement or migration.
+
+A fact or contract needing to survive provider replacement does **not** mean its operational capability must be implemented inside Wandora.
+
+Do not internalize by reflex operational capabilities such as provider lifecycle, task/run orchestration, runtime memory, retrieval, embeddings/vector search, chunking, context assembly, agent loops, workflow execution, tool execution or runtime skills. First prove a Wandora-unique product semantic or safety requirement that cannot be satisfied through the accepted provider/adapter boundary.
+
+When the answer is uncertain, classify the capability as unresolved/quarantined and inspect the provider before designing local state.
 
 ## 4. Canonical architecture decisions
 
@@ -160,7 +191,7 @@ The following are current decisions unless superseded by a newer accepted ADR:
 - ADR 0110 makes MEDICSPRO Organization Adapter wiring live: exact operator binding, deterministic Core HMAC custody, one company-owned `local_encrypted` secret and company-scoped `secret_ref` config are green; the adversarial review rotated the secret to an exact `crypto.randomBytes(32)` value before closure, while eligibility/employee/hire/outbound remain zero/off.
 - ADR 0111 accepts MEDICSPRO as the first real `ana-commercial-v1` eligibility target after revalidating genuine owner access, zero employee/hire collisions and exact Organization Adapter wiring; eligibility remains zero until the separate serialized operator execution.
 - ADR 0112 makes exactly one first-real-tenant eligibility live: MEDICSPRO + `ana-commercial-v1`; serialized operator execution committed cleanly while MEDICSPRO employees/hire/provider-agent state remained zero and Human Send/Gateway outbound remained OFF.
-- ADR 0113 isolates the repository-scoped self-hosted GitHub Actions runner from production Docker/sudo and makes CI safety evidence part of the execution contract.
+- ADR 0113 historically isolated the repository-scoped self-hosted GitHub Actions runner from production Docker/sudo; ADR 0158 supersedes it for normal CI, which now uses GitHub-hosted `ubuntu-24.04` runners.
 - ADR 0114 freezes the first real MEDICSPRO owner hire boundary: normal owner browser only, one retained idempotency key, no activation/outbound.
 - ADR 0115 makes exactly one MEDICSPRO Ana live through that normal owner hire flow as `paused + supervised`, with one provider binding and one completed hire operation; Paperclip agrees on one paused managed Ana.
 - ADR 0116 closes the first real activation preflight as NO-GO: `wandora_mastra` is not registered live and the live Organization Adapter does not hold `agents.resume`; Ana remains paused and outbound stays OFF.

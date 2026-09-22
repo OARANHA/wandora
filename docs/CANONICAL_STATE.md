@@ -1,17 +1,18 @@
 # Wandora — Canonical State / Handoff
 
-Last synchronized: **2026-09-19**
+Last synchronized: **2026-09-22**
 
-Canonical Git base before this canary-completion checkpoint:
+Canonical continuity checkpoint before ADR 0168 guardrail work:
 
 ```text
-main = 58b792529e8fa7fa9e4b556459f45952b607ee43
-PR #103 = merged
+main = 97c29eba2e3d6919fa8334d632edd91c45998f72
+PR #223 = merged
+open PRs = 0
 ```
 
-ADR 0059 now records the completed internal canary, including the private-hostname correction, successful same-key recovery and the bounded post-canary runtime state. Mutable Git/runtime state must still be reverified before execution.
+Mutable Git/runtime state must still be reverified before execution.
 
-Authority order: `AGENTS.md` → accepted ADRs → `docs/CAPABILITY_AUTHORITY.md` → `docs/architecture.md` → this file → component README/runbook.
+Session bootstrap: read `docs/WANDORA_PROJECT_SOURCE.md` first for continuity only. Authority order then remains `AGENTS.md` → relevant accepted ADRs → `docs/CAPABILITY_AUTHORITY.md` → `docs/architecture.md` → this file → component README/runbook.
 
 ## 2026-09-22 GitHub-hosted CI migration — ADR 0158
 
@@ -51,9 +52,9 @@ MEDICSPRO outbound attempts= 0
 
 This checkpoint activates only the bridge foundation. It does **not** authorize Ana activation/resume or customer messaging. Any future activation/outbound effect must be a separate reviewed slice from fresh REAL NOW evidence.
 
-## 2026-09-19 CI execution checkpoint — LIVE
+## 2026-09-19 CI execution checkpoint — HISTORICAL / SUPERSEDED FOR NORMAL CI
 
-This section is the newest mutable infrastructure checkpoint and supersedes older Git/CI mutable-state lines below where they conflict.
+This section records ADR 0113 historical evidence. ADR 0158 and the 2026-09-22 GitHub-hosted CI section above supersede it for current normal CI execution.
 
 ```text
 main entering CI slice                     = 90ce29465816e4b91fb7bf2d516e0119a6404731
@@ -68,7 +69,7 @@ production Docker socket access             = none
 validated PR checks                         = 7/7 success
 ```
 
-GitHub-hosted Actions quota exhaustion is an external billing/quota condition, not a code failure. Normal repository CI now targets `[self-hosted, linux, x64, wandora-ci]`.
+At this historical ADR 0113 checkpoint, GitHub-hosted Actions quota exhaustion was an external billing/quota condition and normal repository CI temporarily targeted `[self-hosted, linux, x64, wandora-ci]`. This is no longer the current runner policy; ADR 0158 moved normal CI to GitHub-hosted `ubuntu-24.04`.
 
 The runner is deliberately hosted on the existing Wandora VPS but is isolated from production through a dedicated unprivileged identity, no host `docker`/operator/sudo groups, a separate rootless Docker daemon/store, explicit systemd path restrictions, pre/post rootless-boundary hooks and resource ceilings of 300% CPU, 3 GiB `MemoryHigh`, 4 GiB `MemoryMax` and 4096 tasks. The runner service keeps `PrivateTmp=yes`; workflow files that must be bind-mounted into rootless Docker must be staged under `RUNNER_TEMP`, not the runner-private `/tmp`.
 
@@ -3747,3 +3748,26 @@ The canonical `Conversas` surface is now production-active and remains explicitl
 MEDICSPRO remains at exactly 2 customer works, Ana remains `active + supervised`, outbound attempts remain 0, and Core/Paperclip/Gateway were unchanged.
 
 Next axis: **Empresa / Regras da casa Capability Authority Review V1** for grounding.
+
+
+## ADR 0168 — Permanent Session Continuity + Provider Pluggability Guardrails V1
+
+Status: **CANONICAL GUARDRAIL / NO PRODUCTION EFFECT**.
+
+Future sessions must recover from repository + live state rather than visible chat history. Handoff prompts are bridges only. After timeout, disconnect or chat change, verify whether prior operations executed before repeating them.
+
+Provider portability is now explicitly universal:
+
+> **Portability = contract decoupling, not implementation duplication. Provider replacement does not imply internalization.**
+
+For every material provider-backed capability, separate:
+
+- semantic authority;
+- minimum durable product state;
+- operational authority;
+- current provider implementation;
+- replacement/migration boundary.
+
+Paperclip, Mastra and future specialist providers remain replaceable behind Wandora-owned contracts/adapters. Operational lifecycle, orchestration, runtime memory, retrieval, embeddings/vector search, context assembly, tool execution and runtime skills remain delegable unless a newer ADR proves a Wandora-unique reason to own implementation.
+
+ADR 0158 remains the current normal CI authority: GitHub-hosted `ubuntu-24.04`; ADR 0113 is historical/fallback-only.
