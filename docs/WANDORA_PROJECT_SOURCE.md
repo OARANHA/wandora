@@ -2,6 +2,15 @@
 
 ## Current continuity checkpoint — ADR 0187
 
+Web Design System + App Shell Production Promotion V1 is **COMPLETE / GREEN**.
+
+The Dela Gothic One / Space Grotesk / JetBrains Mono design system, collapsible desktop sidebar, power-style real logout and complete mobile route menu are live in Web `wandora/web:candidate-67966d42d23e`, healthy/restart 0, from exact `main@67966d42d23e1778d89c2430de8d59e2235dedfb`.
+
+Core, Paperclip and Messaging Gateway were not recreated. MEDICSPRO grounding remains 0, works 2 and outbound 0. Do not repeat this Web promotion after chat interruption; reconcile runtime first.
+
+
+## Current continuity checkpoint — ADR 0187
+
 Web Design System + App Shell Production Promotion V1 is **COMPLETE / GREEN / WEB ONLY**.
 
 Live Web = `wandora/web:candidate-67966d42d23e` from exact `main@67966d42d23e1778d89c2430de8d59e2235dedfb`, healthy/restart 0. The owner-approved typography, collapsible sidebar, complete mobile menu and real power-style logout are production-active.
