@@ -1,5 +1,12 @@
 # Wandora — Canonical State / Handoff
 
+## ADR 0181 — Owner-Statement Evidence Surface Production Promotion — GREEN
+
+Web `wandora/web:candidate-8ee226bcc0dd` is live, healthy/restart 0 from exact `main@8ee226bcc0ddec2f333348235c501320fb223152`. The customer `/company` form can now preserve optional source evidence for truthful `owner_statement` provenance.
+
+Core/Paperclip/Gateway were unchanged. MEDICSPRO grounding remains 0, works = 2, outbound attempts = 0. The remaining effect is the normal authenticated owner/admin creation of F1/F2/F3 as facts and R1 as a rule per ADR 0179.
+
+
 ## ADR 0180 — Customer Company Owner-Statement Evidence Surface V1 — CODE ONLY
 
 The customer `/company` form now preserves optional provider-neutral `sourceRef/sourceLabel` for direct `owner_statement` provenance instead of exposing evidence only for `approved_source`. Approved-source references remain mandatory.
