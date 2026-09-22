@@ -3857,3 +3857,30 @@ The production-shaped Web Docker build and all prior Web verifiers are GREEN, in
 Migration 017 remains **ABSENT in production**. No MEDICSPRO fact/rule was created, no Core/Web deployment occurred, no model/work/run/outbound effect occurred, and Human Send/Gateway outbound remain unchanged.
 
 Next decision after exact-head CI/merge: **Organization Grounding Production Promotion Preflight V1 — NO EFFECT**; production promotion is not implied by this code-only slice.
+
+
+## ADR 0174 — Organization Grounding Production Promotion Execution V1
+
+Status: **PARTIALLY EXECUTED / SAFE STOP / WEB ROLLED BACK**.
+
+Migration 017 is now **LIVE and canonically verified** with zero grounding rows. The grounding-aware Core from `d90b225e...` is live and healthy/ready.
+
+The accepted Web artifact from `fba159db...` was promoted only long enough to expose a real production bridge gap: `apps/web/nginx.conf` did not proxy the new grounding API, so its catch-all returned 404. Direct Core access correctly returned 401 without session. Per ADR 0173, Web was rolled back exactly to `wandora/web:candidate-65908b76c667`; migration 017 + Core remain live.
+
+```text
+migration 017 = LIVE / verified
+grounding rows = 0
+Core = wandora/core:organization-adapter-candidate-d90b225e6cc2 / healthy / readyz 200
+Web = wandora/web:candidate-65908b76c667 / healthy
+Paperclip = wandora/paperclip:v2026.916.0 / unchanged
+Gateway = wandora/messaging-gateway:origin-fix-94cfb4de / unchanged
+MEDICSPRO works = 2
+Ana = exactly 1 active + supervised
+outbound attempts = 0
+Human Send = OFF
+Gateway outbound = OFF
+```
+
+**Do not reapply migration 017 and do not repeat Core promotion.**
+
+Next slice: **Customer Web Grounding API Proxy Route Correction V1 — CODE ONLY / NO PRODUCTION EFFECT**, followed by a separate Web-only production promotion.
