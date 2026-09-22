@@ -1,5 +1,14 @@
 # Wandora — Project Source / Continuity Bootstrap
 
+## Current continuity checkpoint — ADR 0179
+
+MEDICSPRO First Real Organization Grounding Content Execution V1 is **AUTHORIZED / PRE-EFFECT READY**, with F1/F2/F3 confirmed as `fact` and R1 confirmed as a permanent `rule`.
+
+The exact four payloads and retained idempotency keys are frozen in ADR 0179. All use truthful `owner_statement` provenance plus the owner-requested sourceRef `wandora:customer-work-operation:9a4bc45c-cb6e-410d-8e46-3d7b84fc85ab`.
+
+No grounding row has been created yet. The remaining gate is the normal authenticated MEDICSPRO owner/admin customer session. Do not bypass it with Auth-admin/service-role impersonation, minted/extracted tokens or direct SQL.
+
+
 ## Current continuity checkpoint — ADR 0178
 
 MEDICSPRO First Real Organization Grounding Content Preflight V1 is **COMPLETE / NO EFFECT**. Production remains unchanged with migration 017 live/verified and MEDICSPRO grounding rows = 0.
