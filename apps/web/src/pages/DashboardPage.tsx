@@ -155,7 +155,7 @@ export function DashboardPage() {
           <div className="inline-flex rounded-full border-2 border-[#09090b] bg-[#d2e823] px-3 py-1.5 wandora-pop-sm">
             <span className="wandora-mono text-[9px] font-black">estado real · atualizado agora</span>
           </div>
-          <h1 className="wandora-display m-0 mt-5 max-w-4xl text-[clamp(3.1rem,7vw,6.7rem)] leading-[0.84] text-[#09090b]">
+          <h1 className="wandora-display m-0 mt-4 max-w-4xl text-[clamp(2.4rem,4.2vw,4rem)] leading-[0.96] text-[#09090b]">
             SUA EQUIPE JÁ ESTÁ <span className="inline-block rounded-xl bg-[#d2e823] px-2">EM MOVIMENTO.</span>
           </h1>
           <p className="m-0 mt-5 max-w-2xl text-base leading-7 text-[#09090b]/55">
