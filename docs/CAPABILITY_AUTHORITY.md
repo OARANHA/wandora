@@ -325,3 +325,18 @@ Wandora       -> customer plan/price/margin/entitlement/billing
 ```
 
 No Wandora provider-pricing engine or duplicate operational cost ledger is authorized merely to fill the unpriced-cost gap.
+
+
+## Company grounding / Regras da Casa — ADR 0169
+
+Official company facts, owner-authored house rules and their provenance are **Wandora-owned durable product semantics**. They must survive replacement of Paperclip, Mastra, model providers or retrieval infrastructure.
+
+The minimum durable contract is limited to active/retired `fact` / `rule` declarations, provenance, provider-neutral source references and Wandora actor/timestamp evidence. This is not permission to create a Wandora knowledge-base, memory, prompt, vector, embedding, chunking or retrieval engine.
+
+Authority remains layered:
+
+- Wandora = official facts/rules/source semantics, tenant authorization and product policy;
+- Paperclip = organizational Skills, Decisions/Decision Training, Connections/grants and control-plane lifecycle;
+- Mastra/runtime = memory, retrieval, context assembly, runtime skills/tools/evals when separately qualified.
+
+A model inference is never promoted to official company truth automatically. Unknown information must remain unknown unless an authorized fact/rule/source contract supplies it.
