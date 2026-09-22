@@ -1,6 +1,6 @@
 # ADR 0172 — Empresa / Regras da Casa Customer Surface V1
 
-Status: **ACCEPTED CANDIDATE / IMPLEMENTED IN CODE / NO PRODUCTION EFFECT**
+Status: **ACCEPTED / IMPLEMENTED IN CODE / NO PRODUCTION EFFECT**
 Date: 2026-09-22
 
 ## Context
