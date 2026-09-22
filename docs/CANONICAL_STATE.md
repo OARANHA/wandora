@@ -3727,3 +3727,23 @@ No unread model, presence, typing state, composer, takeover, assignment mutation
 Implementation CI was GREEN across Web, Core, Platform Admin and Messaging Gateway.
 
 Production Web remains governed by ADR 0165 until a separate promotion of the new merged-main artifact.
+
+
+## ADR 0167 — Customer Conversations Surface Production Promotion V1
+
+Status: **EXECUTED / GREEN**.
+
+The exact merged-main Web artifact from `main@65908b76c667e1326b0c73584766b8cc4ad73c0e` is live as:
+
+```text
+wandora/web:candidate-65908b76c667
+host OCI manifest id =
+sha256:ade2aadf2c1b3e15d1b239f259a70237d85965b05dd4b209469c2f332cefb36e
+healthy / restart 0
+```
+
+The canonical `Conversas` surface is now production-active and remains explicitly read-only. No composer, send, takeover, unread/presence or new backend capability was activated.
+
+MEDICSPRO remains at exactly 2 customer works, Ana remains `active + supervised`, outbound attempts remain 0, and Core/Paperclip/Gateway were unchanged.
+
+Next axis: **Empresa / Regras da casa Capability Authority Review V1** for grounding.
