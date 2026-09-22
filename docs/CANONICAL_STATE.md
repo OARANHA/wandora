@@ -3685,3 +3685,30 @@ The `Início` latest-work preview now uses normalized plain text instead of expo
 No backend, execution, model, database, outbound or production runtime effect occurred.
 
 Next product-surface target: canonicalize `Conversas` against existing real reads, then review `Empresa / Regras da casa` authority for grounding.
+
+
+## ADR 0165 — Customer Product Surface Web Production Promotion V1
+
+Status: **EXECUTED / GREEN**.
+
+The exact merged-main Web artifact from `main@2e23abd8852558155a4e1475c5891962ab03d6fa` / Web CI #628 is now live.
+
+Production Web:
+
+```text
+tag = wandora/web:candidate-2e23abd88525
+host OCI manifest id =
+sha256:2ac6b1fffcd5b00eede4907f3537467782706d4f8a3c7abe8e82a9282fa62916
+health = healthy
+restart = 0
+```
+
+The live stack selector is now reconciled to the same tag. A previously stale selector from ADR 0135 was identified and corrected during the promotion; rollback authority remains the actual prior live image `candidate-88facf57466d`.
+
+The deployed customer bundle contains the canonical shell, real-state-only Início, Equipe canonicalization and safe internal work-result rendering from ADRs 0162–0164.
+
+Public routes remain available, unauthenticated `/api/v1/me` remains 401, MEDICSPRO remains at exactly 2 customer works with Ana `active + supervised`, outbound attempts remain 0, Human Send remains OFF and Gateway outbound remains OFF.
+
+Only Web was recreated.
+
+Next recommended slice: **Conversas Surface Canonicalization V1**, followed by `Empresa / Regras da casa` grounding authority review.
