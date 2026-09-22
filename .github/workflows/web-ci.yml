@@ -192,6 +192,63 @@ jobs:
           assert data['method'] == 'GET', data
           assert data['path'] == '/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/conversations/50000000-0000-0000-0000-0000000000a1', data
           PY
+          GROUNDING_BASE='/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/grounding'
+          GROUNDING_ENTRY='40000000-0000-0000-0000-0000000000a1'
+          GROUNDING_READ_RESPONSE="$(curl -fsS \
+            -H 'Authorization: Bearer ci-token' \
+            -H 'Cookie: browser-session=must-not-cross' \
+            "${WEB_BASE_URL}${GROUNDING_BASE}")"
+          python3 - "$GROUNDING_READ_RESPONSE" "$GROUNDING_BASE" <<'PY'
+          import json, sys
+          data = json.loads(sys.argv[1])
+          assert data['auth'] == 'Bearer ci-token', data
+          assert data['cookie'] == '', data
+          assert data['method'] == 'GET', data
+          assert data['path'] == sys.argv[2], data
+          assert data['idempotency'] == '', data
+          assert data['body'] == '', data
+          PY
+          GROUNDING_CREATE_RESPONSE="$(curl -fsS -X POST \
+            -H 'Authorization: Bearer ci-token' \
+            -H 'Cookie: browser-session=must-not-cross' \
+            -H 'Idempotency-Key: ci-grounding-create' \
+            -H 'Content-Type: application/json' \
+            --data '{"entryType":"fact","content":"CI bridge only","provenanceType":"owner_statement","sourceRef":null,"sourceLabel":null}' \
+            "${WEB_BASE_URL}${GROUNDING_BASE}")"
+          python3 - "$GROUNDING_CREATE_RESPONSE" "$GROUNDING_BASE" <<'PY'
+          import json, sys
+          data = json.loads(sys.argv[1])
+          assert data['auth'] == 'Bearer ci-token', data
+          assert data['cookie'] == '', data
+          assert data['method'] == 'POST', data
+          assert data['path'] == sys.argv[2], data
+          assert data['idempotency'] == 'ci-grounding-create', data
+          assert json.loads(data['body'])['entryType'] == 'fact', data
+          PY
+          for ACTION in retire correct; do
+            ACTION_PATH="${GROUNDING_BASE}/${GROUNDING_ENTRY}/${ACTION}"
+            BODY_ARGS=()
+            if [ "$ACTION" = "correct" ]; then
+              BODY_ARGS=(-H 'Content-Type: application/json' --data '{"content":"Corrected","sourceRef":"ci-evidence","sourceLabel":"CI"}')
+            fi
+            ACTION_RESPONSE="$(curl -fsS -X POST \
+              -H 'Authorization: Bearer ci-token' \
+              -H 'Cookie: browser-session=must-not-cross' \
+              -H "Idempotency-Key: ci-grounding-${ACTION}" \
+              "${BODY_ARGS[@]}" "${WEB_BASE_URL}${ACTION_PATH}")"
+            python3 - "$ACTION_RESPONSE" "$ACTION_PATH" "$ACTION" <<'PY'
+          import json, sys
+          data = json.loads(sys.argv[1])
+          assert data['auth'] == 'Bearer ci-token', data
+          assert data['cookie'] == '', data
+          assert data['method'] == 'POST', data
+          assert data['path'] == sys.argv[2], data
+          assert data['idempotency'] == 'ci-grounding-' + sys.argv[3], data
+          PY
+          done
+          test "$(curl -sS -o /dev/null -w '%{http_code}' "${WEB_BASE_URL}${GROUNDING_BASE}/not-reviewed")" = "404"
+          test "$(curl -sS -o /dev/null -w '%{http_code}' "${WEB_BASE_URL}${GROUNDING_BASE}/${GROUNDING_ENTRY}")" = "404"
+          echo "WANDORA_WEB_GROUNDING_API_BRIDGE_V1_OK"
           test "$(curl -sS -o /dev/null -w '%{http_code}' ${WEB_BASE_URL}/api/v1/session)" = "404"
           test "$(curl -sS -o /dev/null -w '%{http_code}' ${WEB_BASE_URL}/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/work/not-reviewed)" = "404"
           test "$(curl -sS -o /dev/null -w '%{http_code}' ${WEB_BASE_URL}/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/digital-employees/not-reviewed)" = "404"

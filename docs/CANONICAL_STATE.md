@@ -2,6 +2,14 @@
 
 Last synchronized: **2026-09-22**
 
+## 2026-09-22 Customer Web Grounding API Bridge / Nginx Allowlist Correction V1 — CODE ONLY
+
+ADR 0175 corrects only the explicit Web/Nginx transport bridge for the already-live Core grounding contract. The change adds exact allowlists for grounding read/create, retire and correct; preserves Authorization and Idempotency-Key; keeps request methods/bodies intact; preserves existing /me, work and conversations bridges; and keeps the generic /api/ fallback fail-closed at 404.
+
+Production is intentionally unchanged: migration 017 remains LIVE/verified, grounding rows remain 0, Core remains wandora/core:organization-adapter-candidate-d90b225e6cc2, Web remains wandora/web:candidate-65908b76c667, MEDICSPRO remains at 2 works and 0 outbound attempts, and Human Send/Gateway outbound remain OFF.
+
+The corrected Web candidate passed production-shaped build/verifier proof plus a disposable private candidate check where unauthenticated grounding reached Core and returned 401 rather than Nginx 404. No real grounding or external effect was created. The next slice is Web-only production promotion qualification/execution; do not reapply migration 017 or repromote Core.
+
 
 ## 2026-09-22 Organization Grounding Production Promotion Execution V1 — PARTIAL SAFE STOP
 

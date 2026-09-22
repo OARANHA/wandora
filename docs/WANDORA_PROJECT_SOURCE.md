@@ -2,6 +2,12 @@
 
 Snapshot date: **2026-09-22**
 Repository: `OARANHA/wandora`
+
+## Current continuity checkpoint — ADR 0175
+
+Customer Web Grounding API Bridge / Nginx Allowlist Correction V1 is code-only and no-effect. It fixes only the explicit Web bridge for the canonical grounding Core routes, keeps /api/ fail-closed, adds dedicated static + production-shaped CI verification, and does not change capability authority.
+
+Live production remains on the ADR 0174 safe partial state: migration 017 + grounding-aware Core are live; Web remains the prior candidate; grounding rows = 0; MEDICSPRO works = 2; outbound attempts = 0; Human Send/Gateway outbound = OFF. The next effect, after merge/artifact qualification, is a separate Web-only promotion slice. Do not repeat migration 017 or Core promotion.
 Preflight base checkpoint for ADR 0173: `main@fba159db751122bfb5c600296bb7a0d5beb5a474`
 
 ## Current grounding promotion checkpoint — ADR 0173
