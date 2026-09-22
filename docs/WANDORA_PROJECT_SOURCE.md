@@ -1,5 +1,12 @@
 # Wandora — Project Source / Continuity Bootstrap
 
+## Current continuity checkpoint — ADR 0181
+
+Customer Company Owner-Statement Evidence Surface Production Promotion V1 is **COMPLETE / GREEN / WEB ONLY**. Live Web is `wandora/web:candidate-8ee226bcc0dd`, healthy/restart 0, from exact main `8ee226bcc0ddec2f333348235c501320fb223152`.
+
+The form now preserves optional sourceRef/sourceLabel for direct owner statements without misclassifying them as approved sources. Grounding remains 0. Next effect: create the four owner-confirmed MEDICSPRO entries through a normal authenticated owner/admin session: F1/F2/F3 = fact, R1 = rule.
+
+
 ## Current continuity checkpoint — ADR 0180
 
 Customer Company Owner-Statement Evidence Surface V1 is **CODE ONLY / NO PRODUCTION EFFECT**. The Web form now faithfully exposes the already-live Core contract: direct owner statements may retain optional source evidence, while approved-source references remain required.
