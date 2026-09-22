@@ -1,5 +1,14 @@
 # Wandora — Canonical State / Handoff
 
+## ADR 0189 — Web Business Density Production Promotion V1 — GREEN
+
+Web `wandora/web:candidate-5f362fb43b62` from exact `main@5f362fb43b62d4567e850de7c2f09f099755a925` is live, healthy and restart 0. The persisted selector is aligned.
+
+The production Company surface now follows the second owner-approved Regras da Casa reference for scale/density: smaller display titles, rules-first composition, compact cards, Ensinar à equipe + Como funciona, and optional evidence disclosure. Início, Equipe and Conversas also use the reduced hero scale.
+
+Core/Paperclip/Gateway were unchanged. MEDICSPRO remains grounding 0 / works 2 / outbound 0. See ADR 0189.
+
+
 ## ADR 0188 — Web Business Density + Company Reference Fidelity V1 — CODE ONLY
 
 The second owner-approved Company / Regras da Casa reference is now the canonical density/scale target. Customer hero titles on Início, Equipe, Conversas and Empresa are capped around 4rem instead of the previous 6–6.7rem range.

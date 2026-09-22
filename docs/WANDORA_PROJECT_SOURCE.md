@@ -1,5 +1,14 @@
 # Wandora — Project Source / Continuity Bootstrap
 
+## Current continuity checkpoint — ADR 0189
+
+Web Business Density Production Promotion V1 is **COMPLETE / GREEN / WEB ONLY**.
+
+Live Web is `wandora/web:candidate-5f362fb43b62`, healthy/restart 0, from exact `main@5f362fb43b62d4567e850de7c2f09f099755a925`. The second Company / Regras da Casa reference now governs production density and business-first composition.
+
+Core, Paperclip and Messaging Gateway were not recreated. MEDICSPRO grounding remains 0, works 2 and outbound 0. Do not repeat this Web promotion after chat interruption; reconcile runtime first.
+
+
 ## Current continuity checkpoint — ADR 0188
 
 Web Business Density + Company Reference Fidelity V1 is **IMPLEMENTED IN CODE / NO PRODUCTION EFFECT**.
