@@ -2064,3 +2064,16 @@ The live plugin kept the same Paperclip plugin ID and company-scoped HMAC secret
 The historical Ana `error` projection was not cleared or resumed. MED-1/work/run/model/outbound counters did not change. The normal customer-work path can now admit Paperclip `idle | error` while leaving final invokability to Paperclip.
 
 A second legitimate MEDICSPRO work remains a separate owner-originated effect and must begin with fresh reconciliation.
+
+
+## 2026-09-22 — second legitimate MEDICSPRO work is GREEN
+
+ADR 0161 records the first successful customer-work execution after Organization Adapter 0.3.1 promotion.
+
+The authenticated MEDICSPRO owner submitted a genuine supervised commercial-preparation task through Wandora Web. Starting from Paperclip Ana's truthful historical `error / wandora_execution_failed_409`, the normal path created exactly one new Wandora work and one new Paperclip issue, produced exactly one successful assignment run, called the Mistral-backed Mastra runtime exactly once, recorded prospective Paperclip usage of 273 input / 740 output / 0 cached tokens, and returned a customer-visible internal result marked `Pronto para sua revisão`.
+
+The issue terminalized as `done`; no continuation or recovery appeared. Paperclip naturally finalized Ana to `idle` with `errorReason=null` after the successful run. No lifecycle normalization was performed beforehand.
+
+Total Wandora customer work is now 2. MEDICSPRO outbound attempts remain 0, Human Send remains OFF and Gateway outbound remains OFF.
+
+Next product axis: **Customer Product Surface / Demo Readiness**. Replace visible placeholders and rough internal presentation with real canonical state before expanding infrastructure further.
