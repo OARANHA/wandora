@@ -66,6 +66,7 @@ test('runtime grounding projects active official facts/rules and keeps work cont
       content: 'MEDICSPRO atende somente com dados confirmados.',
       provenance: {
         type: 'approved_source',
+        sourceRef: 'source:company-profile:v1',
         sourceLabel: 'Perfil oficial',
       },
     }],
