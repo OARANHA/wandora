@@ -100,6 +100,8 @@ export class PaperclipExecutionService {
       .update(JSON.stringify(['paperclip-run-v1', organizationId, employee.employee_id, input.paperclipRunId]))
       .digest('hex')}`;
 
+    const grounding = await this.groundingProjection.project(organizationId, input.task);
+
     if (input.workId) {
       if (!this.workProjection) {
         throw new PaperclipExecutionBindingError('work-unavailable');
@@ -133,7 +135,6 @@ export class PaperclipExecutionService {
 
     let result;
     try {
-      const grounding = await this.groundingProjection.project(organizationId, input.task);
       result = await this.runtime.executeAssignedTask({
         organizationId,
         employee: {
