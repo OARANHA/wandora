@@ -2053,3 +2053,14 @@ Canonical candidate comes from GitHub-hosted Organization Adapter Plugin CI #232
 Live remains 0.3.0. Promotion will use Paperclip-native soft uninstall (no purge) followed by one local-path reinstall from a new immutable content-addressed path. This preserves plugin ID/company config and dynamically reloads the worker in-process; a Paperclip restart is explicitly unnecessary and rejected.
 
 No second legitimate work is authorized before the separate promotion execution completes and is revalidated.
+
+
+## 2026-09-22 — Organization Adapter 0.3.1 live
+
+ADR 0160 records the completed production promotion of `wandora.organization-adapter-v1` from 0.3.0 to 0.3.1.
+
+The live plugin kept the same Paperclip plugin ID and company-scoped HMAC secret-ref config. The immutable 0.3.0 rollback package remains retained. Paperclip was not restarted: the native plugin lifecycle loaded the 0.3.1 worker in-process and logged `wandora_organization_adapter_ready`.
+
+The historical Ana `error` projection was not cleared or resumed. MED-1/work/run/model/outbound counters did not change. The normal customer-work path can now admit Paperclip `idle | error` while leaving final invokability to Paperclip.
+
+A second legitimate MEDICSPRO work remains a separate owner-originated effect and must begin with fresh reconciliation.
