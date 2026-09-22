@@ -2,38 +2,40 @@
 
 Snapshot date: **2026-09-22**
 Repository: `OARANHA/wandora`
-Preflight base checkpoint for ADR 0173: `main@fba159db751122bfb5c600296bb7a0d5beb5a474`
+Execution base checkpoint for ADR 0174: `main@1a97f8bfc657fa6b3f1a0ded7771e304e530f8e3`
 
-## Current grounding promotion checkpoint — ADR 0173
+## Current grounding promotion checkpoint — ADR 0174
 
-A fresh REAL NOW reconciliation on 2026-09-22 closed **Organization Grounding Production Promotion Preflight V1** as **GO for a separate future execution only**.
+Organization Grounding Production Promotion Execution V1 reached a **safe partial STOP** on 2026-09-22.
 
 ```text
-canonical main = fba159db751122bfb5c600296bb7a0d5beb5a474
-PR #229 = merged
-open PRs = 0
-migration 017 = ABSENT live
-MEDICSPRO grounding rows = none
+migration 017 = LIVE / verified
+organization_grounding_entries = PRESENT
+grounding rows = 0
+
+Core = wandora/core:organization-adapter-candidate-d90b225e6cc2
+Core = healthy / readyz 200 / restart 0
+
+Web = wandora/web:candidate-65908b76c667
+Web = rolled back / healthy / restart 0
+
+Paperclip = unchanged v2026.916.0
+Gateway = unchanged origin-fix-94cfb4de
+
+MEDICSPRO works = 2
+Ana = exactly 1 active + supervised
+outbound attempts = 0
 Human Send = OFF
 Gateway outbound = OFF
 ```
 
-The future promotion dependency is strictly:
+The exact Web grounding candidate was rejected during production validation because `apps/web/nginx.conf` lacked allow-listed proxy locations for the new grounding APIs; its `/api/` catch-all therefore returned 404. Direct Core grounding correctly reached the auth boundary and returned 401 without session.
 
-```text
-fresh execution-time backup + restore-check
-  -> migration 017 + canonical verifier
-  -> exact Core candidate / readyz
-  -> exact Web candidate
-  -> validation
-  -> STOP
-```
+**Do not reapply migration 017. Do not repeat Core promotion.**
 
-The preflight uses only the already-approved Wandora grounding semantic state and contracts. It creates no new RAG/memory/vector/document/provider subsystem and preserves ADR 0168: **portability = contract decoupling, not implementation duplication**.
+Next slice: **Customer Web Grounding API Proxy Route Correction V1 — CODE ONLY / NO PRODUCTION EFFECT**, followed by a separately reviewed Web-only production promotion.
 
-See ADR 0173 for exact artifact IDs/digests, restore evidence, rollback boundaries and objective stop conditions. Preflight success is not authorization to mutate production.
-
-Checkpoint entering ADR 0173: PR #229 merged; open PRs = 0; normal repository CI is GitHub-hosted per ADR 0158. Mutable state must be reverified.
+See ADR 0174 for the execution-time backup, migration/Core proof, Web rollback evidence and exact next boundary.
 
 > **Purpose:** compact bootstrap for ChatGPT Project Sources and future development sessions. It prevents architectural drift, accidental reinvention and stale workflow assumptions.
 >
