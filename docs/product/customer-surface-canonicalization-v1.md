@@ -236,4 +236,3 @@ The global customer shell keeps the same six canonical routes and active-organiz
 The shell also exposes a dedicated power-style Sair control wired to the existing canonical session-revocation path. Mobile keeps the same navigation authority through a compact quick bar plus complete route menu.
 
 The visual references remain subject to the Truth Rule above: demo people, activities, tool status, timestamps and commercial claims are not copied into customer state unless independently backed by REAL or accepted DERIVÁVEL contracts.
-
