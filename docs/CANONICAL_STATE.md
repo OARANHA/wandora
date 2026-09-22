@@ -1,5 +1,22 @@
 # Wandora — Canonical State / Handoff
 
+## ADR 0185 — Customer Company Grounding Save + Business UX Production Promotion V1
+
+The deterministic customer grounding create failure is fixed and promoted.
+
+Production now runs Core and Web from `main@d8349b353bb7cc46423ea8ba60e8989522ef6b17`:
+
+- Core = `wandora/core:organization-adapter-candidate-d8349b353bb7`;
+- Web = `wandora/web:candidate-d8349b353bb7`;
+- both healthy / restart 0.
+
+A valid unauthenticated grounding POST now reaches normal auth and returns `401` instead of the former parser-level `400`. The `/company` UI now uses business-friendly language while preserving internal `fact/rule/provenance/sourceRef` semantics.
+
+MEDICSPRO remains unchanged: grounding = 0, works = 2, outbound attempts = 0, Ana = one active + supervised employee. Human Send and Gateway outbound remain OFF.
+
+The next permitted effect is the already-authorized MEDICSPRO first real grounding execution through the normal authenticated owner/admin customer flow. See ADR 0185.
+
+
 ## ADR 0183 — Grounding Browser Idempotency Production Promotion — GREEN
 
 Live Web is now `wandora/web:candidate-8fb5201b0229`, healthy/restart 0. Grounding create preserves browser UUID + exact payload fingerprint across ambiguous retries. Core/Paperclip/Gateway were not recreated.
