@@ -217,5 +217,3 @@ Provider portability is achieved with **ports, bindings, export/reconciliation c
 | Approved correction history | Durable replacement lineage + audit | Decision Training is not substituted | Memory is not substituted | WANDORA-OWNED |
 | Runtime retrieval/context assembly | Supplies bounded official inputs only | Not grounding authority | Operational runtime authority | DEFER TO RUNTIME PROJECTION |
 | Model inference promotion | Explicit human-approved contract only | No automatic promotion | No automatic promotion | FORBID AUTOMATIC PROMOTION |
-
-[executed on device: wandora-vps-01 (4f062e11-0f3c-4c6e-8f71-7d6136c1bee9)]
