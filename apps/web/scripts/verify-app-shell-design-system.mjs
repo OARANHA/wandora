@@ -1,5 +1,3 @@
-[Reading 40 lines from start (total: 40 lines, 0 remaining)]
-
 import { readFileSync } from 'node:fs';
 
 const shell = readFileSync(new URL('../src/components/AppShell.tsx', import.meta.url), 'utf8');
