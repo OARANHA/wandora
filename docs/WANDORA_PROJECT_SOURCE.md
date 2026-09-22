@@ -1,5 +1,25 @@
 # Wandora — Project Source / Continuity Bootstrap
 
+## Current continuity checkpoint — ADR 0185
+
+Customer Company Grounding Save + Business UX Production Promotion V1 is **COMPLETE / GREEN**.
+
+Canonical production:
+
+- main = `d8349b353bb7cc46423ea8ba60e8989522ef6b17`;
+- Core/Web both promoted to artifacts from that exact SHA;
+- Core/Web healthy / restart 0;
+- public grounding transport fixed end-to-end: valid unauthenticated POST = `401`, not `400`;
+- business-friendly `/company` language is live;
+- MEDICSPRO grounding remains 0;
+- works = 2;
+- outbound attempts = 0;
+- Ana = active + supervised;
+- Human Send / Gateway outbound remain OFF.
+
+Next: resume **MEDICSPRO First Real Organization Grounding Content Execution V1** only through the normal authenticated owner/admin customer session, using F1/F2/F3 as facts and R1 as a rule. Housekeeping remains a separate later slice.
+
+
 ## Current continuity checkpoint — ADR 0184
 
 Customer Company Grounding Create Body Bridge + Business-Friendly UX V1 is **CODE ONLY / NO PRODUCTION EFFECT**.
