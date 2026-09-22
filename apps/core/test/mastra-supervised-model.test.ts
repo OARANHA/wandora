@@ -88,11 +88,11 @@ test('mastra supervised model runtime keeps inbound deterministic and model work
       grounding: {
         officialFacts: [{
           content: 'A empresa atende somente com informações confirmadas.',
-          provenance: { type: 'approved_source', sourceRef: 'source:profile:v1', sourceLabel: 'Perfil oficial' },
+          provenance: { type: 'approved_source', sourceLabel: 'Perfil oficial' },
         }],
         houseRules: [{
           content: 'Quando não souber, declarar desconhecido.',
-          provenance: { type: 'owner_statement', sourceRef: null, sourceLabel: null },
+          provenance: { type: 'owner_statement', sourceLabel: null },
         }],
         workContext: {
           title: 'Preparar resumo comercial',
@@ -130,11 +130,11 @@ test('mastra supervised model runtime keeps inbound deterministic and model work
     assert.deepEqual(JSON.parse(userMessage), {
       officialFacts: [{
         content: 'A empresa atende somente com informações confirmadas.',
-        provenance: { type: 'approved_source', sourceRef: 'source:profile:v1', sourceLabel: 'Perfil oficial' },
+        provenance: { type: 'approved_source', sourceLabel: 'Perfil oficial' },
       }],
       houseRules: [{
         content: 'Quando não souber, declarar desconhecido.',
-        provenance: { type: 'owner_statement', sourceRef: null, sourceLabel: null },
+        provenance: { type: 'owner_statement', sourceLabel: null },
       }],
       workContext: {
         title: 'Preparar resumo comercial',
