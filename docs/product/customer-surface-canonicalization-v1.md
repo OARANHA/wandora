@@ -15,7 +15,7 @@ Canonical design traits:
 - yellow for attention/decision accents;
 - cobalt for selected emphasis where useful;
 - hard offset shadows;
-- oversized business-first headlines;
+- strong but bounded business-first headlines that never dominate comprehension;
 - compact mono-style labels for operational metadata;
 - one shared navigation for human and digital work;
 - provider technology hidden from the customer.
@@ -246,3 +246,24 @@ Customer display typography is intentionally constrained so Dela Gothic One acts
 Empresa now mirrors the approved business-first composition using only real state: Regras da Casa first, concise rule cards, an Ensinar à equipe panel, a Como funciona explainer, company facts and preserved history. Optional provenance/evidence controls stay available but are visually secondary.
 
 Demo people, tools, timestamps and operational claims from the mockup remain prohibited unless independently backed by REAL or accepted DERIVÁVEL contracts.
+
+## Human Home Greeting + Company detail checkpoint — ADR 0190 / ADR 0191
+
+The current customer-experience direction is explicitly human-first:
+
+- Home greets the authenticated human by real display name and browser-local daypart;
+- primary Home/Company hero scale is capped around 3rem;
+- quick actions point only to existing Wandora routes;
+- one durable grounding entry remains one wall card;
+- long grounding content is previewed compactly and opens in a right-side detail drawer;
+- the drawer uses real content, source label and timestamps only.
+
+Organization grounding source files are now classified as **FUTURE / AUTHORITY RESOLVED, NOT LIVE**:
+
+- Wandora owns evidence/source semantics;
+- Supabase Storage is the accepted delegated private blob implementation;
+- no live grounding-source bucket/policy exists yet;
+- upload must not appear as a working customer action before its dedicated implementation/promotion;
+- uploaded evidence must not automatically become runtime retrieval, RAG, memory, embeddings or context.
+
+The Truth Rule continues to prohibit fabricated wall cards, fake users, fake tools, fake activity and reference-only timestamps.
