@@ -86,9 +86,11 @@ const handlePaperclipExecution = pool
         agentRuntime,
         new PostgresOrganizationGroundingProjection(pool),
         config.humanDigitalEmployeeWork ? organizationAdapterService : undefined,
-        createPaperclipToolGatewayReadBridge({
-          agentMeUrl: config.paperclipExecutionBridge.agentMeUrl,
-        }),
+        config.agentRuntime?.mode === 'mastra-supervised-model'
+          ? createPaperclipToolGatewayReadBridge({
+              agentMeUrl: config.paperclipExecutionBridge.agentMeUrl,
+            })
+          : undefined,
       ),
     })
   : undefined;
