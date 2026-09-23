@@ -39,6 +39,10 @@ export type RuntimeHumanApiConfig = {
   audience: string;
 };
 
+export type RuntimeCustomerCompanyOnboardingConfig = {
+  enabled: true;
+};
+
 export type RuntimeHumanSendProposalConfig = {
   connectionId: string;
   gatewayUrl: string;
@@ -76,6 +80,7 @@ export type RuntimeConfig = {
   gatewayIngress?: RuntimeGatewayIngressConfig;
   agentRuntime?: RuntimeAgentConfig;
   humanApi?: RuntimeHumanApiConfig;
+  customerCompanyOnboarding?: RuntimeCustomerCompanyOnboardingConfig;
   humanSendProposal?: RuntimeHumanSendProposalConfig;
   organizationAdapter?: RuntimeOrganizationAdapterConfig;
   humanDigitalEmployeeHire?: RuntimeHumanDigitalEmployeeHireConfig;
@@ -246,6 +251,10 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     env.WANDORA_HUMAN_API_ENABLED,
     'WANDORA_HUMAN_API_ENABLED',
   );
+  const customerCompanyOnboardingEnabled = parseEnabled(
+    env.WANDORA_CUSTOMER_COMPANY_ONBOARDING_ENABLED,
+    'WANDORA_CUSTOMER_COMPANY_ONBOARDING_ENABLED',
+  );
   const humanSendProposalEnabled = parseEnabled(
     env.WANDORA_HUMAN_SEND_PROPOSAL_ENABLED,
     'WANDORA_HUMAN_SEND_PROPOSAL_ENABLED',
@@ -279,6 +288,9 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     if (humanApiEnabled) {
       throw new Error('Human API cannot be enabled while Wandora Core is in standby mode.');
     }
+    if (customerCompanyOnboardingEnabled) {
+      throw new Error('Customer Company Onboarding cannot be enabled while Wandora Core is in standby mode.');
+    }
     if (humanSendProposalEnabled) {
       throw new Error('Human Send Proposal cannot be enabled while Wandora Core is in standby mode.');
     }
@@ -305,6 +317,9 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
 
   if (agentRuntimeMode !== 'disabled' && !gatewayIngressEnabled) {
     throw new Error('Agent Runtime requires supervised Gateway ingress to be enabled.');
+  }
+  if (customerCompanyOnboardingEnabled && !humanApiEnabled) {
+    throw new Error('Customer Company Onboarding requires the Human API to be enabled.');
   }
   if (humanSendProposalEnabled && !humanApiEnabled) {
     throw new Error('Human Send Proposal requires the Human API to be enabled.');
@@ -516,6 +531,9 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     },
     ...(gatewayIngress ? { gatewayIngress } : {}),
     ...(humanApi ? { humanApi } : {}),
+    ...(customerCompanyOnboardingEnabled
+      ? { customerCompanyOnboarding: { enabled: true as const } }
+      : {}),
     ...(humanSendProposal ? { humanSendProposal } : {}),
     ...(organizationAdapter ? { organizationAdapter } : {}),
     ...(paperclipExecutionBridge ? { paperclipExecutionBridge } : {}),

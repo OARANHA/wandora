@@ -14,11 +14,13 @@ import type {
   PaperclipExecutionResponse,
 } from '../paperclip-execution/handler.js';
 import {
+  isHumanCompanyProfileMutationPath,
   isHumanDigitalEmployeeActivationPath,
   isHumanDigitalEmployeeHirePath,
   isHumanDigitalEmployeeWorkPath,
   isHumanGroundingMutationPath,
   isHumanSendProposalPath,
+  isHumanSupervisionPath,
   type HumanSupervisionRequest,
   type HumanSupervisionResponse,
 } from './human-supervision.js';
@@ -33,6 +35,7 @@ export type RuntimeReadiness =
         | 'unexpected-database-role'
         | 'tenant-scope-leak'
         | 'organization-adapter-database-boundary-unavailable'
+        | 'customer-company-onboarding-database-boundary-unavailable'
         | 'customer-hire-eligibility-database-boundary-unavailable'
         | 'customer-work-database-boundary-unavailable'
         | 'paperclip-execution-bridge-database-boundary-unavailable'
@@ -138,21 +141,23 @@ export function createRuntimeServer(deps: RuntimeServerDeps): Server {
       return;
     }
 
-    if (url.pathname === '/api/v1/me' || url.pathname.startsWith('/api/v1/organizations/')) {
+    if (isHumanSupervisionPath(url.pathname)) {
       if (!deps.handleHumanSupervision) {
         writeJson(response, 404, { error: 'not-found' });
         return;
       }
       try {
-        const humanPostBody = request.method === 'POST'
+        const humanMutationBody = (
+          request.method === 'POST'
           && (
             isHumanSendProposalPath(url.pathname)
             || isHumanDigitalEmployeeHirePath(url.pathname)
             || isHumanDigitalEmployeeActivationPath(url.pathname)
             || isHumanDigitalEmployeeWorkPath(url.pathname)
             || isHumanGroundingMutationPath(url.pathname)
-          );
-        const rawBody = humanPostBody ? await readBody(request, 8_192) : undefined;
+          )
+        ) || isHumanCompanyProfileMutationPath(url.pathname, request.method);
+        const rawBody = humanMutationBody ? await readBody(request, 8_192) : undefined;
         const result = await deps.handleHumanSupervision({
           method: request.method,
           pathname: url.pathname,

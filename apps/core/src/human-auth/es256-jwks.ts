@@ -11,6 +11,7 @@ export class HumanAuthError extends Error {
 
 export type VerifiedHumanIdentity = {
   subject: string;
+  email?: string;
 };
 
 export interface HumanTokenVerifier {
@@ -210,6 +211,7 @@ export class Es256JwksHumanTokenVerifier implements HumanTokenVerifier {
     );
     if (!verified) throw new HumanAuthError('invalid-token', 'JWT signature is invalid.');
 
-    return { subject };
+    const email = typeof payload.email === 'string' ? payload.email.trim().toLowerCase() : '';
+    return email ? { subject, email } : { subject };
   }
 }

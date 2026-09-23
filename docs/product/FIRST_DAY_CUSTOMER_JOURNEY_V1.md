@@ -4,6 +4,14 @@ Status: **Frozen product contract for the first production vertical slice**
 
 Date: 2026-09-14
 
+## 2026-09-23 supersession note — ADR 0198
+
+The original **Step 1. Sua empresa** constraint below is historical for the first production vertical-slice contract. ADR 0198 supersedes only that first-company-bootstrap constraint.
+
+For an invite-only authenticated customer with no Wandora organization yet, the accepted direction now collects a bounded canonical company profile (PF/PJ, locally validated CPF/CNPJ including Receita alphanumeric CNPJ, responsible person, contact, CEP/address and related profile fields) before entering the normal product shell. Optional external CNPJ/CEP lookup is enrichment only and may not decide syntactic validity.
+
+This does not change the principle that onboarding remains small, and it does not create a digital employee, Paperclip company, tool connection, work or outbound effect automatically. See ADR 0198.
+
 ## Goal
 
 A paying business owner should be able to enter Wandora and reach the first useful supervised work without needing a Wandora consultant, learning provider/runtime terminology or completing a long implementation questionnaire.

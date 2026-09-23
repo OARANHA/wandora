@@ -32,6 +32,27 @@ type GroundingEntry = {
 };
 
 type GroundingResponse = { items: GroundingEntry[] };
+type CompanyProfile = {
+  organizationId: string;
+  organizationDisplayName: string;
+  entityType: 'pj' | 'pf';
+  legalName: string;
+  taxId: string;
+  responsibleName: string;
+  contactEmail: string;
+  phone: string;
+  postalCode: string;
+  addressLine1: string;
+  addressNumber: string;
+  addressComplement: string | null;
+  district: string;
+  city: string;
+  stateCode: string;
+  website: string | null;
+  businessSegment: string | null;
+  timezone: string;
+};
+
 type CreateDraft = { type: GroundingEntryType; content: string; approvedSource: boolean; sourceRef: string; sourceLabel: string; sourceFile: File | null };
 type CorrectionDraft = { content: string; sourceRef: string; sourceLabel: string; sourceFile: File | null };
 
@@ -99,6 +120,18 @@ export function CompanyPage() {
   });
 
   const canManage = activeOrganization?.role === 'owner' || activeOrganization?.role === 'admin';
+  const profileQuery = useQuery({
+    queryKey: ['organization-profile', activeOrganization?.id],
+    enabled: Boolean(activeOrganization && canManage),
+    queryFn: async () => {
+      const response = await authFetch('/api/v1/organizations/' + activeOrganization!.id + '/profile');
+      if (response.status === 404) return null;
+      if (response.status === 403) return null;
+      if (!response.ok) throw new Error('Não foi possível carregar os dados cadastrais.');
+      const body = await response.json() as { profile: CompanyProfile | null };
+      return body.profile;
+    },
+  });
 
   const createMutation = useMutation({
     mutationFn: async (input: CreateDraft) => {
@@ -242,6 +275,7 @@ export function CompanyPage() {
         </section>
       ) : (
         <>
+          {canManage ? <CompanyProfileSummary profile={profileQuery.data ?? null} loading={profileQuery.isLoading} /> : null}
           <GroundingSection title="Regras da Casa" eyebrow={rules.length + (rules.length === 1 ? ' regra ativa' : ' regras ativas')}
             description="O jeito de trabalhar que vale para toda a equipe — humana e digital."
             empty="Nenhuma Regra da Casa foi registrada ainda." entries={rules} canManage={canManage}
@@ -314,6 +348,38 @@ export function CompanyPage() {
         />
       ) : null}
     </div>
+  );
+}
+
+function CompanyProfileSummary({ profile, loading }: { profile: CompanyProfile | null; loading: boolean }) {
+  if (loading) {
+    return <section className="rounded-2xl border-[2.5px] border-[#09090b] bg-white p-5 text-sm font-bold text-[#09090b]/50">Carregando dados cadastrais…</section>;
+  }
+  if (!profile) return null;
+  const taxId = profile.taxId;
+  const maskedTaxId = taxId.length <= 4 ? taxId : '••••••••' + taxId.slice(-4);
+  const address = [profile.addressLine1, profile.addressNumber, profile.addressComplement, profile.district, profile.city + ' / ' + profile.stateCode]
+    .filter(Boolean).join(' · ');
+  return (
+    <section className="rounded-[22px] border-[2.5px] border-[#09090b] bg-[#f5f2ea] p-5 wandora-pop sm:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <div className="wandora-mono text-[9px] font-black text-[#09090b]/45">dados cadastrais</div>
+          <h2 className="m-0 mt-2 text-xl font-black">{profile.organizationDisplayName}</h2>
+          <p className="m-0 mt-1 text-sm text-[#09090b]/55">{profile.legalName}</p>
+        </div>
+        <div className="rounded-xl border-2 border-[#09090b] bg-white px-3 py-2 text-xs font-black">
+          {profile.entityType === 'pj' ? 'CNPJ' : 'CPF'} {maskedTaxId}
+        </div>
+      </div>
+      <div className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
+        <div><strong>Responsável:</strong> {profile.responsibleName}</div>
+        <div><strong>Contato:</strong> {profile.contactEmail} · {profile.phone}</div>
+        <div className="sm:col-span-2"><strong>Endereço:</strong> {address}</div>
+        {profile.businessSegment ? <div><strong>Segmento:</strong> {profile.businessSegment}</div> : null}
+        {profile.website ? <div><strong>Site:</strong> {profile.website}</div> : null}
+      </div>
+    </section>
   );
 }
 

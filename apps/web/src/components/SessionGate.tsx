@@ -2,6 +2,7 @@ import { Navigate } from '@tanstack/react-router';
 import { AlertTriangle, LoaderCircle, LogOut, RefreshCw } from 'lucide-react';
 import { useAuth } from '../AuthProvider';
 import { AppShell } from './AppShell';
+import { CompanyOnboardingPage } from '../pages/CompanyOnboardingPage';
 
 function StateCard({ title, description, action, actionLabel, secondary }: {
   title: string;
@@ -49,15 +50,7 @@ export function SessionGate() {
   if (status === 'anonymous') return <Navigate to="/login" replace />;
 
   if (status === 'unlinked') {
-    return (
-      <StateCard
-        title="Conta ainda não vinculada"
-        description={error ?? 'Sua identidade foi validada, mas ainda não existe uma empresa Wandora vinculada a esta conta.'}
-        action={() => void retryBootstrap()}
-        actionLabel="Verificar novamente"
-        secondary={{ label: 'Sair', action: () => void signOut() }}
-      />
-    );
+    return <CompanyOnboardingPage />;
   }
 
   if (status === 'error') {
