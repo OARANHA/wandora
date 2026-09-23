@@ -1,3 +1,13 @@
+## Reconciled checkpoint — ADR 0217 read-tool idempotency candidate
+
+The first production Wandora → Paperclip Tool Gateway → supervised Mastra → VendaERP read-tool proof succeeded functionally, but the model issued the same `vendaerp_probe {}` five times in one run. All were authorized `risk=read` GET-only calls, not adapter retries. The temporary Paperclip-only proof issue was deleted; Wandora work/outbound remained 0/0.
+
+Capability review found that Paperclip v2026.916.0 already owns durable Tool Gateway idempotency through `idempotencyKey`. ADR 0217 therefore adds only a deterministic opaque run-scoped key in the Wandora read bridge; no Wandora cache, invocation table or runtime-memory subsystem is added.
+
+The live Core was promoted before this finding to the already-qualified `fa64d98c...` candidate after a full 12-overlay render proved image-only delta. It remains healthy/restart 0.
+
+The ADR 0217 code fix is not yet promoted. After CI/merge, a fresh Core candidate must pass the same image-only promotion gate and one new Paperclip-only proof must show one actual provider execution plus only Paperclip idempotent replays if the model repeats the call.
+
 ## Production checkpoint — ADR 0216 28PRO VendaERP read-only activation GREEN
 
 **28PRO VendaERP Read-Only Connection Activation Execution V1 is GREEN.**
