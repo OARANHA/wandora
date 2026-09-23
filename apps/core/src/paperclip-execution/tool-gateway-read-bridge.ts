@@ -230,6 +230,10 @@ export function createPaperclipToolGatewayReadBridge(deps: {
               if (callResponse.status !== 200) throw gatewayFailure(callResponse.status);
               const result = await parseJson(callResponse);
               if (!isRecord(result)) return result;
+              const data = isRecord(result.data) ? result.data : undefined;
+              if (data?.isError === true || result.error === 'MCP tool returned an error result') {
+                throw new PaperclipToolGatewayReadBridgeError('unavailable');
+              }
               if ('data' in result) return result.data;
               if ('content' in result) return result.content;
               return result;

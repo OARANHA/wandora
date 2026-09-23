@@ -322,6 +322,15 @@ test('stdio tool failure logs only safe normalized error metadata', async () => 
   child.stdin.end();
   child.kill('SIGTERM');
 
+  const serializedOut = stdout.join('').trim().split(/\n+/).map(JSON.parse);
+  const failedCall = serializedOut.find((line) => line.id === 9);
+  assert.equal(failedCall.error, undefined);
+  assert.equal(failedCall.result.isError, true);
+  assert.deepEqual(failedCall.result.structuredContent, {
+    error: { code: 'invalid-input' },
+  });
+  assert.equal(failedCall.result.content[0].text, '{"error":"invalid-input"}');
+
   const serializedErr = stderr.join('');
   assert.match(serializedErr, /"event":"wandora\.vendaerp-readonly\.tool-error"/);
   assert.match(serializedErr, /"tool":"vendaerp_search_products"/);

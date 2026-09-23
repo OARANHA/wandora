@@ -560,6 +560,17 @@ function rpcError(id, error) {
   };
 }
 
+function rpcToolErrorResult(id, error) {
+  const code = error instanceof VendaErpAdapterError
+    ? error.code
+    : 'internal-error';
+  return rpcResult(id, {
+    content: [{ type: 'text', text: JSON.stringify({ error: code }) }],
+    structuredContent: { error: { code } },
+    isError: true,
+  });
+}
+
 async function handleMessage(message, options = {}) {
   const id = message?.id;
   if (message?.method === 'initialize') {
@@ -603,7 +614,7 @@ async function handleMessage(message, options = {}) {
         tool: name,
         code,
       }));
-      return rpcError(id, error);
+      return rpcToolErrorResult(id, error);
     }
   }
   return rpcError(
