@@ -1,5 +1,9 @@
 import { HumanAuthError } from '../human-auth/es256-jwks.js';
 import {
+  CompanyRegistryLookupError,
+  type CompanyRegistryLookupService,
+} from '../supervision/company-registry-lookup.js';
+import {
   HumanCompanyProfileError,
   type CompanyProfileInput,
   type HumanCompanyProfileService,
@@ -42,6 +46,8 @@ const GROUNDING_RETIRE_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/grounding\
 const GROUNDING_CORRECT_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/grounding\/([^/]+)\/correct$/;
 const COMPANY_PROFILE_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/profile$/;
 const ONBOARDING_COMPANY_PATH = '/api/v1/onboarding/company';
+const ONBOARDING_CEP_LOOKUP_PATH_RE = /^\/api\/v1\/onboarding\/lookup\/cep\/([^/]+)$/;
+const ONBOARDING_CNPJ_LOOKUP_PATH_RE = /^\/api\/v1\/onboarding\/lookup\/cnpj\/([^/]+)$/;
 const SESSION_PATH = '/api/v1/me';
 const CATALOG_KEY_RE = /^[a-z0-9][a-z0-9._-]{2,63}$/;
 
@@ -61,6 +67,8 @@ export type HumanSupervisionResponse = {
 export function isHumanSupervisionPath(pathname: string): boolean {
   return pathname === SESSION_PATH
     || pathname === ONBOARDING_COMPANY_PATH
+    || ONBOARDING_CEP_LOOKUP_PATH_RE.test(pathname)
+    || ONBOARDING_CNPJ_LOOKUP_PATH_RE.test(pathname)
     || pathname.startsWith('/api/v1/organizations/');
 }
 
@@ -270,9 +278,23 @@ export function createHumanSupervisionHandler(
   digitalEmployeeWorkService?: OrganizationAdapterService,
   groundingService?: HumanGroundingService,
   companyProfileService?: HumanCompanyProfileService,
+  companyRegistryLookup?: CompanyRegistryLookupService,
 ) {
   return async (request: HumanSupervisionRequest): Promise<HumanSupervisionResponse> => {
     try {
+      const cepLookupMatch = ONBOARDING_CEP_LOOKUP_PATH_RE.exec(request.pathname);
+      const cnpjLookupMatch = ONBOARDING_CNPJ_LOOKUP_PATH_RE.exec(request.pathname);
+      if (cepLookupMatch || cnpjLookupMatch) {
+        if (!companyRegistryLookup) return { status: 404, body: { error: 'not-found' } };
+        if (request.method !== 'GET') return { status: 405, body: { error: 'method-not-allowed' } };
+        const lookupInput = cepLookupMatch?.[1] ?? cnpjLookupMatch?.[1];
+        if (!lookupInput) return { status: 404, body: { error: 'not-found' } };
+        const lookup = cepLookupMatch
+          ? await companyRegistryLookup.lookupPostalCode(request.authorization, lookupInput)
+          : await companyRegistryLookup.lookupCnpj(request.authorization, lookupInput);
+        return { status: 200, body: { ...lookup } };
+      }
+
       if (request.pathname === ONBOARDING_COMPANY_PATH) {
         if (!companyProfileService) return { status: 404, body: { error: 'not-found' } };
         if (request.method !== 'POST') return { status: 405, body: { error: 'method-not-allowed' } };
@@ -592,6 +614,10 @@ export function createHumanSupervisionHandler(
           return { status: 503, body: { error: 'authentication-unavailable' } };
         }
         return { status: 401, body: { error: 'unauthorized' } };
+      }
+      if (error instanceof CompanyRegistryLookupError) {
+        if (error.code === 'invalid-input') return { status: 400, body: { error: 'invalid-lookup-input' } };
+        return { status: 503, body: { error: 'company-registry-provider-unavailable' } };
       }
       if (error instanceof HumanCompanyProfileError) {
         if (error.code === 'invalid-profile') return { status: 400, body: { error: 'invalid-company-profile' } };
