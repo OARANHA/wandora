@@ -167,13 +167,13 @@ const handleHumanSupervision = humanReadService
       humanReadService,
       humanSendProposalService,
       humanDigitalEmployeesReadService,
-      humanStarterWorkforceReadinessService,
       humanDigitalEmployeeHireService,
       humanDigitalEmployeeActivationService,
       humanDigitalEmployeeWorkService,
       humanGroundingService,
       humanCompanyProfileService,
       companyRegistryLookup,
+      humanStarterWorkforceReadinessService,
     )
   : undefined;
 
