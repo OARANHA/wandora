@@ -13,6 +13,7 @@ import { BrasilApiCompanyRegistryLookup } from '../supervision/company-registry-
 import { HumanCompanyProfileService } from '../supervision/human-company-profile.js';
 import { HumanDigitalEmployeeActivationService } from '../supervision/human-digital-employee-activation.js';
 import { HumanDigitalEmployeesReadService } from '../supervision/human-digital-employees-read.js';
+import { HumanStarterWorkforceReadinessService } from '../supervision/human-starter-workforce-readiness.js';
 import { HumanGroundingService } from '../supervision/human-grounding.js';
 import { HumanSupervisionReadService } from '../supervision/human-read.js';
 import { HumanSendProposalService } from '../supervision/human-send-proposal.js';
@@ -112,6 +113,10 @@ const companyRegistryLookup = humanVerifier && config.customerCompanyOnboarding
   ? new BrasilApiCompanyRegistryLookup(humanVerifier)
   : undefined;
 
+const humanStarterWorkforceReadinessService = pool && humanReadService
+  ? new HumanStarterWorkforceReadinessService(pool, humanReadService)
+  : undefined;
+
 const humanDigitalEmployeesReadService = pool && humanReadService
   ? new HumanDigitalEmployeesReadService(
       pool,
@@ -168,6 +173,7 @@ const handleHumanSupervision = humanReadService
       humanGroundingService,
       humanCompanyProfileService,
       companyRegistryLookup,
+      humanStarterWorkforceReadinessService,
     )
   : undefined;
 

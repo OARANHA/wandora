@@ -17,6 +17,7 @@ import {
 import type { OrganizationAdapterService } from '../organization-adapter/service.js';
 import type { HumanDigitalEmployeeActivationService } from '../supervision/human-digital-employee-activation.js';
 import type { HumanDigitalEmployeesReadService } from '../supervision/human-digital-employees-read.js';
+import type { HumanStarterWorkforceReadinessService } from '../supervision/human-starter-workforce-readiness.js';
 import {
   HumanAccessError,
   HumanNotFoundError,
@@ -37,6 +38,7 @@ const CONFIRMATION_VERSION_RE = /^sha256:[0-9a-f]{64}$/;
 const WORK_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/work\/attention-required$/;
 const SEND_PROPOSAL_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/work\/([^/]+)\/proposals\/([^/]+)\/send$/;
 const DIGITAL_EMPLOYEES_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/digital-employees$/;
+const STARTER_WORKFORCE_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/starter-workforce$/;
 const DIGITAL_EMPLOYEE_ACTIVATE_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/digital-employees\/([^/]+)\/activate$/;
 const DIGITAL_EMPLOYEE_WORK_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/digital-employees\/([^/]+)\/work$/;
 const CONVERSATIONS_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/conversations$/;
@@ -279,6 +281,7 @@ export function createHumanSupervisionHandler(
   groundingService?: HumanGroundingService,
   companyProfileService?: HumanCompanyProfileService,
   companyRegistryLookup?: CompanyRegistryLookupService,
+  starterWorkforceReadinessService?: HumanStarterWorkforceReadinessService,
 ) {
   return async (request: HumanSupervisionRequest): Promise<HumanSupervisionResponse> => {
     try {
@@ -500,6 +503,25 @@ export function createHumanSupervisionHandler(
           employeeId,
         });
         return { status: 200, body: { employee } };
+      }
+
+      const starterWorkforceMatch = STARTER_WORKFORCE_PATH_RE.exec(request.pathname);
+      const starterWorkforceOrganizationId = starterWorkforceMatch?.[1];
+      if (starterWorkforceOrganizationId) {
+        if (!UUID_RE.test(starterWorkforceOrganizationId)) {
+          return { status: 404, body: { error: 'not-found' } };
+        }
+        if (request.method !== 'GET') {
+          return { status: 405, body: { error: 'method-not-allowed' } };
+        }
+        if (!starterWorkforceReadinessService) {
+          return { status: 404, body: { error: 'not-found' } };
+        }
+        const readiness = await starterWorkforceReadinessService.getReadiness(
+          request.authorization,
+          starterWorkforceOrganizationId,
+        );
+        return { status: 200, body: { readiness } };
       }
 
       const digitalEmployeesMatch = DIGITAL_EMPLOYEES_PATH_RE.exec(request.pathname);
