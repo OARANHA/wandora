@@ -15,9 +15,9 @@ Paperclip pin = dffc2b3ca1b9e88fa21cb17493083e682dffd1ca
 
 Second adversarial review narrowed ADR 0209 before activation: Paperclip's direct native connector-runtime tool authority is tied to `paperclip_runner`, while Ana uses `wandora_mastra`. The selected execution implementation is therefore the already-supported Paperclip `local_stdio` MCP boundary, not a Paperclip core patch and not generic REST Tool Gateway execution.
 
-The candidate at `integrations/paperclip/mcp-vendaerp-readonly-v1/` is stateless, exposes exactly the eight ADR 0202 reads, fixes the provider origin to `https://whitelabel.vendaerp.com.br`, performs GET only, accepts no caller URL/method, uses bounded pagination/no retries, and expects exactly three Paperclip grant-secret env refs.
+The candidate at `integrations/paperclip/mcp-vendaerp-readonly-v1/` is stateless, exposes exactly the eight ADR 0202 reads, derives the provider origin only from a tenant subdomain fixed by the approved Paperclip command template (`https://<tenant>.vendaerp.com.br`; 28PRO candidate = `https://voepro.vendaerp.com.br`), performs GET only, accepts no caller URL/method/tenant, uses bounded pagination/no retries, and expects exactly three Paperclip grant-secret env refs.
 
-Validation: 8/8 adapter tests GREEN, static read-only verifier GREEN, exact Paperclip v2026.916.0 local_stdio/grant/env/gateway compatibility verifier GREEN. No real VendaERP request or credential was used.
+Validation: 9/9 adapter tests GREEN, static read-only verifier GREEN, exact Paperclip v2026.916.0 local_stdio/grant/env/gateway compatibility verifier GREEN. No real VendaERP request or credential was used.
 
 ADR 0208 remains unchanged: generic `rest_api` Tool Gateway is still NO-GO.
 
