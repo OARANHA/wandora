@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { AlertTriangle, ArchiveX, BookOpenCheck, Check, FileCheck2, History, Lightbulb, LoaderCircle, PencilLine, ShieldCheck } from 'lucide-react';
-import { useMemo, useState, type FormEvent } from 'react';
+import { AlertTriangle, ArchiveX, BookOpenCheck, Check, Eye, FileCheck2, History, Lightbulb, LoaderCircle, PencilLine, ShieldCheck, X } from 'lucide-react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useAuth } from '../AuthProvider';
 import {
   GroundingCreateOperationError,
@@ -63,7 +63,22 @@ export function CompanyPage() {
   const { activeOrganization, context, authFetch } = useAuth();
   const [draft, setDraft] = useState<CreateDraft>(emptyCreateDraft);
   const [editing, setEditing] = useState<GroundingEntry | null>(null);
+  const [selectedEntry, setSelectedEntry] = useState<GroundingEntry | null>(null);
   const [correction, setCorrection] = useState<CorrectionDraft>({ content: '', sourceRef: '', sourceLabel: '' });
+
+  useEffect(() => {
+    if (!selectedEntry) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSelectedEntry(null);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [selectedEntry]);
 
   const query = useQuery({
     queryKey: ['organization-grounding', activeOrganization?.id],
@@ -204,6 +219,7 @@ export function CompanyPage() {
             retiringId={retireMutation.isPending ? retireMutation.variables?.id : undefined}
             onRetire={(entry) => retireMutation.mutate(entry)}
             onCorrect={(entry) => { setEditing(entry); setCorrection({ content: entry.content, sourceRef: '', sourceLabel: entry.provenance.sourceLabel ?? '' }); }}
+            onOpen={setSelectedEntry}
             cardTone="rule"
           />
 
@@ -232,12 +248,30 @@ export function CompanyPage() {
             retiringId={retireMutation.isPending ? retireMutation.variables?.id : undefined}
             onRetire={(entry) => retireMutation.mutate(entry)}
             onCorrect={(entry) => { setEditing(entry); setCorrection({ content: entry.content, sourceRef: '', sourceLabel: entry.provenance.sourceLabel ?? '' }); }}
+            onOpen={setSelectedEntry}
             cardTone="fact"
           />
           {retired.length ? <HistorySection entries={retired} /> : null}
           {retireMutation.isError ? <InlineError error={retireMutation.error} /> : null}
         </>
       )}
+
+      {selectedEntry ? (
+        <EntryDrawer
+          entry={selectedEntry}
+          canManage={canManage}
+          retiring={retireMutation.isPending && retireMutation.variables?.id === selectedEntry.id}
+          onClose={() => setSelectedEntry(null)}
+          onCorrect={() => {
+            setSelectedEntry(null);
+            setEditing(selectedEntry);
+            setCorrection({ content: selectedEntry.content, sourceRef: '', sourceLabel: selectedEntry.provenance.sourceLabel ?? '' });
+          }}
+          onRetire={() => {
+            retireMutation.mutate(selectedEntry, { onSuccess: () => setSelectedEntry(null) });
+          }}
+        />
+      ) : null}
 
       {editing ? (
         <CorrectionPanel entry={editing} draft={correction} setDraft={setCorrection} pending={correctionMutation.isPending}
@@ -260,7 +294,7 @@ function PageHeader() {
       <div className="inline-flex rounded-full border-2 border-[#09090b] bg-[#d2e823] px-3 py-1 wandora-pop-sm">
         <span className="wandora-mono text-[8px] font-black">a casa · informações e regras</span>
       </div>
-      <h1 className="wandora-display m-0 mt-3 text-[clamp(2.35rem,4.2vw,4rem)] leading-[0.96] text-[#09090b]">
+      <h1 className="wandora-display m-0 mt-3 text-[clamp(1.9rem,3vw,3rem)] leading-[0.98] text-[#09090b]">
         AS REGRAS DA <span className="inline-block rounded-lg bg-[#d2e823] px-2">SUA CASA.</span>
       </h1>
       <p className="m-0 mt-3 max-w-3xl text-[15px] leading-7 text-[#09090b]/58">
@@ -356,16 +390,17 @@ function HowItWorks() {
   );
 }
 
-function GroundingSection({ title, eyebrow, description, empty, entries, canManage, retiringId, onRetire, onCorrect, cardTone }: {
+function GroundingSection({ title, eyebrow, description, empty, entries, canManage, retiringId, onRetire, onCorrect, onOpen, cardTone }: {
   title: string; eyebrow: string; description: string; empty: string; entries: GroundingEntry[]; canManage: boolean;
   retiringId: string | undefined; onRetire: (entry: GroundingEntry) => void; onCorrect: (entry: GroundingEntry) => void;
+  onOpen: (entry: GroundingEntry) => void;
   cardTone: 'rule' | 'fact';
 }) {
   return (
     <section>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="wandora-display m-0 text-[clamp(1.55rem,2.8vw,2.2rem)] leading-none">{title.toUpperCase()}</h2>
+          <h2 className="wandora-display m-0 text-[clamp(1.35rem,2vw,1.85rem)] leading-none">{title.toUpperCase()}</h2>
           <p className="m-0 mt-2 max-w-2xl text-sm leading-6 text-[#09090b]/50">{description}</p>
         </div>
         <div className="wandora-mono text-[8px] text-[#09090b]/35">{eyebrow}</div>
@@ -386,6 +421,7 @@ function GroundingSection({ title, eyebrow, description, empty, entries, canMana
               retiring={retiringId === entry.id}
               onRetire={() => onRetire(entry)}
               onCorrect={() => onCorrect(entry)}
+              onOpen={() => onOpen(entry)}
               tone={cardTone === 'rule' ? (index % 3 === 0 ? 'sun' : index % 3 === 1 ? 'white' : 'lime') : (index % 2 === 0 ? 'white' : 'lime')}
             />
           ))}
@@ -395,27 +431,108 @@ function GroundingSection({ title, eyebrow, description, empty, entries, canMana
   );
 }
 
-function EntryCard({ entry, canManage, retiring, onRetire, onCorrect, tone }: {
-  entry: GroundingEntry; canManage: boolean; retiring: boolean; onRetire: () => void; onCorrect: () => void;
+function EntryCard({ entry, canManage, retiring, onRetire, onCorrect, onOpen, tone }: {
+  entry: GroundingEntry; canManage: boolean; retiring: boolean; onRetire: () => void; onCorrect: () => void; onOpen: () => void;
   tone: 'lime' | 'sun' | 'white';
 }) {
   const toneClass = tone === 'lime' ? 'bg-[#d2e823]' : tone === 'sun' ? 'bg-[#fdd030]' : 'bg-white';
 
   return (
-    <article className={'relative rounded-[18px] border-[2.5px] border-[#09090b] p-4 wandora-pop-sm sm:p-5 ' + toneClass}>
+    <article className={'relative min-h-[170px] rounded-[18px] border-[2.5px] border-[#09090b] p-4 wandora-pop-sm sm:p-5 ' + toneClass}>
       <span className="absolute -top-2 left-1/2 size-4 -translate-x-1/2 rounded-full border-2 border-[#09090b] bg-white" aria-hidden="true" />
-      <p className="m-0 whitespace-pre-wrap text-[14px] font-bold leading-6 text-[#09090b]/88">“{entry.content}”</p>
-      <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1">
+
+      <button
+        type="button"
+        onClick={onOpen}
+        className="block w-full text-left"
+        aria-label={entry.type === 'rule' ? 'Abrir Regra da Casa' : 'Abrir informação da empresa'}
+      >
+        <p className="m-0 line-clamp-4 whitespace-pre-wrap text-[13px] font-bold leading-[1.55] text-[#09090b]/88">“{entry.content}”</p>
+        <div className="mt-3 inline-flex items-center gap-1.5 text-[11px] font-bold text-[#09090b]/55">
+          <Eye className="size-3.5" /> Ver detalhes
+        </div>
+      </button>
+
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
         <span className="wandora-mono text-[8px] text-[#09090b]/42">{provenanceLabel(entry.provenance.type)}</span>
         {entry.provenance.sourceLabel ? <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#09090b]/45"><FileCheck2 className="size-3" />{entry.provenance.sourceLabel}</span> : null}
       </div>
+
       {canManage ? (
-        <div className="mt-4 flex gap-2 border-t border-[#09090b]/12 pt-3">
+        <div className="mt-3 flex gap-2 border-t border-[#09090b]/12 pt-3">
           <button type="button" onClick={onCorrect} className="inline-flex items-center gap-1.5 rounded-lg border border-[#09090b] bg-white/75 px-2.5 py-1.5 text-[11px] font-bold wandora-press"><PencilLine className="size-3" /> Corrigir</button>
           <button type="button" onClick={onRetire} disabled={retiring} className="inline-flex items-center gap-1.5 rounded-lg border border-[#09090b] bg-white/75 px-2.5 py-1.5 text-[11px] font-bold wandora-press disabled:opacity-50">{retiring ? <LoaderCircle className="size-3 animate-spin" /> : <ArchiveX className="size-3" />}{retiring ? 'Retirando…' : 'Retirar'}</button>
         </div>
       ) : null}
     </article>
+  );
+}
+
+function EntryDrawer({ entry, canManage, retiring, onClose, onCorrect, onRetire }: {
+  entry: GroundingEntry;
+  canManage: boolean;
+  retiring: boolean;
+  onClose: () => void;
+  onCorrect: () => void;
+  onRetire: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={entry.type === 'rule' ? 'Detalhes da Regra da Casa' : 'Detalhes da informação da empresa'}>
+      <button type="button" onClick={onClose} className="absolute inset-0 bg-[#09090b]/35" aria-label="Fechar detalhes" />
+
+      <aside className="absolute inset-y-0 right-0 flex w-full max-w-[520px] flex-col border-l-[2.5px] border-[#09090b] bg-[#f8f4e8] shadow-[-14px_0_0_rgba(9,9,11,0.08)]">
+        <div className="flex items-center justify-between border-b-2 border-[#09090b]/12 px-5 py-4">
+          <div>
+            <div className="wandora-mono text-[8px] font-black text-[#09090b]/40">
+              {entry.type === 'rule' ? 'regra da casa' : 'informação da empresa'}
+            </div>
+            <div className="mt-1 text-sm font-black">{entry.status === 'active' ? 'Ativa agora' : 'No histórico'}</div>
+          </div>
+          <button type="button" onClick={onClose} className="grid size-10 place-items-center rounded-xl border-2 border-[#09090b] bg-white wandora-press" aria-label="Fechar">
+            <X className="size-4" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 py-5">
+          <div className="rounded-2xl border-[2.5px] border-[#09090b] bg-white p-5">
+            <p className="m-0 whitespace-pre-wrap text-[15px] font-semibold leading-7 text-[#09090b]/85">{entry.content}</p>
+          </div>
+
+          <div className="mt-5 grid gap-3">
+            <div className="rounded-xl border-2 border-[#09090b]/12 bg-white p-4">
+              <div className="wandora-mono text-[8px] font-black text-[#09090b]/38">confirmada como</div>
+              <div className="mt-1 text-sm font-bold">{provenanceLabel(entry.provenance.type)}</div>
+            </div>
+
+            {entry.provenance.sourceLabel ? (
+              <div className="rounded-xl border-2 border-[#09090b]/12 bg-white p-4">
+                <div className="flex items-center gap-2 text-sm font-bold"><FileCheck2 className="size-4" /> Fonte registrada</div>
+                <p className="m-0 mt-2 text-sm leading-6 text-[#09090b]/55">{entry.provenance.sourceLabel}</p>
+              </div>
+            ) : null}
+
+            <div className="rounded-xl border-2 border-[#09090b]/12 bg-white p-4">
+              <div className="wandora-mono text-[8px] font-black text-[#09090b]/38">última atualização</div>
+              <div className="mt-1 text-sm font-bold">{new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(entry.updatedAt))}</div>
+            </div>
+          </div>
+        </div>
+
+        {canManage && entry.status === 'active' ? (
+          <div className="border-t-2 border-[#09090b]/12 bg-white p-4">
+            <div className="flex gap-2">
+              <button type="button" onClick={onCorrect} className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border-2 border-[#09090b] bg-[#d2e823] px-4 py-2.5 text-sm font-bold wandora-press">
+                <PencilLine className="size-4" /> Corrigir
+              </button>
+              <button type="button" onClick={onRetire} disabled={retiring} className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-[#09090b] bg-white px-4 py-2.5 text-sm font-bold wandora-press disabled:opacity-50">
+                {retiring ? <LoaderCircle className="size-4 animate-spin" /> : <ArchiveX className="size-4" />}
+                {retiring ? 'Retirando…' : 'Retirar'}
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </aside>
+    </div>
   );
 }
 

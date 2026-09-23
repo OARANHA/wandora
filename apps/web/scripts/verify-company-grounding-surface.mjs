@@ -44,7 +44,7 @@ assert(source.includes('Regra de trabalho'), 'company_grounding_business_rule_la
 assert(source.includes('Ensinar isso'), 'company_grounding_business_action_missing');
 assert(source.includes('como funciona'), 'company_grounding_how_it_works_missing');
 assert(source.includes('Esta informação veio de um documento, site, manual, tabela ou outra fonte oficial da empresa.'), 'company_grounding_business_source_language_missing');
-assert(source.includes('text-[clamp(2.35rem,4.2vw,4rem)]'), 'company_grounding_business_density_heading_missing');
+assert(source.includes('text-[clamp(1.9rem,3vw,3rem)]'), 'company_grounding_business_density_heading_missing');
 assert(!source.includes('empresa · grounding oficial'), 'company_grounding_internal_term_leaked');
 
 assert(!source.includes('grounding oficial'), 'company_grounding_internal_grounding_language_leaked');

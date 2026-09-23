@@ -6,6 +6,7 @@ import {
   BriefcaseBusiness,
   CheckCircle2,
   LoaderCircle,
+  MessageCircleMore,
   ShieldCheck,
   Sparkles,
   UsersRound,
@@ -56,6 +57,26 @@ const workStateLabel: Record<WorkItem['state'], string> = {
   'review-ready': 'Pronto para sua revisão',
   'execution-uncertain': 'Execução em verificação',
 };
+
+function firstName(name: string): string {
+  return name.trim().split(/\s+/)[0] || 'você';
+}
+
+function greetingForHour(hour: number): 'Bom dia' | 'Boa tarde' | 'Boa noite' {
+  if (hour < 12) return 'Bom dia';
+  if (hour < 18) return 'Boa tarde';
+  return 'Boa noite';
+}
+
+function dayLabel(date: Date): string {
+  return new Intl.DateTimeFormat('pt-BR', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date).replace(',', ' ·').replace(' às ', ' · ');
+}
 
 export function DashboardPage() {
   const { activeOrganization, context, authFetch } = useAuth();
@@ -147,25 +168,45 @@ export function DashboardPage() {
   const latestEmployee = latestWork
     ? employees.find((employee) => employee.id === latestWork.employeeId) ?? null
     : null;
+  const now = new Date();
+  const greeting = greetingForHour(now.getHours());
+  const loggedUserName = firstName(context?.user.name ?? '');
 
   return (
     <div className="space-y-7">
-      <section className="grid gap-6 xl:grid-cols-[1fr_260px] xl:items-start">
+      <section className="grid gap-5 xl:grid-cols-[1fr_190px] xl:items-start">
         <div>
-          <div className="inline-flex rounded-full border-2 border-[#09090b] bg-[#d2e823] px-3 py-1.5 wandora-pop-sm">
-            <span className="wandora-mono text-[9px] font-black">estado real · atualizado agora</span>
+          <div className="inline-flex rounded-full border-2 border-[#09090b] bg-[#d2e823] px-3 py-1 wandora-pop-sm">
+            <span className="wandora-mono text-[8px] font-black">{dayLabel(now)}</span>
           </div>
-          <h1 className="wandora-display m-0 mt-4 max-w-4xl text-[clamp(2.4rem,4.2vw,4rem)] leading-[0.96] text-[#09090b]">
-            SUA EQUIPE JÁ ESTÁ <span className="inline-block rounded-xl bg-[#d2e823] px-2">EM MOVIMENTO.</span>
+
+          <div className="mt-4 text-[clamp(1.45rem,2vw,2rem)] font-black leading-tight text-[#09090b]">
+            {greeting}, {loggedUserName}.
+          </div>
+
+          <h1 className="wandora-display m-0 mt-1.5 max-w-3xl text-[clamp(1.9rem,3vw,3rem)] leading-[0.98] text-[#09090b]">
+            SUA EQUIPE JÁ ESTÁ <span className="inline-block rounded-lg bg-[#d2e823] px-1.5">EM MOVIMENTO.</span>
           </h1>
-          <p className="m-0 mt-5 max-w-2xl text-base leading-7 text-[#09090b]/55">
-            Aqui entram somente fatos que a Wandora já consegue provar para {activeOrganization.name}: equipe digital,
-            trabalho supervisionado e resultados registrados.
+
+          <p className="m-0 mt-4 max-w-2xl text-[15px] leading-7 text-[#09090b]/55">
+            Veja rapidamente o que já está registrado em {activeOrganization.name} e o que precisa da sua atenção.
           </p>
+
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Link to="/approvals" className="inline-flex items-center gap-2 rounded-xl border-2 border-[#09090b] bg-[#d2e823] px-4 py-2.5 text-sm font-bold wandora-pop-sm wandora-press">
+              <CheckCircle2 className="size-4" /> Ver aprovações
+            </Link>
+            <Link to="/conversations" className="inline-flex items-center gap-2 rounded-xl border-2 border-[#09090b] bg-white px-4 py-2.5 text-sm font-bold wandora-pop-sm wandora-press">
+              <MessageCircleMore className="size-4" /> Conversas
+            </Link>
+            <Link to="/company" className="inline-flex items-center gap-2 rounded-xl border-2 border-[#09090b] bg-white px-4 py-2.5 text-sm font-bold wandora-pop-sm wandora-press">
+              <Sparkles className="size-4" /> Ensinar algo
+            </Link>
+          </div>
         </div>
 
-        <div className="hidden justify-self-end rounded-[2rem] border-[2.5px] border-[#09090b] bg-[#46c46a] p-7 wandora-pop xl:block">
-          <Bot className="size-28 stroke-[2.2]" />
+        <div className="hidden justify-self-end rounded-[1.6rem] border-[2.5px] border-[#09090b] bg-[#46c46a] p-5 wandora-pop xl:block">
+          <Bot className="size-20 stroke-[2.2]" />
         </div>
       </section>
 
@@ -180,7 +221,7 @@ export function DashboardPage() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="wandora-mono text-[9px] font-black text-[#09090b]/40">sua equipe</div>
-              <h2 className="wandora-display m-0 mt-2 text-3xl">GERENCIE COMO GENTE.</h2>
+              <h2 className="wandora-display m-0 mt-2 text-[clamp(1.45rem,2.2vw,2rem)] leading-none">GERENCIE COMO GENTE.</h2>
             </div>
             <Link to="/team" className="rounded-xl border-2 border-[#09090b] bg-[#d2e823] px-3 py-2 text-xs font-black wandora-pop-sm wandora-press">
               Ver equipe →
@@ -215,7 +256,7 @@ export function DashboardPage() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <div className="wandora-mono text-[9px] font-black text-white/45">trabalho mais recente</div>
-              <h2 className="wandora-display m-0 mt-2 text-3xl text-white">
+              <h2 className="wandora-display m-0 mt-2 text-[clamp(1.45rem,2.2vw,2rem)] leading-none text-white">
                 {latestWork ? 'PRONTO PARA ACOMPANHAR.' : 'SEM ADIVINHAÇÃO.'}
               </h2>
             </div>

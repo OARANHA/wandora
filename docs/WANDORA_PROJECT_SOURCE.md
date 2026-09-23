@@ -1,12 +1,31 @@
 # Wandora — Project Source / Continuity Bootstrap
 
+## Current continuity checkpoint — ADR 0191
+
+Grounding Source File Upload Capability Authority Preflight V1 is **COMPLETE / NO EFFECT**.
+
+Supabase Storage is the accepted delegated blob implementation, but live Storage has no bucket/policies for grounding sources yet. Wandora keeps provider-neutral sourceRef/sourceLabel semantics; uploaded files are evidence only, never automatic RAG/memory/retrieval. No bucket/policy/object/migration was created. Next safe slice is code-only upload implementation.
+
+## Current continuity checkpoint — ADR 0190
+
+Web Home Greeting + Company Detail Drawer V1 is **IMPLEMENTED IN CODE / NO PRODUCTION EFFECT**.
+
+Home uses the canonical authenticated user name and browser-local daypart for Bom dia / Boa tarde / Boa noite, with a max ~3rem hero and existing-route quick actions. Company grounding cards use bounded previews and a right-side detail drawer without splitting durable rows.
+
+Local production-shaped Web build is GREEN with WANDORA_WEB_HOME_GREETING_COMPANY_DRAWER_V1_OK.
+
+## Current grounding real-state checkpoint — 2026-09-22
+
+MEDICSPRO is no longer grounding=0. Live reconciliation proves exactly 4 rows total: 1 active fact, 1 active rule and 2 retired rows. The active fact groups three owner-entered facts in one durable record; the active rule groups four owner-entered house-rule statements in one durable record.
+
+
 ## Current continuity checkpoint — ADR 0189
 
 Web Business Density Production Promotion V1 is **COMPLETE / GREEN / WEB ONLY**.
 
 Live Web is `wandora/web:candidate-5f362fb43b62`, healthy/restart 0, from exact `main@5f362fb43b62d4567e850de7c2f09f099755a925`. The second Company / Regras da Casa reference now governs production density and business-first composition.
 
-Core, Paperclip and Messaging Gateway were not recreated. MEDICSPRO grounding remains 0, works 2 and outbound 0. Do not repeat this Web promotion after chat interruption; reconcile runtime first.
+Core, Paperclip and Messaging Gateway were not recreated. At ADR 0189 promotion time MEDICSPRO had grounding 0, works 2 and outbound 0; that grounding count is historical and superseded by the current real-state checkpoint above. Do not repeat this Web promotion after chat interruption; reconcile runtime first.
 
 
 ## Current continuity checkpoint — ADR 0188
