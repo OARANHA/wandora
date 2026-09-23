@@ -1,5 +1,39 @@
 # Wandora — Canonical State / Handoff
 
+## Reconciled checkpoint — main@608bedd9 — ADR 0198 still NO EFFECT in production
+
+Real-state reconciliation after PR #257:
+
+```text
+main = 608bedd9d4eefaa8ee15dd454bd4b4cfeec40a62
+PR #257 = MERGED
+open PRs = 0
+exact post-merge main workflow runs = none observed
+PR #257 head 5ffe209bb222056a7382204076991ef674ace798 = 7/7 GREEN
+```
+
+Live production remains unchanged:
+
+```text
+Web = wandora/web:candidate-aaada76d9806
+Core = wandora/core:organization-adapter-candidate-d8349b353bb7
+Paperclip = wandora/paperclip:v2026.916.0
+Messaging Gateway = wandora/messaging-gateway:origin-fix-94cfb4de
+critical services = healthy / restart 0
+
+migration 019 = NOT LIVE
+wandora.organization_profiles = ABSENT
+complete_customer_company_onboarding_v1 = ABSENT
+WANDORA_CUSTOMER_COMPANY_ONBOARDING_ENABLED = ABSENT
+
+MEDICSPRO works = 2
+MEDICSPRO outbound attempts = 0
+MEDICSPRO digital employees = 1
+```
+
+No production effect was introduced by the merge. Next slice: **Customer Company Profile + First Access Onboarding Production Promotion Preflight V1** only.
+
+
 ## ADR 0198 — Customer Company Profile + First Access Onboarding V1 — CODE ONLY / GREEN
 
 Implemented behind an OFF-by-default runtime flag: canonical Wandora-owned organization profile; invite-only unlinked → first company setup; owner membership bootstrap without employee creation; local CPF, legacy/alphanumeric CNPJ and CEP validation; optional fail-soft BrasilAPI enrichment; owner/admin profile read/update; and masked tax ID summary in Empresa.
