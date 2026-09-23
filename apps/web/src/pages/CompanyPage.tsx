@@ -755,5 +755,3 @@ function provenanceLabel(type: GroundingProvenanceType): string {
   if (type === 'approved_correction') return 'correção confirmada';
   return 'confirmado pelo proprietário';
 }
-
-[executed on device: wandora-vps-01 (d266af26-d31e-4f0c-9840-ca03bb02b603)]
