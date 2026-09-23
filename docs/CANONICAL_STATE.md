@@ -1,5 +1,39 @@
 # Wandora — Canonical State / Handoff
 
+## ADR 0195 — Grounding Source File Upload Production Promotion Preflight V1 — GO / NO EFFECT
+
+The production-promotion preflight is complete and GREEN.
+
+Qualified future effect is intentionally minimal:
+
+```text
+fresh backup + isolated restore-check
+→ migration 018 + verifier
+→ exact private Web candidate proof
+→ Web-only promotion
+→ validation
+→ STOP
+```
+
+Core, Paperclip, Mastra and Messaging Gateway do not require promotion.
+
+Evidence:
+
+- main = `aaada76d9806d48ce3e3047a299974ee9d41a480`;
+- exact Web artifact = `10729343085`;
+- GitHub/local ZIP digest = `f7957a554ade68b4c23c760ef238216b9c2177723f97548c9ef9c54e14e03e8d`;
+- source SHA = exact main;
+- production-derived `pg_dump -Fc` of `wandora`, `wandora_private` and `storage` restored successfully in an isolated clean database;
+- migration 018 + canonical verifier = GREEN in that restored baseline;
+- restored grounding rows = 4;
+- private exact Web candidate = healthz ok / company 200;
+- browser publishable-key embedding and GET/POST CORS from `app.wandora.com.br` = GREEN.
+
+Live production remains unchanged: target bucket/policies/objects = 0 and current Web/Core/Paperclip/Gateway are unchanged.
+
+A future execution must take a **fresh** execution-time backup/restore-check before applying migration 018. See ADR 0195.
+
+
 ## ADR 0194 — Organization Grounding Source File Upload Implementation V1 — CODE ONLY
 
 Grounding source-file upload is now implemented in code without production effect.
