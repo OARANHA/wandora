@@ -19,11 +19,20 @@ export type RuntimeGroundingProjection = {
   workContext: AssignedTask;
 };
 
+export type RuntimeReadTool = {
+  name: string;
+  title: string;
+  description: string;
+  inputSchema: Record<string, unknown>;
+  execute: (parameters: unknown) => Promise<unknown>;
+};
+
 export type AssignedTaskInput = {
   organizationId: OrganizationId;
   employee: EmployeeContext;
   task: AssignedTask;
   grounding: RuntimeGroundingProjection;
+  readTools?: RuntimeReadTool[];
 };
 
 export type NormalizedExecutionUsage = {
