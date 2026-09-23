@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { AlertTriangle, ArchiveX, BookOpenCheck, Check, Eye, FileCheck2, History, Lightbulb, LoaderCircle, PencilLine, ShieldCheck, X } from 'lucide-react';
+import { AlertTriangle, ArchiveX, BookOpenCheck, Check, Download, Eye, FileCheck2, FileUp, History, Lightbulb, LoaderCircle, PencilLine, ShieldCheck, X } from 'lucide-react';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useAuth } from '../AuthProvider';
 import {
@@ -7,6 +7,13 @@ import {
   clearGroundingCreateOperation,
   resolveGroundingCreateOperation,
 } from '../customerGroundingOperation';
+import {
+  GROUNDING_SOURCE_ACCEPT,
+  downloadGroundingSourceFile,
+  isGroundingSourceFileRef,
+  uploadGroundingSourceFile,
+  validateGroundingSourceFile,
+} from '../groundingSourceStorage';
 
 type GroundingEntryType = 'fact' | 'rule';
 type GroundingProvenanceType = 'owner_statement' | 'approved_source' | 'approved_correction';
@@ -25,10 +32,10 @@ type GroundingEntry = {
 };
 
 type GroundingResponse = { items: GroundingEntry[] };
-type CreateDraft = { type: GroundingEntryType; content: string; approvedSource: boolean; sourceRef: string; sourceLabel: string };
-type CorrectionDraft = { content: string; sourceRef: string; sourceLabel: string };
+type CreateDraft = { type: GroundingEntryType; content: string; approvedSource: boolean; sourceRef: string; sourceLabel: string; sourceFile: File | null };
+type CorrectionDraft = { content: string; sourceRef: string; sourceLabel: string; sourceFile: File | null };
 
-const emptyCreateDraft: CreateDraft = { type: 'fact', content: '', approvedSource: false, sourceRef: '', sourceLabel: '' };
+const emptyCreateDraft: CreateDraft = { type: 'fact', content: '', approvedSource: false, sourceRef: '', sourceLabel: '', sourceFile: null };
 
 function mutationKey(action: string): string {
   return 'company-grounding:' + action + ':' + crypto.randomUUID();
@@ -64,7 +71,7 @@ export function CompanyPage() {
   const [draft, setDraft] = useState<CreateDraft>(emptyCreateDraft);
   const [editing, setEditing] = useState<GroundingEntry | null>(null);
   const [selectedEntry, setSelectedEntry] = useState<GroundingEntry | null>(null);
-  const [correction, setCorrection] = useState<CorrectionDraft>({ content: '', sourceRef: '', sourceLabel: '' });
+  const [correction, setCorrection] = useState<CorrectionDraft>({ content: '', sourceRef: '', sourceLabel: '', sourceFile: null });
 
   useEffect(() => {
     if (!selectedEntry) return undefined;
@@ -96,12 +103,24 @@ export function CompanyPage() {
   const createMutation = useMutation({
     mutationFn: async (input: CreateDraft) => {
       if (!activeOrganization) throw new GroundingCreateRequestError('Escolha uma empresa antes de registrar esta informação.');
+
+      let sourceRef = input.sourceRef.trim();
+      let sourceLabel = input.sourceLabel.trim();
+      let approvedSource = input.approvedSource;
+
+      if (input.sourceFile) {
+        const uploaded = await uploadGroundingSourceFile(activeOrganization.id, input.sourceFile, authFetch);
+        sourceRef = uploaded.sourceRef;
+        sourceLabel = uploaded.sourceLabel;
+        approvedSource = true;
+      }
+
       const payload = {
         entryType: input.type,
         content: input.content.trim(),
-        provenanceType: input.approvedSource ? 'approved_source' as const : 'owner_statement' as const,
-        sourceRef: input.sourceRef.trim() || null,
-        sourceLabel: input.sourceLabel.trim() || null,
+        provenanceType: approvedSource ? 'approved_source' as const : 'owner_statement' as const,
+        sourceRef: sourceRef || null,
+        sourceLabel: sourceLabel || null,
       };
       let operation;
       try {
@@ -173,17 +192,27 @@ export function CompanyPage() {
   const correctionMutation = useMutation({
     mutationFn: async ({ entry, input }: { entry: GroundingEntry; input: CorrectionDraft }) => {
       if (!activeOrganization) throw new Error('Escolha uma empresa antes de corrigir esta informação.');
+
+      let sourceRef = input.sourceRef.trim();
+      let sourceLabel = input.sourceLabel.trim();
+
+      if (input.sourceFile) {
+        const uploaded = await uploadGroundingSourceFile(activeOrganization.id, input.sourceFile, authFetch);
+        sourceRef = uploaded.sourceRef;
+        sourceLabel = uploaded.sourceLabel;
+      }
+
       const response = await authFetch('/api/v1/organizations/' + activeOrganization.id + '/grounding/' + entry.id + '/correct', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Idempotency-Key': mutationKey('correct') },
-        body: JSON.stringify({ content: input.content.trim(), sourceRef: input.sourceRef.trim(), sourceLabel: input.sourceLabel.trim() || null }),
+        body: JSON.stringify({ content: input.content.trim(), sourceRef, sourceLabel: sourceLabel || null }),
       });
       if (!response.ok) throw await groundingError(response, 'Não foi possível registrar esta correção.');
       return await response.json() as { entry: GroundingEntry };
     },
     onSuccess: async () => {
       setEditing(null);
-      setCorrection({ content: '', sourceRef: '', sourceLabel: '' });
+      setCorrection({ content: '', sourceRef: '', sourceLabel: '', sourceFile: null });
       await query.refetch();
     },
   });
@@ -218,7 +247,7 @@ export function CompanyPage() {
             empty="Nenhuma Regra da Casa foi registrada ainda." entries={rules} canManage={canManage}
             retiringId={retireMutation.isPending ? retireMutation.variables?.id : undefined}
             onRetire={(entry) => retireMutation.mutate(entry)}
-            onCorrect={(entry) => { setEditing(entry); setCorrection({ content: entry.content, sourceRef: '', sourceLabel: entry.provenance.sourceLabel ?? '' }); }}
+            onCorrect={(entry) => { setEditing(entry); setCorrection({ content: entry.content, sourceRef: '', sourceLabel: entry.provenance.sourceLabel ?? '', sourceFile: null }); }}
             onOpen={setSelectedEntry}
             cardTone="rule"
           />
@@ -228,7 +257,7 @@ export function CompanyPage() {
               <CreatePanel draft={draft} setDraft={setDraft} pending={createMutation.isPending} error={createMutation.error}
                 onSubmit={(event) => {
                   event.preventDefault();
-                  if (!draft.content.trim() || (draft.approvedSource && !draft.sourceRef.trim())) return;
+                  if (!draft.content.trim() || (draft.approvedSource && !draft.sourceRef.trim() && !draft.sourceFile)) return;
                   createMutation.mutate(draft);
                 }}
               />
@@ -247,7 +276,7 @@ export function CompanyPage() {
             empty="Nenhuma informação da empresa foi registrada ainda." entries={facts} canManage={canManage}
             retiringId={retireMutation.isPending ? retireMutation.variables?.id : undefined}
             onRetire={(entry) => retireMutation.mutate(entry)}
-            onCorrect={(entry) => { setEditing(entry); setCorrection({ content: entry.content, sourceRef: '', sourceLabel: entry.provenance.sourceLabel ?? '' }); }}
+            onCorrect={(entry) => { setEditing(entry); setCorrection({ content: entry.content, sourceRef: '', sourceLabel: entry.provenance.sourceLabel ?? '', sourceFile: null }); }}
             onOpen={setSelectedEntry}
             cardTone="fact"
           />
@@ -265,7 +294,7 @@ export function CompanyPage() {
           onCorrect={() => {
             setSelectedEntry(null);
             setEditing(selectedEntry);
-            setCorrection({ content: selectedEntry.content, sourceRef: '', sourceLabel: selectedEntry.provenance.sourceLabel ?? '' });
+            setCorrection({ content: selectedEntry.content, sourceRef: '', sourceLabel: selectedEntry.provenance.sourceLabel ?? '', sourceFile: null });
           }}
           onRetire={() => {
             retireMutation.mutate(selectedEntry, { onSuccess: () => setSelectedEntry(null) });
@@ -276,10 +305,10 @@ export function CompanyPage() {
       {editing ? (
         <CorrectionPanel entry={editing} draft={correction} setDraft={setCorrection} pending={correctionMutation.isPending}
           error={correctionMutation.error}
-          onCancel={() => { setEditing(null); setCorrection({ content: '', sourceRef: '', sourceLabel: '' }); }}
+          onCancel={() => { setEditing(null); setCorrection({ content: '', sourceRef: '', sourceLabel: '', sourceFile: null }); }}
           onSubmit={(event) => {
             event.preventDefault();
-            if (!correction.content.trim() || !correction.sourceRef.trim()) return;
+            if (!correction.content.trim() || (!correction.sourceRef.trim() && !correction.sourceFile)) return;
             correctionMutation.mutate({ entry: editing, input: correction });
           }}
         />
@@ -341,20 +370,74 @@ function CreatePanel({ draft, setDraft, pending, error, onSubmit }: {
         />
         <details className="rounded-xl border border-white/15 bg-white/[0.04] px-4 py-3">
           <summary className="cursor-pointer text-xs font-bold text-white/65">Adicionar fonte ou documento (opcional)</summary>
-          <div className="mt-4 grid gap-3">
-            <label className="flex items-start gap-3">
-              <input type="checkbox" checked={draft.approvedSource} onChange={(event) => setDraft({ ...draft, approvedSource: event.target.checked })} className="mt-1 size-4" />
-              <span className="text-xs leading-5 text-white/60">Esta informação veio de um documento, site, manual, tabela ou outra fonte oficial da empresa.</span>
+          <div className="mt-4 grid gap-4">
+            <label className="grid gap-2 rounded-xl border border-white/15 bg-white/[0.04] p-3">
+              <span className="flex items-center gap-2 text-xs font-bold text-white/75"><FileUp className="size-4" /> Arquivo da empresa</span>
+              <input
+                type="file"
+                accept={GROUNDING_SOURCE_ACCEPT}
+                onChange={(event) => {
+                  const selected = event.currentTarget.files?.[0] ?? null;
+                  if (!selected) {
+                    setDraft({ ...draft, sourceFile: null });
+                    return;
+                  }
+                  try {
+                    validateGroundingSourceFile(selected);
+                    event.currentTarget.setCustomValidity('');
+                    setDraft({ ...draft, sourceFile: selected, approvedSource: true });
+                  } catch (error) {
+                    event.currentTarget.value = '';
+                    event.currentTarget.setCustomValidity(error instanceof Error ? error.message : 'Arquivo inválido.');
+                    event.currentTarget.reportValidity();
+                  }
+                }}
+                className="block w-full text-xs text-white/60 file:mr-3 file:rounded-lg file:border-0 file:bg-[#d2e823] file:px-3 file:py-2 file:text-xs file:font-bold file:text-[#09090b]"
+              />
+              <span className="text-[10px] leading-4 text-white/40">PDF, DOCX, XLSX, CSV, TXT, PNG ou JPG · até 10 MB. O arquivo fica privado e vinculado como evidência.</span>
+              {draft.sourceFile ? <span className="text-xs font-bold text-[#d2e823]">Selecionado: {draft.sourceFile.name}</span> : null}
             </label>
+
+            <label className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                checked={draft.approvedSource}
+                onChange={(event) => setDraft({ ...draft, approvedSource: event.target.checked })}
+                disabled={Boolean(draft.sourceFile)}
+                className="mt-1 size-4"
+              />
+              <span className="text-xs leading-5 text-white/60">Esta informação veio de uma fonte oficial da empresa. Ao anexar um arquivo, esta opção fica ativa automaticamente.</span>
+            </label>
+
             <div className="grid gap-3 md:grid-cols-2">
-              <label className="grid gap-1.5"><span className="text-[11px] font-bold text-white/60">Onde está registrada? {draft.approvedSource ? '(obrigatório)' : '(opcional)'}</span><input value={draft.sourceRef} onChange={(event) => setDraft({ ...draft, sourceRef: event.target.value })} maxLength={1024} required={draft.approvedSource} className="rounded-lg border border-white/25 bg-white px-3 py-2.5 text-sm text-[#09090b]" /></label>
-              <label className="grid gap-1.5"><span className="text-[11px] font-bold text-white/60">Nome da fonte (opcional)</span><input value={draft.sourceLabel} onChange={(event) => setDraft({ ...draft, sourceLabel: event.target.value })} maxLength={255} className="rounded-lg border border-white/25 bg-white px-3 py-2.5 text-sm text-[#09090b]" /></label>
+              <label className="grid gap-1.5">
+                <span className="text-[11px] font-bold text-white/60">Outra referência oficial {draft.approvedSource && !draft.sourceFile ? '(obrigatória)' : '(opcional)'}</span>
+                <input
+                  value={draft.sourceRef}
+                  onChange={(event) => setDraft({ ...draft, sourceRef: event.target.value })}
+                  maxLength={1024}
+                  required={draft.approvedSource && !draft.sourceFile}
+                  disabled={Boolean(draft.sourceFile)}
+                  placeholder="Ex.: https://... ou referência interna"
+                  className="rounded-lg border border-white/25 bg-white px-3 py-2.5 text-sm text-[#09090b] disabled:opacity-45"
+                />
+              </label>
+              <label className="grid gap-1.5">
+                <span className="text-[11px] font-bold text-white/60">Nome da fonte (opcional)</span>
+                <input
+                  value={draft.sourceLabel}
+                  onChange={(event) => setDraft({ ...draft, sourceLabel: event.target.value })}
+                  maxLength={255}
+                  disabled={Boolean(draft.sourceFile)}
+                  className="rounded-lg border border-white/25 bg-white px-3 py-2.5 text-sm text-[#09090b] disabled:opacity-45"
+                />
+              </label>
             </div>
           </div>
         </details>
         {error ? <InlineError error={error} dark /> : null}
         <div className="flex flex-wrap items-center gap-3">
-          <button type="submit" disabled={pending || !draft.content.trim() || (draft.approvedSource && !draft.sourceRef.trim())}
+          <button type="submit" disabled={pending || !draft.content.trim() || (draft.approvedSource && !draft.sourceRef.trim() && !draft.sourceFile)}
             className="inline-flex items-center gap-2 rounded-lg border-2 border-[#d2e823] bg-[#d2e823] px-4 py-2.5 text-sm font-bold text-[#09090b] wandora-press disabled:opacity-50">
             {pending ? <LoaderCircle className="size-4 animate-spin" /> : <Check className="size-4" />}{pending ? 'Salvando…' : 'Ensinar isso'}
           </button>
@@ -476,6 +559,34 @@ function EntryDrawer({ entry, canManage, retiring, onClose, onCorrect, onRetire 
   onCorrect: () => void;
   onRetire: () => void;
 }) {
+  const { authFetch } = useAuth();
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const hasStoredFile = isGroundingSourceFileRef(entry.provenance.sourceRef);
+
+  const downloadSource = async () => {
+    if (!entry.provenance.sourceRef || !hasStoredFile) return;
+    setDownloading(true);
+    setDownloadError(null);
+    try {
+      const { blob, fileName } = await downloadGroundingSourceFile(
+        entry.provenance.sourceRef,
+        entry.provenance.sourceLabel,
+        authFetch,
+      );
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = fileName;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      setDownloadError(error instanceof Error ? error.message : 'Não foi possível baixar este arquivo.');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={entry.type === 'rule' ? 'Detalhes da Regra da Casa' : 'Detalhes da informação da empresa'}>
       <button type="button" onClick={onClose} className="absolute inset-0 bg-[#09090b]/35" aria-label="Fechar detalhes" />
@@ -508,6 +619,18 @@ function EntryDrawer({ entry, canManage, retiring, onClose, onCorrect, onRetire 
               <div className="rounded-xl border-2 border-[#09090b]/12 bg-white p-4">
                 <div className="flex items-center gap-2 text-sm font-bold"><FileCheck2 className="size-4" /> Fonte registrada</div>
                 <p className="m-0 mt-2 text-sm leading-6 text-[#09090b]/55">{entry.provenance.sourceLabel}</p>
+                {hasStoredFile ? (
+                  <button
+                    type="button"
+                    onClick={() => void downloadSource()}
+                    disabled={downloading}
+                    className="mt-3 inline-flex items-center gap-2 rounded-lg border-2 border-[#09090b] bg-[#f8f4e8] px-3 py-2 text-xs font-bold wandora-press disabled:opacity-50"
+                  >
+                    {downloading ? <LoaderCircle className="size-3.5 animate-spin" /> : <Download className="size-3.5" />}
+                    {downloading ? 'Baixando…' : 'Baixar arquivo'}
+                  </button>
+                ) : null}
+                {downloadError ? <p className="m-0 mt-2 text-xs font-bold text-[#9a281a]">{downloadError}</p> : null}
               </div>
             ) : null}
 
@@ -522,7 +645,7 @@ function EntryDrawer({ entry, canManage, retiring, onClose, onCorrect, onRetire 
           <div className="border-t-2 border-[#09090b]/12 bg-white p-4">
             <div className="flex gap-2">
               <button type="button" onClick={onCorrect} className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border-2 border-[#09090b] bg-[#d2e823] px-4 py-2.5 text-sm font-bold wandora-press">
-                <PencilLine className="size-4" /> Corrigir
+                <PencilLine className="size-4" /> Corrigir / anexar
               </button>
               <button type="button" onClick={onRetire} disabled={retiring} className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-[#09090b] bg-white px-4 py-2.5 text-sm font-bold wandora-press disabled:opacity-50">
                 {retiring ? <LoaderCircle className="size-4 animate-spin" /> : <ArchiveX className="size-4" />}
@@ -560,14 +683,62 @@ function CorrectionPanel({ entry, draft, setDraft, pending, error, onCancel, onS
         <p className="m-0 mt-3 text-sm leading-6 text-[#09090b]/55">A versão anterior ficará no histórico e esta correção será salva como a nova versão confirmada.</p>
         <div className="mt-5 rounded-2xl border-2 border-[#09090b]/15 bg-[#f8f4e8] p-4"><div className="text-[9px] font-black uppercase tracking-[0.08em] text-[#09090b]/40">versão atual</div><p className="m-0 mt-2 text-sm leading-6 text-[#09090b]/60">{entry.content}</p></div>
         <label className="mt-5 grid gap-2"><span className="text-xs font-black">Conteúdo corrigido</span><textarea value={draft.content} onChange={(event) => setDraft({ ...draft, content: event.target.value })} maxLength={4000} rows={4} required className="w-full resize-y rounded-2xl border-2 border-[#09090b] bg-white px-4 py-3 text-sm leading-6" /></label>
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
-          <label className="grid gap-2"><span className="text-xs font-black">Onde a correção foi confirmada</span><input value={draft.sourceRef} onChange={(event) => setDraft({ ...draft, sourceRef: event.target.value })} maxLength={1024} required className="rounded-xl border-2 border-[#09090b] bg-white px-3 py-2.5 text-sm" /></label>
-          <label className="grid gap-2"><span className="text-xs font-black">Nome da fonte (opcional)</span><input value={draft.sourceLabel} onChange={(event) => setDraft({ ...draft, sourceLabel: event.target.value })} maxLength={255} className="rounded-xl border-2 border-[#09090b] bg-white px-3 py-2.5 text-sm" /></label>
+        <div className="mt-4 grid gap-4">
+          <label className="grid gap-2 rounded-xl border-2 border-[#09090b]/12 bg-[#f8f4e8] p-4">
+            <span className="flex items-center gap-2 text-xs font-black"><FileUp className="size-4" /> Anexar arquivo oficial</span>
+            <input
+              type="file"
+              accept={GROUNDING_SOURCE_ACCEPT}
+              onChange={(event) => {
+                const selected = event.currentTarget.files?.[0] ?? null;
+                if (!selected) {
+                  setDraft({ ...draft, sourceFile: null });
+                  return;
+                }
+                try {
+                  validateGroundingSourceFile(selected);
+                  event.currentTarget.setCustomValidity('');
+                  setDraft({ ...draft, sourceFile: selected });
+                } catch (fileError) {
+                  event.currentTarget.value = '';
+                  event.currentTarget.setCustomValidity(fileError instanceof Error ? fileError.message : 'Arquivo inválido.');
+                  event.currentTarget.reportValidity();
+                }
+              }}
+              className="block w-full text-xs file:mr-3 file:rounded-lg file:border-0 file:bg-[#d2e823] file:px-3 file:py-2 file:text-xs file:font-bold"
+            />
+            <span className="text-[10px] leading-4 text-[#09090b]/45">PDF, DOCX, XLSX, CSV, TXT, PNG ou JPG · até 10 MB.</span>
+            {draft.sourceFile ? <span className="text-xs font-bold">Selecionado: {draft.sourceFile.name}</span> : null}
+          </label>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="grid gap-2">
+              <span className="text-xs font-black">Ou informar outra referência oficial</span>
+              <input
+                value={draft.sourceRef}
+                onChange={(event) => setDraft({ ...draft, sourceRef: event.target.value })}
+                maxLength={1024}
+                required={!draft.sourceFile}
+                disabled={Boolean(draft.sourceFile)}
+                className="rounded-xl border-2 border-[#09090b] bg-white px-3 py-2.5 text-sm disabled:opacity-45"
+              />
+            </label>
+            <label className="grid gap-2">
+              <span className="text-xs font-black">Nome da fonte (opcional)</span>
+              <input
+                value={draft.sourceLabel}
+                onChange={(event) => setDraft({ ...draft, sourceLabel: event.target.value })}
+                maxLength={255}
+                disabled={Boolean(draft.sourceFile)}
+                className="rounded-xl border-2 border-[#09090b] bg-white px-3 py-2.5 text-sm disabled:opacity-45"
+              />
+            </label>
+          </div>
         </div>
         {error ? <InlineError error={error} /> : null}
         <div className="mt-6 flex flex-wrap justify-end gap-2">
           <button type="button" onClick={onCancel} disabled={pending} className="rounded-xl border-2 border-[#09090b] bg-white px-4 py-2.5 text-sm font-black wandora-pop-sm wandora-press disabled:opacity-50">Cancelar</button>
-          <button type="submit" disabled={pending || !draft.content.trim() || !draft.sourceRef.trim()} className="inline-flex items-center gap-2 rounded-xl border-2 border-[#09090b] bg-[#d2e823] px-4 py-2.5 text-sm font-black wandora-pop-sm wandora-press disabled:opacity-50">{pending ? <LoaderCircle className="size-4 animate-spin" /> : <Check className="size-4" />}{pending ? 'Corrigindo…' : 'Salvar correção'}</button>
+          <button type="submit" disabled={pending || !draft.content.trim() || (!draft.sourceRef.trim() && !draft.sourceFile)} className="inline-flex items-center gap-2 rounded-xl border-2 border-[#09090b] bg-[#d2e823] px-4 py-2.5 text-sm font-black wandora-pop-sm wandora-press disabled:opacity-50">{pending ? <LoaderCircle className="size-4 animate-spin" /> : <Check className="size-4" />}{pending ? 'Corrigindo…' : 'Salvar correção'}</button>
         </div>
       </form>
     </div>
@@ -584,3 +755,5 @@ function provenanceLabel(type: GroundingProvenanceType): string {
   if (type === 'approved_correction') return 'correção confirmada';
   return 'confirmado pelo proprietário';
 }
+
+[executed on device: wandora-vps-01 (d266af26-d31e-4f0c-9840-ca03bb02b603)]
