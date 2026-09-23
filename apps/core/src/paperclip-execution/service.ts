@@ -29,16 +29,16 @@ export class PaperclipExecutionService {
     private readonly pool: Pool,
     private readonly runtime: AgentTaskRuntime,
     private readonly groundingProjection: OrganizationGroundingProjection,
-    private readonly readToolBridge?: (input: {
-      runToken: string;
-      paperclipRunId: string;
-    }) => Promise<RuntimeReadTool[]>,
     private readonly workProjection?: Pick<
       OrganizationAdapterService,
       | 'prepareCatalogEmployeeWorkExecution'
       | 'recordCatalogEmployeeWorkResult'
       | 'markCatalogEmployeeWorkExecutionUncertain'
     >,
+    private readonly readToolBridge?: (input: {
+      runToken: string;
+      paperclipRunId: string;
+    }) => Promise<RuntimeReadTool[]>,
   ) {}
 
   private async resolveOrganization(providerCompanyRef: string): Promise<string> {
