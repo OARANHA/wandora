@@ -1,3 +1,7 @@
+## ADR 0212 — 28PRO VendaERP read-only activation shape
+
+ADR 0212 qualifies the no-effect production shape for 28PRO: company-scoped Paperclip mcp_stdio application/template/connection and local_encrypted credential custody; organization-owned shared credential grant; Ana-only install plus default-deny exact-eight-catalog Tool Profile; structural MCP health before provider access; one GET-only provider probe only during a separately authorized activation execution. No Wandora integration state is added, generic rest_api remains NO-GO, and grant/secret revocation fails closed at execution time.
+
 # Paperclip Capability Map
 
 - Date: 2026-09-20
