@@ -8,6 +8,7 @@ import { Es256JwksHumanTokenVerifier } from '../human-auth/es256-jwks.js';
 import { createPrivateGatewayClient } from '../messaging/private-gateway.js';
 import { createPaperclipExecutionHandler } from '../paperclip-execution/handler.js';
 import { createPaperclipRunIdentityClient } from '../paperclip-execution/paperclip-run-identity.js';
+import { createPaperclipToolGatewayReadBridge } from '../paperclip-execution/tool-gateway-read-bridge.js';
 import { PaperclipExecutionService } from '../paperclip-execution/service.js';
 import { BrasilApiCompanyRegistryLookup } from '../supervision/company-registry-lookup.js';
 import { HumanCompanyProfileService } from '../supervision/human-company-profile.js';
@@ -85,6 +86,11 @@ const handlePaperclipExecution = pool
         agentRuntime,
         new PostgresOrganizationGroundingProjection(pool),
         config.humanDigitalEmployeeWork ? organizationAdapterService : undefined,
+        config.agentRuntime?.mode === 'mastra-supervised-model'
+          ? createPaperclipToolGatewayReadBridge({
+              agentMeUrl: config.paperclipExecutionBridge.agentMeUrl,
+            })
+          : undefined,
       ),
     })
   : undefined;

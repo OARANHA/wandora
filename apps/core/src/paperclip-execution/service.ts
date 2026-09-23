@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { Pool, PoolClient } from 'pg';
 import type { OrganizationGroundingProjection } from '../agent-runtime/organization-grounding.js';
-import type { AgentTaskRuntime, AssignedTask, NormalizedExecutionUsage } from '../agent-runtime/task-runtime.js';
+import type { AgentTaskRuntime, AssignedTask, NormalizedExecutionUsage, RuntimeReadTool } from '../agent-runtime/task-runtime.js';
 import { paperclipManagedAgentRef } from '../organization-adapter/paperclip-provider.js';
 import type { PaperclipRunIdentity } from './paperclip-run-identity.js';
 import type { OrganizationAdapterService } from '../organization-adapter/service.js';
@@ -35,6 +35,10 @@ export class PaperclipExecutionService {
       | 'recordCatalogEmployeeWorkResult'
       | 'markCatalogEmployeeWorkExecutionUncertain'
     >,
+    private readonly readToolBridge?: (input: {
+      runToken: string;
+      paperclipRunId: string;
+    }) => Promise<RuntimeReadTool[]>,
   ) {}
 
   private async resolveOrganization(providerCompanyRef: string): Promise<string> {
@@ -65,6 +69,7 @@ export class PaperclipExecutionService {
 
   async execute(input: {
     identity: PaperclipRunIdentity;
+    runToken: string;
     paperclipRunId: string;
     workId?: string | null;
     task: AssignedTask;
@@ -135,6 +140,12 @@ export class PaperclipExecutionService {
 
     let result;
     try {
+      const readTools = this.readToolBridge
+        ? await this.readToolBridge({
+            runToken: input.runToken,
+            paperclipRunId: input.paperclipRunId,
+          })
+        : [];
       result = await this.runtime.executeAssignedTask({
         organizationId,
         employee: {
@@ -146,6 +157,7 @@ export class PaperclipExecutionService {
         },
         task: input.task,
         grounding,
+        ...(readTools.length > 0 ? { readTools } : {}),
       });
     } catch (error) {
       if (input.workId && this.workProjection) {

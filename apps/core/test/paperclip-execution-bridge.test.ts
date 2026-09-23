@@ -103,6 +103,7 @@ test('Paperclip execution handler fails closed before runtime and forwards only 
       paperclipCompanyId: COMPANY,
       catalogKey: 'ana-commercial-v1',
     },
+    runToken: 'opaque-run-token',
     paperclipRunId: RUN,
     workId: WORK,
     task: {
@@ -110,7 +111,7 @@ test('Paperclip execution handler fails closed before runtime and forwards only 
       description: 'Entender a necessidade do contato.',
     },
   });
-  assert.equal(JSON.stringify(executionInput).includes('opaque-run-token'), false);
+  assert.equal(JSON.stringify(executionInput).includes('opaque-run-token'), true);
   assert.equal(JSON.stringify(executionInput).includes('issue-1'), false);
   assert.equal(JSON.stringify(executionInput).includes('MED-1'), false);
 });

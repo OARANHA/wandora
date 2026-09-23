@@ -187,3 +187,69 @@ test('mastra supervised model runtime aborts before the Paperclip bridge timeout
     server.close();
   }
 });
+
+
+test('mastra supervised runtime exposes only supplied read tools without leaking gateway credentials', async () => {
+  const requests: Array<Record<string, unknown>> = [];
+  const { server, baseUrl } = await listen(async (req, res) => {
+    let raw = '';
+    for await (const chunk of req) raw += chunk;
+    requests.push(JSON.parse(raw) as Record<string, unknown>);
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({
+      id: 'chatcmpl-tools',
+      object: 'chat.completion',
+      created: 1,
+      model: 'mistral-small-2603',
+      choices: [{
+        index: 0,
+        message: { role: 'assistant', content: '{"summary":"Consulta disponível para uso supervisionado."}' },
+        finish_reason: 'stop',
+      }],
+      usage: { prompt_tokens: 17, completion_tokens: 9, total_tokens: 26 },
+    }));
+  });
+
+  try {
+    let toolCalls = 0;
+    const runtime = new MastraSupervisedModelAgentRuntime(config(baseUrl));
+    const result = await runtime.executeAssignedTask({
+      organizationId: ORG,
+      employee: plannerInput().employee,
+      task: { title: 'Consultar catálogo', description: 'Use leitura se necessário.' },
+      grounding: {
+        officialFacts: [],
+        houseRules: [],
+        workContext: { title: 'Consultar catálogo', description: 'Use leitura se necessário.' },
+      },
+      readTools: [{
+        name: 'vendaerp_search_products',
+        title: 'VendaERP Search Products',
+        description: 'Consulta produtos sem alterar o ERP.',
+        inputSchema: {
+          type: 'object',
+          properties: { name: { type: 'string' } },
+          additionalProperties: false,
+        },
+        execute: async () => {
+          toolCalls += 1;
+          return { items: [] };
+        },
+      }],
+    });
+
+    assert.equal(result.summary, 'Consulta disponível para uso supervisionado.');
+    assert.equal(toolCalls, 0);
+    assert.equal(requests.length, 1);
+
+    const serialized = JSON.stringify(requests[0]);
+    assert.equal(serialized.includes('vendaerp_search_products'), true);
+    assert.equal(serialized.includes('Consulta produtos sem alterar o ERP.'), true);
+    assert.equal(serialized.includes('opaque-run-token'), false);
+    assert.equal(serialized.includes('gateway-token'), false);
+    assert.equal(serialized.includes(ORG), false);
+    assert.equal(serialized.includes(EMP), false);
+  } finally {
+    server.close();
+  }
+});

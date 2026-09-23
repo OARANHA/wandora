@@ -27,16 +27,36 @@ It is subordinate to accepted ADRs and `docs/CAPABILITY_AUTHORITY.md`. Customer-
 | Routines vs watchdog | Paperclip explicitly separates recurrence from stopped-work verification | Reuse the native primitive matching the intent; never use a watchdog as a scheduler |
 | Agent secrets | Company/user secret definitions, bindings, run-bound access and responsible-user contracts exist | **PAPERCLIP-OWNED** for Paperclip-controlled agent/runtime credentials, subject to connection/secret qualification |
 | Organization Adapter secret refs | Existing live `local_encrypted` + `secret_ref` integration is proven | Reuse; Wandora owns HMAC custody/mapping boundary only where required by the adapter contract |
-| Connections / grants | Connection schema and access model exist in v831.1; v916 materially expands the Connections train | **PAPERCLIP candidate authority** for organizational connection identity, grants and responsible-user routing |
+| Connections / grants | Connection schema and access model exist in v831.1; v916 materially expands the Connections train; ADR 0210/0211 qualify the local_stdio MCP read candidate and external-runtime bridge | **PAPERCLIP operational authority for the qualified MCP read path**, still subject to separate production activation for each tenant/provider connection |
 | Connection Intents | Materially expanded in v916: agent requests a missing connection and human resolves it | **PAPERCLIP candidate authority**; requires upgrade qualification before Wandora depends on it |
-| Tool profiles / policy | Tool profiles, connection installs and Tool Gateway foundation exist in v831.1 | **PAPERCLIP candidate authority** for organizational tool access; production dependency requires separate qualification |
-| Tool Gateway | Broker/policy/audit capability exists but has historically shipped as experimental | **QUARANTINE** until separately qualified; no Wandora production dependency merely because it exists |
+| Tool profiles / policy | Tool profiles, connection installs and Tool Gateway foundation exist in v831.1; ADR 0211 proves policy-filtered run-scoped read-tool listing/call for external `wandora_mastra` execution | **PAPERCLIP operational authority for qualified connection-backed MCP read access**; write/effect paths remain separately gated |
+| Tool Gateway | Broker/policy/audit capability exists; ADR 0211 qualifies the exact v2026.916.0 session/list/call contract for connection-backed MCP tools classified `risk=read` | **QUALIFIED ONLY FOR THE ADR 0211 MCP READ BRIDGE**; generic `rest_api`, write/destructive and approval-bearing execution remain quarantined/NO-GO until separately decided |
 | External adapter loading | Native external adapter registry/install/readback/test-environment | **PAPERCLIP-OWNED**; current `wandora_mastra` bridge uses this |
 | Run-scoped identity | Local-agent JWT / `/api/agents/me` identity validation is proven in the bridge | **PAPERCLIP-OWNED identity assertion**, independently reconciled by Wandora before effects |
 | Workspace / execution services | Paperclip contains execution workspace/runtime service capability | Paperclip controls its execution environment; Wandora must not duplicate it without a proven product-owned requirement |
 | Audit/activity | Activity log, revisions, run history and control-plane decisions | **PAPERCLIP audit for Paperclip state**; not a substitute for Wandora compliance/effect audit |
 | Import/export/backup | Company import/export and DB backup/recovery capability | Reuse for Paperclip recovery; Wandora retains its own product/data recovery contracts |
 | Chat/task interaction | Interaction and chat-task capabilities exist and continue expanding upstream | Treat as Paperclip control-plane UX capability unless Wandora product semantics require an adapter projection |
+
+## ADR 0211 external-runtime Tool Gateway qualification
+
+The current `wandora_mastra` adapter does not receive Paperclip native-runner tool injection. ADR 0211 therefore reuses Paperclip's run-scoped Tool Gateway rather than copying connection or execution authority into Wandora.
+
+Qualified path:
+
+```text
+Paperclip run JWT
+  -> short-lived Paperclip Tool Gateway session
+  -> policy-filtered connection-backed MCP risk=read descriptor
+  -> ephemeral Wandora RuntimeReadTool
+  -> ephemeral supervised Mastra Agent
+  -> Paperclip Tool Gateway call
+  -> Paperclip-owned grant/secret/MCP execution
+```
+
+The run JWT and Tool Gateway token are not model input or Wandora durable state. The deterministic Mastra runtime remains independent of this bridge.
+
+This qualification does **not** supersede ADR 0208: Paperclip generic `rest_api` Tool Gateway execution is still NO-GO.
 
 ## Important non-collisions
 
