@@ -1,3 +1,13 @@
+## Production checkpoint — ADR 0215 VendaERP activation phase 1 GREEN
+
+The first production phase of **28PRO VendaERP Read-Only Connection Activation Execution V1** is GREEN.
+
+Paperclip was recreated on the same `wandora/paperclip:v2026.916.0` image with one new read-only bind mount exposing the exact reviewed VendaERP MCP adapter from the stack-local deployment path. Source/staged/container SHA-256 all equal `3f051655ba01a73a204a7a68ede30e9c49e636916d625c7546787e5c73bd6f92`. Paperclip returned healthy with restart count 0 and live MCP initialize/tools/list returned exactly eight approved read-only tools.
+
+No VendaERP ToolApplication, ToolConnection, stdio template, grant, install, profile, secret or provider call exists yet. Ana remains Paperclip idle and Wandora active+supervised; work/outbound remain 0/0.
+
+Next phase requires secure custody of the owner-provided VendaERP Authorization-Token before any provider probe.
+
 ## Reconciled checkpoint — ADR 0214 VendaERP stack-local staging GREEN
 
 ADR 0214 narrows ADR 0213's host staging path after live permission reconciliation. The adapter will be staged under the existing operator-owned Paperclip stack at `/opt/wandora/stacks/paperclip/runtime-integrations/vendaerp-readonly-mcp` and bind-mounted read-only to the unchanged container path `/opt/wandora/integrations/vendaerp-readonly-mcp`.
