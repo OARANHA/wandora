@@ -1,3 +1,26 @@
+## Reconciled checkpoint — ADR 0211 Mastra ↔ Paperclip read Tool Gateway bridge GREEN
+
+Wandora Mastra ↔ Paperclip Tool Gateway Read Tool Bridge Candidate V1 is **CODE ONLY / GREEN / NO PRODUCTION EFFECT**.
+
+Verified entry:
+
+```text
+main = a1ae7eaca7dc468ad8f45eb84b60ade95f5337aa
+PR #275 = DRAFT during qualification
+reviewed implementation head = 824c8af8c21097a8ecb5d4f53ca9c99aecc214bd
+Paperclip pin = dffc2b3ca1b9e88fa21cb17493083e682dffd1ca
+```
+
+The bridge reuses the already-verified Paperclip run JWT only to establish a short-lived Tool Gateway session. Wandora Core admits only connection-backed MCP tools classified `risk=read`, exposes them to one ephemeral supervised Mastra Agent execution, and performs calls through Paperclip using only the Tool Gateway session token. Run JWTs, Tool Gateway tokens and provider secrets do not enter model messages or durable Wandora state.
+
+Cached customer-work replay returns before opening a Tool Gateway session. After work execution is prepared, a Tool Gateway failure shares the existing uncertain-execution boundary. The deterministic Mastra runtime is unchanged and does not use this bridge.
+
+Validation on the reviewed implementation head was 7/7 GREEN, including complete Core CI, Core Candidate Artifact, Paperclip Mastra Adapter CI with disposable Paperclip→Core→Mastra E2E, OpenAPI compatibility, Web, Platform Admin and Messaging Gateway.
+
+ADR 0208 remains authoritative: generic `rest_api` Tool Gateway execution is still NO-GO. Write/destructive tools and external effects are outside ADR 0211.
+
+Next safe slice: **28PRO VendaERP Read-Only Connection Activation Preflight V1 — NO EFFECT**.
+
 ## Reconciled checkpoint — ADR 0210 VendaERP read-only MCP candidate GREEN
 
 Paperclip VendaERP Read-Only MCP Adapter Candidate V1 is **CODE ONLY / GREEN / NO PRODUCTION EFFECT**.
