@@ -4266,3 +4266,20 @@ The production-shaped Web Docker build and all prior Web verifiers are GREEN, in
 Migration 017 remains **ABSENT in production**. No MEDICSPRO fact/rule was created, no Core/Web deployment occurred, no model/work/run/outbound effect occurred, and Human Send/Gateway outbound remain unchanged.
 
 Next decision after exact-head CI/merge: **Organization Grounding Production Promotion Preflight V1 — NO EFFECT**; production promotion is not implied by this code-only slice.
+
+## ADR 0200 — Customer Company Profile + First Access Onboarding Production Promotion Execution V1 — Partial Checkpoint
+
+Status: **PARTIAL / FAIL-CLOSED**.
+
+Migration 019 is now live and verified. The exact qualified Core and Web candidates from executable `main@0a7f368331882f6dcfe4ff1fe722be6e442354a5` are production-active and healthy:
+
+```text
+Core = wandora/core:organization-adapter-candidate-0a7f36833188
+Web = wandora/web:candidate-0a7f36833188
+```
+
+A fresh protected pre-019 backup was captured and restore-readiness proved in a disposable PostgreSQL container. The canonical onboarding overlay was activated briefly and Core remained ready, but production has zero unlinked Auth users and no canonical legitimate smoke e-mail alias.
+
+The required invite-only smoke therefore could not be performed without inventing identity state. The onboarding flag was turned back OFF. No organization profile, new identity, employee, provider binding, work, model run or outbound effect was created.
+
+Do not repeat migration 019 or Core/Web promotion. Next slice is **Customer Company Profile + First Access Onboarding — Invite-Only Smoke + Final Flag Activation V1**, requiring one legitimate e-mail address authorized to receive the production invite.

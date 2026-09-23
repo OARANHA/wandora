@@ -2590,3 +2590,20 @@ Correction preserves history instead of overwriting it. Raw sourceRef evidence i
 This adds no new table/migration, RAG, retrieval, vector, embedding, chunking, document store, memory or duplicate Paperclip/Mastra capability. The local production-shaped Web build is GREEN with the dedicated WANDORA_WEB_COMPANY_GROUNDING_SURFACE_V1_OK gate.
 
 Migration 017 is still not live and no production deploy/effect is part of this slice. A separately reviewed production-promotion preflight is required before any migration or Core/Web promotion.
+
+## ADR 0200 — Customer Company Profile + First Access Onboarding Production Promotion Execution V1 — Partial Checkpoint
+
+Status: **PARTIAL / FAIL-CLOSED**.
+
+Migration 019 is now live and verified. The exact qualified Core and Web candidates from executable `main@0a7f368331882f6dcfe4ff1fe722be6e442354a5` are production-active and healthy:
+
+```text
+Core = wandora/core:organization-adapter-candidate-0a7f36833188
+Web = wandora/web:candidate-0a7f36833188
+```
+
+A fresh protected pre-019 backup was captured and restore-readiness proved in a disposable PostgreSQL container. The canonical onboarding overlay was activated briefly and Core remained ready, but production has zero unlinked Auth users and no canonical legitimate smoke e-mail alias.
+
+The required invite-only smoke therefore could not be performed without inventing identity state. The onboarding flag was turned back OFF. No organization profile, new identity, employee, provider binding, work, model run or outbound effect was created.
+
+Do not repeat migration 019 or Core/Web promotion. Next slice is **Customer Company Profile + First Access Onboarding — Invite-Only Smoke + Final Flag Activation V1**, requiring one legitimate e-mail address authorized to receive the production invite.
