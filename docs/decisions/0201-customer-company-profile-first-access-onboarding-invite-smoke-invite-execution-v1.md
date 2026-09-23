@@ -1,6 +1,6 @@
 # ADR 0201 — Customer Company Profile + First Access Onboarding Invite-Only Smoke — Invite Execution V1
 
-Status: **PARTIAL / EXACTLY ONE REAL INVITE APPLIED / ACCEPTANCE PENDING**
+Status: **COMPLETE / PRODUCTION ONBOARDING ACTIVE / REAL INVITE-ONLY SMOKE PASSED**
 Date: 2026-09-23
 
 ## Context
@@ -96,3 +96,68 @@ Only after that verified Auth transition may the final onboarding flag be activa
 **Customer Company Profile + First Access Onboarding — Invite Acceptance + Final Flag Activation + Company Profile Smoke V1**
 
 Do not resend automatically. If delivery is questioned, reconcile Auth/SMTP provider evidence first.
+
+## FINAL INVITE ACCEPTANCE + COMPANY PROFILE SMOKE
+
+After the recipient completed the real invite flow and company onboarding, production reconciliation proved:
+
+```text
+Auth target rows = 1
+Auth confirmed = 1
+Auth signed in = 1
+Wandora identity = 1
+memberships = 1
+active owner memberships = 1
+organizations for target = 1
+organization profiles for target org = 1
+```
+
+The created organization is `28PRO`. The target address remains intentionally omitted from Git.
+
+The onboarding feature flag is now intentionally ON:
+
+```text
+WANDORA_CUSTOMER_COMPANY_ONBOARDING_ENABLED=true
+```
+
+Runtime after final activation:
+
+```text
+Core = wandora/core:organization-adapter-candidate-0a7f36833188 / healthy / restart 0
+Web = wandora/web:candidate-0a7f36833188 / healthy / restart 0
+Paperclip = wandora/paperclip:v2026.916.0 / healthy / restart 0
+Messaging Gateway = wandora/messaging-gateway:origin-fix-94cfb4de / healthy / restart 0
+Supabase Auth = supabase/gotrue:v2.196.0 / healthy / restart 0
+```
+
+Scoped to the newly created organization, forbidden collateral remained zero:
+
+```text
+digital-employee eligibility = 0
+hire operations = 0
+outbound attempts = 0
+```
+
+No employee, Paperclip provisioning/binding, Mastra run/workflow, work item or outbound effect was created by onboarding.
+
+BrasilAPI remains an optional enrichment provider. The production Core adapter independently validates CPF/CNPJ/CEP locally and uses BrasilAPI only for lookup enrichment. After flag activation, raw provider verification from inside Core with the adapter's exact headers returned HTTP 200 for both CEP and CNPJ. Provider lookup failure therefore remains fail-soft and is not the authority for CNPJ/CEP syntax validity.
+
+## FINAL RESULT
+
+**COMPLETE / PRODUCTION ONBOARDING ACTIVE / REAL INVITE-ONLY SMOKE PASSED.**
+
+The invite-only first-access path is now proven end to end:
+
+```text
+provider-native invite
+→ invite acceptance
+→ first password / authenticated session
+→ unlinked Wandora identity
+→ customer-company onboarding
+→ exactly one Wandora identity
+→ exactly one organization
+→ exactly one active owner membership
+→ exactly one organization profile
+```
+
+The onboarding flag may remain ON.
