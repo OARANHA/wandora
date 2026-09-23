@@ -50,5 +50,3 @@ assert(!source.includes('empresa · grounding oficial'), 'company_grounding_inte
 
 assert(!source.includes('grounding oficial'), 'company_grounding_internal_grounding_language_leaked');
 assert(!source.includes('registrar grounding'), 'company_grounding_internal_action_language_leaked');
-
-[executed on device: wandora-vps-01 (d266af26-d31e-4f0c-9840-ca03bb02b603)]
