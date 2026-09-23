@@ -1,5 +1,3 @@
-[Reading 428 lines from start (total: 428 lines, 0 remaining)]
-
 # ADR 0199 — Customer Company Profile + First Access Onboarding Production Promotion Preflight V1
 
 Status: **READY FOR SEPARATE PRODUCTION PROMOTION EXECUTION / NO PRODUCTION EFFECT**
@@ -428,5 +426,3 @@ This ADR authorizes no production effect.
 Next slice after this preflight is:
 
 **Customer Company Profile + First Access Onboarding Production Promotion Execution V1**.
-
-[executed on device: wandora-vps-01 (d266af26-d31e-4f0c-9840-ca03bb02b603)]
