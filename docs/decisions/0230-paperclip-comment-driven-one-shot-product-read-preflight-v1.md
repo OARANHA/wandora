@@ -1,52 +1,39 @@
 # ADR 0230 — Paperclip Comment-Driven One-Shot Product Read Preflight V1
 
-Status: **NO-GO / NO PROVIDER CALL / GAP IDENTIFIED**
+Status: **GREEN / PREFLIGHT COMPLETE / NO PROVIDER CALL**
 Date: 2026-09-23
 
 ## Objective
 
-Determine whether a single human comment can safely trigger exactly one bounded `vendaerp_search_products` attempt without any provider call during preflight and without permitting provider-owned automatic follow-up to repeat the read.
+Qualify one future bounded 28PRO product read so that a human comment may trigger the supervised Ana runtime while the effective provider-call budget remains at most one `vendaerp_search_products` call even if Paperclip later attempts lifecycle recovery.
 
-This preflight is strictly NO EFFECT toward VendaERP.
+This preflight itself performs no VendaERP provider call and no model run.
 
 ## Canonical entry
 
 ```text
 main = 7d36d33a569b0ad72348f9e81812d1673b271c13
-open PRs = 0
 ADR 0229 = COMPLETE / GREEN
-Core live = wandora/core:organization-adapter-candidate-fc8721ccaedd
-VendaERP MCP live server.mjs = 6f27914c887e5ada8330f9eeb836f33b3626ad9c667d3c22dda77ddc55da683f
-Paperclip = wandora/paperclip:v2026.916.0
+open PRs = 0 at entry reconciliation
+
+Core =
+  wandora/core:organization-adapter-candidate-fc8721ccaedd
+  revision fc8721ccaedd5079eec9f3be11e8b64051416579
+  healthy / restart 0
+
+VendaERP MCP server.mjs =
+  6f27914c887e5ada8330f9eeb836f33b3626ad9c667d3c22dda77ddc55da683f
+
+Paperclip =
+  wandora/paperclip:v2026.916.0
+  pinned source dffc2b3ca1b9e88fa21cb17493083e682dffd1ca
 ```
 
-All four post-merge push workflows for `main@7d36d33a...` were GREEN before this decision.
+All four post-merge push workflows for the canonical entry were GREEN before the live control-plane proof.
 
-## PROVEN EVIDENCE — comment-driven wake
+## Proven Paperclip lifecycle — comment-driven success does not hand off again
 
-Pinned Paperclip source is exactly `v2026.916.0` at commit `dffc2b3ca1b9e88fa21cb17493083e682dffd1ca`.
-
-`shouldWakeAssigneeForIssueComment()` proves:
-
-- a non-self human comment on a non-terminal assigned issue is wake-eligible;
-- ordinary self-comments are inert;
-- an already-terminal issue is not reawakened unless the comment explicitly reopened it;
-- a completed prior run may explicitly resume, but the currently owning run cannot self-create a duplicate turn.
-
-The issue route emits a Paperclip-native wake with:
-
-```text
-reason = issue_commented
-contextSnapshot.wakeReason = issue_commented
-source = issue.comment
-commentId/wakeCommentId = exact comment id
-```
-
-No Wandora-owned lifecycle flag or retry subsystem is required.
-
-## PROVEN EVIDENCE — successful-run handoff exclusion
-
-Pinned Paperclip `decideSuccessfulRunHandoff()` has an early exclusion for:
+Pinned Paperclip source defines comment-driven wake reasons as:
 
 ```text
 issue_commented
@@ -54,31 +41,69 @@ issue_comment_mentioned
 issue_reopened_via_comment
 ```
 
-and returns:
+`decideSuccessfulRunHandoff()` returns:
 
 ```text
-skip: comment-driven wake already owns the next action
+skip
+reason = comment-driven wake already owns the next action
 ```
 
-Therefore a **successful** comment-driven run cannot create the previous `finish_successful_run_handoff` corrective run that duplicated ADR 0226.
+before the generic successful-run missing-disposition handoff path.
 
-## Adversarial gap — failed run recovery can still create another run
+The pinned source includes a focused test proving `issue_commented` does not queue a successful-run corrective handoff.
 
-The one-shot requirement must hold when the read fails, not only when the run succeeds.
+Therefore the duplicate mechanism observed in ADR 0227/PRO-8 through:
 
-Paperclip's release recovery tail applies to an assigned `todo`/`in_progress` issue when the source run finishes as:
+```text
+finish_successful_run_handoff
+```
+
+does not apply to a successful comment-driven run.
+
+## Proven Paperclip lifecycle — create the proof issue without an assignment wake
+
+Pinned Paperclip explicitly supports deliberately assigned backlog work.
+
+Creating an issue with:
+
+```text
+assigneeAgentId = Ana
+status = backlog
+```
+
+parks the issue and skips `issue_assigned`.
+
+The route and its existing test record:
+
+```text
+assignmentWakeSkipped = true
+assignmentWakeSkipReason = assigned_backlog
+```
+
+A later non-self human comment is independently wake-eligible through:
+
+```text
+reason = issue_commented
+source = issue.comment
+contextSnapshot.wakeReason = issue_commented
+commentId / wakeCommentId = exact comment
+```
+
+Paperclip `shouldAutoCheckoutIssueForWake()` accepts an owned, dependency-ready `backlog` issue for this wake reason.
+
+This gives the future execution a Paperclip-native sequence with no preliminary assignment/status wake.
+
+## Adversarial gap discovered — a failed run can still enter immediate recovery
+
+The first review found an independent duplicate path.
+
+For an assigned `todo` or `in_progress` issue whose source run finishes:
 
 ```text
 failed | timed_out | cancelled
 ```
 
-If no independent wake/path/monitor/blocker/pause suppresses recovery and the source is not classified as explicitly non-retryable, `decideReleaseRecovery()` may return:
-
-```text
-queue_recovery
-```
-
-which creates a new run with:
+Paperclip's release-recovery tail can queue:
 
 ```text
 wakeReason = issue_continuation_needed
@@ -86,124 +111,295 @@ retryReason = issue_continuation_needed
 retryOfRunId = failed source run
 ```
 
-This path is independent of `finish_successful_run_handoff`.
+when no existing path/blocker/monitor/pause/non-retryable classification suppresses it.
 
-## PROVEN EVIDENCE — comment-driven origin does not itself block immediate recovery
+Comment-driven origin alone is not a suppression fact.
 
-`isImmediateRecoverySourceBlocked()` blocks only when at least one of these conditions is true:
+The current external adapter failure boundary can also persist an uncategorized thrown bridge failure as `adapter_failed`.
 
-- the source is owned by a chat inbound/failed-run retry action;
-- `run.errorCode === chat_failed_run_retry_not_authorized`;
-- `classifyContinuationFailure(run).kind === non_retryable`.
+Therefore comment-driven wake semantics alone are insufficient to prove an at-most-one provider-call budget.
 
-It does **not** block merely because `contextSnapshot.wakeReason === issue_commented`.
+## Reuse Gate — provider-native invocation budget
 
-Therefore comment-driven origin alone does not guarantee one-shot failed-run behavior.
+A second adversarial review searched Paperclip's existing policy authority before proposing any Wandora state or lifecycle mechanism.
 
-## Why the current Wandora error maps into retryable Paperclip state
+Pinned Paperclip already provides a generic Tool Gateway `rate_limit` policy with:
 
-The promoted Core bridge correctly fails closed when an MCP tool result has `isError=true` by throwing:
+- exact selectors including `issueId`, `catalogEntryId` and `toolName`;
+- context conditions including `issueId`;
+- configurable positive `limit` and `windowSeconds`;
+- atomic counter consumption in the Paperclip database;
+- counter cleanup by FK cascade when the policy is deleted;
+- normal Tool Gateway enforcement with `consumeRateLimit=true` before provider dispatch.
 
-```text
-PaperclipToolGatewayReadBridgeError("unavailable")
-```
+The pinned tests prove concurrent consumption of a final `limit=1` slot admits exactly one decision and rate-limits the other.
 
-However the Core HTTP server currently catches an uncategorized exception from `/internal/v1/paperclip/execution` and returns:
+This is already Paperclip-owned operational authority. No Wandora retry table, lock, invocation counter or state machine is justified.
 
-```text
-HTTP 500
-{ "error": "internal-error" }
-```
+## Live Paperclip-only proof
 
-`wandora_mastra` treats every non-2xx bridge response as:
+The live proof used the existing 28PRO company, Ana and VendaERP catalog.
 
-```text
-throw new Error(`wandora_execution_failed_${response.status}`)
-```
-
-The Paperclip heartbeat adapter failure path then persists the default run error code:
+Pre-proof state:
 
 ```text
-errorCode = adapter_failed
+Task Drain =
+  draining=false
+  activeRuns=0
+  pendingWakes=0
+  quiescent=true
+
+28PRO live runs = 0
+Ana = idle / wandora_mastra
+
+vendaerp_search_products catalogEntryId =
+165fcdca-8021-41dd-90e5-f0f143adeac3
+
+connectionId =
+8e2c23f4-73f5-444a-8647-71428819ea91
 ```
 
-Paperclip `classifyContinuationFailure()` explicitly places `adapter_failed` in:
+### Temporary issue
+
+One Paperclip-only issue was created:
 
 ```text
-TRANSIENT_INFRA_CONTINUATION_ERROR_CODES
+identifier = PRO-9
+id = bf33e38d-e705-4597-9dce-ec8afa997770
+status = backlog
+assignee = Ana
 ```
 
-with a bounded automatic continuation recovery budget.
+Immediate readback proved:
 
-Therefore a failed bounded VendaERP read may still authorize a second Paperclip run after the first run fails, even though comment-driven wakes are protected from successful-run handoff.
+```text
+live runs = 0
+```
+
+No comment was created.
+
+### Temporary issue-scoped profile
+
+A temporary active profile was created with:
+
+```text
+defaultAction = deny
+entries = exactly 1
+include catalogEntryId =
+165fcdca-8021-41dd-90e5-f0f143adeac3
+```
+
+It was bound with:
+
+```text
+targetType = issue
+targetId = PRO-9 id
+```
+
+Native policy-test with `consumeRateLimit=false` and `writeAuditEvent=false` evaluated all eight active VendaERP catalog entries.
+
+Result:
+
+```text
+vendaerp_search_products             = allow / allow_profile
+vendaerp_get_product_stock           = deny / deny_default
+vendaerp_list_companies              = deny / deny_default
+vendaerp_list_price_tables           = deny / deny_default
+vendaerp_probe                       = deny / deny_default
+vendaerp_search_orders               = deny / deny_default
+vendaerp_search_parties              = deny / deny_default
+vendaerp_search_price_table_products = deny / deny_default
+
+summary = allow 1 / deny 7
+```
+
+### Temporary issue-scoped invocation budget
+
+A temporary active Paperclip policy was created:
+
+```text
+policyType = rate_limit
+selectors =
+  issueId = PRO-9 id
+  catalogEntryId = product catalog entry
+  toolName = vendaerp_search_products
+conditions.context.issueId = PRO-9 id
+limit = 1
+windowSeconds = 3600
+keyBy = [agent, tool]
+```
+
+Two policy-test decisions were then made for exactly:
+
+```json
+{"pageSize":5,"skip":0}
+```
+
+with `consumeRateLimit=true` and `writeAuditEvent=false`.
+
+First decision:
+
+```text
+allowed = true
+decision = allow
+reasonCode = allow_profile
+```
+
+Second decision:
+
+```text
+allowed = false
+decision = rate_limited
+reasonCode = rate_limited
+count = 1
+limit = 1
+windowSeconds = 3600
+```
+
+No Tool Gateway tool call was made by policy-test.
+
+## Why this closes the failed-run recovery objection
+
+The real Tool Gateway call path builds the policy input with:
+
+```text
+consumeRateLimit = true
+```
+
+then executes:
+
+```text
+policyService.decide(...)
+recordInvocation(...)
+writeAudit(...)
+if !accessDecision.allowed:
+  deny
+  throw ToolGatewayHttpError
+```
+
+before connected MCP/provider dispatch.
+
+Therefore, after the first product call consumes the single issue/tool slot:
+
+- the same run cannot reach VendaERP a second time;
+- a model attempt with changed arguments still matches the issue/tool rate policy;
+- a Paperclip `issue_continuation_needed` recovery run for the same issue still matches the same policy;
+- its attempted Tool Gateway call is denied before MCP/VendaERP dispatch.
+
+The earlier `adapter_failed` recovery objection remains a valid lifecycle observation, but it no longer permits a second provider call.
+
+This guard composes with ADR 0218's in-run identical-call memoization rather than replacing it.
+
+## Cleanup proof
+
+The temporary binding was removed.
+
+The temporary rate-limit policy was deleted, which also cascades its counter.
+
+The temporary profile was deleted.
+
+PRO-9 was deleted.
+
+Post-cleanup readback:
+
+```text
+PRO-9 = 404
+temporary profiles = 0
+temporary policies = 0
+recent VendaERP connection activity = 0
+
+Task Drain =
+  draining=false
+  activeRuns=0
+  pendingWakes=0
+  quiescent=true
+
+28PRO live runs = 0
+Wandora work operations = 0
+Wandora outbound attempts = 0
+provider log scan = empty
+```
+
+No provider call or model run occurred.
 
 ## Capability Authority / Reuse Gate
 
-The gap does **not** justify a Wandora retry engine, lifecycle table, wake state machine, second policy system or Paperclip fork.
+Authority remains:
 
-Correct ownership remains:
+- Wandora = business semantics, bounded read contract and external-effect authorization;
+- Paperclip = issue lifecycle, comment wake, recovery, profiles, policy, rate-limit counter, connection/grant/secret/catalog, Tool Gateway, audit and MCP execution;
+- Mastra = ephemeral supervised runtime;
+- VendaERP MCP = provider translation only.
 
-- Paperclip owns run lifecycle and recovery;
-- Wandora owns the semantic meaning of its bridge failure boundary;
-- `wandora_mastra` is the adapter boundary where Wandora bridge semantics are translated into Paperclip adapter semantics.
+No Wandora lifecycle flag, retry engine, rate-limit table, lock, policy engine or provider-call counter is introduced.
 
-ADR 0168 remains binding: provider replacement does not justify internalizing provider lifecycle.
+ADR 0168 is preserved and strengthened by reusing provider-native operational authority.
 
-## SECOND ADVERSARIAL REVIEW
+ADR 0208 remains preserved: generic REST Tool Gateway execution remains NO-GO.
 
-- Does comment-driven execution eliminate the ADR 0226 successful-run handoff duplicate? **Yes.**
-- Does that alone prove exactly one provider attempt? **No.**
-- Can a failed run enter Paperclip's immediate recovery tail? **Yes.**
-- Is comment-driven origin itself an immediate-recovery suppression fact? **No.**
-- Does the current bridge failure become a Paperclip non-retryable code? **No.**
-- Does it currently become `adapter_failed`? **Yes.**
-- Is `adapter_failed` classified as retryable/transient infrastructure? **Yes.**
-- Would a provider call now satisfy the one-shot contract? **No.**
-- Is a Paperclip fork required to close the gap? **Not proven; first reuse Paperclip's existing non-retryable classification boundary.**
+## Second adversarial review
 
-## Minimum correction boundary
+- Does a human comment use Paperclip-native lifecycle? **Yes.**
+- Is an assignment wake required first? **No; assigned backlog is deliberately parked.**
+- Can the comment wake auto-checkout the backlog issue? **Yes.**
+- Can a successful comment-driven run create `finish_successful_run_handoff`? **No.**
+- Could a failed run create a Paperclip recovery run? **Yes.**
+- Does that recovery run get a second VendaERP provider-call budget? **No; the issue/tool rate-limit slot is already consumed.**
+- Is rate-limit consumption atomic? **Yes.**
+- Is the limiter scoped to the temporary issue/tool rather than all Ana work? **Yes.**
+- Does policy-test itself execute the tool? **No.**
+- Did the live preflight create any run/model/provider/outbound effect? **No.**
+- Does cleanup remove the rate counter? **Yes; policy FK is ON DELETE CASCADE.**
+- Is a Wandora one-shot subsystem required? **No.**
+- Is a Paperclip fork required? **No.**
 
-Before another provider read can be authorized, the Wandora bridge/adapter must preserve the distinction between:
+## Frozen separate execution
 
-1. retryable infrastructure failures; and
-2. a bounded tool/provider execution failure that must fail closed **without automatic Paperclip continuation**.
+A separate **28PRO VendaERP Comment-Driven One-Shot Product Read Execution V3 — READ ONLY** may only:
 
-The correction should reuse Paperclip's existing non-retryable continuation classification rather than create a Wandora-owned retry/one-shot mechanism.
+1. reconcile canonical main, open PRs, runtime health, Ana, catalog, zero live runs and work/outbound;
+2. require Core `fc8721ccaedd...`, MCP `6f27914c...`, Paperclip `v2026.916.0` and `wandora_mastra@0.4.0`;
+3. create one temporary Paperclip-only issue assigned to Ana with explicit `status=backlog`;
+4. require no assignment wake/run was created;
+5. create one temporary active `defaultAction=deny` profile containing only `vendaerp_search_products`;
+6. bind it natively to that issue;
+7. create one temporary Paperclip `rate_limit` policy scoped to that exact `issueId + catalogEntryId + toolName`, with `limit=1` and a window covering the bounded execution;
+8. policy-test with `consumeRateLimit=false` and require exactly `1 allow / 7 deny`;
+9. require the rate slot is still unconsumed;
+10. post exactly one Board/user comment instructing Ana to call exactly:
+    ```json
+    {"pageSize":5,"skip":0}
+    ```
+    with `vendaerp_search_products`;
+11. permit no other VendaERP tool and no write/destructive capability;
+12. require the resulting wake reason is `issue_commented`;
+13. observe Paperclip lifecycle without manual wake/retry;
+14. treat **exactly one** Tool Gateway/provider invocation as the maximum allowed budget;
+15. if a second run is created by Paperclip recovery, require any second product-tool attempt to be `rate_limited` before MCP/provider dispatch;
+16. do not manually retry a failed or zero-call result in the same execution slice;
+17. on successful data recovery accept only:
+    - name;
+    - code;
+    - category;
+    - brand;
+    - unit;
+    - sale price;
+    - stock balance;
+18. exclude provider/internal IDs, barcode, minimum price, credentials/tokens and customer/order PII from proof output;
+19. wait until no live/pending execution remains, then remove the temporary issue binding/profile/rate policy/issue;
+20. reconcile Tool Gateway invocation count, connection activity, work/outbound, runtime health and cleanup residue;
+21. STOP.
 
-A follow-up code slice must determine the narrowest contract-safe mapping, with tests proving:
+If the model never invokes the product tool, the execution is not a successful product-read proof and must stop without a manual retry.
 
-- MCP `isError=true` still fails closed before model-visible success;
-- the resulting Paperclip run is terminal and classified non-retryable for automatic continuation;
-- no `finish_successful_run_handoff` is created for comment-driven wakes;
-- no `issue_continuation_needed` automatic successor is created for this bounded tool failure;
-- unrelated genuine transient infrastructure failures remain retryable;
-- no Paperclip fork/change is required if the adapter can map into an already-qualified native non-retryable code.
-
-## Effect boundary
-
-This preflight performed repository/source/runtime readback only.
-
-It did not:
-
-- create a Paperclip issue;
-- create a comment;
-- create a profile/binding;
-- start a run;
-- invoke Tool Gateway;
-- call VendaERP;
-- call a model;
-- create customer work/outbound;
-- mutate production;
-- restart any service.
+If the first provider call fails, capture only safe normalized evidence; no second provider call is permitted.
 
 ## Decision
 
-**NO-GO for another VendaERP product read.**
+**GREEN.**
 
-The comment-driven path solves the `finish_successful_run_handoff` duplicate, but it does not yet prove one-shot behavior across the failed-run recovery path.
+The comment-driven one-shot product read is qualified through Paperclip-native lifecycle + Paperclip-native issue-scoped invocation budget.
 
 Next slice:
 
-**Wandora Bridge Non-Retryable Tool Failure Mapping V1 — CODE ONLY / NO PROVIDER CALL**
-
-Only after that slice is reviewed, merged, promoted and separately preflighted may another bounded product read be considered.
+**28PRO VendaERP Comment-Driven One-Shot Product Read Execution V3 — READ ONLY**
