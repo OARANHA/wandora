@@ -1,3 +1,15 @@
+## Reconciled checkpoint — ADR 0224 ADR 0223 convergence promotion preflight GREEN
+
+ADR 0223 is merged at `main@e57d3b37c9e0bd01069a4a78b8a50076996e4de9`; its final reviewed head passed 9/9 workflows.
+
+The Core convergence candidate `wandora/core:organization-adapter-candidate-da4289034575` is source-equivalent to merged main and changes exactly `/services/core/image` in the full live Compose render.
+
+The ADR 0223 `wandora_mastra` candidate's operational files are byte-identical to the retained Paperclip package `6390812d...`, so convergence will reuse that provider-owned package rather than staging a duplicate. The current ADR 0221 package `ff93cfa7...` remains available for rollback.
+
+The live VendaERP MCP safe-logging build `067e7f98...` remains accepted and will not change.
+
+Core/Paperclip are healthy/restart 0; work operations and outbound attempts remain 0/0. ADR 0224 is **GREEN / NO EFFECT** and authorizes only a separate convergence promotion. Provider retry remains prohibited.
+
 ## Reconciled checkpoint — ADR 0223 Paperclip issue-scoped narrowing reuse
 
 Pinned Paperclip proves native issue-scoped tool-profile narrowing with precedence `gateway > issue > routine > agent > project > company`; ordinary profiles use narrowest-scope wins. ADR 0221's Wandora-owned per-task marker/allowlist is therefore superseded by provider-native authority.
