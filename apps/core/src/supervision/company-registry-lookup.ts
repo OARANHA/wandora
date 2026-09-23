@@ -37,6 +37,11 @@ export type CompanyRegistryLookup = {
   businessSegment?: string;
 };
 
+export interface CompanyRegistryLookupService {
+  lookupPostalCode(authorization: string | undefined, input: string): Promise<PostalCodeLookup>;
+  lookupCnpj(authorization: string | undefined, input: string): Promise<CompanyRegistryLookup>;
+}
+
 function record(value: unknown): Record<string, unknown> | undefined {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
     ? value as Record<string, unknown>
@@ -47,7 +52,7 @@ function text(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim() ? value.trim() : undefined;
 }
 
-export class BrasilApiCompanyRegistryLookup {
+export class BrasilApiCompanyRegistryLookup implements CompanyRegistryLookupService {
   constructor(
     private readonly verifier: HumanTokenVerifier,
     private readonly fetchImpl: FetchLike = fetch,
