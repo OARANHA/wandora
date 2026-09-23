@@ -155,6 +155,10 @@ test('Wandora work correlation is verified and result is committed without enter
         throw new Error('must not mark uncertain');
       },
     },
+    async () => {
+      bridgeCalls += 1;
+      throw new Error('bridge must not run for cached work');
+    },
   );
 
   const result = await service.execute({
@@ -194,6 +198,7 @@ test('cached exact work result prevents a duplicate AgentTaskRuntime execution',
   const WORK = '76000000-0000-4000-8000-0000000000a2';
   let runtimeCalls = 0;
   let recordCalls = 0;
+  let bridgeCalls = 0;
   const service = new PaperclipExecutionService(
     runtimePool,
     {
@@ -236,6 +241,7 @@ test('cached exact work result prevents a duplicate AgentTaskRuntime execution',
   });
   assert.equal(runtimeCalls, 0);
   assert.equal(recordCalls, 0);
+  assert.equal(bridgeCalls, 0);
 });
 
 test('runtime failure marks exact work execution uncertain and never retries inside the bridge', async () => {
@@ -345,4 +351,54 @@ test('execution service keeps Paperclip credentials outside runtime input while 
   assert.equal(serializedRuntime.includes(COMPANY), false);
   assert.equal(serializedRuntime.includes(AGENT), false);
   assert.equal(serializedRuntime.includes(RUN), false);
+});
+
+
+test('Tool Gateway failure after work preparation marks execution uncertain before runtime', async () => {
+  await resetFixture('active');
+  const WORK = '76000000-0000-4000-8000-0000000000a4';
+  let runtimeCalls = 0;
+  const uncertain: unknown[] = [];
+  const service = new PaperclipExecutionService(
+    runtimePool,
+    {
+      executeAssignedTask: async () => {
+        runtimeCalls += 1;
+        throw new Error('runtime must not run');
+      },
+    },
+    emptyGroundingProjection,
+    {
+      async prepareCatalogEmployeeWorkExecution() {
+        return { kind: 'execute' as const };
+      },
+      async recordCatalogEmployeeWorkResult() {
+        throw new Error('must not record');
+      },
+      async markCatalogEmployeeWorkExecutionUncertain(input) {
+        uncertain.push(input);
+      },
+    },
+    async () => {
+      throw new Error('synthetic Tool Gateway failure');
+    },
+  );
+
+  await assert.rejects(
+    service.execute({
+      identity: { paperclipAgentId: AGENT, paperclipCompanyId: COMPANY, catalogKey: 'ana-commercial-v1' },
+      runToken: 'synthetic-run-token',
+      paperclipRunId: RUN,
+      workId: WORK,
+      task: { title: 'Consultar catálogo', description: 'Somente leitura.' },
+    }),
+    /synthetic Tool Gateway failure/,
+  );
+  assert.equal(runtimeCalls, 0);
+  assert.deepEqual(uncertain, [{
+    organizationId: ORG,
+    employeeId: EMPLOYEE,
+    workId: WORK,
+    paperclipRunId: RUN,
+  }]);
 });
