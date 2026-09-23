@@ -4226,3 +4226,17 @@ The production-shaped Web Docker build and all prior Web verifiers are GREEN, in
 Migration 017 remains **ABSENT in production**. No MEDICSPRO fact/rule was created, no Core/Web deployment occurred, no model/work/run/outbound effect occurred, and Human Send/Gateway outbound remain unchanged.
 
 Next decision after exact-head CI/merge: **Organization Grounding Production Promotion Preflight V1 — NO EFFECT**; production promotion is not implied by this code-only slice.
+
+## ADR 0199 — Customer Company Profile + First Access Onboarding Production Promotion Preflight V1
+
+Status: **READY FOR SEPARATE PRODUCTION PROMOTION EXECUTION / NO PRODUCTION EFFECT**.
+
+Preflight reconciled and qualified `main@0a7f368331882f6dcfe4ff1fe722be6e442354a5`. Two promotion gaps were found and corrected before readiness: the missing canonical Core onboarding activation overlay and missing authenticated Core Human API wiring for fail-soft CEP/CNPJ lookup. PR #259 merged these code/config-only corrections; post-merge push workflows are 6/6 GREEN.
+
+Exact post-correction promotion artifacts are frozen in ADR 0199:
+- Core artifact `10734743245`, GitHub/ZIP SHA-256 `875ff17010e5974a15bc18e82cd9d949d54b77ddd67fcd2e62ba3f9efafaf8bd`;
+- Web artifact `10735126200`, GitHub/ZIP SHA-256 `4efe33331ac8343856127980322ec357c6a73ae3ed58cf1a0f53dfda91a82d4e`.
+
+Production remains unchanged: live Core/Web images were not promoted, migration 019 remains absent, `wandora.organization_profiles` remains absent and `WANDORA_CUSTOMER_COMPANY_ONBOARDING_ENABLED` remains absent.
+
+The next slice is strictly separate: **Customer Company Profile + First Access Onboarding Production Promotion Execution V1**.
