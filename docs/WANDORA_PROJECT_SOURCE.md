@@ -1,5 +1,34 @@
 # Wandora — Project Source / Continuity Bootstrap
 
+## Current continuity checkpoint — ADR 0195
+
+Organization Grounding Source File Upload Production Promotion Preflight V1 is **COMPLETE / GO FOR A SEPARATE FUTURE EXECUTION / NO PRODUCTION EFFECT**.
+
+The only accepted future promotion path is:
+
+```text
+fresh execution-time backup + clean restore-check
+→ migration 018 + verifier
+→ exact private Web candidate proof
+→ Web-only promotion
+→ validation
+→ STOP
+```
+
+Do not promote Core/Paperclip/Mastra/Gateway. Do not create a synthetic organization file merely to prove the deployment.
+
+Exact qualified Web artifact:
+
+```text
+artifact id = 10729343085
+source = aaada76d9806d48ce3e3047a299974ee9d41a480
+digest = sha256:f7957a554ade68b4c23c760ef238216b9c2177723f97548c9ef9c54e14e03e8d
+image = wandora/web:candidate-aaada76d9806
+```
+
+Preflight restore rehearsal on a production-derived dump passed migration 018 + `ORGANIZATION_GROUNDING_SOURCE_STORAGE_V1_VERIFY_OK`. Production itself remains unchanged: target bucket/policies/objects are still 0.
+
+
 ## Current continuity checkpoint — ADR 0194
 
 Organization Grounding Source File Upload Implementation V1 is **IMPLEMENTED IN CODE / NO PRODUCTION EFFECT**.
