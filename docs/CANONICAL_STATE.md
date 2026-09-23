@@ -1,3 +1,17 @@
+## Production checkpoint — ADR 0216 28PRO VendaERP read-only activation GREEN
+
+**28PRO VendaERP Read-Only Connection Activation Execution V1 is GREEN.**
+
+Paperclip now owns one active 28PRO `mcp_stdio/local_stdio` VendaERP Connection, one active default organization grant with three required Paperclip secret refs, one Ana-only install, one native default-deny install profile with exactly eight read catalog entries, and three active `local_encrypted` VendaERP secrets. The active approved stdio template is `wandora.vendaerp-readonly-v1-r1`; the original empty-tool template is disabled.
+
+Cross-company agent access was denied with HTTP 403. Ana sees exactly 8/8 allowed tools, all `risk=read`, with no write/destructive entries. One explicit `vendaerp_probe` executed through Paperclip Tool Gateway and returned HTTP 200 / `connected=true`. No retry was performed.
+
+Ana remains Wandora `active + supervised` and Paperclip `idle / wandora_mastra`; work operations remain 0 and outbound attempts remain 0.
+
+No credential plaintext entered Wandora, Git, Mastra or model prompts.
+
+Next safe slice: a separately bounded end-to-end Wandora → Paperclip Tool Gateway → supervised Mastra read-tool proof, still with no customer work, outbound or ERP write.
+
 ## Production checkpoint — ADR 0215 VendaERP activation phase 1 GREEN
 
 The first production phase of **28PRO VendaERP Read-Only Connection Activation Execution V1** is GREEN.
