@@ -1,3 +1,13 @@
+## Reconciled checkpoint — ADR 0226 VendaERP product retry preflight V2 GREEN
+
+Paperclip-native issue-scoped narrowing is production-proven without a provider call.
+
+A temporary unassigned Paperclip issue (`PRO-5`) and temporary `defaultAction=deny` profile were created. The profile contained exactly the `vendaerp_search_products` catalog entry and was bound with `targetType=issue`. Paperclip native policy-test against Ana + that issue returned exactly **1 allow / 7 deny** across the eight VendaERP catalog entries; only product search was allowed.
+
+No run, Tool Gateway invocation, model execution or provider call occurred. Binding/profile/issue were fully removed. Post-cleanup: no residual profile/issue, new heartbeat runs=0, Tool Gateway audit events=0, work=0, outbound=0, Core/Paperclip healthy.
+
+Next slice: **28PRO VendaERP Bounded Product Read Retry Execution V2 — READ ONLY**, using the frozen issue-scoped sequence and exactly `vendaerp_search_products {"pageSize":5,"skip":0}`, with no automatic retry.
+
 ## Reconciled checkpoint — ADR 0225 ADR 0224 convergence execution COMPLETE
 
 Production convergence qualified by ADR 0224 is complete and directly revalidated.
