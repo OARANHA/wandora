@@ -2704,3 +2704,31 @@ The production execution sequence is frozen as: Paperclip company create -> Orga
 No effect occurred in this preflight.
 
 Next safe slice: **28PRO Starter Digital Employee Production Activation Execution V1**. After starter workforce is proven `ready`, resume the provider-neutral ERP path; VendaERP remains only the first ERP provider.
+
+## ADR 0207 — 28PRO Starter Digital Employee Production Activation Execution V1
+
+Status: **PARTIAL / SAFE STOP AT ORGANIZATION-ADAPTER SECRET CUSTODY STEP**.
+
+Execution reconciled exactly one active Paperclip `28PRO` company (`5d7ec217-118c-4292-8136-0a9ab16926ea`), exactly one matching Wandora control-plane binding and an existing deterministic host HMAC file with `0640 wandora-admin:wandora-ops` custody.
+
+Current Paperclip company state: 0 Organization Adapter secrets, plugin config `null`, 0 agents. Current Wandora starter state: 0 eligibility, 0 employees, 0 hire operations, 0 employee/provider bindings.
+
+Remote execution tooling blocked the secret-transfer command before host execution. No secret-create request was dispatched. Do not recreate company, binding or HMAC.
+
+Continuation begins only at Paperclip HMAC secret creation, then plugin config -> eligibility -> paused-first hire -> activation, with reconciliation after every effect.
+
+### ADR 0207 continuation — 28PRO starter wiring ready for owner hire
+
+28PRO Organization Adapter wiring is now complete: exactly one active Paperclip HMAC secret, exact company-scoped plugin config with referenceCount 1 and lastError null, and zero provider agents.
+
+`ana-commercial-v1` eligibility is now enabled through the canonical least-privilege operator function. 28PRO still has 0 digital employees, 0 starter hire operations and 0 employee/provider bindings.
+
+Next effect is the normal owner/admin authenticated hire from the customer UI. Do not replace that boundary with an operator/direct-provider shortcut.
+
+### ADR 0207 complete — 28PRO starter workforce ready
+
+Owner-authorized hire and activation completed through the existing customer contracts. Final reconciliation proves exactly one Ana, hire `completed`, one employee/provider binding, Wandora Ana `active + supervised`, Paperclip Ana `idle`, 0 work items and 0 outbound attempts.
+
+28PRO is now starter-workforce ready. No Mastra run or external send was caused by activation.
+
+Next safe slice: **Paperclip Business-System Connection Container + REST Tool Gateway Read-Only Qualification V1 — CODE ONLY / NO EFFECT**; only after that should the real 28PRO VendaERP read-only connection be activated.
