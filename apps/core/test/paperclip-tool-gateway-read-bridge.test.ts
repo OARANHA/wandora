@@ -101,11 +101,13 @@ test('Paperclip read bridge exposes only authorized connection-backed read tools
   const callHeaders = requests[2]!.init?.headers as Record<string, string>;
   assert.equal(callHeaders['x-paperclip-tool-gateway-token'], 'ephemeral-gateway-token');
   assert.equal(JSON.stringify(requests[2]).includes('opaque-run-token'), false);
-  assert.deepEqual(JSON.parse(String(requests[2]!.init?.body)), {
-    tool: 'vendaerp_search_products',
-    parameters: { name: 'Tinta' },
-    timeoutMs: 5000,
-  });
+  const firstCallBody = JSON.parse(String(requests[2]!.init?.body)) as Record<string, unknown>;
+  assert.equal(firstCallBody.tool, 'vendaerp_search_products');
+  assert.deepEqual(firstCallBody.parameters, { name: 'Tinta' });
+  assert.equal(firstCallBody.timeoutMs, 5000);
+  assert.match(String(firstCallBody.idempotencyKey), /^wandora-read-v1:[0-9a-f]{64}$/);
+  assert.equal(String(firstCallBody.idempotencyKey).includes(RUN), false);
+  assert.equal(String(firstCallBody.idempotencyKey).includes('Tinta'), false);
 });
 
 test('Paperclip read bridge fails closed on noncanonical endpoints and denied gateway calls', async () => {
@@ -124,4 +126,53 @@ test('Paperclip read bridge fails closed on noncanonical endpoints and denied ga
     bridge({ runToken: 'opaque-run-token', paperclipRunId: RUN }),
     (error: unknown) => error instanceof PaperclipToolGatewayReadBridgeError && error.code === 'denied',
   );
+});
+
+
+test('Paperclip read bridge reuses one run-scoped idempotency key for repeated identical read calls', async () => {
+  const callBodies: Array<Record<string, unknown>> = [];
+  const fetchImpl: typeof fetch = async (input, init) => {
+    const url = String(input);
+    if (url.endsWith('/api/tool-gateway/sessions')) {
+      return new Response(JSON.stringify({
+        sessionId: 'session-repeat',
+        token: 'gateway-token-repeat',
+        expiresAt: new Date(Date.now() + 60_000).toISOString(),
+      }), { status: 201, headers: { 'content-type': 'application/json' } });
+    }
+    if (url.endsWith('/api/tool-gateway/tools')) {
+      return new Response(JSON.stringify([{
+        name: 'vendaerp_probe',
+        displayName: 'VendaERP Probe',
+        description: 'Probe read-only connectivity.',
+        parametersSchema: { type: 'object', properties: {}, additionalProperties: false },
+        pluginId: 'paperclip-gateway',
+        providerType: 'mcp_local_stdio',
+        risk: 'read',
+        connectionId: CONNECTION,
+        catalogEntryId: CATALOG,
+      }]), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    if (url.endsWith('/api/tool-gateway/tools/call')) {
+      callBodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+      return new Response(JSON.stringify({
+        content: '{"connected":true}',
+        data: { connected: true },
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    throw new Error('unexpected request');
+  };
+
+  const bridge = createPaperclipToolGatewayReadBridge({
+    agentMeUrl: 'http://wandora-paperclip:3100/api/agents/me',
+    fetchImpl,
+  });
+  const tools = await bridge({ runToken: 'opaque-run-token', paperclipRunId: RUN });
+
+  await tools[0]!.execute({});
+  await tools[0]!.execute({});
+
+  assert.equal(callBodies.length, 2);
+  assert.equal(callBodies[0]?.idempotencyKey, callBodies[1]?.idempotencyKey);
+  assert.match(String(callBodies[0]?.idempotencyKey), /^wandora-read-v1:[0-9a-f]{64}$/);
 });
