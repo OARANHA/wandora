@@ -224,6 +224,10 @@ test('cached exact work result prevents a duplicate AgentTaskRuntime execution',
         throw new Error('must not mark uncertain');
       },
     },
+    async () => {
+      bridgeCalls += 1;
+      throw new Error('bridge must not run for cached work');
+    },
   );
 
   const result = await service.execute({
