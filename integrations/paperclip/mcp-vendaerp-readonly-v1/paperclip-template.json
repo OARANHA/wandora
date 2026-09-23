@@ -1,0 +1,11 @@
+{
+  "templateKey": "wandora.vendaerp-readonly-v1",
+  "name": "Wandora VendaERP Read-Only V1",
+  "command": "node",
+  "args": ["/opt/wandora/integrations/vendaerp-readonly-mcp/server.mjs"],
+  "envKeys": [
+    "VENDAERP_AUTHORIZATION_TOKEN",
+    "VENDAERP_USER",
+    "VENDAERP_APP"
+  ]
+}
