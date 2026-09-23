@@ -103,7 +103,7 @@ type AuthenticatedUserResponse = {
   email?: string | null;
 };
 
-async function readAuthenticatedUserEmail(session: BrowserAuthSession): Promise<string> {
+export async function readAuthenticatedUserEmail(session: BrowserAuthSession): Promise<string> {
   let response: Response;
   try {
     response = await fetch(`${SUPABASE_AUTH_ORIGIN}/auth/v1/user`, {

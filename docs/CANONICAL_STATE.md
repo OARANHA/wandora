@@ -1,5 +1,13 @@
 # Wandora — Canonical State / Handoff
 
+## ADR 0198 — Customer Company Profile + First Access Onboarding V1 — CODE ONLY / GREEN
+
+Implemented behind an OFF-by-default runtime flag: canonical Wandora-owned organization profile; invite-only unlinked → first company setup; owner membership bootstrap without employee creation; local CPF, legacy/alphanumeric CNPJ and CEP validation; optional fail-soft BrasilAPI enrichment; owner/admin profile read/update; and masked tax ID summary in Empresa.
+
+Migration 019 is **NOT LIVE**. Live production has no `wandora.organization_profiles`, no onboarding function and no `WANDORA_CUSTOMER_COMPANY_ONBOARDING_ENABLED` flag.
+
+Disposable production-derived restore passed migration 019 + canonical verifier. Core and Web local gates are GREEN. See ADR 0198. Next slice is production-promotion preflight only.
+
 ## ADR 0197 — Organization Grounding Source File Owner-Session Smoke Test V1 — GREEN
 
 A normal authenticated MEDICSPRO owner uploaded exactly one real PDF through the customer-facing Company surface.

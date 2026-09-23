@@ -5,6 +5,7 @@ export function createRuntimeReadinessChecker(
   pool: Pool | undefined,
   options: {
     organizationAdapterEnabled?: boolean;
+    customerCompanyOnboardingEnabled?: boolean;
     customerHireEnabled?: boolean;
     customerWorkEnabled?: boolean;
     paperclipExecutionBridgeEnabled?: boolean;
@@ -27,6 +28,25 @@ export function createRuntimeReadinessChecker(
       }
     } catch {
       return { ready: false, reason: 'database-unavailable' };
+    }
+
+    if (options.customerCompanyOnboardingEnabled) {
+      try {
+        await pool.query(`
+          SELECT 1 FROM wandora.organization_profiles LIMIT 0;
+          SELECT to_regprocedure(
+            'wandora_private.complete_customer_company_onboarding_v1(text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,timestamptz)'
+          ) IS NOT NULL AS onboarding_contract;
+          SELECT to_regprocedure(
+            'wandora.update_organization_profile_v1(uuid,uuid,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,timestamptz)'
+          ) IS NOT NULL AS update_contract;
+        `);
+      } catch {
+        return {
+          ready: false,
+          reason: 'customer-company-onboarding-database-boundary-unavailable',
+        };
+      }
     }
 
     if (options.organizationAdapterEnabled) {

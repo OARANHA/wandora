@@ -1,5 +1,10 @@
 import { HumanAuthError } from '../human-auth/es256-jwks.js';
 import {
+  HumanCompanyProfileError,
+  type CompanyProfileInput,
+  type HumanCompanyProfileService,
+} from '../supervision/human-company-profile.js';
+import {
   DigitalEmployeeActivationError,
   DigitalEmployeeWorkError,
   OrganizationAdapterConflictError,
@@ -35,6 +40,8 @@ const CONVERSATION_DETAIL_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/convers
 const GROUNDING_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/grounding$/;
 const GROUNDING_RETIRE_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/grounding\/([^/]+)\/retire$/;
 const GROUNDING_CORRECT_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/grounding\/([^/]+)\/correct$/;
+const COMPANY_PROFILE_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/profile$/;
+const ONBOARDING_COMPANY_PATH = '/api/v1/onboarding/company';
 const SESSION_PATH = '/api/v1/me';
 const CATALOG_KEY_RE = /^[a-z0-9][a-z0-9._-]{2,63}$/;
 
@@ -52,7 +59,9 @@ export type HumanSupervisionResponse = {
 };
 
 export function isHumanSupervisionPath(pathname: string): boolean {
-  return pathname === SESSION_PATH || pathname.startsWith('/api/v1/organizations/');
+  return pathname === SESSION_PATH
+    || pathname === ONBOARDING_COMPANY_PATH
+    || pathname.startsWith('/api/v1/organizations/');
 }
 
 export function isHumanSendProposalPath(pathname: string): boolean {
@@ -83,6 +92,12 @@ export function isHumanDigitalEmployeeWorkPath(pathname: string): boolean {
   return Boolean(match?.[1] && match?.[2] && UUID_RE.test(match[1]) && UUID_RE.test(match[2]));
 }
 
+export function isHumanCompanyProfileMutationPath(pathname: string, method: string | undefined): boolean {
+  if (pathname === ONBOARDING_COMPANY_PATH) return method === 'POST';
+  const match = COMPANY_PROFILE_PATH_RE.exec(pathname);
+  return Boolean(match?.[1] && UUID_RE.test(match[1]) && method === 'PUT');
+}
+
 export function isHumanGroundingMutationPath(pathname: string): boolean {
   const create = GROUNDING_PATH_RE.exec(pathname);
   if (create?.[1] && UUID_RE.test(create[1])) return true;
@@ -94,6 +109,48 @@ export function isHumanGroundingMutationPath(pathname: string): boolean {
     && UUID_RE.test(correction[1])
     && UUID_RE.test(correction[2])
   );
+}
+
+function parseCompanyProfileRequest(rawBody: string | undefined): CompanyProfileInput | undefined {
+  if (!rawBody || rawBody.length > 8_192) return undefined;
+  try {
+    const parsed = JSON.parse(rawBody) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return undefined;
+    const record = parsed as Record<string, unknown>;
+    const requiredString = (key: string): string | undefined => (
+      typeof record[key] === 'string' ? record[key] as string : undefined
+    );
+    const optionalString = (key: string): string | null | undefined => (
+      record[key] == null ? null : typeof record[key] === 'string' ? record[key] as string : undefined
+    );
+    const entityType = record.entityType;
+    if (entityType !== 'pj' && entityType !== 'pf') return undefined;
+    const profile: CompanyProfileInput = {
+      organizationDisplayName: requiredString('organizationDisplayName') ?? '',
+      entityType,
+      legalName: requiredString('legalName') ?? '',
+      taxId: requiredString('taxId') ?? '',
+      responsibleName: requiredString('responsibleName') ?? '',
+      contactEmail: requiredString('contactEmail') ?? '',
+      phone: requiredString('phone') ?? '',
+      postalCode: requiredString('postalCode') ?? '',
+      addressLine1: requiredString('addressLine1') ?? '',
+      addressNumber: requiredString('addressNumber') ?? '',
+      addressComplement: optionalString('addressComplement') ?? null,
+      district: requiredString('district') ?? '',
+      city: requiredString('city') ?? '',
+      stateCode: requiredString('stateCode') ?? '',
+      website: optionalString('website') ?? null,
+      businessSegment: optionalString('businessSegment') ?? null,
+      timezone: requiredString('timezone') ?? '',
+    };
+    const allowed = new Set(Object.keys(profile));
+    if (Object.keys(record).some((key) => !allowed.has(key))) return undefined;
+    if (Object.values(profile).some((value) => value === undefined)) return undefined;
+    return profile;
+  } catch {
+    return undefined;
+  }
 }
 
 function parseDigitalEmployeeWorkRequest(rawBody: string | undefined): {
@@ -212,9 +269,50 @@ export function createHumanSupervisionHandler(
   digitalEmployeeActivationService?: HumanDigitalEmployeeActivationService,
   digitalEmployeeWorkService?: OrganizationAdapterService,
   groundingService?: HumanGroundingService,
+  companyProfileService?: HumanCompanyProfileService,
 ) {
   return async (request: HumanSupervisionRequest): Promise<HumanSupervisionResponse> => {
     try {
+      if (request.pathname === ONBOARDING_COMPANY_PATH) {
+        if (!companyProfileService) return { status: 404, body: { error: 'not-found' } };
+        if (request.method !== 'POST') return { status: 405, body: { error: 'method-not-allowed' } };
+        const idempotencyKey = request.idempotencyKey?.trim();
+        const profile = parseCompanyProfileRequest(request.rawBody);
+        if (!idempotencyKey || idempotencyKey.length > 255 || !profile) {
+          return { status: 400, body: { error: 'invalid-company-profile-request' } };
+        }
+        const result = await companyProfileService.completeOnboarding({
+          authorization: request.authorization,
+          correlationId: idempotencyKey,
+          profile,
+        });
+        return { status: 201, body: result };
+      }
+
+      const companyProfileMatch = COMPANY_PROFILE_PATH_RE.exec(request.pathname);
+      if (companyProfileMatch?.[1]) {
+        const organizationId = companyProfileMatch[1];
+        if (!UUID_RE.test(organizationId)) return { status: 404, body: { error: 'not-found' } };
+        if (!companyProfileService) return { status: 404, body: { error: 'not-found' } };
+        if (request.method === 'GET') {
+          const profile = await companyProfileService.getProfile(request.authorization, organizationId);
+          return { status: 200, body: { profile } };
+        }
+        if (request.method !== 'PUT') return { status: 405, body: { error: 'method-not-allowed' } };
+        const idempotencyKey = request.idempotencyKey?.trim();
+        const profile = parseCompanyProfileRequest(request.rawBody);
+        if (!idempotencyKey || idempotencyKey.length > 255 || !profile) {
+          return { status: 400, body: { error: 'invalid-company-profile-request' } };
+        }
+        const updated = await companyProfileService.updateProfile({
+          authorization: request.authorization,
+          organizationId,
+          correlationId: idempotencyKey,
+          profile,
+        });
+        return { status: 200, body: { profile: updated } };
+      }
+
       const sendMatch = SEND_PROPOSAL_PATH_RE.exec(request.pathname);
       if (sendMatch) {
         if (!sendProposalService) {
@@ -494,6 +592,12 @@ export function createHumanSupervisionHandler(
           return { status: 503, body: { error: 'authentication-unavailable' } };
         }
         return { status: 401, body: { error: 'unauthorized' } };
+      }
+      if (error instanceof HumanCompanyProfileError) {
+        if (error.code === 'invalid-profile') return { status: 400, body: { error: 'invalid-company-profile' } };
+        if (error.code === 'forbidden') return { status: 403, body: { error: 'forbidden' } };
+        if (error.code === 'already-linked') return { status: 409, body: { error: 'company-onboarding-conflict' } };
+        return { status: 503, body: { error: 'company-profile-unavailable' } };
       }
       if (error instanceof HumanAccessError) {
         return { status: 403, body: { error: 'forbidden' } };

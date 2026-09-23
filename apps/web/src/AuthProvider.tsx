@@ -4,6 +4,7 @@ import {
   clearBrowserSession,
   loadBrowserSession,
   refreshBrowserSession,
+  readAuthenticatedUserEmail,
   revokeBrowserSession,
   saveBrowserSession,
   sessionNeedsRefresh,
@@ -37,6 +38,7 @@ type AuthContextValue = {
   signOut: () => Promise<void>;
   selectOrganization: (organizationId: string) => void;
   authFetch: (input: string, init?: RequestInit) => Promise<Response>;
+  getAccountEmail: () => Promise<string>;
   retryBootstrap: () => Promise<void>;
   completePasswordSetup: (session: BrowserAuthSession) => Promise<void>;
 };
@@ -212,6 +214,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await bootstrap(current);
   }, [bootstrap, clearToAnonymous]);
 
+  const getAccountEmail = useCallback(async (): Promise<string> => {
+    const session = await getFreshSession(false);
+    return readAuthenticatedUserEmail(session);
+  }, [getFreshSession]);
+
   const authFetch = useCallback(async (input: string, init: RequestInit = {}) => {
     let session = await getFreshSession(false);
     const run = (token: string) => fetch(input, {
@@ -248,9 +255,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signOut,
     selectOrganization,
     authFetch,
+    getAccountEmail,
     retryBootstrap,
     completePasswordSetup,
-  }), [activeOrganization, authFetch, completePasswordSetup, context, error, retryBootstrap, selectOrganization, signIn, signOut, status]);
+  }), [activeOrganization, authFetch, completePasswordSetup, context, error, getAccountEmail, retryBootstrap, selectOrganization, signIn, signOut, status]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -1,5 +1,21 @@
 # Wandora — Project Source / Continuity Bootstrap
 
+## Current continuity checkpoint — ADR 0198
+
+Customer Company Profile + First Access Onboarding V1 is **IMPLEMENTED IN CODE / NO PRODUCTION EFFECT**.
+
+The invite-only `unlinked` path now has a reviewed company-profile onboarding implementation behind an OFF-by-default Core flag. It creates only Wandora user identity + organization + owner membership + canonical company profile; it does not create Ana, Paperclip/Mastra state, connections, work or outbound.
+
+CPF/CNPJ/CEP validation is deterministic and local. CNPJ supports both legacy numeric and Receita Federal alphanumeric formats. BrasilAPI is optional fail-soft CNPJ/CEP enrichment behind a provider-neutral adapter and is not validation authority.
+
+Migration 019 + verifier passed on a disposable production-derived restore. Core typecheck/build and 12 focused tests are GREEN; full Web build, all existing Web gates and `WANDORA_WEB_COMPANY_PROFILE_ONBOARDING_V1_OK` are GREEN.
+
+Production remains unchanged: migration 019/profile table/onboarding functions are absent and `WANDORA_CUSTOMER_COMPANY_ONBOARDING_ENABLED` is absent.
+
+Next safe slice: **Customer Company Profile + First Access Onboarding Production Promotion Preflight V1**. Do not apply migration 019 or activate the feature without that separate preflight.
+
+Git transport checkpoint: the host credential in `/etc/wandora/github-artifacts.env` is proven for artifact read/qualification but not repository write (`git push` returned GitHub 403). For this failure mode, use `docs/operations/github-actions-artifact-host-transfer-v1.md`: reconcile the remote first, use an authorized GitHub connector only for the work branch, and require exact local/remote tree-SHA equality before replacing any interrupted partial branch. Never force-update `main`.
+
 ## Current continuity checkpoint — ADR 0197
 
 Organization Grounding Source File Owner-Session Smoke Test V1 is **COMPLETE / GREEN**.

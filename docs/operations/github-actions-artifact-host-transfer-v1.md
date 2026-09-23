@@ -87,6 +87,30 @@ On digest/checksum mismatch:
 - redownload once through the canonical helper;
 - if mismatch persists, investigate the artifact/workflow.
 
+## Repository-write boundary and fallback
+
+The host credential in `/etc/wandora/github-artifacts.env` is canonical for **artifact read/qualification**. Do not assume it has repository `contents:write` permission.
+
+Observed failure mode on 2026-09-23:
+
+- normal `git push` over HTTPS could remain blocked waiting on credential flow;
+- a temporary `GIT_ASKPASS` that safely read `GH_TOKEN` from the host-only file proved the token itself was usable, but GitHub returned `403 Permission to OARANHA/wandora.git denied` for repository write;
+- therefore artifact-read success does not prove push permission.
+
+When repository write through the VPS credential is unavailable but an authorized GitHub connector is available, the accepted fallback is:
+
+1. reconcile whether any prior push or connector operation already changed the remote branch;
+2. never expose the host token in URLs, logs, process arguments or chat;
+3. create/update only a non-protected work branch through the authorized GitHub API connector;
+4. if an interrupted connector write left a partial branch, inspect its exact head before replacement;
+5. reconstruct the intended tree from the reviewed local checkout;
+6. compare the remote candidate tree SHA against the local `git rev-parse HEAD^{tree}` / `git write-tree` SHA;
+7. only after exact tree equality, move the **work branch only** to the validated commit; force-update is acceptable only when the existing branch is proven to be an incomplete artifact of the same interrupted transport;
+8. never force-update `main` or another protected/shared branch;
+9. reopen/reconcile the PR state rather than creating duplicates after a timeout or chat interruption.
+
+A remote commit SHA may differ from the local commit SHA because author/committer metadata can differ. The acceptance invariant is exact parent + exact tree/content, not commit-SHA identity.
+
 ## Rotation
 
 The current credential is a fine-grained PAT. Rotate before expiry.

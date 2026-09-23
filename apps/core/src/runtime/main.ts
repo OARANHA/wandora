@@ -9,6 +9,7 @@ import { createPrivateGatewayClient } from '../messaging/private-gateway.js';
 import { createPaperclipExecutionHandler } from '../paperclip-execution/handler.js';
 import { createPaperclipRunIdentityClient } from '../paperclip-execution/paperclip-run-identity.js';
 import { PaperclipExecutionService } from '../paperclip-execution/service.js';
+import { HumanCompanyProfileService } from '../supervision/human-company-profile.js';
 import { HumanDigitalEmployeeActivationService } from '../supervision/human-digital-employee-activation.js';
 import { HumanDigitalEmployeesReadService } from '../supervision/human-digital-employees-read.js';
 import { HumanGroundingService } from '../supervision/human-grounding.js';
@@ -49,6 +50,7 @@ const organizationAdapterService = pool && config.organizationAdapter
 
 const checkReady = createRuntimeReadinessChecker(pool, {
   organizationAdapterEnabled: Boolean(organizationAdapterService),
+  customerCompanyOnboardingEnabled: Boolean(config.customerCompanyOnboarding),
   customerHireEnabled: Boolean(config.humanDigitalEmployeeHire),
   customerWorkEnabled: Boolean(config.humanDigitalEmployeeWork),
   paperclipExecutionBridgeEnabled: Boolean(config.paperclipExecutionBridge),
@@ -99,6 +101,10 @@ const humanReadService = pool && humanVerifier
 
 const humanGroundingService = pool && humanReadService
   ? new HumanGroundingService(pool, humanReadService)
+  : undefined;
+
+const humanCompanyProfileService = pool && humanVerifier && humanReadService && config.customerCompanyOnboarding
+  ? new HumanCompanyProfileService(pool, humanVerifier, humanReadService)
   : undefined;
 
 const humanDigitalEmployeesReadService = pool && humanReadService
@@ -155,6 +161,7 @@ const handleHumanSupervision = humanReadService
       humanDigitalEmployeeActivationService,
       humanDigitalEmployeeWorkService,
       humanGroundingService,
+      humanCompanyProfileService,
     )
   : undefined;
 
@@ -173,6 +180,7 @@ server.listen(config.port, '0.0.0.0', () => {
     gatewayIngress: Boolean(handleGatewayInbound),
     paperclipExecutionBridge: Boolean(handlePaperclipExecution),
     humanApi: Boolean(handleHumanSupervision),
+    customerCompanyOnboarding: Boolean(humanCompanyProfileService),
     humanSendProposal: Boolean(humanSendProposalService),
     humanDigitalEmployeeHire: Boolean(humanDigitalEmployeeHireService),
     humanDigitalEmployeeActivation: Boolean(humanDigitalEmployeeActivationService),
