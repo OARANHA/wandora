@@ -1,3 +1,19 @@
+## Reconciled checkpoint — ADR 0224 Core + Paperclip adapter convergence COMPLETE
+
+Production is converged to ADR 0223 provider-native authority.
+
+- Core = `wandora/core:organization-adapter-candidate-da4289034575` / source `da42890345753ebabf579947f568acd74145089b`, healthy/restart 0.
+- Paperclip = `wandora/paperclip:v2026.916.0`, healthy/restart 0.
+- `wandora_mastra@0.4.0` = loaded/enabled from hash-addressed path `0e53cda6e...`, official test-environment PASS.
+- VendaERP MCP remains the safe-logging build `067e7f98912f...`; it was not modified by this convergence.
+- Paperclip Task Drain is no longer active after the required restart and is quiescent with activeRuns=0 / pendingWakes=0.
+- Wandora work operations = 0; outbound attempts = 0.
+- No VendaERP/provider retry occurred.
+
+ADR 0223 removed the redundant Wandora-owned per-task tool narrowing from the live Core + adapter path. Paperclip is the operational authority for issue-scoped profile binding and tool visibility.
+
+Next slice: **Paperclip-native issue-scoped VendaERP retry preflight — NO PROVIDER CALL**. Prove one temporary issue-scoped deny-by-default profile exposing exactly `vendaerp_search_products` before any bounded retry.
+
 ## Reconciled checkpoint — ADR 0223 Paperclip issue-scoped narrowing reuse
 
 Pinned Paperclip proves native issue-scoped tool-profile narrowing with precedence `gateway > issue > routine > agent > project > company`; ordinary profiles use narrowest-scope wins. ADR 0221's Wandora-owned per-task marker/allowlist is therefore superseded by provider-native authority.
