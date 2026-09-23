@@ -45,6 +45,7 @@ Native consoles — Paperclip UI, Mastra Studio, Evolution Manager, Supabase Stu
 | Auth transactional e-mail delivery | sender identity choice, rollout/custody policy and customer-access semantics | Supabase Auth creates invite/recovery mail; Resend SMTP supplies transport behind that Auth boundary |
 | Wandora durable facts | policy facts, mappings, projections, audit evidence, product state that must survive provider replacement | Supabase PostgreSQL is storage infrastructure |
 | Digital-employee organization/control plane | Wandora-facing employee identity/contract, customer policy and replaceability boundary | Paperclip through Organization Adapter, subject to adapter proof |
+| Starter digital employee / commercial activation | starter-workforce product semantics, entitlement/policy, readiness projection, effect authorization | reuse Paperclip company + managed employee lifecycle through existing Organization Adapter; no second provisioning engine |
 | Agent/workflow execution | Wandora Agent Runtime contract, allowed inputs/outputs and policy | Mastra through Agent Runtime Adapter |
 | WhatsApp/messaging transport | provider-neutral connection/send/receive contracts and effect policy | Evolution/Meta/etc through Messaging Gateway |
 | Model inference | model-neutral product/runtime contract and policy | Mistral/Chutes/OpenAI/etc behind provider boundary |
