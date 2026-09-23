@@ -1,3 +1,11 @@
+## Reconciled checkpoint — ADR 0218 read-tool idempotency candidate
+
+The first bounded production E2E read-tool run succeeded but caused five identical `vendaerp_probe {}` provider calls because the model repeated the tool across its five allowed steps. The temporary Paperclip-only issue was deleted; Wandora work/outbound remained 0/0.
+
+ADR 0218 reuses Paperclip's native Tool Gateway `idempotencyKey`: the Wandora ADR 0211 bridge derives only an opaque run-scoped SHA-256 operation key and persists no cache/state. The code fix is not yet promoted.
+
+After CI/merge, a fresh Core artifact must pass the ADR 0217 image-only promotion gate; the follow-up proof must show one actual provider execution plus only Paperclip idempotent replays if the model repeats the read call.
+
 ## Reconciled checkpoint — ADR 0217 VendaERP E2E Core bridge promotion preflight GREEN
 
 The bounded 28PRO VendaERP end-to-end proof requires one prerequisite: production Core is still `0a7f3683...`, which predates ADR 0211.
