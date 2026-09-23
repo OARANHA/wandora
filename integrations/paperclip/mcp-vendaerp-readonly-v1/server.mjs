@@ -1,7 +1,8 @@
 import readline from 'node:readline';
 
-export const VENDAERP_ORIGIN = 'https://whitelabel.vendaerp.com.br';
+export const VENDAERP_HOST_SUFFIX = '.vendaerp.com.br';
 export const DEFAULT_TIMEOUT_MS = 5000;
+const TENANT_RE = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 const MAX_SECRET = 8192;
 const ENV = Object.freeze({
   authorizationToken: 'VENDAERP_AUTHORIZATION_TOKEN',
@@ -67,6 +68,29 @@ function page(input = {}) {
     );
   }
   return { pageSize, skip };
+}
+
+export function vendaErpOriginForTenant(value) {
+  const tenant = requiredText(value, 'tenant', 63).toLowerCase();
+  if (!TENANT_RE.test(tenant)) {
+    throw new VendaErpAdapterError('invalid-input', 'Invalid VendaERP tenant.');
+  }
+  return `https://${tenant}${VENDAERP_HOST_SUFFIX}`;
+}
+
+export function tenantFromArgv(argv = process.argv.slice(2)) {
+  const indexes = argv.reduce((result, item, index) => (
+    item === '--tenant' ? [...result, index] : result
+  ), []);
+  if (indexes.length !== 1) {
+    throw new VendaErpAdapterError('invalid-input', 'Exactly one --tenant argument is required.');
+  }
+  const value = argv[indexes[0] + 1];
+  if (!value || value.startsWith('--')) {
+    throw new VendaErpAdapterError('invalid-input', 'VendaERP tenant value is required.');
+  }
+  vendaErpOriginForTenant(value);
+  return value.toLowerCase();
 }
 
 function credentialsFromEnv(env = process.env) {
@@ -188,10 +212,12 @@ export const TOOL_DEFINITIONS = Object.freeze([
 const TOOL_NAMES = new Set(TOOL_DEFINITIONS.map((tool) => tool.name));
 
 export function createVendaErpClient({
+  tenant,
   credentials,
   fetchImpl = fetch,
   timeoutMs = DEFAULT_TIMEOUT_MS,
 } = {}) {
+  const origin = vendaErpOriginForTenant(tenant);
   const safeCredentials = credentials ?? credentialsFromEnv();
   const normalized = {
     authorizationToken: requiredText(
@@ -209,8 +235,8 @@ export function createVendaErpClient({
     if (typeof path !== 'string' || !path.startsWith('/api/request/')) {
       throw new VendaErpAdapterError('invalid-input', 'Invalid provider path.');
     }
-    const url = new URL(path, VENDAERP_ORIGIN);
-    if (url.origin !== VENDAERP_ORIGIN) {
+    const url = new URL(path, origin);
+    if (url.origin !== origin) {
       throw new VendaErpAdapterError('invalid-input', 'Invalid provider origin.');
     }
     for (const [key, value] of Object.entries(query)) {
@@ -534,7 +560,7 @@ function rpcError(id, error) {
   };
 }
 
-async function handleMessage(message) {
+async function handleMessage(message, options = {}) {
   const id = message?.id;
   if (message?.method === 'initialize') {
     return rpcResult(id, {
@@ -562,6 +588,7 @@ async function handleMessage(message) {
       const result = await executeVendaErpTool(
         name,
         message?.params?.arguments ?? {},
+        options,
       );
       return rpcResult(id, {
         content: [{ type: 'text', text: JSON.stringify(result) }],
@@ -577,7 +604,7 @@ async function handleMessage(message) {
   );
 }
 
-export async function runStdio() {
+export async function runStdio(options = {}) {
   const rl = readline.createInterface({
     input: process.stdin,
     crlfDelay: Infinity,
@@ -597,7 +624,7 @@ export async function runStdio() {
       );
       continue;
     }
-    const response = await handleMessage(message);
+    const response = await handleMessage(message, options);
     if (response) process.stdout.write(JSON.stringify(response) + '\n');
   }
 }
@@ -609,7 +636,7 @@ const invokedAsScript =
   ).pathname;
 
 if (invokedAsScript) {
-  runStdio().catch(() => {
+  runStdio({ tenant: tenantFromArgv() }).catch(() => {
     process.exitCode = 1;
   });
 }
