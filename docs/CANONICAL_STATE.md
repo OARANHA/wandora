@@ -4101,5 +4101,3 @@ Migration 017 remains **ABSENT in production**. No MEDICSPRO fact/rule was creat
 Next decision after exact-head CI/merge: **Organization Grounding Production Promotion Preflight V1 — NO EFFECT**; production promotion is not implied by this code-only slice.
 
 [executed on device: wandora-vps-01 (d266af26-d31e-4f0c-9840-ca03bb02b603)]
-
-[executed on device: wandora-vps-01 (d266af26-d31e-4f0c-9840-ca03bb02b603)]
