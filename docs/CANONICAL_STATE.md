@@ -1,3 +1,21 @@
+## Production checkpoint — ADR 0225 ADR 0223 convergence complete
+
+ADR 0223 convergence is complete in production.
+
+- Core = `wandora/core:organization-adapter-candidate-da4289034575`, healthy/restart 0;
+- Paperclip = `wandora/paperclip:v2026.916.0`, healthy/restart 0;
+- `wandora_mastra@0.4.0` = ADR 0223 bytes (`index.mjs=a8928675...`), loaded/enabled;
+- active package path = `0e53cda6...`; bytes are identical to retained `6390812d...`;
+- VendaERP MCP safe logging remains `067e7f98...`;
+- adapter test-environment = PASS;
+- Ana = idle, live runs = 0;
+- work operations = 0; outbound attempts = 0;
+- no provider retry occurred.
+
+Operational deviation: a concurrent execution staged/installed the byte-identical `0e53cda6...` package rather than reusing the retained `6390812d...` path, and logs show two install calls for that same package. Final state is healthy and semantically identical, so no additional restart is justified merely to rewrite the package path.
+
+Next safe slice: **28PRO VendaERP Bounded Product Read Retry Preflight V2 — NO PROVIDER CALL**, using Paperclip native issue-scoped profile narrowing.
+
 ## Reconciled checkpoint — ADR 0224 ADR 0223 convergence promotion preflight GREEN
 
 ADR 0223 is merged at `main@e57d3b37c9e0bd01069a4a78b8a50076996e4de9`; its final reviewed head passed 9/9 workflows.
