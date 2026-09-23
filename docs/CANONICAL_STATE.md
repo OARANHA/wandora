@@ -1,5 +1,27 @@
 # Wandora — Canonical State / Handoff
 
+## ADR 0193 — Web Home Greeting + Company Detail Drawer Production Promotion V1 — GREEN
+
+Web `wandora/web:candidate-840469b365d1` from `main@840469b365d1b0af25fcb91f365dc74e0da04ea6` is live, healthy and restart 0. Public routes /, /team, /work, /conversations, /approvals and /company are 200; /api/v1/me without session remains 401.
+
+Core, Paperclip and Messaging Gateway were unchanged. MEDICSPRO grounding remains exactly 1 active fact, 1 retired fact, 1 active rule and 1 retired rule.
+
+The live Web now includes real-user Bom dia/Boa tarde/Boa noite greeting, reduced headline density, quick actions, bounded grounding previews and the right-side detail drawer. Source-file upload remains preflight-only and is not live.
+
+## ADR 0192 — Host-Authenticated GitHub Actions Artifact Transfer V1 — GREEN
+
+The VPS now has a canonical host-side artifact transfer path:
+
+```text
+credential = /etc/wandora/github-artifacts.env (0640 root:wandora-ops)
+helper = /home/wandora-admin/bin/wandora-github-artifact (0750)
+```
+
+Artifact `10727436371` proved the path end to end: authenticated GitHub metadata/download, GitHub digest match, safe extraction, internal SHA256SUMS and manifest qualification.
+
+Temporary connector-hosted artifact URLs are no longer the normal production-promotion path. See ADR 0192 and `docs/operations/github-actions-artifact-host-transfer-v1.md`.
+
+
 ## ADR 0191 — Grounding Source File Upload Capability Authority Preflight V1 — NO EFFECT
 
 Supabase Storage is the accepted blob implementation, but live Storage currently has no grounding bucket and no Storage policies. Upload is not live yet.
