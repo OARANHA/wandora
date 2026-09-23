@@ -7,7 +7,12 @@ Date: 2026-09-23
 
 Record the production convergence qualified by ADR 0224 after ADR 0223 proved that Paperclip already owns issue-scoped tool-profile narrowing.
 
-The final production state removes the redundant Wandora-owned per-task narrowing path from Core and `wandora_mastra`, preserves the VendaERP MCP safe-error observability build, and reuses the retained Paperclip adapter package required by the ADR 0224 reuse gate.
+The convergence removes the redundant Wandora-owned per-task narrowing path from:
+
+- Wandora Core;
+- external Paperclip adapter `wandora_mastra`.
+
+The accepted VendaERP MCP safe-error-observability build remains unchanged.
 
 ## Canonical source
 
@@ -19,7 +24,7 @@ ADR 0223 = capability correction
 ADR 0224 = convergence promotion preflight
 ```
 
-PR #291 exact head `0308965662dd53fd9d37d371522b092ff2c38a60` passed 9/9 workflows.
+PR #291 exact reviewed head `0308965662dd53fd9d37d371522b092ff2c38a60` passed 9/9 workflows.
 
 ## Qualified artifacts
 
@@ -27,91 +32,54 @@ Core:
 
 ```text
 source_sha = da42890345753ebabf579947f568acd74145089b
-image      = wandora/core:organization-adapter-candidate-da4289034575
+image = wandora/core:organization-adapter-candidate-da4289034575
+GitHub artifact ZIP sha256 = b96be5c6bbb09c5cc4a9dd6ac16c19532f4da525f0da90d7fdd4d39f774f670b
+archive sha256 = 74427dcd299bf7b2558c6049ddef3fe977f4f659950bc58592692f1b346735f7
 ```
 
-Source equivalence against merged main:
-
-```text
-apps/core/                                         101/101 blobs identical
-infra/stacks/core/                                  15/15 blobs identical
-integrations/paperclip/adapters/wandora-mastra-v1/  9/9 blobs identical
-```
-
-The full production Core Compose render had exactly one effective delta:
+The full live Core Compose preflight proved exactly one effective delta:
 
 ```text
 /services/core/image
 41801d40228f -> da4289034575
 ```
 
-Approved adapter operational bytes:
+Adapter candidate:
 
 ```text
-index.mjs     = a8928675fd80145e330e3a775f4ba3891b295edd48404331238db2a4980dfd39
-package.json  = f52507a1759ba6f6b137e9548ea0cea15c9a6b31fff1ea5f3ade5e4c2d05a12f
-compatibility = d3a741523b6b4e61adcd600051e80885ac1714c4982958b26a279ef8bba316e8
-version       = 0.4.0
+source = da42890345753ebabf579947f568acd74145089b
+version = 0.4.0
+candidate tgz sha256 = 0e53cda6e3b76492e89d50727befccfbab3d246a79155e15dd9929137d97fbb3
+index.mjs sha256 = a8928675fd80145e330e3a775f4ba3891b295edd48404331238db2a4980dfd39
 ```
 
-Those bytes are identical in the retained Paperclip-owned package:
+ADR 0224 proved these operational files are byte-identical to the retained Paperclip package:
 
 ```text
 /paperclip/operator-packages/wandora-paperclip-adapter-mastra-v1/
 6390812d44afed0918b64388a882e10de0761de08c9b78f440403336612b717c/package
 ```
 
-## Execution and reconciliation
+## Concurrency / evidence discipline
 
-An interrupted/concurrent execution began the convergence and was reconciled before any operation was repeated.
+The production mutation occurred while multiple operator sessions were reconciling the same authorized convergence slice.
 
-It had already:
+Therefore this ADR intentionally does **not** canonize an inferred count or ordering of transient install/restart requests unless the final claim is supported by durable state or direct readback.
 
-- promoted the qualified Core image;
-- staged and temporarily activated the approved adapter bytes under an additional hash-addressed path `0e53cda6...`;
-- restarted Paperclip;
-- left Core/Paperclip healthy and work/outbound at 0/0;
-- made no VendaERP provider retry.
+The permanent evidence is the final runtime, artifact provenance, Paperclip registry state, health/readiness checks and Wandora effect counters.
 
-That intermediate state was explicitly read back before the frozen ADR 0224 reuse gate was re-applied.
-
-ADR 0224 requires reuse of the already-retained `6390812d...` provider package rather than leaving an unnecessary duplicate as the active registration.
-
-A Paperclip-native Task Drain was then started with a bounded TTL and proved:
+This follows the project rule:
 
 ```text
-draining     = true
-activeRuns   = 0
-pendingWakes = 0
-quiescent    = true
+after timeout/disconnection/concurrency:
+read back real state before repeating an operation
 ```
 
-Exactly one official `POST /api/adapters/install` was then dispatched for the retained `6390812d...` local path.
-
-Paperclip returned:
-
-```text
-HTTP = 201
-version = 0.4.0
-requiresRestart = true
-```
-
-Readback immediately pointed to the retained package.
-
-Paperclip was then restarted once for this reuse correction using the unchanged image `wandora/paperclip:v2026.916.0`.
-
-After the restart:
-
-- Paperclip returned healthy/restart 0;
-- adapter readback pointed to the retained `6390812d...` package;
-- official adapter test-environment returned `status=pass`;
-- Task Drain was off/quiescent with activeRuns=0 and pendingWakes=0.
-
-No Core recreation was repeated during this correction because Core was already converged and healthy.
-
-After the retained package was proven active, the unreferenced duplicate directory `0e53cda6...` was removed from the Paperclip package store.
+No mutation was repeated merely because a chat response or remote command output was interrupted.
 
 ## Final production state
+
+Direct post-convergence readback proves:
 
 ```text
 Core
@@ -131,75 +99,81 @@ wandora_mastra
   disabled = false
   package  = /paperclip/operator-packages/wandora-paperclip-adapter-mastra-v1/
              6390812d44afed0918b64388a882e10de0761de08c9b78f440403336612b717c/package
-  test-environment = PASS
 
 VendaERP MCP
   server.mjs sha256 = 067e7f98912f8bfb7bd19f6d098d19dcbb443c451819d85f17e317a6fe774640
 
+Paperclip Task Drain
+  draining     = false
+  activeRuns   = 0
+  pendingWakes = 0
+  quiescent    = true
+
 Ana
-  status      = idle
-  adapterType = wandora_mastra
-  errorReason = null
-  orgChain    = healthy
+  Paperclip status = idle
+  adapterType      = wandora_mastra
 
 Wandora work operations = 0
 Wandora outbound attempts = 0
 ```
 
-No VendaERP tool call or provider request occurred during convergence.
+The Paperclip health endpoint returned HTTP 200 / `status=ok`.
 
-The temporary duplicate `0e53cda6...` package directory was removed after readback proved the retained `6390812d...` package was active. No duplicate adapter package remains from this convergence.
-
-## Capability authority result
-
-Final authority is:
+The official adapter environment test returned:
 
 ```text
-business-semantic choice = Wandora
-issue/profile/tool visibility = Paperclip
-connection/grant/secret/catalog/policy/audit/MCP execution = Paperclip
-supervised ephemeral execution = Mastra
-provider translation = VendaERP MCP
-provider data = VendaERP
+HTTP 200
+adapterType = wandora_mastra
+status = pass
+check = wandora-bridge-config
+message = Private Wandora bridge configuration is valid.
 ```
 
-The redundant Wandora task-tool authorization path is no longer active.
+## Capability-authority result
 
-ADR 0168 is preserved: portability is contract decoupling, not provider implementation duplication.
+The production runtime now matches ADR 0223:
+
+- Wandora owns business semantics and effect authorization;
+- Paperclip owns issue/profile binding, effective tool visibility, policy, connection, grant, secret custody, catalog, audit and MCP execution;
+- the redundant Wandora per-task marker/allowlist is not active in Core or `wandora_mastra`;
+- Mastra remains the ephemeral supervised runtime;
+- VendaERP MCP remains the provider translation boundary.
+
+ADR 0168 is strengthened: provider-native operational authority is reused rather than duplicated.
 
 ADR 0208 remains preserved: generic REST Tool Gateway execution is still NO-GO.
 
 ## Effect boundary
 
-This convergence did not:
+This convergence did **not**:
 
-- modify the VendaERP MCP;
+- change the VendaERP MCP;
 - call `vendaerp_probe`;
 - call `vendaerp_search_products`;
 - call any VendaERP provider endpoint;
 - create customer work;
 - create outbound attempts;
 - apply migrations;
-- change ToolConnection, grant, secret, catalog or VendaERP install state.
+- alter VendaERP ToolConnection/grant/secret/catalog/profile state.
 
 ## Decision
 
-**ADR 0224 convergence promotion is COMPLETE and aligned with its frozen reuse gate.**
-
-Final adapter reuse is exact: the active package is the retained Paperclip-owned `6390812d...` path, and the temporary duplicate package has been removed.
+**ADR 0224 convergence promotion is COMPLETE / GREEN.**
 
 The next slice is:
 
 **28PRO VendaERP Bounded Product Read Retry Preflight V2 — NO PROVIDER CALL**
 
-That preflight may prove:
+That preflight may:
 
-1. a temporary Paperclip-only issue;
-2. an issue-scoped deny-by-default profile;
-3. exactly one admitted catalog entry: `vendaerp_search_products`;
-4. effective Tool Gateway visibility of exactly that one read tool;
-5. no write/destructive tool visibility;
-6. safe cleanup/rollback of the temporary issue/profile;
-7. Core/Paperclip healthy, Ana idle, work/outbound 0/0.
+1. create one temporary Paperclip-only proof issue;
+2. create or reuse one temporary active `defaultAction=deny` profile;
+3. include exactly the catalog entry for `vendaerp_search_products`;
+4. bind the profile to that issue with `targetType=issue`;
+5. prove the issue scope wins over the broader Ana agent profile;
+6. prove effective Tool Gateway visibility is exactly one read tool;
+7. prove zero write/destructive visibility;
+8. prove cleanup/revoke of the temporary issue/profile;
+9. STOP before any provider call.
 
-Only a later separately authorized execution may perform one bounded provider read.
+Only a later separately authorized execution may perform one bounded VendaERP read.
