@@ -33,9 +33,9 @@ Wandora work operations and outbound attempts remained 0/0. No write/destructive
 
 ADR 0221 responded by adding a Wandora-owned per-task marker and intersecting Paperclip-authorized tools inside the ADR 0211 bridge.
 
-ADR 0222 subsequently qualified promotion of that code. A concurrent production execution then partially applied that plan before this deeper capability review completed.
+ADR 0222 subsequently qualified promotion of that code. A controlled production execution then completed that three-artifact promotion before this deeper capability correction was merged.
 
-Live reconciliation on 2026-09-23 proves:
+Live reconciliation after that promotion on 2026-09-23 proves:
 
 ```text
 Core
@@ -51,16 +51,28 @@ VendaERP MCP
 wandora_mastra
   version     = 0.4.0
   loaded      = true
-  package     = /paperclip/operator-packages/wandora-paperclip-adapter-mastra-v1/6390812d44afed0918b64388a882e10de0761de08c9b78f440403336612b717c/package
+  disabled    = false
+  package     = /paperclip/operator-packages/wandora-paperclip-adapter-mastra-v1/ff93cfa7f6d9efe7c7e544c49d0b985647c979cb74440617fdf487af5eb8ef92/package
+
+Paperclip
+  image       = wandora/paperclip:v2026.916.0
+  health      = healthy
+  restarts    = 0
+  adapter test-environment = pass
+
+Wandora work operations = 0
+Wandora outbound attempts = 0
 ```
 
-Therefore the ADR 0221 promotion occurred only partially:
+Therefore the ADR 0221 promotion is now complete:
 
 - Core per-task narrowing code is live;
-- safe VendaERP MCP error logging is live;
-- the ADR 0221 `wandora_mastra` marker-forwarding candidate was **not** installed.
+- the ADR 0221 `wandora_mastra` marker parser/forwarder is live;
+- safe VendaERP MCP error logging is live.
 
-Because the live adapter does not emit the ADR 0221 marker contract, the Core narrowing code is dormant in the current production path.
+No bounded product retry occurred after promotion.
+
+The newly proven Paperclip issue-profile capability makes the Core + adapter narrowing path redundant operational authority. It must be converged out before the provider retry rather than left as a parallel policy boundary.
 
 ## New proven provider evidence
 
@@ -134,7 +146,7 @@ Wandora remains authoritative for deciding which business capability is appropri
 
 The per-task read narrowing introduced by ADR 0221 is superseded and must be removed from the production Core path.
 
-Because a concurrent execution already promoted the ADR 0221 Core candidate, the next convergence promotion must restore the Core to the ADR 0218 behavior represented by this ADR 0223 branch.
+Because production now contains the ADR 0221 Core **and** external-adapter narrowing path, the next convergence promotion must restore both runtime artifacts to the provider-native authority model represented by this ADR 0223 branch.
 
 The following candidate changes are removed before production promotion:
 
@@ -184,7 +196,7 @@ The live MCP **has already been promoted** to this safe-logging version and must
 
 No MCP replacement is required by ADR 0223.
 
-Core and `wandora_mastra` do not need ADR 0221 narrowing promotion.
+The ADR 0221 Core and `wandora_mastra` narrowing code is currently live and must be removed together in the convergence promotion. The live MCP safe-logging build remains accepted and must not be rolled back.
 
 ## Provider error gap
 
@@ -219,7 +231,7 @@ Paperclip currently normalizes JSON-RPC tool failures to `local_stdio_protocol_e
 - Does issue scope override the Ana agent profile? **Yes, proven by pinned Paperclip precedence/tests.**
 - Are write/destructive tools admitted? **No.**
 - Does this authorize a provider retry? **No.**
-- Was production already partially changed concurrently before this ADR closed? **Yes: Core + MCP only, proven by live readback.**
+- Was production already changed before this ADR correction closed? **Yes: Core + adapter + MCP ADR 0221 artifacts are live, healthy and proven by readback; no provider retry followed.**
 - Does this ADR itself perform a new production mutation? **No.**
 - Does safe logging expose provider data? **No.**
 - Does ADR 0168 remain preserved? **Yes.**
@@ -248,13 +260,14 @@ ADR 0222's three-artifact promotion plan must not be repeated.
 
 The next safe runtime slice is:
 
-**ADR 0223 Core Convergence Promotion V1 — NO PROVIDER CALL**
+**ADR 0223 Core + Paperclip Adapter Convergence Promotion V1 — NO PROVIDER CALL**
 
 That slice may:
 
-1. promote only the ADR 0223 Core candidate that removes the dormant Wandora-owned per-task narrowing;
-2. leave the already-live `wandora_mastra` package unchanged;
+1. promote the ADR 0223 Core candidate that removes the Wandora-owned per-task narrowing;
+2. promote the ADR 0223 `wandora_mastra` candidate that removes marker parsing/forwarding;
 3. leave the already-live VendaERP MCP safe logging unchanged;
-4. require Core/Paperclip healthy and work/outbound 0/0.
+4. preserve the current Paperclip image, connection/grant/secret/profile/catalog state;
+5. require Core/Paperclip healthy, adapter test-environment PASS and work/outbound 0/0.
 
 After Core convergence, a separate retry preflight may create a temporary Paperclip issue-scoped profile containing exactly `vendaerp_search_products`, prove effective one-tool visibility, and only then authorize one new bounded provider read.
