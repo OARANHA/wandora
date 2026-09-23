@@ -1,6 +1,6 @@
 # Wandora — Canonical State / Handoff
 
-## ADR 0197 — Organization Grounding Source File Owner-Session Smoke Test V1 — PARTIAL GREEN
+## ADR 0197 — Organization Grounding Source File Owner-Session Smoke Test V1 — GREEN
 
 A normal authenticated MEDICSPRO owner uploaded exactly one real PDF through the customer-facing Company surface.
 
@@ -17,7 +17,7 @@ critical services = healthy / restart 0
 
 No direct SQL/Storage mutation, model work, Paperclip run or outbound effect was used.
 
-Upload + grounding association is GREEN. Full smoke test remains pending only the normal owner **Baixar arquivo** path, which must prove authenticated private download and browser SHA-256 verification without extracting/minting owner credentials.
+The same owner then used **Baixar arquivo** successfully. Storage independently recorded the exact authenticated private GET as HTTP 200 / application/pdf / 136312 bytes. Post-download state stayed unchanged at 1 object, 1 matching sourceRef, 2 works and 0 outbound attempts. Upload + association + private download are GREEN, with no owner credential extraction/minting.
 
 See ADR 0197.
 
