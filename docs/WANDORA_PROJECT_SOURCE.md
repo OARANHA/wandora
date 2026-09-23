@@ -2439,5 +2439,3 @@ Correction preserves history instead of overwriting it. Raw sourceRef evidence i
 This adds no new table/migration, RAG, retrieval, vector, embedding, chunking, document store, memory or duplicate Paperclip/Mastra capability. The local production-shaped Web build is GREEN with the dedicated WANDORA_WEB_COMPANY_GROUNDING_SURFACE_V1_OK gate.
 
 Migration 017 is still not live and no production deploy/effect is part of this slice. A separately reviewed production-promotion preflight is required before any migration or Core/Web promotion.
-
-[executed on device: wandora-vps-01 (d266af26-d31e-4f0c-9840-ca03bb02b603)]
