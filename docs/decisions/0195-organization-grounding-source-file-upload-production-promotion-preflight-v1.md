@@ -129,17 +129,26 @@ This dump is preflight evidence only. A future execution must capture a **fresh*
 
 ### Restore rehearsal history
 
-Two discarded laboratory attempts were reconciled and must not be repeated:
+Three discarded laboratory attempts were reconciled and must not be repeated:
 
 1. restoring into the default database of the exact Supabase image failed because that database already contains `storage`, while the dump correctly contains `CREATE SCHEMA storage`;
-2. the next attempt did not create the clean restore database because the SQL block was sent through `docker exec` without interactive stdin.
+2. the next attempt did not create the clean restore database because the SQL block was sent through `docker exec` without interactive stdin;
+3. the first clean-database retry started `pg_restore` after `pg_isready` but before the Supabase image had completed its own initialization/restart cycle; that expected internal restart terminated the restore session while adding the Storage FK.
 
-Neither attempt touched production.
+None of these attempts touched production.
 
-The valid rehearsal used:
+The valid rehearsal waited for the explicit image marker:
+
+```text
+PostgreSQL init process complete; ready for start up.
+```
+
+and only then required a post-restart `pg_isready`.
+
+It used:
 
 - exact image `supabase/postgres:17.6.1.136`;
-- a fresh database `wandora_restore` inside the disposable cluster;
+- a fresh database `wandora_restore_018` inside the disposable cluster;
 - native `supabase_admin`;
 - the reviewed non-secret Wandora role shapes required by the dump;
 - `pg_restore --exit-on-error`.
@@ -170,6 +179,16 @@ target policies = 2
 ```
 
 The verifier transaction rolled back its synthetic tenant/user/object fixtures.
+
+Final rehearsal log:
+
+```text
+/home/wandora-admin/preflights/grounding-source-file-upload-promotion-preflight-v1/
+  restore-rehearsal-018-final.log
+
+sha256 = 503d0b1b5d15577ab89bea8d044189399ba300bfd250ae815c285685d98fc76f
+result = RESTORE_REHEARSAL_018_OK
+```
 
 ## Exact Web artifact
 
