@@ -9,7 +9,6 @@ import {
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SIGNATURE_RE = /^sha256=([a-f0-9]{64})$/;
 const MAX_CLOCK_SKEW_SECONDS = 300;
-const TOOL_NAME_RE = /^[a-z0-9_.:-]{1,240}$/i;
 
 export type PaperclipExecutionRequest = {
   rawBody: string;
@@ -40,7 +39,6 @@ function parseBody(rawBody: string): {
   paperclipCompanyId: string;
   paperclipRunId: string;
   workId: string | null;
-  allowedReadToolNames: string[] | null;
   task: AssignedTask;
 } | undefined {
   let value: unknown;
@@ -63,28 +61,11 @@ function parseBody(rawBody: string): {
   if (!title && !description) return undefined;
   if (workId !== null && !UUID_RE.test(workId)) return undefined;
 
-  const suppliedAllowedReadToolNames = value.task.allowedReadToolNames;
-  let allowedReadToolNames: string[] | null = null;
-  if (suppliedAllowedReadToolNames !== null && suppliedAllowedReadToolNames !== undefined) {
-    if (
-      !Array.isArray(suppliedAllowedReadToolNames)
-      || suppliedAllowedReadToolNames.length < 1
-      || suppliedAllowedReadToolNames.length > 16
-    ) return undefined;
-    allowedReadToolNames = suppliedAllowedReadToolNames.map((item) =>
-      typeof item === 'string' ? item.trim().toLowerCase() : '');
-    if (
-      allowedReadToolNames.some((name) => !TOOL_NAME_RE.test(name))
-      || new Set(allowedReadToolNames).size !== allowedReadToolNames.length
-    ) return undefined;
-  }
-
   return {
     paperclipAgentId,
     paperclipCompanyId,
     paperclipRunId,
     workId,
-    allowedReadToolNames,
     task: { title: title ?? description!, description },
   };
 }
@@ -145,7 +126,6 @@ export function createPaperclipExecutionHandler(deps: {
         runToken,
         paperclipRunId: parsed.paperclipRunId,
         workId: parsed.workId,
-        allowedReadToolNames: parsed.allowedReadToolNames,
         task: parsed.task,
       });
       return { status: 200, body: result };

@@ -1,3 +1,21 @@
+## Reconciled checkpoint — ADR 0223 Paperclip issue-scoped narrowing reuse
+
+Pinned Paperclip proves native issue-scoped tool-profile narrowing with precedence `gateway > issue > routine > agent > project > company`; ordinary profiles use narrowest-scope wins. ADR 0221's Wandora-owned per-task marker/allowlist is therefore superseded by provider-native authority.
+
+Production reconciliation now proves the full ADR 0221 runtime promotion completed before this architectural correction merged:
+
+- Core = `wandora/core:organization-adapter-candidate-41801d40228f`, healthy/restart 0;
+- `wandora_mastra@0.4.0` = candidate package path `ff93cfa7...`, loaded/enabled;
+- VendaERP MCP = safe-logging `067e7f98...` build from `main@87bf5d51...`;
+- Paperclip = `wandora/paperclip:v2026.916.0`, healthy/restart 0;
+- official adapter test-environment = PASS;
+- work operations = 0; outbound attempts = 0;
+- no provider retry occurred after promotion.
+
+ADR 0223 therefore requires a **Core + Paperclip adapter convergence promotion** after merge/CI: remove the redundant Wandora per-task marker/allowlist from both runtime artifacts, retain the live safe-logging VendaERP MCP, and preserve all Paperclip connection/grant/secret/profile/catalog authority.
+
+Next after convergence: a separate retry preflight using a temporary Paperclip `issue` profile containing exactly `vendaerp_search_products`. No provider retry is authorized by this checkpoint.
+
 ## Reconciled checkpoint — ADR 0222 ADR 0221 runtime promotion preflight GREEN
 
 ADR 0221 is merged at `main@87bf5d51a694389900bb81d5efbfcc15a8e12557`; PR #289 exact head passed 9/9 workflows.
