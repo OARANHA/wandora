@@ -106,12 +106,6 @@ export class PaperclipExecutionService {
       .digest('hex')}`;
 
     const grounding = await this.groundingProjection.project(organizationId, input.task);
-    const readTools = this.readToolBridge
-      ? await this.readToolBridge({
-          runToken: input.runToken,
-          paperclipRunId: input.paperclipRunId,
-        })
-      : [];
 
     if (input.workId) {
       if (!this.workProjection) {
@@ -143,6 +137,13 @@ export class PaperclipExecutionService {
         throw new PaperclipExecutionBindingError('work-unavailable');
       }
     }
+
+    const readTools = this.readToolBridge
+      ? await this.readToolBridge({
+          runToken: input.runToken,
+          paperclipRunId: input.paperclipRunId,
+        })
+      : [];
 
     let result;
     try {
