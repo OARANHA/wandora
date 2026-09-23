@@ -123,6 +123,7 @@ export function createPaperclipExecutionHandler(deps: {
       });
       const result = await deps.service.execute({
         identity,
+        runToken,
         paperclipRunId: parsed.paperclipRunId,
         workId: parsed.workId,
         task: parsed.task,
