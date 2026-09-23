@@ -1,3 +1,24 @@
+## Reconciled checkpoint — ADR 0228 ADR 0227 Core + VendaERP MCP promotion preflight GREEN
+
+ADR 0227 promotion is qualified with **NO PRODUCTION EFFECT**.
+
+- canonical entry: `main@9b211486aaea640c3ff7a81a5f5e1171da225bdb`, PR #297 merged, open PRs=0;
+- PR #297 exact head = 9/9 GREEN; squash-main push workflows observed = 8/8 GREEN;
+- Core live remains `wandora/core:organization-adapter-candidate-da4289034575` / source `da428903...`, healthy/restart 0;
+- Paperclip remains `wandora/paperclip:v2026.916.0`, healthy/restart 0;
+- `wandora_mastra@0.4.0` remains loaded from retained package `6390812d...`;
+- VendaERP MCP live remains `067e7f98...`; candidate is `6f27914c...`;
+- Task Drain is off/quiescent, 28PRO live runs=0, PRO-8/profile residue=0;
+- 28PRO work/outbound remain 0/0;
+- Core artifact `10779549706` / image `...-fc8721ccaedd` is source-equivalent to merged main and changes only the Core image in the full Compose gate;
+- MCP candidate remains exactly eight read-only tools; MCP 10/10 + static verifier GREEN;
+- Core bridge focused tests 5/5 + typecheck/build GREEN;
+- no provider call, model run, issue/profile, migration, restart or production mutation occurred.
+
+ADR 0228 authorizes only a **separate Core + MCP Tool Error Semantics Promotion Execution V1** using Paperclip-native Task Drain, atomic stack-local MCP replacement and Core-only recreation. Paperclip, `wandora_mastra`, Connection/grant/secret/install/profile/catalog state remain unchanged. No VendaERP retry is authorized.
+
+After promotion, a separate **Paperclip Comment-Driven One-Shot Product Read Preflight V1 — NO PROVIDER CALL** is still required before any bounded read can be considered.
+
 ## Reconciled checkpoint — ADR 0227 product retry V2 NOT GREEN
 
 The ADR 0226 bounded product retry executed with a Paperclip-native issue profile exposing only `vendaerp_search_products`. Native policy-test was 1 allow / 7 deny.
