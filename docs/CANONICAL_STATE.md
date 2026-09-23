@@ -1,3 +1,24 @@
+## Reconciled checkpoint — ADR 0208 Business-System Tool Gateway qualification NO-GO
+
+Paperclip Business-System Connection Container + REST Tool Gateway Read-Only Qualification V1 is **NO-GO FOR REST TOOL GATEWAY / NO PRODUCTION EFFECT**.
+
+Verified entry state:
+
+```text
+main = 83fed6beb4bdaebb63dad04e8e0fbfc54472f97a
+open PRs = 0
+Paperclip = wandora/paperclip:v2026.916.0
+pinned source = dffc2b3ca1b9e88fa21cb17493083e682dffd1ca
+```
+
+28PRO remains starter-workforce ready: one active organization, one active+supervised Ana, one completed starter hire, one control-plane binding, one employee/provider binding, Paperclip Ana idle, work items 0. Paperclip has 0 Tool Connections and 0 Connection Grants for 28PRO; no VendaERP credential exists.
+
+Pinned Paperclip proves Connection/secrets/grants can represent the VendaERP three-header credential shape, but Tool Gateway execution is MCP-only for generic connected tools: `connectedMcpToolsForCompany` and test calls admit only `mcp_remote` / `local_stdio`, while remote dispatch is MCP JSON-RPC `tools/call`. The `rest_api` schema enum is not a generic REST execution boundary.
+
+Therefore Paperclip Connections/grants/secrets remain the preferred connection/custody authority, while REST Tool Gateway remains QUARANTINED for VendaERP on v2026.916.0. No Wandora REST executor, secret manager or duplicate tool engine is authorized.
+
+Next safe slice: **Business-System Read Execution Boundary Capability Preflight V1 — NO EFFECT**. Only after a narrow provider-owned execution boundary is proven may **28PRO VendaERP Read-Only Connection Activation Preflight V1 — NO EFFECT** begin.
+
 ## Reconciled real checkpoint — 2026-09-23 after ADR 0199 preflight
 
 Customer Company Profile + First Access Onboarding Production Promotion Preflight V1 is **READY FOR A SEPARATE PRODUCTION PROMOTION EXECUTION / NO PRODUCTION EFFECT**.
