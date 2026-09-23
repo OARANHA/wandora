@@ -1,5 +1,13 @@
 # Wandora — Project Source / Continuity Bootstrap
 
+## Current continuity checkpoint — ADR 0197
+
+Organization Grounding Source File Owner-Session Smoke Test V1 is **PARTIAL GREEN**.
+
+A normal authenticated MEDICSPRO owner uploaded one real PDF through `/company`. Production now has exactly 1 object in `organization-grounding-sources` and exactly 1 new active rule with `approved_source` provenance and a provider-neutral `wandora:grounding-source:v1:...` reference. MEDICSPRO works remain 2 and outbound attempts remain 0; critical services remain healthy/restart 0.
+
+The upload + grounding-association path is proved. The remaining bounded proof is the same owner's **Baixar arquivo** action through the customer UI so the authenticated private download + browser SHA-256 verification path is exercised. Do not mint/extract owner JWT or bypass the customer path.
+
 ## Current continuity checkpoint — ADR 0196
 
 Organization Grounding Source File Upload Production Promotion Execution V1 is **COMPLETE / GREEN**.
