@@ -10,7 +10,7 @@ const CONNECTION = '72222222-2222-4222-8222-222222222222';
 const CATALOG = '73333333-3333-4333-8333-333333333333';
 
 test('Paperclip read bridge exposes only authorized connection-backed read tools', async () => {
-  const requests: Array<{ url: string; init?: RequestInit }> = [];
+  const requests: Array<{ url: string; init: RequestInit | undefined }> = [];
   const fetchImpl: typeof fetch = async (input, init) => {
     const url = String(input);
     requests.push({ url, init });
