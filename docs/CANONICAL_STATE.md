@@ -1,3 +1,19 @@
+## Reconciled checkpoint — ADR 0231 issue-scoped one-shot budget correction GREEN
+
+ADR 0230's lifecycle objection remains valid, but its NO-GO conclusion is superseded by a narrower Paperclip-native guard proven live.
+
+- canonical entry: `main@0cc4b026a592e88538a040b5e0dc5a5fe7c480a1`;
+- assigned backlog + later human comment provides the intended `issue_commented` lifecycle without a preliminary assignment wake;
+- successful comment-driven runs remain excluded from `finish_successful_run_handoff`;
+- temporary live proof `PRO-9` used an issue-scoped deny-by-default profile exposing exactly `vendaerp_search_products`: 1 allow / 7 deny;
+- a Paperclip issue/tool-scoped `rate_limit` with limit 1 allowed the first policy decision and atomically rate-limited the second;
+- real Tool Gateway consumes the limit before MCP/provider dispatch;
+- a possible `issue_continuation_needed` recovery therefore cannot create a second VendaERP provider call, and a failed recovery cannot create another automatic recovery chain;
+- cleanup is complete: PRO-9/profile/policy absent, connection activity 0, live runs 0, Task Drain OFF/quiescent, work/outbound 0/0;
+- no model or VendaERP/provider call occurred.
+
+ADR 0231 authorizes only a separate **28PRO VendaERP Comment-Driven One-Shot Product Read Execution V3 — READ ONLY**.
+
 ## Reconciled checkpoint — ADR 0230 comment-driven one-shot preflight NO-GO
 
 The Paperclip comment-driven path is proven to exclude `finish_successful_run_handoff`, but a failed Wandora bridge run currently becomes Paperclip `adapter_failed`, which is classified as transient infrastructure and may create an automatic `issue_continuation_needed` successor. Therefore one-shot behavior is not yet proven.
