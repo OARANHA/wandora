@@ -65,15 +65,19 @@ It is a stateless MCP process intended for a future approved Paperclip `local_st
 
 It owns no connection state, credential state, grant state, employee state or business-system durable state.
 
-The fixed provider origin is:
+The provider origin is derived only from a tenant subdomain fixed at process startup by the approved Paperclip command template:
 
 ```text
-https://whitelabel.vendaerp.com.br
+https://<tenant>.vendaerp.com.br
 ```
 
-This value was verified against the current official VendaERP API explorer used by the provider documentation.
+For the 28PRO candidate template, the verified tenant supplied by the owner is `voepro`, producing:
 
-The candidate accepts no URL or HTTP method from the caller.
+```text
+https://voepro.vendaerp.com.br
+```
+
+The candidate validates the tenant as a subdomain label and rejects full URLs or hostnames. The tenant is not exposed as a tool argument. The candidate accepts no URL or HTTP method from the caller.
 
 ## Exact tool surface
 
@@ -170,7 +174,7 @@ Unrecognized VendaERP fields are not passed through automatically.
 Candidate-local validation is GREEN:
 
 ```text
-8 tests / 8 passed
+9 tests / 9 passed
 WANDORA_VENDAERP_READONLY_MCP_V1_OK
 WANDORA_PAPERCLIP_V916_LOCAL_STDIO_CONTRACT_OK
 ```
@@ -179,7 +183,7 @@ The tests prove:
 
 - exactly eight tools;
 - no transport parameters in tool input;
-- fixed provider origin;
+- provider origin derived only from an approved-template tenant, with 28PRO fixed to `voepro`;
 - GET-only dispatch;
 - exact three credential headers;
 - frozen eight-path allowlist;
