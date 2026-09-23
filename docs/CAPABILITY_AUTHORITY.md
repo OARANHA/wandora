@@ -363,3 +363,11 @@ Wandora owns the provider-neutral runtime meaning of `officialFacts[]`, `houseRu
 Paperclip remains task/run/control-plane authority. Mastra/runtime remains execution, retrieval and context-assembly implementation authority. The projection contract does not authorize a Wandora memory/RAG/vector/chunking/document subsystem.
 
 The runtime receives no grounding write authority. Model output, inference and task context have no automatic promotion path into official company truth. Provider replacement occurs behind `AgentTaskRuntime`; official grounding semantics remain stable.
+
+## Business-System connection execution gap — ADR 0208
+
+Paperclip Connections/grants/secrets remain the preferred operational authority for Business System connection identity and credential custody. However, pinned Paperclip v2026.916.0 does not expose generic `rest_api` Connections through its Tool Gateway execution catalog: generic connected-tool execution is limited to `mcp_remote` and `local_stdio`, and remote execution uses MCP JSON-RPC `tools/call`.
+
+Therefore `rest_api` schema support must not be treated as proof of a generic REST execution engine. Paperclip Tool Gateway remains **QUARANTINED** for VendaERP/Business System REST execution until a dedicated provider-side boundary is proven. Do not fill this gap with a Wandora-native secret manager, arbitrary HTTP proxy, REST executor or duplicate tool runtime.
+
+The accepted replacement boundary is still: Wandora provider-neutral operation/policy -> specialist connection custody/grants -> specialist execution boundary -> ERP provider adapter. A newer Paperclip capability, Paperclip plugin/adapter, or another accepted specialist provider may satisfy execution without changing Wandora customer semantics.
