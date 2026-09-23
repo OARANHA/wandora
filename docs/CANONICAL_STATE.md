@@ -1,3 +1,15 @@
+## Reconciled checkpoint — ADR 0213 VendaERP runtime mount preflight GREEN
+
+28PRO VendaERP local_stdio Runtime Mount Preflight V1 is **GREEN / NO PRODUCTION EFFECT**.
+
+The second adversarial review found that the live Paperclip container does not currently mount the host path used by the ADR 0212 local_stdio command. The exact merged adapter was therefore validated in an ephemeral `wandora/paperclip:v2026.916.0` container with a read-only bind mount, no credentials and `--network none`. MCP initialize + tools/list returned exactly the eight approved read-only tools.
+
+Activation must now begin by staging the exact reviewed adapter, adding the read-only bind mount, recreating/health-checking Paperclip, and proving local MCP discovery before any VendaERP ToolConnection/grant/secret is created.
+
+No production mutation was performed by ADR 0213.
+
+Next slice remains **28PRO VendaERP Read-Only Connection Activation Execution V1**.
+
 ## Reconciled checkpoint — ADR 0212 28PRO VendaERP activation preflight GREEN
 
 28PRO VendaERP Read-Only Connection Activation Preflight V1 is **GREEN / NO PRODUCTION EFFECT**.
