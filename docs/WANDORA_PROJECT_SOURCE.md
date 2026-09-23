@@ -1,3 +1,28 @@
+## Reconciled checkpoint — ADR 0210 VendaERP read-only MCP candidate GREEN
+
+Paperclip VendaERP Read-Only MCP Adapter Candidate V1 is **CODE ONLY / GREEN / NO PRODUCTION EFFECT**.
+
+Verified entry:
+
+```text
+main = e133ad7c326b0c48aa3beb180d0f1e4146c12fea
+open PRs = 0
+Paperclip live = wandora/paperclip:v2026.916.0
+Paperclip pin = dffc2b3ca1b9e88fa21cb17493083e682dffd1ca
+28PRO Tool Connections = 0
+28PRO Connection Grants = 0
+```
+
+Second adversarial review narrowed ADR 0209 before activation: Paperclip's direct native connector-runtime tool authority is tied to `paperclip_runner`, while Ana uses `wandora_mastra`. The selected execution implementation is therefore the already-supported Paperclip `local_stdio` MCP boundary, not a Paperclip core patch and not generic REST Tool Gateway execution.
+
+The candidate at `integrations/paperclip/mcp-vendaerp-readonly-v1/` is stateless, exposes exactly the eight ADR 0202 reads, fixes the provider origin to `https://whitelabel.vendaerp.com.br`, performs GET only, accepts no caller URL/method, uses bounded pagination/no retries, and expects exactly three Paperclip grant-secret env refs.
+
+Validation: 8/8 adapter tests GREEN, static read-only verifier GREEN, exact Paperclip v2026.916.0 local_stdio/grant/env/gateway compatibility verifier GREEN. No real VendaERP request or credential was used.
+
+ADR 0208 remains unchanged: generic `rest_api` Tool Gateway is still NO-GO.
+
+Next safe slice: **Wandora Mastra ↔ Paperclip Tool Gateway Read Tool Bridge Candidate V1 — CODE ONLY / NO EFFECT**. Only after that bridge is GREEN may the 28PRO VendaERP read-only activation preflight begin.
+
 ## Reconciled checkpoint — ADR 0209 Business-System read execution boundary preflight GREEN
 
 Business-System Read Execution Boundary Capability Preflight V1 is **GREEN / PAPERCLIP NATIVE CONNECTOR SELECTED / NO PRODUCTION EFFECT**.
