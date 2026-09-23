@@ -1,3 +1,20 @@
+## Reconciled checkpoint — ADR 0229 tool-error runtime promotion COMPLETE
+
+ADR 0227/0228 production promotion is complete and GREEN.
+
+- entry main = `40c233374fc0fad213beeda816a889ade8257ddf`; PR #298 merged;
+- Core live = `wandora/core:organization-adapter-candidate-fc8721ccaedd` / revision `fc8721ccaedd5079eec9f3be11e8b64051416579`, healthy/restart 0;
+- VendaERP MCP live `server.mjs` = `6f27914c887e5ada8330f9eeb836f33b3626ad9c667d3c22dda77ddc55da683f`;
+- Paperclip remains the same `wandora/paperclip:v2026.916.0` container, healthy/restart 0;
+- `wandora_mastra@0.4.0` remains loaded from retained package `6390812d...`;
+- Paperclip-native Task Drain protected the transition and is now OFF/quiescent;
+- 28PRO live runs = 0; work operations = 0; outbound attempts = 0;
+- no VendaERP provider call, model run, customer work, Paperclip restart, adapter replacement, migration or control-plane Connection/grant/secret/install/profile/catalog mutation occurred.
+
+ADR 0229 records rollback evidence and the exact execution. Another provider retry remains prohibited.
+
+Next slice: **Paperclip Comment-Driven One-Shot Product Read Preflight V1 — NO PROVIDER CALL**.
+
 ## Reconciled checkpoint — ADR 0228 ADR 0227 Core + VendaERP MCP promotion preflight GREEN
 
 ADR 0227 promotion is qualified with **NO PRODUCTION EFFECT**.
