@@ -1,5 +1,22 @@
 # Wandora — Project Source / Continuity Bootstrap
 
+## Current continuity checkpoint — ADR 0193
+
+Web Home Greeting + Company Detail Drawer Production Promotion V1 is **COMPLETE / GREEN**.
+
+Live Web is `wandora/web:candidate-840469b365d1`, revision `840469b365d1b0af25fcb91f365dc74e0da04ea6`, healthy/restart 0. Core/Paperclip/Gateway were not recreated. MEDICSPRO grounding remains exactly 1 active fact + 1 active rule + 2 retired rows.
+
+## Current continuity checkpoint — ADR 0192
+
+GitHub Actions artifacts now have a stable authenticated host path. Use:
+
+```text
+/home/wandora-admin/bin/wandora-github-artifact <artifact-id> <output-dir>
+```
+
+with host-only credentials from `/etc/wandora/github-artifacts.env`. Do not use temporary connector artifact URLs as the normal promotion path. The helper verifies GitHub digest, safe extraction, SHA256SUMS and manifest/source SHA before an artifact is eligible for promotion.
+
+
 ## Current continuity checkpoint — ADR 0191
 
 Grounding Source File Upload Capability Authority Preflight V1 is **COMPLETE / NO EFFECT**.
