@@ -2632,3 +2632,15 @@ The authorized invite was accepted and the recipient completed company onboardin
 Scoped to the new organization: digital-employee eligibility=0, hire operations=0, outbound attempts=0. No Paperclip/Mastra/work/outbound side effect was created by onboarding.
 
 BrasilAPI remains enrichment-only; CPF/CNPJ/CEP validation remains local and deterministic. With the live adapter headers, provider probes from Core returned HTTP 200 for both CEP and CNPJ.
+
+## ADR 0202 — Provider-Neutral Business System Contract + VendaERP Read-Only Adapter V1
+
+Status: **IMPLEMENTED IN CODE / NO PRODUCTION EFFECT**.
+
+The first ERP integration slice introduces a provider-neutral Business System read contract plus a VendaERP adapter. V1 is deliberately limited to connection probe, companies, products, stock, price tables/product prices, people/customers/suppliers and orders.
+
+No integration table, secret manager, browser credential flow, Paperclip Connection, Mastra tool exposure, production credential or live VendaERP call is part of this slice. Paperclip Connections/grants/secrets remains the candidate organizational connection authority and must be qualified before real credential onboarding. Paperclip Tool Gateway remains quarantined.
+
+Mobile/conversational access is now an explicit invariant: channel address -> verified Wandora identity/contact -> organization relationship/role -> capability/effect authorization. A phone number alone never grants authority, and ERP party records are commercial mappings rather than Wandora identity authority.
+
+Next safe slice after exact-head CI/merge: **Paperclip Connection Credential Custody + 28PRO VendaERP Read-Only Connection Preflight V1 — NO EFFECT**.
