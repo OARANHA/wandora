@@ -123,7 +123,9 @@ export class MastraSupervisedModelAgentRuntime implements AgentRuntime, AgentTas
       ? await executionAgent.generate(messages, {
           ...baseOptions,
           maxSteps: 5,
-          experimental_output: taskOutputSchema,
+          structuredOutput: {
+            schema: taskOutputSchema,
+          },
         })
       : await executionAgent.generate(messages, {
           ...baseOptions,
