@@ -1,10 +1,18 @@
-## Reconciled checkpoint — ADR 0230 comment-driven one-shot preflight NO-GO
+## Reconciled checkpoint — ADR 0230 comment-driven one-shot preflight GREEN
 
-The Paperclip comment-driven path is proven to exclude `finish_successful_run_handoff`, but a failed Wandora bridge run currently becomes Paperclip `adapter_failed`, which is classified as transient infrastructure and may create an automatic `issue_continuation_needed` successor. Therefore one-shot behavior is not yet proven.
+The Paperclip-native one-shot boundary is now proven without a VendaERP/provider call.
 
-No issue/comment/run/profile/Tool Gateway/provider/model/work/outbound or production mutation occurred. Another VendaERP read remains prohibited.
+- canonical entry: `main@7d36d33a569b0ad72348f9e81812d1673b271c13`, ADR 0229 merged, post-merge workflows GREEN;
+- pinned Paperclip `v2026.916.0` excludes `issue_commented`, `issue_comment_mentioned` and `issue_reopened_via_comment` from `finish_successful_run_handoff`;
+- an assigned `backlog` issue is parked without `issue_assigned`, while a later human comment can wake the assignee through `issue_commented`;
+- a temporary Paperclip issue/profile/policy proof (`PRO-9`) established exactly `1 allow / 7 deny` for VendaERP tools;
+- an issue-scoped Paperclip `rate_limit` with limit 1 allowed the first product-read policy decision and atomically returned `rate_limited` on the second;
+- Tool Gateway consumes that rate-limit before tool dispatch, so a Paperclip recovery run cannot create a second VendaERP provider call for the same proof issue/tool;
+- cleanup is complete: `PRO-9` absent, temporary profile/policy absent, connection activity 0, live runs 0, Task Drain OFF/quiescent, Wandora work/outbound 0/0.
 
-Next slice: **Wandora Bridge Non-Retryable Tool Failure Mapping V1 — CODE ONLY / NO PROVIDER CALL**.
+The earlier objection that a failed `adapter_failed` run could create `issue_continuation_needed` remains factually valid, but it no longer breaks the provider-call budget because the second Tool Gateway attempt is denied before MCP/provider dispatch.
+
+ADR 0230 authorizes only a separate bounded **28PRO VendaERP Comment-Driven One-Shot Product Read Execution V3 — READ ONLY**. No write/destructive capability is authorized.
 
 ## Reconciled checkpoint — ADR 0229 tool-error runtime promotion COMPLETE
 
