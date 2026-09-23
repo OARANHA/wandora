@@ -2550,3 +2550,15 @@ Correction preserves history instead of overwriting it. Raw sourceRef evidence i
 This adds no new table/migration, RAG, retrieval, vector, embedding, chunking, document store, memory or duplicate Paperclip/Mastra capability. The local production-shaped Web build is GREEN with the dedicated WANDORA_WEB_COMPANY_GROUNDING_SURFACE_V1_OK gate.
 
 Migration 017 is still not live and no production deploy/effect is part of this slice. A separately reviewed production-promotion preflight is required before any migration or Core/Web promotion.
+
+## 2026-09-23 — Customer Company Profile + First Access Onboarding promotion preflight READY
+
+ADR 0199 records the no-effect production-promotion preflight for customer company profile + first access onboarding.
+
+The preflight found and corrected two real gaps before readiness: the canonical Core activation overlay was missing, and the existing BrasilAPI adapter was not wired to authenticated CEP/CNPJ Human API lookup routes. PR #259 fixed those boundaries without production effect and merged as `main@0a7f368331882f6dcfe4ff1fe722be6e442354a5`.
+
+All six post-merge push workflows are GREEN. Exact post-correction Core/Web artifacts were downloaded through the host artifact helper and their GitHub digests, ZIP SHA-256 and internal manifests were verified against the exact merged main.
+
+Production remains unchanged: migration 019 and `wandora.organization_profiles` are absent, the onboarding feature flag is absent, and the current live Core/Web images were not replaced.
+
+Next slice: **Customer Company Profile + First Access Onboarding Production Promotion Execution V1**. Production promotion is not authorized by this preflight itself.
