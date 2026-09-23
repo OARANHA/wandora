@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { Pool, PoolClient } from 'pg';
 import type { OrganizationGroundingProjection } from '../agent-runtime/organization-grounding.js';
-import type { AgentTaskRuntime, AssignedTask, NormalizedExecutionUsage } from '../agent-runtime/task-runtime.js';
+import type { AgentTaskRuntime, AssignedTask, NormalizedExecutionUsage, RuntimeReadTool } from '../agent-runtime/task-runtime.js';
 import { paperclipManagedAgentRef } from '../organization-adapter/paperclip-provider.js';
 import type { PaperclipRunIdentity } from './paperclip-run-identity.js';
 import type { OrganizationAdapterService } from '../organization-adapter/service.js';
@@ -29,6 +29,10 @@ export class PaperclipExecutionService {
     private readonly pool: Pool,
     private readonly runtime: AgentTaskRuntime,
     private readonly groundingProjection: OrganizationGroundingProjection,
+    private readonly readToolBridge?: (input: {
+      runToken: string;
+      paperclipRunId: string;
+    }) => Promise<RuntimeReadTool[]>,
     private readonly workProjection?: Pick<
       OrganizationAdapterService,
       | 'prepareCatalogEmployeeWorkExecution'
@@ -65,6 +69,7 @@ export class PaperclipExecutionService {
 
   async execute(input: {
     identity: PaperclipRunIdentity;
+    runToken: string;
     paperclipRunId: string;
     workId?: string | null;
     task: AssignedTask;
@@ -101,6 +106,12 @@ export class PaperclipExecutionService {
       .digest('hex')}`;
 
     const grounding = await this.groundingProjection.project(organizationId, input.task);
+    const readTools = this.readToolBridge
+      ? await this.readToolBridge({
+          runToken: input.runToken,
+          paperclipRunId: input.paperclipRunId,
+        })
+      : [];
 
     if (input.workId) {
       if (!this.workProjection) {
@@ -146,6 +157,7 @@ export class PaperclipExecutionService {
         },
         task: input.task,
         grounding,
+        ...(readTools.length > 0 ? { readTools } : {}),
       });
     } catch (error) {
       if (input.workId && this.workProjection) {
