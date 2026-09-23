@@ -1,3 +1,15 @@
+## Reconciled checkpoint — ADR 0223 Paperclip issue-scoped narrowing reuse
+
+A deeper Paperclip v2026.916.0 capability review proved native `issue`-scoped tool-profile bindings with precedence `gateway > issue > routine > agent > project > company`. Ordinary profiles use narrowest-scope wins, so a temporary issue profile can restrict Ana from her 8-tool agent profile to exactly one already-authorized catalog entry.
+
+Therefore ADR 0221's Wandora-owned per-task marker/allowlist is superseded before production promotion, and ADR 0222's three-artifact promotion plan must not be executed as written. The Core and `wandora_mastra` candidate narrowing changes are reverted in the ADR 0223 branch.
+
+ADR 0221's safe VendaERP MCP error-code stderr logging remains accepted and is still not live.
+
+No production effect or provider retry occurred.
+
+Next safe slice after merge: **28PRO VendaERP Safe Error Observability Promotion V1 — NO PROVIDER CALL**, followed by a separate retry preflight using a native Paperclip issue-scoped profile with exactly `vendaerp_search_products`.
+
 ## Reconciled checkpoint — ADR 0222 ADR 0221 runtime promotion preflight GREEN
 
 ADR 0221 is merged at `main@87bf5d51a694389900bb81d5efbfcc15a8e12557`; PR #289 exact head passed 9/9 workflows.
