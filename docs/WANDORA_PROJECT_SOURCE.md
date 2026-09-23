@@ -1,20 +1,21 @@
 ## Reconciled checkpoint — ADR 0225 ADR 0224 convergence execution COMPLETE
 
-Production convergence qualified by ADR 0224 is complete and aligned with its reuse gate.
+Production convergence qualified by ADR 0224 is complete and aligned with the reuse gate.
 
 - Core = `wandora/core:organization-adapter-candidate-da4289034575` / source `da42890345753ebabf579947f568acd74145089b`, healthy/restart 0.
 - Paperclip = `wandora/paperclip:v2026.916.0`, healthy/restart 0.
-- `wandora_mastra@0.4.0` = loaded/enabled from the retained Paperclip package `6390812d44afed0918b64388a882e10de0761de08c9b78f440403336612b717c/package`; official test-environment PASS.
-- VendaERP MCP remains `067e7f98912f...`; convergence did not modify it.
-- Ana = idle, `errorReason=null`, org chain healthy.
+- `wandora_mastra@0.4.0` = loaded/enabled from the retained Paperclip-owned package `6390812d44afed0918b64388a882e10de0761de08c9b78f440403336612b717c/package`.
+- Official adapter test-environment = PASS.
+- The temporary duplicate package path `0e53cda6...` used during interrupted execution was removed after retained-package readback.
+- VendaERP MCP remains `067e7f98912f...`; this execution did not modify it.
+- Task Drain is inactive/quiescent with activeRuns=0 and pendingWakes=0.
+- Ana = idle / `wandora_mastra`; org chain healthy.
 - Wandora work operations = 0; outbound attempts = 0.
 - No VendaERP/provider retry occurred.
 
-A concurrent execution initially activated byte-identical adapter bytes under `0e53cda6...`. After reconciliation, the active registration was corrected through Paperclip's official install boundary to reuse the ADR 0224 retained package `6390812d...`, followed by exactly one Paperclip recreate on the unchanged image/Compose. The extra `0e53cda6...` directory is inert package-store residue and is not active.
+The live Core + adapter no longer carry the redundant Wandora-owned per-task tool narrowing. Paperclip remains the operational authority for issue-scoped profile binding and Tool Gateway visibility.
 
-The live Core + adapter no longer carry the redundant Wandora-owned per-task tool narrowing. Paperclip is the operational authority for issue-scoped profile binding and Tool Gateway visibility.
-
-Next slice: **28PRO VendaERP Bounded Product Read Retry Preflight V2 — NO PROVIDER CALL**. Prove a temporary Paperclip issue-scoped deny-by-default profile exposing exactly `vendaerp_search_products` before any bounded retry.
+Next slice: **28PRO VendaERP Bounded Product Read Retry Preflight V2 — NO PROVIDER CALL**, using a temporary Paperclip issue-scoped deny-by-default profile exposing exactly `vendaerp_search_products`.
 
 ## Reconciled checkpoint — ADR 0224 ADR 0223 convergence promotion preflight GREEN
 
