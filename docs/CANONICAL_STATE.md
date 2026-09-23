@@ -1,3 +1,11 @@
+## Reconciled checkpoint — ADR 0230 comment-driven one-shot preflight NO-GO
+
+The Paperclip comment-driven path is proven to exclude `finish_successful_run_handoff`, but a failed Wandora bridge run currently becomes Paperclip `adapter_failed`, which is classified as transient infrastructure and may create an automatic `issue_continuation_needed` successor. Therefore one-shot behavior is not yet proven.
+
+No issue/comment/run/profile/Tool Gateway/provider/model/work/outbound or production mutation occurred. Another VendaERP read remains prohibited.
+
+Next slice: **Wandora Bridge Non-Retryable Tool Failure Mapping V1 — CODE ONLY / NO PROVIDER CALL**.
+
 ## Reconciled checkpoint — ADR 0229 tool-error runtime promotion COMPLETE
 
 ADR 0227/0228 production promotion is complete and GREEN.
