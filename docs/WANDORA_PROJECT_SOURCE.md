@@ -2441,5 +2441,3 @@ This adds no new table/migration, RAG, retrieval, vector, embedding, chunking, d
 Migration 017 is still not live and no production deploy/effect is part of this slice. A separately reviewed production-promotion preflight is required before any migration or Core/Web promotion.
 
 [executed on device: wandora-vps-01 (d266af26-d31e-4f0c-9840-ca03bb02b603)]
-
-[executed on device: wandora-vps-01 (d266af26-d31e-4f0c-9840-ca03bb02b603)]
