@@ -1,4 +1,29 @@
-## Reconciled checkpoint — ADR 0212 28PRO VendaERP activation preflight GREEN\n\n28PRO VendaERP Read-Only Connection Activation Preflight V1 is **GREEN / NO PRODUCTION EFFECT**.\n\nVerified live entry:\n\n\`\`\`text\nmain = 798317e80ebabae407235d2ff1ffaacaa64177a2\nPaperclip = wandora/paperclip:v2026.916.0 / healthy / restart 0\n28PRO ToolApplications = 0\n28PRO ToolConnections = 0\n28PRO custom VendaERP stdio template = absent\n28PRO profiles/policies = 0/0\n28PRO existing company secrets = 1 Organization Adapter HMAC only\nAna Paperclip = idle / wandora_mastra\nAna Wandora = active + supervised\n28PRO work operations = 0\n28PRO outbound attempts = 0\nVendaERP adapter live path = absent\n\`\`\`\n\nADR 0212 freezes the future Paperclip-owned activation shape: approved local_stdio template with --tenant voepro, one mcp_stdio ToolApplication and one company ToolConnection, three local_encrypted credential secrets referenced only by the organization grant, Ana-only install, and a default-deny Ana Tool Profile containing exactly the eight ADR 0210 catalog entries. No Wandora table/service/state is added. Generic rest_api remains NO-GO under ADR 0208.\n\nNext safe slice: **28PRO VendaERP Read-Only Connection Activation Execution V1**. It is the first slice allowed to receive/custody the Authorization-Token and create the frozen Paperclip resources. It must remain read-only and stop before employee work or outbound effects.\n\n## Reconciled checkpoint — ADR 0211 Mastra ↔ Paperclip read Tool Gateway bridge GREEN
+## Reconciled checkpoint — ADR 0212 28PRO VendaERP activation preflight GREEN
+
+28PRO VendaERP Read-Only Connection Activation Preflight V1 is **GREEN / NO PRODUCTION EFFECT**.
+
+Verified live entry:
+
+```text
+main = 798317e80ebabae407235d2ff1ffaacaa64177a2
+Paperclip = wandora/paperclip:v2026.916.0 / healthy / restart 0
+28PRO ToolApplications = 0
+28PRO ToolConnections = 0
+28PRO custom VendaERP stdio template = absent
+28PRO profiles/policies = 0/0
+28PRO existing company secrets = 1 Organization Adapter HMAC only
+Ana Paperclip = idle / wandora_mastra
+Ana Wandora = active + supervised
+28PRO work operations = 0
+28PRO outbound attempts = 0
+VendaERP adapter live path = absent
+```
+
+ADR 0212 freezes the future Paperclip-owned activation shape: approved local_stdio template with --tenant voepro, one mcp_stdio ToolApplication and one company ToolConnection, three local_encrypted credential secrets referenced only by the organization grant, Ana-only install, and a default-deny Ana Tool Profile containing exactly the eight ADR 0210 catalog entries. No Wandora table/service/state is added. Generic rest_api remains NO-GO under ADR 0208.
+
+Next safe slice: **28PRO VendaERP Read-Only Connection Activation Execution V1**. It is the first slice allowed to receive/custody the Authorization-Token and create the frozen Paperclip resources. It must remain read-only and stop before employee work or outbound effects.
+
+## Reconciled checkpoint — ADR 0211 Mastra ↔ Paperclip read Tool Gateway bridge GREEN
 
 Wandora Mastra ↔ Paperclip Tool Gateway Read Tool Bridge Candidate V1 is **CODE ONLY / GREEN / NO PRODUCTION EFFECT**.
 
