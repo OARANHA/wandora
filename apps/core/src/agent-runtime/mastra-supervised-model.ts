@@ -103,14 +103,29 @@ export class MastraSupervisedModelAgentRuntime implements AgentRuntime, AgentTas
       }),
     ]));
 
+    const executionAgent = Object.keys(runtimeTools).length > 0
+      ? new Agent({
+          id: 'ana-supervised-model-read-tools-v1',
+          name: 'Ana Supervised Model Read Tools',
+          instructions: INTERNAL_TASK_INSTRUCTIONS,
+          model: {
+            providerId: this.config.providerId,
+            modelId: this.config.modelId,
+            url: this.config.baseUrl,
+            apiKey: this.config.apiKey,
+          },
+          tools: runtimeTools,
+          maxRetries: 0,
+        })
+      : this.taskAgent;
+
     const result = Object.keys(runtimeTools).length > 0
-      ? await this.taskAgent.generate(messages, {
+      ? await executionAgent.generate(messages, {
           ...baseOptions,
           maxSteps: 5,
-          tools: runtimeTools,
           experimental_output: taskOutputSchema,
         })
-      : await this.taskAgent.generate(messages, {
+      : await executionAgent.generate(messages, {
           ...baseOptions,
           maxSteps: 1,
           structuredOutput: {
