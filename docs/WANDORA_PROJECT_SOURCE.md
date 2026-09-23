@@ -14,6 +14,8 @@ Production remains unchanged: migration 019/profile table/onboarding functions a
 
 Next safe slice: **Customer Company Profile + First Access Onboarding Production Promotion Preflight V1**. Do not apply migration 019 or activate the feature without that separate preflight.
 
+Git transport checkpoint: the host credential in `/etc/wandora/github-artifacts.env` is proven for artifact read/qualification but not repository write (`git push` returned GitHub 403). For this failure mode, use `docs/operations/github-actions-artifact-host-transfer-v1.md`: reconcile the remote first, use an authorized GitHub connector only for the work branch, and require exact local/remote tree-SHA equality before replacing any interrupted partial branch. Never force-update `main`.
+
 ## Current continuity checkpoint — ADR 0197
 
 Organization Grounding Source File Owner-Session Smoke Test V1 is **COMPLETE / GREEN**.
