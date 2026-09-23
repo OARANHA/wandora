@@ -1,6 +1,6 @@
 # ADR 0207 — 28PRO Starter Digital Employee Production Activation Execution V1
 
-Status: **PARTIAL / SAFE STOP AT ORGANIZATION-ADAPTER SECRET CUSTODY STEP**
+Status: **COMPLETE / 28PRO STARTER WORKFORCE READY**
 Date: 2026-09-23
 
 ## Entry authority
@@ -113,3 +113,59 @@ The canonical `supabase_admin -> transaction -> exclusive lock -> SET LOCAL ROLE
 - Paperclip agents = 0.
 
 The current execution point is now **owner-authorized paused-first hire**. Do not bypass the normal authenticated customer contract with operator SQL, service-role impersonation or direct Organization Adapter calls.
+
+## Final execution closure
+
+The owner-authorized hire completed through the normal customer contract and was independently reconciled before activation:
+
+- Wandora Ana count = 1;
+- employee id = `7b401163-8102-42db-b595-3a2017f54003`;
+- role = `commercial-assistant`;
+- autonomy = `supervised`;
+- initial employee status = `paused`;
+- hire operation count = 1;
+- hire operation status = `completed`;
+- employee/provider binding count = 1;
+- Paperclip managed Ana count = 1;
+- Paperclip agent id = `428b6730-3df4-4b92-b90a-a87f87c401f9`;
+- Paperclip status before activation = `paused`;
+- work items = 0;
+- outbound attempts = 0.
+
+The owner then invoked the existing customer activation contract exactly once. Final independent readback proves:
+
+- same Wandora Ana = `active + supervised`;
+- same canonical hire = `completed`;
+- same employee/provider binding = present exactly once;
+- same Paperclip managed Ana = `idle`;
+- 28PRO work items = 0;
+- 28PRO outbound attempts = 0;
+- starter eligibility remains enabled exactly once.
+
+Activation did not create work, start a Mastra run or send an external message.
+
+## Final result
+
+28PRO is now **starter-workforce ready** under ADR 0204/0205.
+
+Current product truth:
+
+```text
+28PRO organization = active
+Paperclip company = active
+Organization Adapter wiring = ready
+starter eligibility = enabled
+Ana hire = completed
+Ana = active + supervised
+Paperclip Ana = idle
+work items = 0
+outbound attempts = 0
+```
+
+## Next executable slice
+
+Resume the provider-neutral ERP roadmap:
+
+**Paperclip Business-System Connection Container + REST Tool Gateway Read-Only Qualification V1 — CODE ONLY / NO EFFECT**
+
+Then run a separate 28PRO VendaERP read-only connection activation preflight before entering the real ERP credentials.
