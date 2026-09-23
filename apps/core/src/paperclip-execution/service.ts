@@ -138,15 +138,14 @@ export class PaperclipExecutionService {
       }
     }
 
-    const readTools = this.readToolBridge
-      ? await this.readToolBridge({
-          runToken: input.runToken,
-          paperclipRunId: input.paperclipRunId,
-        })
-      : [];
-
     let result;
     try {
+      const readTools = this.readToolBridge
+        ? await this.readToolBridge({
+            runToken: input.runToken,
+            paperclipRunId: input.paperclipRunId,
+          })
+        : [];
       result = await this.runtime.executeAssignedTask({
         organizationId,
         employee: {
