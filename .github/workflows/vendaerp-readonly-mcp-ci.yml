@@ -1,0 +1,49 @@
+name: VendaERP Read-Only MCP CI
+
+on:
+  pull_request:
+    paths:
+      - 'integrations/paperclip/mcp-vendaerp-readonly-v1/**'
+      - '.github/workflows/vendaerp-readonly-mcp-ci.yml'
+      - 'docs/decisions/0210-paperclip-vendaerp-readonly-mcp-adapter-candidate-v1.md'
+      - 'docs/CANONICAL_STATE.md'
+  push:
+    branches: [main]
+    paths:
+      - 'integrations/paperclip/mcp-vendaerp-readonly-v1/**'
+      - '.github/workflows/vendaerp-readonly-mcp-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vendaerp-readonly-mcp-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout Wandora
+        uses: actions/checkout@v4
+
+      - name: Checkout pinned Paperclip source
+        uses: actions/checkout@v4
+        with:
+          repository: paperclipai/paperclip
+          ref: dffc2b3ca1b9e88fa21cb17493083e682dffd1ca
+          path: .paperclip
+
+      - name: Set up Node 24.21.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.21.0
+
+      - name: Verify VendaERP read-only MCP candidate
+        working-directory: integrations/paperclip/mcp-vendaerp-readonly-v1
+        run: |
+          npm test
+          node verify-static.mjs
+          node verify-paperclip-v916.mjs "$GITHUB_WORKSPACE/.paperclip"
