@@ -83,3 +83,33 @@ After the HMAC secret exists, continue the frozen ADR 0206 sequence:
 ## Safety invariant
 
 Any future continuation must begin with read-only reconciliation of the current partial state before executing the secret create. Never repeat work merely because a previous chat/tool response was interrupted.
+
+## Continuation checkpoint — Organization Adapter wired + starter eligibility enabled
+
+After manual creation of the Paperclip company-owned Organization Adapter HMAC secret:
+
+- secret id = `00c63430-2468-4221-b68e-48b96f303bb7`;
+- provider = `local_encrypted`;
+- status = active;
+- latestVersion = 1;
+- exact active matching secrets = 1.
+
+The company-scoped Organization Adapter config was then persisted and independently reconciled:
+
+- config id = `e21c507b-a457-419e-a47a-e9f274c15904`;
+- exact secret_ref = `00c63430-2468-4221-b68e-48b96f303bb7`;
+- secret referenceCount = 1;
+- config lastError = null;
+- Paperclip 28PRO agents = 0.
+
+The existing least-privilege eligibility operator boundary was reused. The first direct role attempt failed before mutation because `postgres` cannot assume the NOLOGIN operator role; the second shell-quoted attempt failed before setter execution and its transaction rolled back. Independent readback proved the target row still absent before retry.
+
+The canonical `supabase_admin -> transaction -> exclusive lock -> SET LOCAL ROLE wandora_customer_hire_operator -> setter -> postcondition -> COMMIT` pattern was then executed successfully:
+
+- 28PRO + `ana-commercial-v1` eligibility = enabled;
+- target employees = 0;
+- target hire operations = 0;
+- target employee/provider bindings = 0;
+- Paperclip agents = 0.
+
+The current execution point is now **owner-authorized paused-first hire**. Do not bypass the normal authenticated customer contract with operator SQL, service-role impersonation or direct Organization Adapter calls.
