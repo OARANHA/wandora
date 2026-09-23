@@ -4297,3 +4297,14 @@ The target still has zero Wandora identity mappings, no organization/profile and
 One globally-enabled MEDICSPRO ana-commercial-v1 eligibility row is pre-existing and unrelated to this invited identity.
 
 Next safe slice: **Customer Company Profile + First Access Onboarding — Invite Acceptance + Final Flag Activation + Company Profile Smoke V1**. The recipient must first open the delivered Wandora invite and establish the first password. Do not resend automatically; reconcile provider state first if delivery is questioned.
+
+
+## ADR 0201 final — Customer Company Profile + First Access Onboarding
+
+Status: **COMPLETE / PRODUCTION ONBOARDING ACTIVE / REAL INVITE-ONLY SMOKE PASSED**.
+
+The authorized invite was accepted and the recipient completed company onboarding successfully. Production reconciliation proves exactly one Auth identity, one Wandora identity, one organization, one active owner membership and one organization profile for the new tenant. The onboarding flag is ON and Core/Web/Auth/Paperclip/Gateway are healthy with zero restarts.
+
+Scoped to the new organization: digital-employee eligibility=0, hire operations=0, outbound attempts=0. No Paperclip/Mastra/work/outbound side effect was created by onboarding.
+
+BrasilAPI remains enrichment-only; CPF/CNPJ/CEP validation remains local and deterministic. With the live adapter headers, provider probes from Core returned HTTP 200 for both CEP and CNPJ.
