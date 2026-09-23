@@ -1,12 +1,42 @@
 # Wandora — Canonical State / Handoff
 
+## ADR 0191 — Grounding Source File Upload Capability Authority Preflight V1 — NO EFFECT
+
+Supabase Storage is the accepted blob implementation, but live Storage currently has no grounding bucket and no Storage policies. Upload is not live yet.
+
+The approved direction is minimal and provider-neutral: Wandora owns source/evidence semantics through sourceRef/sourceLabel; Supabase Storage owns private blob persistence; uploaded files are evidence only and are not automatically chunked, embedded, retrieved, memorized or injected into runtime context.
+
+No bucket, policy, object, migration or grounding mutation was created by ADR 0191. Next: code-only Source File Upload Implementation V1.
+
+## ADR 0190 — Web Home Greeting + Company Detail Drawer V1 — CODE ONLY
+
+Home now greets the authenticated human by browser-local daypart using the real /api/v1/me display name, with a max ~3rem hero and quick links to existing routes.
+
+Company cards remain one durable grounding entry per card, show a four-line preview and open a right-side drawer for the full content, provenance/source label, timestamp and existing authorized correct/retire actions.
+
+Production remains unchanged until a separately reviewed Web-only promotion. All existing Web gates plus WANDORA_WEB_HOME_GREETING_COMPANY_DRAWER_V1_OK are GREEN.
+
+## Grounding real-state reconciliation — 2026-09-22
+
+The prior grounding=0 checkpoint is superseded by live owner activity.
+
+MEDICSPRO currently has exactly:
+
+- 4 grounding rows total;
+- 1 active fact row;
+- 1 active rule row;
+- 2 retired rows.
+
+The active fact currently contains the three owner-entered company facts in one durable record. The active rule currently contains four owner-entered house-rule statements in one durable record. The UI must not silently split either durable row into fake independent records.
+
+
 ## ADR 0189 — Web Business Density Production Promotion V1 — GREEN
 
 Web `wandora/web:candidate-5f362fb43b62` from exact `main@5f362fb43b62d4567e850de7c2f09f099755a925` is live, healthy and restart 0. The persisted selector is aligned.
 
 The production Company surface now follows the second owner-approved Regras da Casa reference for scale/density: smaller display titles, rules-first composition, compact cards, Ensinar à equipe + Como funciona, and optional evidence disclosure. Início, Equipe and Conversas also use the reduced hero scale.
 
-Core/Paperclip/Gateway were unchanged. MEDICSPRO remains grounding 0 / works 2 / outbound 0. See ADR 0189.
+Core/Paperclip/Gateway were unchanged. At ADR 0189 promotion time MEDICSPRO had grounding 0 / works 2 / outbound 0; that grounding count is historical and is superseded by the real-state reconciliation above. See ADR 0189.
 
 
 ## ADR 0188 — Web Business Density + Company Reference Fidelity V1 — CODE ONLY
