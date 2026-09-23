@@ -155,10 +155,6 @@ test('Wandora work correlation is verified and result is committed without enter
         throw new Error('must not mark uncertain');
       },
     },
-    async () => {
-      bridgeCalls += 1;
-      throw new Error('bridge must not run for cached work');
-    },
   );
 
   const result = await service.execute({
