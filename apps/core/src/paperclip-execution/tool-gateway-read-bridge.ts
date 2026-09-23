@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import type { RuntimeReadTool } from '../agent-runtime/task-runtime.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -90,6 +91,35 @@ function gatewayFailure(status: number): PaperclipToolGatewayReadBridgeError {
       ? 'denied'
       : 'unavailable',
   );
+}
+
+function canonicalJson(value: unknown): string {
+  if (value === null || typeof value !== 'object') {
+    return JSON.stringify(value) ?? 'null';
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => canonicalJson(item)).join(',')}]`;
+  }
+  const entries = Object.entries(value as Record<string, unknown>)
+    .filter(([, entryValue]) => entryValue !== undefined)
+    .sort(([left], [right]) => left.localeCompare(right));
+  return `{${entries.map(([key, entryValue]) => `${JSON.stringify(key)}:${canonicalJson(entryValue)}`).join(',')}}`;
+}
+
+function readCallIdempotencyKey(input: {
+  paperclipRunId: string;
+  tool: GatewayDescriptor;
+  parameters: unknown;
+}): string {
+  const digest = createHash('sha256')
+    .update(canonicalJson({
+      runId: input.paperclipRunId,
+      catalogEntryId: input.tool.catalogEntryId,
+      toolName: input.tool.name,
+      parameters: input.parameters ?? {},
+    }))
+    .digest('hex');
+  return `wandora-read-v1:${digest}`;
 }
 
 export function createPaperclipToolGatewayReadBridge(deps: {
@@ -188,6 +218,11 @@ export function createPaperclipToolGatewayReadBridge(deps: {
                 tool: tool.name,
                 parameters,
                 timeoutMs,
+                idempotencyKey: readCallIdempotencyKey({
+                  paperclipRunId: input.paperclipRunId,
+                  tool,
+                  parameters,
+                }),
               }),
               signal: AbortSignal.timeout(timeoutMs + 1_000),
             });
