@@ -49,7 +49,7 @@ Native consoles — Paperclip UI, Mastra Studio, Evolution Manager, Supabase Stu
 | Agent/workflow execution | Wandora Agent Runtime contract, allowed inputs/outputs and policy | Mastra through Agent Runtime Adapter |
 | WhatsApp/messaging transport | provider-neutral connection/send/receive contracts and effect policy | Evolution/Meta/etc through Messaging Gateway |
 | Model inference | model-neutral product/runtime contract and policy | Mistral/Chutes/OpenAI/etc behind provider boundary |
-| Connected business systems / ERP | provider-neutral business operations, tenant authorization, read/write policy, external-effect authorization | Paperclip Connections/grants/secrets are candidate connection authority; Mastra executes approved tools; VendaERP/other ERPs remain provider adapters |
+| Connected business systems / ERP | provider-neutral business operations, tenant authorization, read/write policy, external-effect authorization | Paperclip Connections/grants/secrets + Tool Gateway are the qualified operational boundary for run-scoped connection-backed MCP `risk=read` tools; Mastra materializes only those ephemeral authorized read tools; VendaERP/other ERPs remain provider adapters; generic REST and write/effect execution remain separately gated |
 | Deployment/runtime | desired versioned platform topology in Git | Docker/Compose/Portainer/Traefik/Cloudflare provide infrastructure capability |
 
 ## Minimal-state rule
@@ -104,6 +104,18 @@ The universal Exit Test is:
 > If this provider were replaced tomorrow, would customer-facing Wandora contracts stay stable while only adapter/binding/configuration and legitimately provider-owned operational state changed or migrated?
 
 If not, identify the provider coupling. Do not solve it automatically by copying the provider domain into Wandora.
+
+## Connected business-system read tools — ADR 0211
+
+For external runtimes such as `wandora_mastra`, Wandora may adapt Paperclip's already-authorized **connection-backed MCP read tools** into one ephemeral Agent Runtime execution.
+
+The authority split is fixed:
+
+- Paperclip owns ToolConnection/install/grant/secret/catalog/profile/policy/audit and actual MCP execution;
+- Wandora owns the provider-neutral product semantics, tenant/effect policy and the narrow runtime admission contract;
+- Mastra materializes the admitted tools only for the current supervised run.
+
+The bridge must not become a Wandora tool registry, secret resolver, generic HTTP executor or second grant system. Generic `rest_api` execution remains NO-GO under ADR 0208. Write/destructive/approval-bearing tools remain outside ADR 0211 and require a separate effect-authority decision.
 
 ## Mandatory question before new domain code
 
