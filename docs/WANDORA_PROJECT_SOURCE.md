@@ -1,3 +1,11 @@
+## Reconciled checkpoint — ADR 0214 VendaERP stack-local staging GREEN
+
+ADR 0214 narrows ADR 0213's host staging path after live permission reconciliation. The adapter will be staged under the existing operator-owned Paperclip stack at `/opt/wandora/stacks/paperclip/runtime-integrations/vendaerp-readonly-mcp` and bind-mounted read-only to the unchanged container path `/opt/wandora/integrations/vendaerp-readonly-mcp`.
+
+This avoids privilege escalation, user-home production dependencies and ad-hoc container copying. No production mutation was performed.
+
+Next remains **28PRO VendaERP Read-Only Connection Activation Execution V1**.
+
 ## Reconciled checkpoint — ADR 0213 VendaERP runtime mount preflight GREEN
 
 28PRO VendaERP local_stdio Runtime Mount Preflight V1 is **GREEN / NO PRODUCTION EFFECT**.
