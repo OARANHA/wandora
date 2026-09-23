@@ -1,3 +1,27 @@
+## Reconciled checkpoint — ADR 0209 Business-System read execution boundary preflight GREEN
+
+Business-System Read Execution Boundary Capability Preflight V1 is **GREEN / PAPERCLIP NATIVE CONNECTOR SELECTED / NO PRODUCTION EFFECT**.
+
+Verified entry:
+
+```text
+main = 689908c7891f09dec12868665bd0682ba1ac96ae
+open PRs = 0
+Paperclip live = wandora/paperclip:v2026.916.0
+28PRO Tool Connections = 0
+28PRO Connection Grants = 0
+```
+
+ADR 0208 remains authoritative that generic `rest_api` Tool Gateway execution is NO-GO.
+
+ADR 0209 proves the safe execution direction is a **Paperclip-native connector contribution** that reuses Paperclip ToolConnection + installs/grants + secret custody, executes only the fixed ADR 0202 read allowlist provider-side, and keeps VendaERP credential values out of Wandora Core/Web/tables/model prompts.
+
+A standalone plugin tool is insufficient because it could create a competing assignment/grant authority. Paperclip v2026.916.1 does not close the generic REST gap and is not required for this capability.
+
+No connection, grant, secret, provider call, upgrade, deployment or runtime effect occurred.
+
+Next safe slice: **Paperclip VendaERP Native Read Connector Candidate V1 — CODE ONLY / NO EFFECT**.
+
 ## Reconciled checkpoint — ADR 0208 Business-System Tool Gateway qualification NO-GO
 
 Paperclip Business-System Connection Container + REST Tool Gateway Read-Only Qualification V1 is **NO-GO FOR REST TOOL GATEWAY / NO PRODUCTION EFFECT**.

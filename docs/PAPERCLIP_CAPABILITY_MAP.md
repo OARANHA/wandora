@@ -268,3 +268,16 @@ Repository candidate 0.3.1 fixes only the customer-work readiness mismatch:
 - no `clear-error` or `resume` workaround is introduced.
 
 Production is still 0.3.0 until a separate promotion slice.
+
+## ADR 0209 — REST-only business-system connector qualification
+
+Pinned Paperclip v2026.916.0 generic Tool Gateway remains MCP-only for connected-tool execution, but the same version contains a provider-side native connector runtime plus ToolConnection installs/grants and secret-resolution primitives.
+
+Qualification result for VendaERP:
+
+- generic `rest_api` Tool Gateway: **QUARANTINE / NO-GO**;
+- standalone plugin tool as connection authority: **NO-GO**;
+- native connector contribution reusing ToolConnection + installs/grants + Paperclip secrets: **QUALIFIED FOR CODE-ONLY CANDIDATE**;
+- production activation: **NOT AUTHORIZED**.
+
+The candidate must expose only fixed read operations and must not accept arbitrary URL or method input.

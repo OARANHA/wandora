@@ -371,3 +371,11 @@ Paperclip Connections/grants/secrets remain the preferred operational authority 
 Therefore `rest_api` schema support must not be treated as proof of a generic REST execution engine. Paperclip Tool Gateway remains **QUARANTINED** for VendaERP/Business System REST execution until a dedicated provider-side boundary is proven. Do not fill this gap with a Wandora-native secret manager, arbitrary HTTP proxy, REST executor or duplicate tool runtime.
 
 The accepted replacement boundary is still: Wandora provider-neutral operation/policy -> specialist connection custody/grants -> specialist execution boundary -> ERP provider adapter. A newer Paperclip capability, Paperclip plugin/adapter, or another accepted specialist provider may satisfy execution without changing Wandora customer semantics.
+
+## Business-System read execution boundary — ADR 0209
+
+For REST-only business-system providers that cannot execute through Paperclip's generic connected MCP gateway, the approved provider-side pattern is a **native Paperclip connector contribution** only when it reuses Paperclip Connection/install/grant/secret authority.
+
+A standalone plugin tool with its own config-based assignment is not sufficient if it creates a second connection/grant authority.
+
+The connector implementation may perform narrowly allowlisted provider HTTP execution inside Paperclip, but Wandora continues to own provider-neutral Business System semantics, tenant authorization, read/write policy and effect authorization. No generic Wandora REST executor or secret manager is authorized.
