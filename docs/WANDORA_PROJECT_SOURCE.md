@@ -2607,3 +2607,28 @@ A fresh protected pre-019 backup was captured and restore-readiness proved in a 
 The required invite-only smoke therefore could not be performed without inventing identity state. The onboarding flag was turned back OFF. No organization profile, new identity, employee, provider binding, work, model run or outbound effect was created.
 
 Do not repeat migration 019 or Core/Web promotion. Next slice is **Customer Company Profile + First Access Onboarding — Invite-Only Smoke + Final Flag Activation V1**, requiring one legitimate e-mail address authorized to receive the production invite.
+
+## ADR 0201 — Customer Company Profile + First Access Onboarding Invite-Only Smoke — Invite Execution V1
+
+Status: **PARTIAL / EXACTLY ONE REAL INVITE APPLIED / ACCEPTANCE PENDING**.
+
+One explicitly authorized real production invite was sent through the existing Supabase Auth provider-native invite route with redirect to /accept-invite. The target address is intentionally omitted from Git.
+
+Read-back proved exactly one pending invited Auth identity: target auth rows=1, invited_at present=1, confirmation_sent_at present=1, confirmed=0, signed in=0, target one-time tokens=1. No retry occurred.
+
+The target still has zero Wandora identity mappings, no organization/profile and no hire operation. Core/Web/Auth/Paperclip/Gateway remain healthy. The onboarding flag remains OFF.
+
+One globally-enabled MEDICSPRO ana-commercial-v1 eligibility row is pre-existing and unrelated to this invited identity.
+
+Next safe slice: **Customer Company Profile + First Access Onboarding — Invite Acceptance + Final Flag Activation + Company Profile Smoke V1**. The recipient must first open the delivered Wandora invite and establish the first password. Do not resend automatically; reconcile provider state first if delivery is questioned.
+
+
+## ADR 0201 final — Customer Company Profile + First Access Onboarding
+
+Status: **COMPLETE / PRODUCTION ONBOARDING ACTIVE / REAL INVITE-ONLY SMOKE PASSED**.
+
+The authorized invite was accepted and the recipient completed company onboarding successfully. Production reconciliation proves exactly one Auth identity, one Wandora identity, one organization, one active owner membership and one organization profile for the new tenant. The onboarding flag is ON and Core/Web/Auth/Paperclip/Gateway are healthy with zero restarts.
+
+Scoped to the new organization: digital-employee eligibility=0, hire operations=0, outbound attempts=0. No Paperclip/Mastra/work/outbound side effect was created by onboarding.
+
+BrasilAPI remains enrichment-only; CPF/CNPJ/CEP validation remains local and deterministic. With the live adapter headers, provider probes from Core returned HTTP 200 for both CEP and CNPJ.
