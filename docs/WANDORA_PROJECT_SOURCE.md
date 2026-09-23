@@ -1,5 +1,27 @@
 # Wandora — Project Source / Continuity Bootstrap
 
+## Current continuity checkpoint — ADR 0196
+
+Organization Grounding Source File Upload Production Promotion Execution V1 is **COMPLETE / GREEN**.
+
+Live production now has:
+
+```text
+migration 018 = LIVE / verified
+organization-grounding-sources bucket = 1
+objects = 0
+policies = 2
+
+Web = wandora/web:candidate-aaada76d9806
+revision = aaada76d9806d48ce3e3047a299974ee9d41a480
+healthy / restart 0
+```
+
+Core/Paperclip/Gateway were not recreated. MEDICSPRO grounding, works and outbound remained unchanged. No real file was uploaded during promotion.
+
+The next safe slice is an owner-session smoke test using a deliberate real company file through the customer-facing Company flow. Do not use direct SQL or direct Storage mutation to prove the product path.
+
+
 ## Current continuity checkpoint — ADR 0195
 
 Organization Grounding Source File Upload Production Promotion Preflight V1 is **COMPLETE / GO FOR A SEPARATE FUTURE EXECUTION / NO PRODUCTION EFFECT**.
