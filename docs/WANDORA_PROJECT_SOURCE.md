@@ -2658,3 +2658,19 @@ Paperclip Tool Gateway can internally resolve granted connection secrets and inj
 28PRO currently has no Paperclip company/provider binding, as intended by first-access onboarding. Any provider company required for Connections must be lazily materialized only after explicit integration intent and must not hire/activate an employee or create work.
 
 Next safe slice: **Paperclip Business-System Connection Container + REST Tool Gateway Read-Only Qualification V1 — CODE ONLY / NO EFFECT**. Do not enter the real VendaERP token before that slice closes GREEN.
+
+## ADR 0204 — Wandora Commercial Activation + Starter Digital Employee Product Contract V1
+
+Status: **ACCEPTED PRODUCT CONTRACT / NO PRODUCTION EFFECT**.
+
+Wandora's V1 commercial product includes one starter digital employee. Invite/account/company-profile onboarding remains a separate, effect-minimal transition and is not itself proof of purchase or entitlement.
+
+`ana-commercial-v1` is reused as the starter employee V1. No second employee catalog, lifecycle engine or provisioning subsystem is introduced.
+
+A customer-facing state described as Wandora active/ready for work requires: active organization + starter entitlement + exactly one Paperclip company binding + exactly one completed starter hire + exact employee/provider binding + Ana active/supervised. This readiness does not imply work execution, Mastra run, outbound messaging or ERP write authority.
+
+ADR 0204 supersedes ADR 0203 only on provider-company timing for commercially activated customers: Paperclip company materialization belongs to starter-workforce provisioning, not to the later ERP-connection event. ERP remains an optional tool attached to the already-existing workforce.
+
+28PRO is currently onboarded but not starter-workforce ready. No production mutation is authorized yet.
+
+Next safe slice: **Starter Digital Employee Commercial Activation Composition V1 — CODE ONLY / NO EFFECT**. After that is GREEN, run **28PRO Starter Digital Employee Production Activation Preflight V1 — NO EFFECT** before any real provisioning.
