@@ -38,7 +38,25 @@ docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -c   "
      CREATE ROLE supabase_functions_admin NOLOGIN;
    EXCEPTION WHEN duplicate_object THEN NULL; END \$\$;
    CREATE SCHEMA IF NOT EXISTS net;
-   GRANT USAGE ON SCHEMA net TO PUBLIC;" >/dev/null
+   GRANT USAGE ON SCHEMA net TO PUBLIC;
+
+   CREATE SCHEMA IF NOT EXISTS storage;
+   CREATE TABLE IF NOT EXISTS storage.buckets (
+     id text PRIMARY KEY,
+     name text NOT NULL UNIQUE,
+     public boolean DEFAULT false,
+     file_size_limit bigint,
+     allowed_mime_types text[]
+   );
+   CREATE TABLE IF NOT EXISTS storage.objects (
+     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+     bucket_id text,
+     name text,
+     metadata jsonb
+   );
+   ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+   GRANT USAGE ON SCHEMA storage TO authenticated;
+   GRANT SELECT, INSERT, UPDATE, DELETE ON storage.objects TO authenticated;" >/dev/null
 
 for migration in "$MIGRATIONS"/*.sql; do
   base_name="$(basename "$migration")"
@@ -46,9 +64,13 @@ for migration in "$MIGRATIONS"/*.sql; do
   docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME"     -f "/tmp/$base_name" >/dev/null
 done
 
-verifier="VERIFY_20260922_ORGANIZATION_GROUNDING_CONTRACT_V1.sql"
-docker cp "$VERIFIERS/$verifier" "$DB:/tmp/$verifier" >/dev/null
-docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME"   -f "/tmp/$verifier"
+for verifier in \
+  VERIFY_20260922_ORGANIZATION_GROUNDING_CONTRACT_V1.sql \
+  VERIFY_20260923_ORGANIZATION_GROUNDING_SOURCE_STORAGE_V1.sql
+do
+  docker cp "$VERIFIERS/$verifier" "$DB:/tmp/$verifier" >/dev/null
+  docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -f "/tmp/$verifier"
+done
 
 docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$DB_NAME" -c   "ALTER ROLE wandora_core_runtime CONNECTION LIMIT 4 PASSWORD '${CORE_PASSWORD}';
    CREATE ROLE wandora_fixture_admin_test LOGIN BYPASSRLS PASSWORD '${FIXTURE_PASSWORD}';

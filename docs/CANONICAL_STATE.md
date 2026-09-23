@@ -1,5 +1,26 @@
 # Wandora — Canonical State / Handoff
 
+## ADR 0194 — Organization Grounding Source File Upload Implementation V1 — CODE ONLY
+
+Grounding source-file upload is now implemented in code without production effect.
+
+The design preserves ADR 0168/0191 authority:
+
+```text
+Wandora = official-evidence semantics + provider-neutral sourceRef/sourceLabel + grounding version history
+Supabase Storage = delegated private blob persistence
+Mastra/runtime = no automatic file retrieval/RAG/memory/context use in this slice
+```
+
+Migration 018 defines a private `organization-grounding-sources` bucket, 10 MiB limit, bounded business MIME types and tenant/role RLS. Objects are immutable and content-addressed by SHA-256; owner/admin may insert, active members may read, and V1 defines no UPDATE/DELETE customer policy.
+
+Web now supports uploading evidence in the Company flow and downloading Wandora-managed private evidence from the detail drawer. New files continue to associate to grounding only through the canonical create/correct versioned contract.
+
+Validation is GREEN: SQL/RLS verifier, 12/12 existing grounding Core tests and full production-shaped Web build with `WANDORA_WEB_GROUNDING_SOURCE_FILE_UPLOAD_V1_OK`.
+
+Production is unchanged: migration 018 is not applied, live bucket count remains 0 and no object exists. See ADR 0194. Next slice: production-promotion preflight only.
+
+
 ## ADR 0193 — Web Home Greeting + Company Detail Drawer Production Promotion V1 — GREEN
 
 Web `wandora/web:candidate-840469b365d1` from `main@840469b365d1b0af25fcb91f365dc74e0da04ea6` is live, healthy and restart 0. Public routes /, /team, /work, /conversations, /approvals and /company are 200; /api/v1/me without session remains 401.

@@ -1,5 +1,27 @@
 # Wandora — Project Source / Continuity Bootstrap
 
+## Current continuity checkpoint — ADR 0194
+
+Organization Grounding Source File Upload Implementation V1 is **IMPLEMENTED IN CODE / NO PRODUCTION EFFECT**.
+
+The approved ADR 0191 direction is now implemented behind the existing grounding contract:
+
+- private Supabase Storage bucket contract `organization-grounding-sources` in migration 018;
+- provider-neutral `wandora:grounding-source:v1:...` references;
+- browser upload through the existing human JWT + public Supabase key;
+- owner/admin upload, active-member read and cross-tenant denial through Storage RLS;
+- immutable SHA-256-addressed objects with no V1 UPDATE/DELETE policy;
+- PDF/DOCX/XLSX/CSV/TXT/PNG/JPEG up to 10 MiB;
+- upload/download integrity verification;
+- Company UI upload and private download while create/correct continue through the existing grounding contract.
+
+No document table, RAG, retrieval, embeddings, memory, chunking, service-role browser credential or Core blob proxy was introduced.
+
+Validation is GREEN: migration 018/RLS verifier, all 12 existing grounding Core tests and the complete production-shaped Web build including `WANDORA_WEB_GROUNDING_SOURCE_FILE_UPLOAD_V1_OK`.
+
+Production remains unchanged: migration 018 is not live, grounding-source bucket count is 0 and no object was created. Next slice is **Organization Grounding Source File Upload Production Promotion Preflight V1**.
+
+
 ## Current continuity checkpoint — ADR 0193
 
 Web Home Greeting + Company Detail Drawer Production Promotion V1 is **COMPLETE / GREEN**.
