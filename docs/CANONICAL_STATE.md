@@ -4320,3 +4320,17 @@ No integration table, secret manager, browser credential flow, Paperclip Connect
 Mobile/conversational access is now an explicit invariant: channel address -> verified Wandora identity/contact -> organization relationship/role -> capability/effect authorization. A phone number alone never grants authority, and ERP party records are commercial mappings rather than Wandora identity authority.
 
 Next safe slice after exact-head CI/merge: **Paperclip Connection Credential Custody + 28PRO VendaERP Read-Only Connection Preflight V1 — NO EFFECT**.
+
+## ADR 0203 — Paperclip Connection Credential Custody + 28PRO VendaERP Read-Only Connection Preflight V1
+
+Status: **COMPLETE / REUSE PAPERCLIP CONNECTIONS + SECRETS / LIVE CONNECTION NOT YET AUTHORIZED**.
+
+Paperclip v2026.916.0 was inspected at pinned source `dffc2b3ca1b9e88fa21cb17493083e682dffd1ca`. It can represent the VendaERP credential set as three secret-backed header credential refs and already supplies company-scoped secrets, Connections, grants, installs, responsible-user routing and run-bound secret access.
+
+Board/company APIs do not provide a general plaintext secret-read path to Wandora Core; agent secret value resolution is deliberately run-bound. Therefore Core must not retrieve the ERP token from Paperclip and call VendaERP as a secret bypass.
+
+Paperclip Tool Gateway can internally resolve granted connection secrets and inject multiple HTTP headers, but remains quarantined by canonical authority and requires a dedicated read-only qualification before production use.
+
+28PRO currently has no Paperclip company/provider binding, as intended by first-access onboarding. Any provider company required for Connections must be lazily materialized only after explicit integration intent and must not hire/activate an employee or create work.
+
+Next safe slice: **Paperclip Business-System Connection Container + REST Tool Gateway Read-Only Qualification V1 — CODE ONLY / NO EFFECT**. Do not enter the real VendaERP token before that slice closes GREEN.
