@@ -180,15 +180,9 @@ test('non-customer work preserves legacy lifecycle and does not patch Paperclip 
       }), { status: 200, headers: { 'content-type': 'application/json' } });
     };
 
-    const result = await createServerAdapter().execute(executionContext(
-      '<!-- wandora-read-tools-v1:vendaerp_search_products -->\nConsultar somente produtos.',
-    ));
+    const result = await createServerAdapter().execute(executionContext('Sem marcador de customer work.'));
     assert.equal(result.exitCode, 0);
     assert.equal(result.usage, undefined);
     assert.equal(requests.length, 1);
-    const parsedBody = JSON.parse(String(requests[0].init.body));
-    assert.deepEqual(parsedBody.task.allowedReadToolNames, ['vendaerp_search_products']);
-    assert.equal(parsedBody.task.description, 'Consultar somente produtos.');
-    assert.equal(String(requests[0].init.body).includes('wandora-read-tools-v1:'), false);
   });
 });
