@@ -379,4 +379,3 @@ For REST-only business-system providers that cannot execute through Paperclip's 
 A standalone plugin tool with its own config-based assignment is not sufficient if it creates a second connection/grant authority.
 
 The connector implementation may perform narrowly allowlisted provider HTTP execution inside Paperclip, but Wandora continues to own provider-neutral Business System semantics, tenant authorization, read/write policy and effect authorization. No generic Wandora REST executor or secret manager is authorized.
-
