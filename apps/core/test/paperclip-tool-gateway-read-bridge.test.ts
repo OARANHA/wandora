@@ -37,6 +37,19 @@ test('Paperclip read bridge exposes only authorized connection-backed read tools
           risk: 'read',
           connectionId: CONNECTION,
           catalogEntryId: CATALOG,
+          upstreamToolName: 'vendaerp_search_products',
+        },
+        {
+          name: 'vendaerp_probe',
+          displayName: 'VendaERP Probe',
+          description: 'Probe connection.',
+          parametersSchema: { type: 'object', properties: {}, additionalProperties: false },
+          pluginId: 'paperclip-gateway',
+          providerType: 'mcp_local_stdio',
+          risk: 'read',
+          connectionId: CONNECTION,
+          catalogEntryId: '74444444-4444-4444-8444-444444444444',
+          upstreamToolName: 'vendaerp_probe',
         },
         {
           name: 'dangerous_write',
@@ -76,6 +89,7 @@ test('Paperclip read bridge exposes only authorized connection-backed read tools
   const tools = await bridge({
     runToken: 'opaque-run-token',
     paperclipRunId: RUN,
+    allowedUpstreamToolNames: ['vendaerp_search_products'],
   });
 
   assert.equal(tools.length, 1);
@@ -228,4 +242,28 @@ test('Paperclip read bridge does not retry an identical denied read call inside 
   await assert.rejects(tools[0]!.execute({}), (error: unknown) =>
     error instanceof PaperclipToolGatewayReadBridgeError && error.code === 'denied');
   assert.equal(calls, 1);
+});
+
+
+test('Paperclip read bridge fails closed on malformed or duplicate per-task tool scopes', async () => {
+  const bridge = createPaperclipToolGatewayReadBridge({
+    agentMeUrl: 'http://wandora-paperclip:3100/api/agents/me',
+    fetchImpl: async () => { throw new Error('network must not run'); },
+  });
+  await assert.rejects(
+    bridge({
+      runToken: 'opaque-run-token',
+      paperclipRunId: RUN,
+      allowedUpstreamToolNames: [],
+    }),
+    (error: unknown) => error instanceof PaperclipToolGatewayReadBridgeError && error.code === 'invalid',
+  );
+  await assert.rejects(
+    bridge({
+      runToken: 'opaque-run-token',
+      paperclipRunId: RUN,
+      allowedUpstreamToolNames: ['vendaerp_probe', 'vendaerp_probe'],
+    }),
+    (error: unknown) => error instanceof PaperclipToolGatewayReadBridgeError && error.code === 'invalid',
+  );
 });
