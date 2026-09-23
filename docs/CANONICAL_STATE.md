@@ -1,5 +1,35 @@
 # Wandora — Canonical State / Handoff
 
+## ADR 0196 — Organization Grounding Source File Upload Production Promotion Execution V1 — GREEN
+
+Migration 018 and the Web upload/download surface are now production-live.
+
+Final live state:
+
+```text
+Web = wandora/web:candidate-aaada76d9806
+revision = aaada76d9806d48ce3e3047a299974ee9d41a480
+healthy / restart 0
+
+organization-grounding-sources bucket = 1
+target objects = 0
+target policies = 2
+
+MEDICSPRO fact active = 1
+MEDICSPRO fact retired = 1
+MEDICSPRO rule active = 1
+MEDICSPRO rule retired = 1
+MEDICSPRO works = 2
+MEDICSPRO outbound attempts = 0
+```
+
+Core, Paperclip and Messaging Gateway were not recreated. No real file was uploaded merely to prove promotion.
+
+The upload surface now supports private company evidence through the customer-facing Company flow. Uploaded files remain evidence only; they are not automatic RAG/retrieval/memory/context.
+
+See ADR 0196. Next safe proof: owner-session real-file smoke test through the canonical Company flow.
+
+
 ## ADR 0195 — Grounding Source File Upload Production Promotion Preflight V1 — GO / NO EFFECT
 
 The production-promotion preflight is complete and GREEN.
