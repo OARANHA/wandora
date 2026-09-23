@@ -283,3 +283,66 @@ test('runtime failure marks exact work execution uncertain and never retries ins
     paperclipRunId: RUN,
   }]);
 });
+
+
+test('execution service keeps Paperclip credentials outside runtime input while projecting read tool callbacks', async () => {
+  await resetFixture('active');
+  let bridgeInput: unknown;
+  let received: AssignedTaskInput | undefined;
+  let toolCalls = 0;
+
+  const service = new PaperclipExecutionService(
+    runtimePool,
+    {
+      executeAssignedTask: async (input) => {
+        received = input;
+        assert.equal(input.readTools?.length, 1);
+        const result = await input.readTools![0]!.execute({ name: 'Tinta' });
+        assert.deepEqual(result, { items: [{ code: 'P1' }] });
+        return {
+          model: 'wandora-supervised-v1',
+          summary: 'Consulta supervisionada',
+          usage: { inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, totalTokens: 0 },
+        };
+      },
+    },
+    emptyGroundingProjection,
+    undefined,
+    async (input) => {
+      bridgeInput = input;
+      return [{
+        name: 'vendaerp_search_products',
+        title: 'VendaERP Search Products',
+        description: 'Read products.',
+        inputSchema: {
+          type: 'object',
+          properties: { name: { type: 'string' } },
+          additionalProperties: false,
+        },
+        execute: async () => {
+          toolCalls += 1;
+          return { items: [{ code: 'P1' }] };
+        },
+      }];
+    },
+  );
+
+  const result = await service.execute({
+    identity: { paperclipAgentId: AGENT, paperclipCompanyId: COMPANY, catalogKey: 'ana-commercial-v1' },
+    runToken: 'synthetic-run-token',
+    paperclipRunId: RUN,
+    task: { title: 'Consultar catálogo', description: 'Sem efeitos externos.' },
+  });
+
+  assert.equal(result.summary, 'Consulta supervisionada');
+  assert.equal(toolCalls, 1);
+  assert.deepEqual(bridgeInput, {
+    runToken: 'synthetic-run-token',
+    paperclipRunId: RUN,
+  });
+  const serializedRuntime = JSON.stringify(received);
+  assert.equal(serializedRuntime.includes('synthetic-run-token'), false);
+  assert.equal(serializedRuntime.includes(COMPANY), false);
+  assert.equal(serializedRuntime.includes(AGENT), false);
+  assert.equal(serializedRuntime.includes(RUN), false);
+});
