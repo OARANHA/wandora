@@ -1,3 +1,13 @@
+## Production checkpoint — ADR 0219 28PRO VendaERP E2E read path GREEN
+
+The fixed Core candidate `wandora/core:organization-adapter-candidate-3b39a14f5c23` was promoted Core-only after 9/9 exact-head GREEN qualification, artifact/archive digest verification, source equivalence to merged main, and an image-only full Compose delta. Production Core is healthy with restart count 0.
+
+A fresh synthetic non-customer Paperclip issue `PRO-3` proved the real Paperclip run identity → Wandora Core → Tool Gateway → supervised Mastra → VendaERP local_stdio path. Both runs returned `connected=true`.
+
+ADR 0218's duplicate-collapse fix is production-proven: Paperclip audit shows exactly one `vendaerp_probe` provider call per run, versus five per run before the fix. Paperclip still generated a separate disposition handoff run; that remains Paperclip lifecycle authority and is not internalized into Wandora.
+
+Wandora customer work operations remain 0 and outbound attempts remain 0. No ERP write occurred.
+
 ## Reconciled checkpoint — ADR 0218 Mastra duplicate read-call collapse candidate
 
 The real 28PRO end-to-end read path is **functionally proven but not yet final GREEN**.
