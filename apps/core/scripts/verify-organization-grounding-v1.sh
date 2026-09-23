@@ -91,5 +91,3 @@ docker run --rm --network "$NET" -v "$ROOT/apps/core:/src:ro"   -e DATABASE_URL=
      test/organization-grounding-runtime-projection.integration.test.ts'
 
 echo "ORGANIZATION_GROUNDING_V1_VERIFY_OK"
-
-[executed on device: wandora-vps-01 (d266af26-d31e-4f0c-9840-ca03bb02b603)]
