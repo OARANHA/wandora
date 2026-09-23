@@ -2674,3 +2674,17 @@ ADR 0204 supersedes ADR 0203 only on provider-company timing for commercially ac
 28PRO is currently onboarded but not starter-workforce ready. No production mutation is authorized yet.
 
 Next safe slice: **Starter Digital Employee Commercial Activation Composition V1 — CODE ONLY / NO EFFECT**. After that is GREEN, run **28PRO Starter Digital Employee Production Activation Preflight V1 — NO EFFECT** before any real provisioning.
+
+## ADR 0205 — Starter Digital Employee Commercial Activation Composition V1
+
+Status: **IMPLEMENTED IN CODE / NO PRODUCTION EFFECT**.
+
+Core now has a provider-neutral starter-workforce readiness projection and authenticated read-only route `GET /api/v1/organizations/:organizationId/starter-workforce`.
+
+Readiness is derived only from existing product/provider reconciliation state and returns one of: `commercial-activation-required`, `provider-company-required`, `hire-required`, `activation-required`, `ready`, `reconciliation-required`.
+
+No new table/migration/state machine exists. Eligibility remains starter-provisioning policy rather than billing state. The route exposes no provider company/agent refs or secrets. Web Nginx allows only the exact UUID-scoped read route.
+
+Local strict TypeScript typecheck/build and 6 dedicated tests are GREEN.
+
+Next safe slice after exact-head CI/merge: **28PRO Starter Digital Employee Production Activation Preflight V1 — NO EFFECT**. Do not create the Paperclip company, enable eligibility, hire or activate Ana before that preflight freezes the exact sequence and ambiguity recovery.
