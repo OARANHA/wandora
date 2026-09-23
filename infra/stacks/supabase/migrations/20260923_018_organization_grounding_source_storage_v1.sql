@@ -112,5 +112,3 @@ COMMENT ON POLICY organization_grounding_sources_owner_admin_insert
   'Immutable grounding evidence create: active organization owner/admin only. V1 intentionally grants no UPDATE or DELETE policy.';
 
 COMMIT;
-
-[executed on device: wandora-vps-01 (d266af26-d31e-4f0c-9840-ca03bb02b603)]
