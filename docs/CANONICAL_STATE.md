@@ -1,3 +1,15 @@
+## Production checkpoint — ADR 0219 VendaERP end-to-end read proof GREEN
+
+The bounded 28PRO production path **Paperclip run identity → Wandora Core → Paperclip Tool Gateway → supervised Mastra → VendaERP local_stdio** is GREEN.
+
+Production Core now runs `wandora/core:organization-adapter-candidate-3b39a14f5c23`, healthy/restart 0. PR #283 head was 9/9 GREEN and its fixed artifact is source-equivalent to current Core/stack.
+
+Synthetic Paperclip issue `PRO-3` had no `wandora-work-v1` marker. Its assignment run and Paperclip lifecycle handoff run each produced exactly one real `vendaerp_probe {}` Tool Gateway invocation, both `risk=read`, policy-allowed and `connected=true`. This proves ADR 0218 reduced identical calls from five per run to one per run without hiding the separate Paperclip-owned handoff lifecycle.
+
+Post-proof: Wandora work operations = 0, outbound attempts = 0; VendaERP catalog = exactly 8 read entries and 0 write/destructive entries; Core/Paperclip both healthy.
+
+Next safe slice: **28PRO VendaERP Bounded Business-Semantic Read Proof V1 — READ ONLY**. Qualify one concrete owner-facing read question and its output/redaction contract before execution.
+
 ## Reconciled checkpoint — ADR 0218 Mastra duplicate read-call collapse candidate
 
 The real 28PRO end-to-end read path is **functionally proven but not yet final GREEN**.
