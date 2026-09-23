@@ -3,12 +3,15 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import {
   TOOL_DEFINITIONS,
-  VENDAERP_ORIGIN,
+  VENDAERP_HOST_SUFFIX,
   VendaErpAdapterError,
   createVendaErpClient,
   executeVendaErpTool,
+  vendaErpOriginForTenant,
 } from '../server.mjs';
 
+const tenant = 'voepro';
+const origin = vendaErpOriginForTenant(tenant);
 const credentials = Object.freeze({
   authorizationToken: 'secret-token',
   user: 'secret-user',
@@ -43,12 +46,21 @@ test('publishes exactly eight read-only tools with no transport parameters', () 
     assert.equal(tool.inputSchema.additionalProperties, false);
     assert.equal('url' in tool.inputSchema.properties, false);
     assert.equal('method' in tool.inputSchema.properties, false);
+    assert.equal('tenant' in tool.inputSchema.properties, false);
   }
 });
 
-test('uses only the fixed VendaERP origin, GET and exact credential headers', async () => {
+test('derives only VendaERP tenant origins and rejects caller-style URLs', () => {
+  assert.equal(VENDAERP_HOST_SUFFIX, '.vendaerp.com.br');
+  assert.equal(origin, 'https://voepro.vendaerp.com.br');
+  assert.throws(() => vendaErpOriginForTenant('https://evil.example'), /tenant/i);
+  assert.throws(() => vendaErpOriginForTenant('voepro.vendaerp.com.br'), /tenant/i);
+});
+
+test('uses only the template-bound VendaERP origin, GET and exact credential headers', async () => {
   const calls = [];
   const client = createVendaErpClient({
+    tenant,
     credentials,
     fetchImpl: async (url, init) => {
       calls.push({ url: String(url), init });
@@ -68,7 +80,7 @@ test('uses only the fixed VendaERP origin, GET and exact credential headers', as
   assert.equal(calls.length, 1);
   const call = calls[0];
   const url = new URL(call.url);
-  assert.equal(url.origin, VENDAERP_ORIGIN);
+  assert.equal(url.origin, origin);
   assert.equal(url.pathname, '/api/request/Produtos/Pesquisar');
   assert.equal(url.searchParams.get('codigo'), 'ABC');
   assert.equal(url.searchParams.get('pageSize'), '50');
@@ -82,6 +94,7 @@ test('uses only the fixed VendaERP origin, GET and exact credential headers', as
 
 test('projects products into the provider-neutral contract', async () => {
   const client = createVendaErpClient({
+    tenant,
     credentials,
     fetchImpl: async () => jsonResponse([{
       id: 'p1',
@@ -129,7 +142,7 @@ test('maps all eight tools to the frozen read-only endpoint allowlist', async ()
     calls.push({ path: parsed.pathname, method: init.method });
     return jsonResponse(bodies.get(parsed.pathname));
   };
-  const options = { credentials, fetchImpl };
+  const options = { tenant, credentials, fetchImpl };
 
   await executeVendaErpTool('vendaerp_probe', {}, options);
   await executeVendaErpTool('vendaerp_list_companies', {}, options);
@@ -157,6 +170,7 @@ test('maps all eight tools to the frozen read-only endpoint allowlist', async ()
 test('rejects unbounded pagination and unknown tools before network access', async () => {
   let calls = 0;
   const options = {
+    tenant,
     credentials,
     fetchImpl: async () => {
       calls += 1;
@@ -182,6 +196,7 @@ test('rejects unbounded pagination and unknown tools before network access', asy
 test('normalizes provider authentication and rate-limit failures', async () => {
   for (const [status, code] of [[401, 'unauthorized'], [403, 'unauthorized'], [429, 'rate-limited'], [500, 'provider-unavailable']]) {
     const client = createVendaErpClient({
+      tenant,
       credentials,
       fetchImpl: async () => jsonResponse({ error: 'provider' }, status),
     });
@@ -194,6 +209,7 @@ test('normalizes provider authentication and rate-limit failures', async () => {
 
 test('does not echo credential values into projected results', async () => {
   const client = createVendaErpClient({
+    tenant,
     credentials,
     fetchImpl: async () => jsonResponse([{
       id: 'c1',
@@ -210,7 +226,7 @@ test('does not echo credential values into projected results', async () => {
 });
 
 test('stdio MCP handshake exposes the same eight tools without provider access', async () => {
-  const child = spawn(process.execPath, ['server.mjs'], {
+  const child = spawn(process.execPath, ['server.mjs', '--tenant', tenant], {
     cwd: new URL('..', import.meta.url),
     stdio: ['pipe', 'pipe', 'pipe'],
   });
