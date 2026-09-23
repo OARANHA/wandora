@@ -38,7 +38,6 @@ export class PaperclipExecutionService {
     private readonly readToolBridge?: (input: {
       runToken: string;
       paperclipRunId: string;
-      allowedUpstreamToolNames?: string[];
     }) => Promise<RuntimeReadTool[]>,
   ) {}
 
@@ -73,7 +72,6 @@ export class PaperclipExecutionService {
     runToken: string;
     paperclipRunId: string;
     workId?: string | null;
-    allowedReadToolNames?: string[] | null;
     task: AssignedTask;
   }): Promise<{ executionId: string; model: string; summary: string; usage: NormalizedExecutionUsage }> {
     const organizationId = await this.resolveOrganization(input.identity.paperclipCompanyId);
@@ -146,9 +144,6 @@ export class PaperclipExecutionService {
         ? await this.readToolBridge({
             runToken: input.runToken,
             paperclipRunId: input.paperclipRunId,
-            ...(input.allowedReadToolNames
-              ? { allowedUpstreamToolNames: input.allowedReadToolNames }
-              : {}),
           })
         : [];
       result = await this.runtime.executeAssignedTask({
