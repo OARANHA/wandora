@@ -4400,3 +4400,11 @@ Continuation begins only at Paperclip HMAC secret creation, then plugin config -
 `ana-commercial-v1` eligibility is now enabled through the canonical least-privilege operator function. 28PRO still has 0 digital employees, 0 starter hire operations and 0 employee/provider bindings.
 
 Next effect is the normal owner/admin authenticated hire from the customer UI. Do not replace that boundary with an operator/direct-provider shortcut.
+
+### ADR 0207 complete — 28PRO starter workforce ready
+
+Owner-authorized hire and activation completed through the existing customer contracts. Final reconciliation proves exactly one Ana, hire `completed`, one employee/provider binding, Wandora Ana `active + supervised`, Paperclip Ana `idle`, 0 work items and 0 outbound attempts.
+
+28PRO is now starter-workforce ready. No Mastra run or external send was caused by activation.
+
+Next safe slice: **Paperclip Business-System Connection Container + REST Tool Gateway Read-Only Qualification V1 — CODE ONLY / NO EFFECT**; only after that should the real 28PRO VendaERP read-only connection be activated.
