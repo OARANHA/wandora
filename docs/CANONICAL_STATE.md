@@ -1,3 +1,15 @@
+## Reconciled checkpoint — ADR 0221 per-task read admission + safe provider error observability candidate
+
+The first ADR 0220 bounded product read execution already occurred concurrently as Paperclip issue `PRO-4` and is **NOT GREEN**. The intended `vendaerp_search_products {pageSize:5,skip:0}` call failed with Paperclip `local_stdio_protocol_error`; the model then attempted additional read tools (`probe`, parties and price tables), proving that prompt-only tool restriction is not an authorization boundary. The issue was later cancelled. Wandora work/outbound remained 0/0 and no write/destructive tool was invoked.
+
+ADR 0221 introduces only a Wandora-owned semantic narrowing contract: optional `wandora-read-tools-v1` marker → structured reviewed allowlist → intersection with Paperclip-authorized `risk=read` descriptors by stable `upstreamToolName`. It cannot grant access and creates no durable state or parallel policy engine.
+
+The VendaERP MCP candidate also logs only normalized safe failure metadata (`event/tool/code`) to stderr, never credentials, request arguments or provider payloads. Public VendaERP OpenAPI confirms the current product endpoint/method/headers and expected product fields, but the exact live provider failure cause is still unproven.
+
+No new 28PRO provider call was made during diagnosis or code validation. Local validation: Wandora Paperclip adapter 3/3 GREEN; VendaERP MCP 10/10 GREEN; Core typecheck/build GREEN; focused Core tests 9/9 GREEN.
+
+This is **code candidate / NO EFFECT**. Do not retry the ADR 0220 provider read until merge + exact-head CI + separate runtime promotion/preflight.
+
 ## Reconciled checkpoint — ADR 0220 bounded VendaERP business read preflight GREEN
 
 The next production proof is qualified as a low-privacy product-catalog read: `vendaerp_search_products` with exactly `pageSize=5, skip=0`, through the already-proven Paperclip → Wandora → Mastra → Paperclip Tool Gateway path.
