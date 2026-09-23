@@ -2704,3 +2704,15 @@ The production execution sequence is frozen as: Paperclip company create -> Orga
 No effect occurred in this preflight.
 
 Next safe slice: **28PRO Starter Digital Employee Production Activation Execution V1**. After starter workforce is proven `ready`, resume the provider-neutral ERP path; VendaERP remains only the first ERP provider.
+
+## ADR 0207 — 28PRO Starter Digital Employee Production Activation Execution V1
+
+Status: **PARTIAL / SAFE STOP AT ORGANIZATION-ADAPTER SECRET CUSTODY STEP**.
+
+Execution reconciled exactly one active Paperclip `28PRO` company (`5d7ec217-118c-4292-8136-0a9ab16926ea`), exactly one matching Wandora control-plane binding and an existing deterministic host HMAC file with `0640 wandora-admin:wandora-ops` custody.
+
+Current Paperclip company state: 0 Organization Adapter secrets, plugin config `null`, 0 agents. Current Wandora starter state: 0 eligibility, 0 employees, 0 hire operations, 0 employee/provider bindings.
+
+Remote execution tooling blocked the secret-transfer command before host execution. No secret-create request was dispatched. Do not recreate company, binding or HMAC.
+
+Continuation begins only at Paperclip HMAC secret creation, then plugin config -> eligibility -> paused-first hire -> activation, with reconciliation after every effect.
