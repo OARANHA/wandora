@@ -280,3 +280,54 @@ test('stdio MCP handshake exposes the same eight tools without provider access',
     TOOL_DEFINITIONS.map((tool) => tool.name),
   );
 });
+
+test('stdio tool failure logs only safe normalized error metadata', async () => {
+  const child = spawn(process.execPath, ['server.mjs', '--tenant', tenant], {
+    cwd: new URL('..', import.meta.url),
+    env: {
+      ...process.env,
+      VENDAERP_AUTHORIZATION_TOKEN: 'must-not-log-token',
+      VENDAERP_USER: 'must-not-log-user',
+      VENDAERP_APP: 'must-not-log-app',
+    },
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
+  const stdout = [];
+  const stderr = [];
+  child.stdout.setEncoding('utf8');
+  child.stderr.setEncoding('utf8');
+  child.stdout.on('data', (chunk) => stdout.push(chunk));
+  child.stderr.on('data', (chunk) => stderr.push(chunk));
+
+  child.stdin.write(JSON.stringify({
+    jsonrpc: '2.0',
+    id: 9,
+    method: 'tools/call',
+    params: {
+      name: 'vendaerp_search_products',
+      arguments: { pageSize: 101, skip: 0 },
+    },
+  }) + '\n');
+
+  await new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('stdio error log timeout')), 3000);
+    const check = setInterval(() => {
+      if (stdout.join('').includes('"id":9')) {
+        clearTimeout(timer);
+        clearInterval(check);
+        resolve();
+      }
+    }, 10);
+  });
+  child.stdin.end();
+  child.kill('SIGTERM');
+
+  const serializedErr = stderr.join('');
+  assert.match(serializedErr, /"event":"wandora\.vendaerp-readonly\.tool-error"/);
+  assert.match(serializedErr, /"tool":"vendaerp_search_products"/);
+  assert.match(serializedErr, /"code":"invalid-input"/);
+  assert.equal(serializedErr.includes('must-not-log-token'), false);
+  assert.equal(serializedErr.includes('must-not-log-user'), false);
+  assert.equal(serializedErr.includes('must-not-log-app'), false);
+  assert.equal(serializedErr.includes('pageSize'), false);
+});

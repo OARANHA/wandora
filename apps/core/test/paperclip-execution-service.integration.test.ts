@@ -128,6 +128,50 @@ test('active exact binding reaches AgentTaskRuntime without provider identifiers
 });
 
 
+
+test('per-task read scope is forwarded only as a narrowing hint to the Paperclip bridge', async () => {
+  await resetFixture('active');
+  const bridgeInputs: unknown[] = [];
+  let received: AssignedTaskInput | undefined;
+  const service = new PaperclipExecutionService(
+    runtimePool,
+    {
+      executeAssignedTask: async (input) => {
+        received = input;
+        return { model: 'test', summary: 'ok', usage: { inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, totalTokens: 0 } };
+      },
+    },
+    emptyGroundingProjection,
+    undefined,
+    async (input) => {
+      bridgeInputs.push(input);
+      return [{
+        name: 'gateway-qualified-product-search',
+        title: 'Product search',
+        description: 'Read products.',
+        inputSchema: { type: 'object' },
+        execute: async () => [],
+      }];
+    },
+  );
+
+  await service.execute({
+    identity: { paperclipAgentId: AGENT, paperclipCompanyId: COMPANY, catalogKey: 'ana-commercial-v1' },
+    runToken: 'synthetic-run-token',
+    paperclipRunId: RUN,
+    allowedReadToolNames: ['vendaerp_search_products'],
+    task: { title: 'Consultar produtos', description: 'Somente catálogo.' },
+  });
+
+  assert.deepEqual(bridgeInputs, [{
+    runToken: 'synthetic-run-token',
+    paperclipRunId: RUN,
+    allowedUpstreamToolNames: ['vendaerp_search_products'],
+  }]);
+  assert.equal(received?.readTools?.length, 1);
+});
+
+
 test('Wandora work correlation is verified and result is committed without entering AgentTaskRuntime input', async () => {
   await resetFixture('active');
   const WORK = '76000000-0000-4000-8000-0000000000a1';

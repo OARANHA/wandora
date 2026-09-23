@@ -35,23 +35,38 @@ function nonNegativeInteger(value) {
 
 const WORK_MARKER_RE =
   /^<!-- wandora-work-v1:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}) -->\r?\n?/i;
+const READ_TOOLS_MARKER_RE =
+  /^<!-- wandora-read-tools-v1:([a-z0-9_.:-]+(?:,[a-z0-9_.:-]+){0,15}) -->\r?\n?/i;
 
 function reviewedTask(context) {
   const issue = context?.paperclipIssue && typeof context.paperclipIssue === 'object'
     ? context.paperclipIssue
     : {};
   const rawDescription = optionalString(issue.description);
-  const match = rawDescription ? WORK_MARKER_RE.exec(rawDescription) : null;
-  const workId = match?.[1]?.toLowerCase() ?? null;
-  const description = rawDescription && match
-    ? optionalString(rawDescription.slice(match[0].length))
-    : rawDescription;
+  let remainingDescription = rawDescription;
+  const workMatch = remainingDescription ? WORK_MARKER_RE.exec(remainingDescription) : null;
+  const workId = workMatch?.[1]?.toLowerCase() ?? null;
+  if (remainingDescription && workMatch) {
+    remainingDescription = optionalString(remainingDescription.slice(workMatch[0].length));
+  }
+  const readToolsMatch = remainingDescription
+    ? READ_TOOLS_MARKER_RE.exec(remainingDescription)
+    : null;
+  const allowedReadToolNames = readToolsMatch?.[1]
+    ? readToolsMatch[1].split(',').map((name) => name.toLowerCase())
+    : null;
+  if (remainingDescription && readToolsMatch) {
+    remainingDescription = optionalString(
+      remainingDescription.slice(readToolsMatch[0].length),
+    );
+  }
   return {
     workId,
+    allowedReadToolNames,
     issueId: optionalString(issue.id, 255),
     identifier: optionalString(issue.identifier, 255),
     title: optionalString(issue.title),
-    description,
+    description: remainingDescription,
     workMode: optionalString(issue.workMode, 128),
     wakeReason: optionalString(context?.wakeReason, 255),
     wakeCommentId: optionalString(context?.wakeCommentId ?? context?.commentId, 255),
