@@ -21,6 +21,8 @@ CI is never authorized to manage or introspect the production Docker control pla
 
 The customer should perceive a company operating with human and digital employees. Technical implementation details are intentionally hidden.
 
+A commercially activated Wandora customer is not an empty software tenant: the V1 product includes one starter digital employee. Identity/company-profile onboarding remains separate from commercial activation. Commercial activation composes existing Paperclip company/control-plane provisioning, catalog hire and supervised activation; optional ERP/messaging/tool connections are attached afterward.
+
 ```text
 Customer Wandora Web             Wandora Platform Admin
         \                           /
