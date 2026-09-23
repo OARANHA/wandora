@@ -189,5 +189,3 @@ $$;
 ROLLBACK;
 
 SELECT 'ORGANIZATION_GROUNDING_SOURCE_STORAGE_V1_VERIFY_OK';
-
-[executed on device: wandora-vps-01 (d266af26-d31e-4f0c-9840-ca03bb02b603)]
