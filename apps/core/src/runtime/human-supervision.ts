@@ -275,13 +275,13 @@ export function createHumanSupervisionHandler(
   service: HumanSupervisionReadService,
   sendProposalService?: HumanSendProposalService,
   digitalEmployeesService?: HumanDigitalEmployeesReadService,
-  starterWorkforceReadinessService?: HumanStarterWorkforceReadinessService,
   digitalEmployeeHireService?: OrganizationAdapterService,
   digitalEmployeeActivationService?: HumanDigitalEmployeeActivationService,
   digitalEmployeeWorkService?: OrganizationAdapterService,
   groundingService?: HumanGroundingService,
   companyProfileService?: HumanCompanyProfileService,
   companyRegistryLookup?: CompanyRegistryLookupService,
+  starterWorkforceReadinessService?: HumanStarterWorkforceReadinessService,
 ) {
   return async (request: HumanSupervisionRequest): Promise<HumanSupervisionResponse> => {
     try {
