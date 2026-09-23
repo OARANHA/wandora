@@ -2688,3 +2688,19 @@ No new table/migration/state machine exists. Eligibility remains starter-provisi
 Local strict TypeScript typecheck/build and 6 dedicated tests are GREEN.
 
 Next safe slice after exact-head CI/merge: **28PRO Starter Digital Employee Production Activation Preflight V1 — NO EFFECT**. Do not create the Paperclip company, enable eligibility, hire or activate Ana before that preflight freezes the exact sequence and ambiguity recovery.
+
+## ADR 0206 — 28PRO Starter Digital Employee Production Activation Preflight V1
+
+Status: **GREEN / NO EFFECT / PRODUCTION EXECUTION QUALIFIED**.
+
+28PRO live state was reconciled as one active organization with one active owner and zero starter eligibility, zero Paperclip control-plane binding, zero employees, zero matching Ana, zero starter hire operations and zero employee/provider bindings.
+
+Paperclip v2026.916.0 is healthy and contains exactly three existing companies: Wandora Customer Hire Canary, Wandora Internal Supervised Proof and MEDICSPRO. Exact `28PRO` provider-company matches = 0. The protected Board credential still reads as `isInstanceAdmin=true`.
+
+Live Core has Organization Adapter, customer hire and customer activation gates ON. Paperclip Organization Adapter plugin is ready at v0.3.1. No Human Send flag and no Gateway outbound enable flag were observed.
+
+The production execution sequence is frozen as: Paperclip company create -> Organization Adapter binding/HMAC/secret/config -> starter eligibility -> canonical paused-first hire -> supervised activation. Reconcile between every non-atomic effect; no blind retry.
+
+No effect occurred in this preflight.
+
+Next safe slice: **28PRO Starter Digital Employee Production Activation Execution V1**. After starter workforce is proven `ready`, resume the provider-neutral ERP path; VendaERP remains only the first ERP provider.
