@@ -1,3 +1,11 @@
+## Reconciled checkpoint — ADR 0220 bounded VendaERP business read preflight GREEN
+
+The next production proof is qualified as a low-privacy product-catalog read: `vendaerp_search_products` with exactly `pageSize=5, skip=0`, through the already-proven Paperclip → Wandora → Mastra → Paperclip Tool Gateway path.
+
+Allowed supervised output is limited to provider-neutral product fields: name, code, category, brand, unit, sale price and stock balance when present. Provider/internal IDs, barcode, minimum price, credentials/tokens and customer/order PII are outside this proof. No commercial interpretation may be invented.
+
+ADR 0220 is **NO EFFECT**. Next slice is **28PRO VendaERP Bounded Business-Semantic Read Execution V1 — READ ONLY**.
+
 ## Production checkpoint — ADR 0219 28PRO VendaERP E2E read path GREEN
 
 The fixed Core candidate `wandora/core:organization-adapter-candidate-3b39a14f5c23` was promoted Core-only after 9/9 exact-head GREEN qualification, artifact/archive digest verification, source equivalence to merged main, and an image-only full Compose delta. Production Core is healthy with restart count 0.
