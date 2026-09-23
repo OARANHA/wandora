@@ -1,5 +1,41 @@
 # Wandora — Project Source / Continuity Bootstrap
 
+## Reconciled real checkpoint — 2026-09-23 after PR #257 merge
+
+Verified from GitHub + live runtime, not inferred from chat:
+
+```text
+main = 608bedd9d4eefaa8ee15dd454bd4b4cfeec40a62
+PR #257 = MERGED
+open PRs = 0
+post-merge workflow runs for exact main SHA = 0
+reviewed PR head = 5ffe209bb222056a7382204076991ef674ace798
+reviewed PR-head workflows = 7/7 GREEN
+```
+
+Live runtime remains intentionally pre-ADR 0198:
+
+```text
+Web = wandora/web:candidate-aaada76d9806
+Core = wandora/core:organization-adapter-candidate-d8349b353bb7
+Paperclip = wandora/paperclip:v2026.916.0
+Messaging Gateway = wandora/messaging-gateway:origin-fix-94cfb4de
+
+Web/Core/Paperclip/Gateway/DB/Storage = healthy
+restart count = 0
+
+wandora.organization_profiles = ABSENT
+complete_customer_company_onboarding_v1 = ABSENT
+WANDORA_CUSTOMER_COMPANY_ONBOARDING_ENABLED = ABSENT
+
+MEDICSPRO works = 2
+MEDICSPRO outbound attempts = 0
+MEDICSPRO digital employees = 1
+```
+
+Interpretation: ADR 0198 is merged code/documentation only. There is still no production migration, no Core/Web promotion and no onboarding activation. The next safe slice remains **Customer Company Profile + First Access Onboarding Production Promotion Preflight V1**, strictly NO EFFECT.
+
+
 ## Current continuity checkpoint — ADR 0198
 
 Customer Company Profile + First Access Onboarding V1 is **IMPLEMENTED IN CODE / NO PRODUCTION EFFECT**.
