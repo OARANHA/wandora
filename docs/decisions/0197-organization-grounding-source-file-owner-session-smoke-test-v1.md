@@ -1,6 +1,6 @@
 # ADR 0197 — Organization Grounding Source File Owner-Session Smoke Test V1
 
-Status: **PARTIAL GREEN / UPLOAD + GROUNDING ASSOCIATION PROVED / OWNER DOWNLOAD PENDING**
+Status: **COMPLETE / GREEN / OWNER UPLOAD + PRIVATE DOWNLOAD PROVED**
 Date: 2026-09-23
 
 ## Context
@@ -120,23 +120,51 @@ All critical services remained healthy with zero restarts.
 
 No work, model call, Paperclip run, wakeup, session, outbound message or provider-side effect was caused by this upload proof.
 
-## Remaining proof
+## Owner-authenticated private download proof
 
-The upload + grounding-association half of the owner-session smoke test is GREEN.
+The same normal MEDICSPRO owner used **Baixar arquivo** in the customer Company surface and confirmed the PDF downloaded successfully.
 
-The **owner-authenticated private download path has not yet been observed in this checkpoint**. Do not mark the entire upload/download smoke test complete merely from database/object presence.
+Storage API independently recorded:
 
-The next bounded action is for the same normal MEDICSPRO owner session to use **Baixar arquivo** from the Company detail surface.
+```text
+GET /object/authenticated/organization-grounding-sources/<MEDICSPRO>/11ad412d.../regras_da_casa_medicspro.pdf
+role = authenticated
+HTTP = 200
+content-type = application/pdf
+content-length = 136312
+operation = storage.object.get_authenticated
+```
 
-That action should prove:
+The browser implementation only completes the managed download after re-verifying the downloaded bytes against the SHA-256 encoded in the provider-neutral sourceRef, so the successful customer download exercises that integrity gate.
 
-1. authenticated private download succeeds through the customer UI;
-2. browser-side SHA-256 verification accepts the returned bytes;
-3. unauthenticated/public access remains denied;
-4. no new grounding row/object/work/outbound effect is created by download.
+The negative controls remained fail-closed:
 
-Do not obtain or mint the owner's JWT to simulate this proof.
+```text
+authenticated route without Authorization = 400
+public route = non-success (400)
+bucket public = false
+```
+
+Post-download state stayed unchanged:
+
+```text
+Storage objects = 1
+same sourceRef grounding rows = 1
+MEDICSPRO work operations = 2
+MEDICSPRO outbound attempts = 0
+```
+
+No owner JWT was extracted or minted to simulate the proof.
 
 ## Decision
 
-**Owner-session upload and canonical grounding association are GREEN. Full owner-session source-file smoke test remains PARTIAL until the customer performs the private download through the UI.**
+**Organization Grounding Source File Owner-Session Smoke Test V1 is COMPLETE / GREEN.**
+
+Both directions are proved through the normal customer path:
+
+```text
+owner upload → private Storage object → canonical grounding association
+owner Baixar arquivo → authenticated private GET → browser integrity verification
+```
+
+The file remains official evidence only. No RAG/retrieval/memory/context capability is implied by this proof.
