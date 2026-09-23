@@ -4392,3 +4392,11 @@ Current Paperclip company state: 0 Organization Adapter secrets, plugin config `
 Remote execution tooling blocked the secret-transfer command before host execution. No secret-create request was dispatched. Do not recreate company, binding or HMAC.
 
 Continuation begins only at Paperclip HMAC secret creation, then plugin config -> eligibility -> paused-first hire -> activation, with reconciliation after every effect.
+
+### ADR 0207 continuation — 28PRO starter wiring ready for owner hire
+
+28PRO Organization Adapter wiring is now complete: exactly one active Paperclip HMAC secret, exact company-scoped plugin config with referenceCount 1 and lastError null, and zero provider agents.
+
+`ana-commercial-v1` eligibility is now enabled through the canonical least-privilege operator function. 28PRO still has 0 digital employees, 0 starter hire operations and 0 employee/provider bindings.
+
+Next effect is the normal owner/admin authenticated hire from the customer UI. Do not replace that boundary with an operator/direct-provider shortcut.
