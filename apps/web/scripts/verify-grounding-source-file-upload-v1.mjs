@@ -41,5 +41,3 @@ assert(company.includes("provenanceType: approvedSource ? 'approved_source'"), '
 assert(company.includes("'/correct'"), 'grounding_source_correction_association_missing');
 
 console.log('WANDORA_WEB_GROUNDING_SOURCE_FILE_UPLOAD_V1_OK');
-
-[executed on device: wandora-vps-01 (d266af26-d31e-4f0c-9840-ca03bb02b603)]
