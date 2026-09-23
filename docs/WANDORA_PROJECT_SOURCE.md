@@ -1,14 +1,12 @@
 ## Reconciled checkpoint — ADR 0223 Paperclip issue-scoped narrowing reuse
 
-A deeper Paperclip v2026.916.0 capability review proved native `issue`-scoped tool-profile bindings with precedence `gateway > issue > routine > agent > project > company`. Ordinary profiles use narrowest-scope wins, so a temporary issue profile can restrict Ana from her 8-tool agent profile to exactly one already-authorized catalog entry.
+Pinned Paperclip proves native issue-scoped tool-profile narrowing with precedence `gateway > issue > routine > agent > project > company`; ordinary profiles use narrowest-scope wins. ADR 0221's Wandora-owned per-task marker/allowlist is therefore superseded by provider-native authority.
 
-Therefore ADR 0221's Wandora-owned per-task marker/allowlist is superseded before production promotion, and ADR 0222's three-artifact promotion plan must not be executed as written. The Core and `wandora_mastra` candidate narrowing changes are reverted in the ADR 0223 branch.
+Live reconciliation also corrected an earlier assumption: a concurrent execution already promoted ADR 0221 **partially**. Production Core is `41801d40228f...` healthy/restart 0 and the VendaERP MCP is the safe-logging `067e7f98...` build from `main@87bf5d51...`. The live `wandora_mastra@0.4.0` package remains the older `6390812d...` package, so marker forwarding was never promoted and the Core narrowing path is dormant.
 
-ADR 0221's safe VendaERP MCP error-code stderr logging remains accepted and is still not live.
+ADR 0223 therefore requires a **Core-only convergence promotion** after merge/CI: remove the dormant Wandora narrowing, keep the current Paperclip adapter unchanged, and keep the live safe-logging VendaERP MCP unchanged. No provider retry is authorized by this checkpoint.
 
-No production effect or provider retry occurred.
-
-Next safe slice after merge: **28PRO VendaERP Safe Error Observability Promotion V1 — NO PROVIDER CALL**, followed by a separate retry preflight using a native Paperclip issue-scoped profile with exactly `vendaerp_search_products`.
+Next after convergence: a separate retry preflight using a temporary Paperclip `issue` profile containing exactly `vendaerp_search_products`.
 
 ## Reconciled checkpoint — ADR 0222 ADR 0221 runtime promotion preflight GREEN
 
