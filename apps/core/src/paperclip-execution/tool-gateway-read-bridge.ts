@@ -4,6 +4,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const MAX_TOKEN = 16_384;
 const DEFAULT_TIMEOUT_MS = 5_000;
 const DEFAULT_SESSION_TTL_MS = 60_000;
+const TOOL_NAME_RE = /^[a-z0-9_.:-]{1,240}$/i;
 
 export class PaperclipToolGatewayReadBridgeError extends Error {
   constructor(readonly code: 'invalid' | 'denied' | 'unavailable') {
@@ -25,6 +26,7 @@ type GatewayDescriptor = {
   risk: 'read';
   connectionId: string;
   catalogEntryId: string;
+  upstreamToolName: string;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -64,6 +66,10 @@ function readDescriptor(value: unknown): GatewayDescriptor | undefined {
     || typeof value.catalogEntryId !== 'string'
     || !UUID_RE.test(value.catalogEntryId)
   ) return undefined;
+  const upstreamToolName = typeof value.upstreamToolName === 'string'
+    && TOOL_NAME_RE.test(value.upstreamToolName.trim())
+    ? value.upstreamToolName.trim().toLowerCase()
+    : value.name.trim().toLowerCase();
   return {
     name: value.name,
     displayName: value.displayName,
@@ -73,6 +79,7 @@ function readDescriptor(value: unknown): GatewayDescriptor | undefined {
     risk: 'read',
     connectionId: value.connectionId,
     catalogEntryId: value.catalogEntryId,
+    upstreamToolName,
   };
 }
 
@@ -138,6 +145,7 @@ export function createPaperclipToolGatewayReadBridge(deps: {
   return async (input: {
     runToken: string;
     paperclipRunId: string;
+    allowedUpstreamToolNames?: string[];
   }): Promise<RuntimeReadTool[]> => {
     if (
       !input.runToken.trim()
@@ -145,6 +153,22 @@ export function createPaperclipToolGatewayReadBridge(deps: {
       || !UUID_RE.test(input.paperclipRunId)
     ) {
       throw new PaperclipToolGatewayReadBridgeError('invalid');
+    }
+
+    let allowedUpstreamToolNames: Set<string> | null = null;
+    if (input.allowedUpstreamToolNames !== undefined) {
+      if (
+        !Array.isArray(input.allowedUpstreamToolNames)
+        || input.allowedUpstreamToolNames.length < 1
+        || input.allowedUpstreamToolNames.length > 16
+      ) throw new PaperclipToolGatewayReadBridgeError('invalid');
+      const normalized = input.allowedUpstreamToolNames.map((name) =>
+        typeof name === 'string' ? name.trim().toLowerCase() : '');
+      if (
+        normalized.some((name) => !TOOL_NAME_RE.test(name))
+        || new Set(normalized).size !== normalized.length
+      ) throw new PaperclipToolGatewayReadBridgeError('invalid');
+      allowedUpstreamToolNames = new Set(normalized);
     }
 
     let sessionResponse: Response;
@@ -195,6 +219,8 @@ export function createPaperclipToolGatewayReadBridge(deps: {
     return listed
       .map(readDescriptor)
       .filter((tool): tool is GatewayDescriptor => Boolean(tool))
+      .filter((tool) =>
+        !allowedUpstreamToolNames || allowedUpstreamToolNames.has(tool.upstreamToolName))
       .map((tool): RuntimeReadTool => {
         const identicalReadCalls = new Map<string, Promise<unknown>>();
         return {
