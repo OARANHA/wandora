@@ -4226,3 +4226,20 @@ The production-shaped Web Docker build and all prior Web verifiers are GREEN, in
 Migration 017 remains **ABSENT in production**. No MEDICSPRO fact/rule was created, no Core/Web deployment occurred, no model/work/run/outbound effect occurred, and Human Send/Gateway outbound remain unchanged.
 
 Next decision after exact-head CI/merge: **Organization Grounding Production Promotion Preflight V1 — NO EFFECT**; production promotion is not implied by this code-only slice.
+
+## ADR 0199 — Customer Company Profile + First Access Onboarding Production Promotion Preflight V1
+
+Status: **READY FOR SEPARATE PRODUCTION PROMOTION EXECUTION / NO PRODUCTION EFFECT**.
+
+The preflight reconciled and qualified the exact post-correction `main@0a7f368331882f6dcfe4ff1fe722be6e442354a5` after PR #259. All six applicable push workflows are GREEN.
+
+Two promotion gaps were found and fixed code/config-only before declaring readiness: the missing canonical Core activation overlay and the missing authenticated Core Human API wiring for fail-soft CEP/CNPJ lookup through the existing BrasilAPI adapter. The Web lookup allowlist was also narrowed to normalized alphanumeric identifiers. No migration, deployment, live flag, customer/provider state, model call or outbound effect occurred.
+
+Exact promotion candidates are now frozen to the post-correction main artifacts:
+
+- Core artifact `10734743245` / `wandora/core:organization-adapter-candidate-0a7f36833188`;
+- Web artifact `10735126200` / `wandora/web:candidate-0a7f36833188`.
+
+Both artifacts were host-qualified against the GitHub digest, internal checksums and exact source SHA/tree provenance. Migration 019 bytes remain unchanged and production still has no `wandora.organization_profiles`, onboarding functions or onboarding feature flag.
+
+Next slice: **Customer Company Profile + First Access Onboarding Production Promotion Execution V1**. Production promotion must start from a fresh real-state reconciliation and remains a separate effectful slice.
