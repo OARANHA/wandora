@@ -10,6 +10,6 @@ Production is not activated by this package. The future Paperclip connection mus
 - `env.VENDAERP_USER`
 - `env.VENDAERP_APP`
 
-The runtime origin is fixed to `https://whitelabel.vendaerp.com.br`, matching the official VendaERP API explorer. Every provider request is GET-only, uses a bounded timeout, follows no redirects, performs no automatic retry, and projects provider responses into bounded provider-neutral DTOs.
+The runtime origin is derived only from the tenant subdomain fixed by the approved Paperclip command template: `https://<tenant>.vendaerp.com.br`. The checked-in 28PRO candidate template uses `--tenant voepro`, producing `https://voepro.vendaerp.com.br`. The tenant is not a tool argument and arbitrary URLs are rejected. Every provider request is GET-only, uses a bounded timeout, follows no redirects, performs no automatic retry, and projects provider responses into bounded provider-neutral DTOs.
 
 Run `npm test` or `npm run verify`. Tests use an injected fetch function and never call VendaERP.
