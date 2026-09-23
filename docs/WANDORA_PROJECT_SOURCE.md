@@ -1,3 +1,18 @@
+## Reconciled checkpoint — ADR 0222 ADR 0221 runtime promotion preflight GREEN
+
+ADR 0221 is merged at `main@87bf5d51a694389900bb81d5efbfcc15a8e12557`; PR #289 exact head passed 9/9 workflows.
+
+Runtime promotion is separately qualified with zero production effect:
+
+- Core candidate `wandora/core:organization-adapter-candidate-41801d40228f`; full 12-overlay render changes only `/services/core/image`;
+- Paperclip adapter candidate tgz SHA-256 `ff93cfa7...`, with only `index.mjs` differing from the live 0.4.0 package;
+- VendaERP MCP candidate `server.mjs` SHA-256 `067e7f98...`, live rollback hash `3f051655...`;
+- Core/adapters/MCP candidate source blobs are identical to merged main;
+- Paperclip remains healthy, Ana idle, no live runs, Task Drain currently off but quiescent, adapter test-environment PASS;
+- work operations=0 and outbound attempts=0.
+
+ADR 0222 authorizes only a separate promotion using Paperclip Task Drain, image-only Core recreation, stack-local atomic MCP replacement and exactly one official external-adapter replace/restart. It does **not** authorize a VendaERP provider retry.
+
 ## Reconciled checkpoint — ADR 0221 per-task read admission + safe provider error observability candidate
 
 The first ADR 0220 bounded product read execution already occurred concurrently as Paperclip issue `PRO-4` and is **NOT GREEN**. The intended `vendaerp_search_products {pageSize:5,skip:0}` call failed with Paperclip `local_stdio_protocol_error`; the model then attempted additional read tools (`probe`, parties and price tables), proving that prompt-only tool restriction is not an authorization boundary. The issue was later cancelled. Wandora work/outbound remained 0/0 and no write/destructive tool was invoked.
