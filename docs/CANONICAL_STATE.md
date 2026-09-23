@@ -1,3 +1,13 @@
+## Reconciled checkpoint — ADR 0217 VendaERP E2E Core bridge promotion preflight GREEN
+
+The bounded 28PRO VendaERP end-to-end proof requires one prerequisite: production Core is still `0a7f3683...`, which predates ADR 0211.
+
+The validated Core Candidate Artifact from workflow run `35859795861`, artifact `10749840984`, image `wandora/core:organization-adapter-candidate-fa64d98c5b87`, has verified artifact/archive digests. All 101 `apps/core/` blobs and all 15 `infra/stacks/core/` blobs are identical to current `main@ff123b508080d1700610488d590e5916f6585aea`.
+
+Full production Compose rendering with current versus candidate image produced exactly one delta: `/services/core/image`. No migration, Web, Paperclip, flag, mount, network or secret change is required.
+
+ADR 0217 is **GREEN / NO EFFECT** and authorizes a separate Core-only promotion before the bounded Wandora → Paperclip Tool Gateway → supervised Mastra → VendaERP read proof.
+
 ## Production checkpoint — ADR 0216 28PRO VendaERP read-only activation GREEN
 
 **28PRO VendaERP Read-Only Connection Activation Execution V1 is GREEN.**
