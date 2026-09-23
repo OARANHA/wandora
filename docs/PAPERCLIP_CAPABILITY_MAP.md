@@ -281,4 +281,3 @@ Qualification result for VendaERP:
 - production activation: **NOT AUTHORIZED**.
 
 The candidate must expose only fixed read operations and must not accept arbitrary URL or method input.
-
