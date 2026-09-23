@@ -63,17 +63,17 @@ Those bytes are identical in the retained Paperclip-owned package:
 
 ## Execution and reconciliation
 
-A concurrent operator execution began the convergence while the chat was interrupted.
+An interrupted/concurrent execution began the convergence and was reconciled before any operation was repeated.
 
-It:
+It had already:
 
 - promoted the qualified Core image;
-- installed the approved adapter bytes under an additional hash-addressed path `0e53cda6...`;
+- staged and temporarily activated the approved adapter bytes under an additional hash-addressed path `0e53cda6...`;
 - restarted Paperclip;
 - left Core/Paperclip healthy and work/outbound at 0/0;
 - made no VendaERP provider retry.
 
-After reconnecting, the runtime was reconciled before any repeat.
+That intermediate state was explicitly read back before the frozen ADR 0224 reuse gate was re-applied.
 
 ADR 0224 requires reuse of the already-retained `6390812d...` provider package rather than leaving an unnecessary duplicate as the active registration.
 
@@ -98,9 +98,18 @@ requiresRestart = true
 
 Readback immediately pointed to the retained package.
 
-Paperclip was then recreated once using the unchanged production Compose files and unchanged image `wandora/paperclip:v2026.916.0`.
+Paperclip was then restarted once for this reuse correction using the unchanged image `wandora/paperclip:v2026.916.0`.
+
+After the restart:
+
+- Paperclip returned healthy/restart 0;
+- adapter readback pointed to the retained `6390812d...` package;
+- official adapter test-environment returned `status=pass`;
+- Task Drain was off/quiescent with activeRuns=0 and pendingWakes=0.
 
 No Core recreation was repeated during this correction because Core was already converged and healthy.
+
+After the retained package was proven active, the unreferenced duplicate directory `0e53cda6...` was removed from the Paperclip package store.
 
 ## Final production state
 
@@ -137,9 +146,9 @@ Wandora work operations = 0
 Wandora outbound attempts = 0
 ```
 
-No VendaERP tool call or provider request appeared after convergence.
+No VendaERP tool call or provider request occurred during convergence.
 
-The extra `0e53cda6...` package directory is inert package-store residue and is not active. It is not deleted in this slice.
+The temporary duplicate `0e53cda6...` package directory was removed after readback proved the retained `6390812d...` package was active. No duplicate adapter package remains from this convergence.
 
 ## Capability authority result
 
@@ -176,6 +185,8 @@ This convergence did not:
 ## Decision
 
 **ADR 0224 convergence promotion is COMPLETE and aligned with its frozen reuse gate.**
+
+Final adapter reuse is exact: the active package is the retained Paperclip-owned `6390812d...` path, and the temporary duplicate package has been removed.
 
 The next slice is:
 
