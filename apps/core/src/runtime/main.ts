@@ -9,6 +9,7 @@ import { createPrivateGatewayClient } from '../messaging/private-gateway.js';
 import { createPaperclipExecutionHandler } from '../paperclip-execution/handler.js';
 import { createPaperclipRunIdentityClient } from '../paperclip-execution/paperclip-run-identity.js';
 import { PaperclipExecutionService } from '../paperclip-execution/service.js';
+import { BrasilApiCompanyRegistryLookup } from '../supervision/company-registry-lookup.js';
 import { HumanCompanyProfileService } from '../supervision/human-company-profile.js';
 import { HumanDigitalEmployeeActivationService } from '../supervision/human-digital-employee-activation.js';
 import { HumanDigitalEmployeesReadService } from '../supervision/human-digital-employees-read.js';
@@ -107,6 +108,10 @@ const humanCompanyProfileService = pool && humanVerifier && humanReadService && 
   ? new HumanCompanyProfileService(pool, humanVerifier, humanReadService)
   : undefined;
 
+const companyRegistryLookup = humanVerifier && config.customerCompanyOnboarding
+  ? new BrasilApiCompanyRegistryLookup(humanVerifier)
+  : undefined;
+
 const humanDigitalEmployeesReadService = pool && humanReadService
   ? new HumanDigitalEmployeesReadService(
       pool,
@@ -162,6 +167,7 @@ const handleHumanSupervision = humanReadService
       humanDigitalEmployeeWorkService,
       humanGroundingService,
       humanCompanyProfileService,
+      companyRegistryLookup,
     )
   : undefined;
 
