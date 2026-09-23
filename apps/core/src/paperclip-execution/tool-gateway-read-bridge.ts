@@ -92,6 +92,32 @@ function gatewayFailure(status: number): PaperclipToolGatewayReadBridgeError {
   );
 }
 
+function canonicalReadParameters(value: unknown): string {
+  const seen = new WeakSet<object>();
+  const normalize = (input: unknown): unknown => {
+    if (Array.isArray(input)) return input.map(normalize);
+    if (isRecord(input)) {
+      if (seen.has(input)) throw new PaperclipToolGatewayReadBridgeError('invalid');
+      seen.add(input);
+      const normalized = Object.fromEntries(
+        Object.keys(input)
+          .sort()
+          .map((key) => [key, normalize(input[key])]),
+      );
+      seen.delete(input);
+      return normalized;
+    }
+    return input;
+  };
+
+  try {
+    return JSON.stringify(normalize(value)) ?? 'null';
+  } catch (error) {
+    if (error instanceof PaperclipToolGatewayReadBridgeError) throw error;
+    throw new PaperclipToolGatewayReadBridgeError('invalid');
+  }
+}
+
 export function createPaperclipToolGatewayReadBridge(deps: {
   agentMeUrl: string;
   fetchImpl?: typeof fetch;
@@ -169,38 +195,50 @@ export function createPaperclipToolGatewayReadBridge(deps: {
     return listed
       .map(readDescriptor)
       .filter((tool): tool is GatewayDescriptor => Boolean(tool))
-      .map((tool): RuntimeReadTool => ({
-        name: tool.name,
-        title: tool.displayName,
-        description: tool.description,
-        inputSchema: tool.parametersSchema,
-        execute: async (parameters: unknown) => {
-          let callResponse: Response;
-          try {
-            callResponse = await fetchImpl(new URL('/api/tool-gateway/tools/call', origin), {
-              method: 'POST',
-              headers: {
-                'x-paperclip-tool-gateway-token': gatewayToken,
-                accept: 'application/json',
-                'content-type': 'application/json',
-              },
-              body: JSON.stringify({
-                tool: tool.name,
-                parameters,
-                timeoutMs,
-              }),
-              signal: AbortSignal.timeout(timeoutMs + 1_000),
-            });
-          } catch {
-            throw new PaperclipToolGatewayReadBridgeError('unavailable');
-          }
-          if (callResponse.status !== 200) throw gatewayFailure(callResponse.status);
-          const result = await parseJson(callResponse);
-          if (!isRecord(result)) return result;
-          if ('data' in result) return result.data;
-          if ('content' in result) return result.content;
-          return result;
-        },
-      }));
+      .map((tool): RuntimeReadTool => {
+        const identicalReadCalls = new Map<string, Promise<unknown>>();
+        return {
+          name: tool.name,
+          title: tool.displayName,
+          description: tool.description,
+          inputSchema: tool.parametersSchema,
+          execute: async (parameters: unknown) => {
+            const callKey = canonicalReadParameters(parameters);
+            const existing = identicalReadCalls.get(callKey);
+            if (existing) return existing;
+
+            const call = (async (): Promise<unknown> => {
+              let callResponse: Response;
+              try {
+                callResponse = await fetchImpl(new URL('/api/tool-gateway/tools/call', origin), {
+                  method: 'POST',
+                  headers: {
+                    'x-paperclip-tool-gateway-token': gatewayToken,
+                    accept: 'application/json',
+                    'content-type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    tool: tool.name,
+                    parameters,
+                    timeoutMs,
+                  }),
+                  signal: AbortSignal.timeout(timeoutMs + 1_000),
+                });
+              } catch {
+                throw new PaperclipToolGatewayReadBridgeError('unavailable');
+              }
+              if (callResponse.status !== 200) throw gatewayFailure(callResponse.status);
+              const result = await parseJson(callResponse);
+              if (!isRecord(result)) return result;
+              if ('data' in result) return result.data;
+              if ('content' in result) return result.content;
+              return result;
+            })();
+
+            identicalReadCalls.set(callKey, call);
+            return call;
+          },
+        };
+      });
   };
 }
