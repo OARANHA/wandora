@@ -76,6 +76,7 @@ test('private execution requires the canonical Wandora employee to be active', a
   await assert.rejects(
     service.execute({
       identity: { paperclipAgentId: AGENT, paperclipCompanyId: COMPANY, catalogKey: 'ana-commercial-v1' },
+      runToken: 'synthetic-run-token',
       paperclipRunId: RUN,
       task: { title: 'Qualificar', description: 'Contato' },
     }),
@@ -96,6 +97,7 @@ test('active exact binding reaches AgentTaskRuntime without provider identifiers
 
   const result = await service.execute({
     identity: { paperclipAgentId: AGENT, paperclipCompanyId: COMPANY, catalogKey: 'ana-commercial-v1' },
+    runToken: 'synthetic-run-token',
     paperclipRunId: RUN,
     task: { title: 'Qualificar', description: 'Entender necessidade' },
   });
@@ -157,6 +159,7 @@ test('Wandora work correlation is verified and result is committed without enter
 
   const result = await service.execute({
     identity: { paperclipAgentId: AGENT, paperclipCompanyId: COMPANY, catalogKey: 'ana-commercial-v1' },
+    runToken: 'synthetic-run-token',
     paperclipRunId: RUN,
     workId: WORK,
     task: { title: 'Preparar resumo', description: 'Somente resultado interno.' },
@@ -220,6 +223,7 @@ test('cached exact work result prevents a duplicate AgentTaskRuntime execution',
 
   const result = await service.execute({
     identity: { paperclipAgentId: AGENT, paperclipCompanyId: COMPANY, catalogKey: 'ana-commercial-v1' },
+    runToken: 'synthetic-run-token',
     paperclipRunId: RUN,
     workId: WORK,
     task: { title: 'Preparar resumo', description: 'Somente resultado interno.' },
@@ -264,6 +268,7 @@ test('runtime failure marks exact work execution uncertain and never retries ins
   await assert.rejects(
     service.execute({
       identity: { paperclipAgentId: AGENT, paperclipCompanyId: COMPANY, catalogKey: 'ana-commercial-v1' },
+      runToken: 'synthetic-run-token',
       paperclipRunId: RUN,
       workId: WORK,
       task: { title: 'Preparar resumo', description: 'Somente resultado interno.' },
