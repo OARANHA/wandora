@@ -1,3 +1,13 @@
+## Reconciled checkpoint — ADR 0231 one-shot replay safety GREEN
+
+ADR 0230's failed-run NO-GO conclusion is superseded after second adversarial review of pinned Paperclip `v2026.916.0`.
+
+Paperclip already prevents automatic replay of a failed post-adapter-entry Wandora run: because `legacyAdapterEntered=true`, no false `executionRecovery.bootstrap/providerWorkStarted=false` evidence is recorded; `legacyExecutionNeedsReconciliation()` therefore holds the failed run before the generic recovery tail, and `decidePreDrain()` returns released without an automatic successor.
+
+Comment-driven successful runs are already excluded from `finish_successful_run_handoff`. No Wandora code change, Paperclip fork or new state is required.
+
+No provider call or production mutation occurred. Next slice: **28PRO Comment-Driven Bounded Product Read Retry V3 Preflight — NO PROVIDER CALL**.
+
 ## Reconciled checkpoint — ADR 0230 comment-driven one-shot preflight NO-GO
 
 The Paperclip comment-driven path is proven to exclude `finish_successful_run_handoff`, but a failed Wandora bridge run currently becomes Paperclip `adapter_failed`, which is classified as transient infrastructure and may create an automatic `issue_continuation_needed` successor. Therefore one-shot behavior is not yet proven.
