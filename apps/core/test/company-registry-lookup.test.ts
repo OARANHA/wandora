@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import type { HumanTokenVerifier } from '../src/human-auth/es256-jwks.js';
+import { HumanAuthError, type HumanTokenVerifier } from '../src/human-auth/es256-jwks.js';
 import {
   BrasilApiCompanyRegistryLookup,
   CompanyRegistryLookupError,
@@ -41,6 +41,24 @@ test('CNPJ lookup aceita o primeiro CNPJ alfanumérico real divulgado pela Recei
   assert.equal(called.endsWith('/cnpj/v1/00000000E08G12'), true);
   assert.equal(result.taxId, '00000000E08G12');
   assert.equal(result.legalName, 'EMPRESA TESTE S.A.');
+});
+
+test('autenticação acontece antes da validação local e antes do provider', async () => {
+  let providerCalls = 0;
+  const rejectingVerifier = {
+    async verifyAuthorization() {
+      throw new HumanAuthError('missing-token', 'missing');
+    },
+  } satisfies HumanTokenVerifier;
+  const lookup = new BrasilApiCompanyRegistryLookup(rejectingVerifier, async () => {
+    providerCalls += 1;
+    return new Response('{}', { status: 200 });
+  });
+  await assert.rejects(
+    lookup.lookupCnpj(undefined, 'not-a-cnpj'),
+    (error: unknown) => error instanceof HumanAuthError && error.code === 'missing-token',
+  );
+  assert.equal(providerCalls, 0);
 });
 
 test('input inválido falha localmente sem chamar BrasilAPI', async () => {

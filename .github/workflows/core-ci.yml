@@ -68,6 +68,7 @@ jobs:
             -f infra/stacks/core/compose.gateway-ingress.yaml \
             -f infra/stacks/core/compose.agent-runtime-deterministic.yaml \
             -f infra/stacks/core/compose.human-api.yaml \
+            -f infra/stacks/core/compose.customer-company-onboarding.yaml \
             -f infra/stacks/core/compose.human-send-proposal.yaml \
             -f infra/stacks/core/compose.organization-adapter.yaml \
             -f infra/stacks/core/compose.paperclip-execution-bridge.yaml \
@@ -79,6 +80,7 @@ jobs:
           grep -q 'WANDORA_AUTH_JWKS_URL: https://supabase.wandora.com.br/auth/v1/.well-known/jwks.json' <<<"$effective"
           grep -q 'WANDORA_AUTH_ISSUER: https://supabase.wandora.com.br/auth/v1' <<<"$effective"
           grep -q 'WANDORA_AUTH_AUDIENCE: authenticated' <<<"$effective"
+          grep -q 'WANDORA_CUSTOMER_COMPANY_ONBOARDING_ENABLED: "true"' <<<"$effective"
           grep -q 'WANDORA_HUMAN_SEND_PROPOSAL_ENABLED: "true"' <<<"$effective"
           grep -q 'WANDORA_HUMAN_SEND_PROPOSAL_CONNECTION_ID: 22222222-2222-2222-2222-222222222222' <<<"$effective"
           grep -q 'WANDORA_MESSAGING_GATEWAY_OUTBOUND_URL: http://wandora-messaging-gateway:8787/internal/v1/core/outbound/text' <<<"$effective"

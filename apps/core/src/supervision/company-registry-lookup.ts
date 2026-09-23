@@ -37,6 +37,11 @@ export type CompanyRegistryLookup = {
   businessSegment?: string;
 };
 
+export interface CompanyRegistryLookupService {
+  lookupPostalCode(authorization: string | undefined, input: string): Promise<PostalCodeLookup>;
+  lookupCnpj(authorization: string | undefined, input: string): Promise<CompanyRegistryLookup>;
+}
+
 function record(value: unknown): Record<string, unknown> | undefined {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
     ? value as Record<string, unknown>
@@ -47,7 +52,7 @@ function text(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim() ? value.trim() : undefined;
 }
 
-export class BrasilApiCompanyRegistryLookup {
+export class BrasilApiCompanyRegistryLookup implements CompanyRegistryLookupService {
   constructor(
     private readonly verifier: HumanTokenVerifier,
     private readonly fetchImpl: FetchLike = fetch,
@@ -55,8 +60,7 @@ export class BrasilApiCompanyRegistryLookup {
     private readonly requestTimeoutMs = 3_000,
   ) {}
 
-  private async getJson(authorization: string | undefined, path: string): Promise<Record<string, unknown> | null> {
-    await this.verifier.verifyAuthorization(authorization);
+  private async getJson(path: string): Promise<Record<string, unknown> | null> {
     let response: Response;
     try {
       response = await this.fetchImpl(this.baseUrl + path, {
@@ -84,6 +88,7 @@ export class BrasilApiCompanyRegistryLookup {
   }
 
   async lookupPostalCode(authorization: string | undefined, input: string): Promise<PostalCodeLookup> {
+    await this.verifier.verifyAuthorization(authorization);
     if (!/^[0-9\-\s]+$/.test(input)) {
       throw new CompanyRegistryLookupError('invalid-input', 'CEP has invalid characters.');
     }
@@ -91,7 +96,7 @@ export class BrasilApiCompanyRegistryLookup {
     if (!/^\d{8}$/.test(postalCode)) {
       throw new CompanyRegistryLookupError('invalid-input', 'CEP must contain exactly 8 digits.');
     }
-    const body = await this.getJson(authorization, '/cep/v2/' + encodeURIComponent(postalCode));
+    const body = await this.getJson('/cep/v2/' + encodeURIComponent(postalCode));
     if (!body) return { found: false, postalCode };
     const stateCode = text(body.state)?.toUpperCase();
     const city = text(body.city);
@@ -108,11 +113,12 @@ export class BrasilApiCompanyRegistryLookup {
   }
 
   async lookupCnpj(authorization: string | undefined, input: string): Promise<CompanyRegistryLookup> {
+    await this.verifier.verifyAuthorization(authorization);
     if (!validCnpj(input)) {
       throw new CompanyRegistryLookupError('invalid-input', 'CNPJ is syntactically invalid.');
     }
     const taxId = normalizeCnpj(input);
-    const body = await this.getJson(authorization, '/cnpj/v1/' + encodeURIComponent(taxId));
+    const body = await this.getJson('/cnpj/v1/' + encodeURIComponent(taxId));
     if (!body) return { found: false, taxId };
     const legalName = text(body.razao_social);
     const displayName = text(body.nome_fantasia);
