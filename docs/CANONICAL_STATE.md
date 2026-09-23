@@ -1,3 +1,13 @@
+## Reconciled checkpoint — ADR 0227 product retry V2 NOT GREEN
+
+The ADR 0226 bounded product retry executed with a Paperclip-native issue profile exposing only `vendaerp_search_products`. Native policy-test was 1 allow / 7 deny.
+
+The first run `6c043d53...` made exactly one `vendaerp_search_products {"pageSize":5,"skip":0}` call and failed as `local_stdio_protocol_error`. Paperclip then created one provider-owned `finish_successful_run_handoff` corrective run `2da8c2cd...`, which made the same call once more and failed identically. No manual second wake occurred.
+
+The issue/profile were removed; work/outbound remain 0/0; Core/Paperclip remain healthy. No further provider retry is authorized.
+
+Pinned Paperclip proves two reusable primitives: comment-driven wakes are excluded from successful-run handoff, and MCP `tools/call` supports `result.isError=true`. ADR 0227 therefore qualifies a code-only correction: VendaERP execution failures use MCP tool-error result semantics, and the Core read bridge fails closed on `data.isError=true`. No Paperclip fork, retry engine or new Wandora state is added.
+
 ## Reconciled checkpoint — ADR 0226 VendaERP product retry preflight V2 GREEN
 
 Paperclip-native issue-scoped narrowing is production-proven without a provider call.
