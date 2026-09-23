@@ -24,6 +24,7 @@ const body = JSON.stringify({
     issueId: 'issue-1',
     identifier: 'MED-1',
     workId: WORK,
+    allowedReadToolNames: ['vendaerp_search_products'],
     title: 'Qualificar contato',
     description: 'Entender a necessidade do contato.',
     workMode: 'standard',
@@ -106,6 +107,7 @@ test('Paperclip execution handler fails closed before runtime and forwards only 
     runToken: 'opaque-run-token',
     paperclipRunId: RUN,
     workId: WORK,
+    allowedReadToolNames: ['vendaerp_search_products'],
     task: {
       title: 'Qualificar contato',
       description: 'Entender a necessidade do contato.',
@@ -188,6 +190,46 @@ test('execution handler rejects malformed Wandora work correlation before identi
       workId: 'provider-controlled-not-a-uuid',
       title: 'Qualificar contato',
       description: 'Entender a necessidade.',
+    },
+  });
+  const timestamp = String(Math.floor(NOW / 1000));
+  const handler = createPaperclipExecutionHandler({
+    secret: SECRET,
+    verifyRunIdentity: async () => {
+      verifyCalls += 1;
+      throw new Error('must not run');
+    },
+    service: {
+      execute: async () => {
+        executeCalls += 1;
+        throw new Error('must not run');
+      },
+    },
+    now: () => NOW,
+  });
+  const response = await handler({
+    rawBody: invalidBody,
+    timestamp,
+    signature: signPaperclipExecutionRequest(SECRET, timestamp, invalidBody),
+    runToken: 'opaque-run-token',
+  });
+  assert.deepEqual(response, { status: 400, body: { error: 'invalid-execution-request' } });
+  assert.equal(verifyCalls, 0);
+  assert.equal(executeCalls, 0);
+});
+
+
+test('execution handler rejects malformed per-task read tool scope before identity/runtime', async () => {
+  let verifyCalls = 0;
+  let executeCalls = 0;
+  const invalidBody = JSON.stringify({
+    paperclipAgentId: AGENT,
+    paperclipCompanyId: COMPANY,
+    paperclipRunId: RUN,
+    task: {
+      allowedReadToolNames: ['vendaerp_probe', 'vendaerp_probe'],
+      title: 'Consultar produtos',
+      description: 'Consulta interna.',
     },
   });
   const timestamp = String(Math.floor(NOW / 1000));
