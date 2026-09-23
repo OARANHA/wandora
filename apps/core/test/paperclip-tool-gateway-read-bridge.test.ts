@@ -125,3 +125,107 @@ test('Paperclip read bridge fails closed on noncanonical endpoints and denied ga
     (error: unknown) => error instanceof PaperclipToolGatewayReadBridgeError && error.code === 'denied',
   );
 });
+
+
+test('Paperclip read bridge collapses identical read calls per run while preserving distinct reads', async () => {
+  const callBodies: string[] = [];
+  const fetchImpl: typeof fetch = async (input, init) => {
+    const url = String(input);
+    if (url.endsWith('/api/tool-gateway/sessions')) {
+      return new Response(JSON.stringify({
+        sessionId: 'session-dedupe',
+        token: 'ephemeral-gateway-token',
+        expiresAt: new Date(Date.now() + 60_000).toISOString(),
+      }), { status: 201, headers: { 'content-type': 'application/json' } });
+    }
+    if (url.endsWith('/api/tool-gateway/tools')) {
+      return new Response(JSON.stringify([{
+        name: 'vendaerp_search_products',
+        displayName: 'VendaERP Search Products',
+        description: 'Read products.',
+        parametersSchema: { type: 'object' },
+        providerType: 'mcp_local_stdio',
+        risk: 'read',
+        connectionId: CONNECTION,
+        catalogEntryId: CATALOG,
+      }]), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    if (url.endsWith('/api/tool-gateway/tools/call')) {
+      callBodies.push(String(init?.body));
+      return new Response(JSON.stringify({
+        data: { items: [{ code: 'P1' }] },
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    throw new Error('unexpected request');
+  };
+
+  const bridge = createPaperclipToolGatewayReadBridge({
+    agentMeUrl: 'http://wandora-paperclip:3100/api/agents/me',
+    fetchImpl,
+  });
+  const tools = await bridge({
+    runToken: 'opaque-run-token',
+    paperclipRunId: RUN,
+  });
+  const tool = tools[0]!;
+
+  const firstParameters = { name: 'Tinta', filters: { brand: 'A', active: true } };
+  const sameParametersDifferentOrder = { filters: { active: true, brand: 'A' }, name: 'Tinta' };
+  const [first, duplicate] = await Promise.all([
+    tool.execute(firstParameters),
+    tool.execute(sameParametersDifferentOrder),
+  ]);
+
+  assert.deepEqual(first, { items: [{ code: 'P1' }] });
+  assert.deepEqual(duplicate, first);
+  assert.equal(callBodies.length, 1);
+
+  await tool.execute({ name: 'Tinta Azul' });
+  assert.equal(callBodies.length, 2);
+});
+
+test('Paperclip read bridge does not retry an identical denied read call inside one run', async () => {
+  let calls = 0;
+  const fetchImpl: typeof fetch = async (input) => {
+    const url = String(input);
+    if (url.endsWith('/api/tool-gateway/sessions')) {
+      return new Response(JSON.stringify({
+        sessionId: 'session-denied-dedupe',
+        token: 'ephemeral-gateway-token',
+        expiresAt: new Date(Date.now() + 60_000).toISOString(),
+      }), { status: 201, headers: { 'content-type': 'application/json' } });
+    }
+    if (url.endsWith('/api/tool-gateway/tools')) {
+      return new Response(JSON.stringify([{
+        name: 'vendaerp_probe',
+        displayName: 'VendaERP Probe',
+        description: 'Read connection health.',
+        parametersSchema: { type: 'object' },
+        providerType: 'mcp_local_stdio',
+        risk: 'read',
+        connectionId: CONNECTION,
+        catalogEntryId: CATALOG,
+      }]), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    if (url.endsWith('/api/tool-gateway/tools/call')) {
+      calls += 1;
+      return new Response(JSON.stringify({ error: 'forbidden' }), { status: 403 });
+    }
+    throw new Error('unexpected request');
+  };
+
+  const bridge = createPaperclipToolGatewayReadBridge({
+    agentMeUrl: 'http://wandora-paperclip:3100/api/agents/me',
+    fetchImpl,
+  });
+  const tools = await bridge({
+    runToken: 'opaque-run-token',
+    paperclipRunId: RUN,
+  });
+
+  await assert.rejects(tools[0]!.execute({}), (error: unknown) =>
+    error instanceof PaperclipToolGatewayReadBridgeError && error.code === 'denied');
+  await assert.rejects(tools[0]!.execute({}), (error: unknown) =>
+    error instanceof PaperclipToolGatewayReadBridgeError && error.code === 'denied');
+  assert.equal(calls, 1);
+});

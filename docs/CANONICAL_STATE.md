@@ -1,3 +1,13 @@
+## Reconciled checkpoint — ADR 0218 Mastra duplicate read-call collapse candidate
+
+The real 28PRO end-to-end read path is **functionally proven but not yet final GREEN**.
+
+Synthetic Paperclip issue `PRO-1` traversed Paperclip run identity → Wandora Core → Paperclip Tool Gateway → supervised Mastra → VendaERP `local_stdio` and returned `connected=true`. Paperclip audit, however, showed five identical `vendaerp_probe {}` calls per Mastra run. A Paperclip disposition handoff created a second run, for ten read calls total. All calls were `risk=read`; Wandora customer work/outbound remained outside the proof.
+
+ADR 0218 selects the narrow correction: run-scoped memoization in the existing ADR 0211 bridge, keyed by tool + canonicalized parameters, with failed identical calls also memoized. No durable cache, new subsystem or Paperclip authority is duplicated.
+
+This checkpoint is **code candidate only**. A fixed Core must pass exact-head CI and be promoted separately before the production proof is repeated.
+
 ## Reconciled checkpoint — ADR 0217 VendaERP E2E Core bridge promotion preflight GREEN
 
 The bounded 28PRO VendaERP end-to-end proof requires one prerequisite: production Core is still `0a7f3683...`, which predates ADR 0211.
