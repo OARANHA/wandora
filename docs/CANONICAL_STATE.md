@@ -4380,3 +4380,24 @@ The production execution sequence is frozen as: Paperclip company create -> Orga
 No effect occurred in this preflight.
 
 Next safe slice: **28PRO Starter Digital Employee Production Activation Execution V1**. After starter workforce is proven `ready`, resume the provider-neutral ERP path; VendaERP remains only the first ERP provider.
+
+## ADR 0207 — 28PRO Starter Digital Employee Production Activation Execution V1 — Partial Checkpoint
+
+Status: **PARTIAL / PAPERCLIP COMPANY + WANDORA BINDING + HOST HMAC APPLIED / SECRET+CONFIG NOT APPLIED / NO EMPLOYEE EFFECT**.
+
+Applied production state:
+- Paperclip company `28PRO` exists exactly once and is active with zero agents;
+- Wandora control-plane binding to that provider company exists exactly once;
+- deterministic Organization Adapter HMAC exists in protected host custody and is readable by Core.
+
+Not applied:
+- Paperclip company-owned HMAC secret/config;
+- starter eligibility;
+- Ana hire/activation;
+- work/Mastra/outbound/ERP effects.
+
+The remote execution safety layer blocked the corrected secret-creation command before dispatch. A previous official CLI call returned 403 due API-base/auth-store mismatch and created no secret. Temporary HMAC copy in Paperclip was removed.
+
+Recovery rule: do not create another provider company/binding or regenerate HMAC. Next slice must reconcile secret/config first, then continue only if absent.
+
+Next safe slice: **28PRO Organization Adapter Secret + Plugin Config Recovery/Continuation V1**.
