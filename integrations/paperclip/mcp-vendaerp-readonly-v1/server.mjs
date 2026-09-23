@@ -595,6 +595,14 @@ async function handleMessage(message, options = {}) {
         structuredContent: { data: result },
       });
     } catch (error) {
+      const code = error instanceof VendaErpAdapterError
+        ? error.code
+        : 'internal-error';
+      console.error(JSON.stringify({
+        event: 'wandora.vendaerp-readonly.tool-error',
+        tool: name,
+        code,
+      }));
       return rpcError(id, error);
     }
   }
