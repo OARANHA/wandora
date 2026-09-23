@@ -281,3 +281,21 @@ Qualification result for VendaERP:
 - production activation: **NOT AUTHORIZED**.
 
 The candidate must expose only fixed read operations and must not accept arbitrary URL or method input.
+
+## ADR 0210 — VendaERP local_stdio MCP candidate
+
+Pinned Paperclip v2026.916.0 supports the selected VendaERP read execution mechanism without a core-provider patch:
+
+- approved `local_stdio` command templates;
+- ToolConnection + company/agent installs/grants;
+- grant secret refs projected only into approved `env.<KEY>` entries;
+- MCP initialize/tools/list/tools/call;
+- run-scoped Tool Gateway sessions usable by external adapters;
+- gateway policy, invocation evidence and audit.
+
+Qualification:
+
+- generic `rest_api` execution: **QUARANTINE / NO-GO**;
+- direct connector-runtime contribution for `wandora_mastra`: **NOT THE SELECTED EXECUTION PATH**;
+- VendaERP stateless `local_stdio` MCP adapter: **CODE-ONLY CANDIDATE GREEN**;
+- production template/connection/grants/secrets: **NOT CREATED**.

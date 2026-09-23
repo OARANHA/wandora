@@ -379,3 +379,11 @@ For REST-only business-system providers that cannot execute through Paperclip's 
 A standalone plugin tool with its own config-based assignment is not sufficient if it creates a second connection/grant authority.
 
 The connector implementation may perform narrowly allowlisted provider HTTP execution inside Paperclip, but Wandora continues to own provider-neutral Business System semantics, tenant authorization, read/write policy and effect authorization. No generic Wandora REST executor or secret manager is authorized.
+
+## VendaERP read execution implementation — ADR 0210
+
+ADR 0209's authority split remains valid, but its proposed direct native connector-runtime mechanism is superseded for Wandora's current `wandora_mastra` employee runtime. Direct connector-runtime tool execution is native-runner-specific in pinned Paperclip v2026.916.0.
+
+For VendaERP read V1, the approved code-only provider implementation is a stateless MCP adapter behind Paperclip `local_stdio`. Paperclip remains authority for ToolConnection, installs/grants, secret custody, approved stdio template, catalog, gateway policy and audit. The adapter may translate only the eight ADR 0202 reads and must not accept arbitrary URL/method input or persist credentials.
+
+Generic `rest_api` Tool Gateway execution remains quarantined under ADR 0208. This local_stdio adapter does not create a generic Wandora tool engine and does not move connection/secret authority into Core or Mastra.
