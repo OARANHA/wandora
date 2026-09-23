@@ -1,3 +1,43 @@
+## Reconciled real checkpoint — 2026-09-23 after ADR 0199 preflight
+
+Customer Company Profile + First Access Onboarding Production Promotion Preflight V1 is **READY FOR A SEPARATE PRODUCTION PROMOTION EXECUTION / NO PRODUCTION EFFECT**.
+
+Verified implementation main:
+
+```text
+main = 0a7f368331882f6dcfe4ff1fe722be6e442354a5
+PR #259 = MERGED
+post-merge workflows = 6/6 GREEN
+open PRs before this documentation PR = 0
+```
+
+The preflight found and corrected two code/config gaps before promotion: the missing canonical onboarding activation overlay and missing Core Human API wiring for the already-reviewed fail-soft BrasilAPI CEP/CNPJ adapter. Core/Web qualification now uses exact-main artifacts from `0a7f3683...`.
+
+Exact future promotion artifacts:
+
+```text
+Core artifact id = 10734743245
+Core image = wandora/core:organization-adapter-candidate-0a7f36833188
+Core GitHub digest = sha256:875ff17010e5974a15bc18e82cd9d949d54b77ddd67fcd2e62ba3f9efafaf8bd
+
+Web artifact id = 10735126200
+Web image = wandora/web:candidate-0a7f36833188
+Web GitHub digest = sha256:4efe33331ac8343856127980322ec357c6a73ae3ed58cf1a0f53dfda91a82d4e
+```
+
+Production is still unchanged:
+
+```text
+migration 019 = ABSENT
+wandora.organization_profiles = ABSENT
+complete_customer_company_onboarding_v1 = ABSENT
+WANDORA_CUSTOMER_COMPANY_ONBOARDING_ENABLED = ABSENT
+live Core = wandora/core:organization-adapter-candidate-d8349b353bb7
+live Web = wandora/web:candidate-aaada76d9806
+```
+
+Next safe slice: **Customer Company Profile + First Access Onboarding Production Promotion Execution V1**. Before any effect, reconcile exact main/runtime, capture a fresh protected pre-019 backup, and follow ADR 0199's frozen flag-last promotion order. Do not apply migration 019 or enable onboarding as part of context recovery.
+
 # Wandora — Canonical State / Handoff
 
 ## Reconciled checkpoint — main@608bedd9 — ADR 0198 still NO EFFECT in production
