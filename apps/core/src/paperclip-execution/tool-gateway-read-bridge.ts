@@ -6,12 +6,14 @@ const DEFAULT_TIMEOUT_MS = 5_000;
 const DEFAULT_SESSION_TTL_MS = 60_000;
 
 export class PaperclipToolGatewayReadBridgeError extends Error {
-  constructor(readonly code: 'invalid' | 'denied' | 'unavailable') {
+  constructor(readonly code: 'invalid' | 'denied' | 'unavailable' | 'tool-failed') {
     super(code === 'invalid'
       ? 'Paperclip Tool Gateway input is invalid.'
       : code === 'denied'
         ? 'Paperclip Tool Gateway denied the read operation.'
-        : 'Paperclip Tool Gateway is unavailable.');
+        : code === 'tool-failed'
+          ? 'Paperclip Tool Gateway read tool failed.'
+          : 'Paperclip Tool Gateway is unavailable.');
     this.name = 'PaperclipToolGatewayReadBridgeError';
   }
 }
@@ -232,7 +234,7 @@ export function createPaperclipToolGatewayReadBridge(deps: {
               if (!isRecord(result)) return result;
               const data = isRecord(result.data) ? result.data : undefined;
               if (data?.isError === true || result.error === 'MCP tool returned an error result') {
-                throw new PaperclipToolGatewayReadBridgeError('unavailable');
+                throw new PaperclipToolGatewayReadBridgeError('tool-failed');
               }
               if ('data' in result) return result.data;
               if ('content' in result) return result.content;

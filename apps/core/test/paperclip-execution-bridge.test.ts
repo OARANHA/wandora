@@ -8,6 +8,7 @@ import {
   createPaperclipRunIdentityClient,
   PaperclipRunIdentityError,
 } from '../src/paperclip-execution/paperclip-run-identity.js';
+import { PaperclipToolGatewayReadBridgeError } from '../src/paperclip-execution/tool-gateway-read-bridge.js';
 
 const SECRET = 'synthetic-paperclip-bridge-secret-0123456789abcdef';
 const NOW = 1_789_770_000_000;
@@ -176,6 +177,33 @@ test('Paperclip run identity is independently checked through the run-scoped tok
   );
 });
 
+
+test('Paperclip execution handler exposes a bounded code for read-tool failure', async () => {
+  const timestamp = String(Math.floor(NOW / 1000));
+  const handler = createPaperclipExecutionHandler({
+    secret: SECRET,
+    verifyRunIdentity: async () => ({
+      paperclipAgentId: AGENT,
+      paperclipCompanyId: COMPANY,
+      catalogKey: 'ana-commercial-v1' as const,
+    }),
+    service: {
+      execute: async () => {
+        throw new PaperclipToolGatewayReadBridgeError('tool-failed');
+      },
+    },
+    now: () => NOW,
+  });
+
+  const response = await handler({
+    rawBody: body,
+    timestamp,
+    signature: signPaperclipExecutionRequest(SECRET, timestamp, body),
+    runToken: 'opaque-run-token',
+  });
+
+  assert.deepEqual(response, { status: 422, body: { error: 'read-tool-failed' } });
+});
 
 test('execution handler rejects malformed Wandora work correlation before identity/runtime', async () => {
   let verifyCalls = 0;

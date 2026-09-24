@@ -1,3 +1,17 @@
+## Reconciled checkpoint — ADR 0234 read-tool failure propagation CODE CANDIDATE GREEN
+
+ADR 0234 implements the ADR 0233 minimum Wandora-owned semantic correction with no provider or production effect.
+
+- Mastra can no longer turn a failed read tool into accepted model summary success;
+- MCP error results are classified internally as tool-failed;
+- the private Core boundary emits bounded HTTP 422 read-tool-failed;
+- wandora_mastra is unchanged and continues treating non-2xx as failed execution;
+- customer work records no durable success after runtime read-tool failure and is marked uncertain;
+- typecheck/build GREEN, focused 13/13 GREEN, migration-aware integration verifier 33/33 GREEN;
+- no issueId propagation, new retry/lifecycle/policy subsystem, Paperclip change or VendaERP call was introduced.
+
+The code candidate is not production-qualified. Next slice after merge: **ADR 0234 Production Promotion Preflight V1 — NO PROVIDER CALL**. Another VendaERP read remains prohibited.
+
 ## Reconciled checkpoint — ADR 0233 read-tool terminal semantics authority GREEN
 
 ADR 0232's failed-safe execution remains the live truth, but its post-cleanup conclusion that the issue-scoped rate-limit was proven not to participate is superseded. Pinned Paperclip resolves Tool Gateway issue context from the persisted run, deleted issue foreign keys are SET NULL in audit rows, and a non-blocking rate-limit may continue to a final allow_profile decision without appearing in matchedPolicyIds/rateLimitState.

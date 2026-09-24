@@ -354,6 +354,66 @@ test('execution service keeps Paperclip credentials outside runtime input while 
 });
 
 
+test('runtime read-tool failure marks prepared customer work uncertain and never records success', async () => {
+  await resetFixture('active');
+  const WORK = '76000000-0000-4000-8000-0000000000b4';
+  const uncertain: unknown[] = [];
+  let recorded = 0;
+  let toolCalls = 0;
+
+  const service = new PaperclipExecutionService(
+    runtimePool,
+    {
+      executeAssignedTask: async (input) => {
+        await input.readTools?.[0]?.execute({ pageSize: 5, skip: 0 });
+        throw new Error('runtime should have failed through the read tool');
+      },
+    },
+    emptyGroundingProjection,
+    {
+      async prepareCatalogEmployeeWorkExecution() {
+        return { kind: 'execute' as const };
+      },
+      async recordCatalogEmployeeWorkResult() {
+        recorded += 1;
+      },
+      async markCatalogEmployeeWorkExecutionUncertain(input) {
+        uncertain.push(input);
+      },
+    },
+    async () => [{
+      name: 'vendaerp_search_products',
+      title: 'VendaERP Search Products',
+      description: 'Read-only product lookup.',
+      inputSchema: { type: 'object' },
+      execute: async () => {
+        toolCalls += 1;
+        throw new Error('synthetic-read-tool-failed');
+      },
+    }],
+  );
+
+  await assert.rejects(
+    service.execute({
+      identity: { paperclipAgentId: AGENT, paperclipCompanyId: COMPANY, catalogKey: 'ana-commercial-v1' },
+      runToken: 'synthetic-run-token',
+      paperclipRunId: RUN,
+      workId: WORK,
+      task: { title: 'Consultar produto', description: 'Somente leitura.' },
+    }),
+    /synthetic-read-tool-failed/,
+  );
+
+  assert.equal(toolCalls, 1);
+  assert.equal(recorded, 0);
+  assert.deepEqual(uncertain, [{
+    organizationId: ORG,
+    employeeId: EMPLOYEE,
+    workId: WORK,
+    paperclipRunId: RUN,
+  }]);
+});
+
 test('Tool Gateway failure after work preparation marks execution uncertain before runtime', async () => {
   await resetFixture('active');
   const WORK = '76000000-0000-4000-8000-0000000000a4';
