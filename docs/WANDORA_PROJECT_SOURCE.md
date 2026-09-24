@@ -1,3 +1,24 @@
+## Reconciled checkpoint — ADR 0250 VendaERP safe-subreason MCP production promotion COMPLETE / GREEN / NO PROVIDER CALL
+
+ADR 0249 was merged at `main@1a018c024ede186f3c55c061740fb3ca6e1d7abe`; post-merge push workflows closed 4/4 GREEN before effect. Open PRs were 0.
+
+Paperclip-native Task Drain was started at `2026-09-24T08:19:26.880Z` and was immediately quiescent: activeRuns=0, pendingWakes=0, quiescent=true. The exact ADR 0249-qualified VendaERP MCP candidate was then promoted by same-directory atomic replacement of only `server.mjs` and `WANDORA_SOURCE_COMMIT`; Paperclip/Core containers were not restarted and no Connection/template/grant/install/profile/catalog/secret state changed.
+
+Live hashes are now:
+- `server.mjs` = `c740d1237374fe065907857465fe63ba6052ddb97096631fdb5ca94f90f9db9b`;
+- `WANDORA_SOURCE_COMMIT` = `a24786e3011ca0a28dc3840af50917b4787c857f60db84ef638f69fa812accb6`;
+- marker content = `c697c9c803ac03dfafa52bf730a7e28c6191fda6`.
+
+Host and bind-mounted Paperclip container hashes matched exactly. The first post-promotion discovery attempt produced `invalid-input` only because the shell probe emitted malformed JSON-RPC; the corrected exact-live-byte probe passed under `--network none`: `LIVE_MCP_DISCOVERY_OK tools=8 network=none`. Synthetic injected-fetch validation against the exact live bytes also passed: `product-list-shape=OK`, `product-name-missing=OK`, `LIVE_SAFE_SUBREASON_OK network=none`.
+
+Protected final validation: Paperclip same container/image, healthy/restart 0; Core same container/image/revision, healthy/restart 0, healthz/readyz=200/200; Ana idle; work=1 completed, unfinished=0, outbound=0; no active VendaERP stdio process; maintenance log scan found no VendaERP/model/tool-error execution; VendaERP activity remained exactly 70 events with SHA-256 `e7114e6f43675b0634a186b35a9d1b440ccf57fbd00179c1853ee85c38a97d8b`.
+
+Task Drain was explicitly ended through the native Paperclip API and returned `wasActive=true`; final state is OFF/quiescent with activeRuns=0 and pendingWakes=0. No provider/model call occurred.
+
+ADR 0250 is **COMPLETE / GREEN / MCP FILE PROMOTION EXECUTED / NO PROVIDER CALL**.
+
+Next slice: **ADR 0251 — 28PRO VendaERP Product Diagnostic One-Shot V2 Preflight — HARD PROVIDER CALL BUDGET / NO EFFECT**. Reuse ADR 0242's native Paperclip block + rate_limit controls; do not add retries/lifecycle mechanisms. A real provider read remains prohibited until the preflight is GREEN.
+
 ## Reconciled checkpoint — ADR 0249 VendaERP safe-subreason MCP promotion preflight GREEN / NO PROVIDER CALL
 
 ADR 0248 is merged at `main@c697c9c803ac03dfafa52bf730a7e28c6191fda6`; post-merge push workflows are 6/6 GREEN. Production remains unchanged: Core `46741f8d...` healthy/restart 0, Paperclip `v2026.916.0` healthy/restart 0, Task Drain OFF/quiescent, Ana idle, work=1 completed, unfinished=0, outbound=0, and VendaERP activity remains exactly 70 events with SHA-256 `e7114e6f43675b0634a186b35a9d1b440ccf57fbd00179c1853ee85c38a97d8b`.
