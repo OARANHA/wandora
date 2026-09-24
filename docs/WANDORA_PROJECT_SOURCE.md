@@ -1,3 +1,17 @@
+## Reconciled checkpoint — ADR 0243 one-shot product-read execution SAFE STOP on owner-session gate
+
+ADR 0242 is merged at `main@3e8fcacd2e1a68fbf0a1e7cf75cffe798f3069fe`; open PRs were 0 and the exact post-merge workflows were 4/4 GREEN before ADR 0243 entry. The execution slice reconciled repository/runtime first and did not repeat ADR 0242 proofs.
+
+Production readback remained unchanged: Paperclip `v2026.916.0` and Core `organization-adapter-candidate-4a54b5d8f14c` are healthy/restart 0; Ana `428b6730...` is `idle / wandora_mastra`; Task Drain is OFF with activeRuns=0, pendingWakes=0 and quiescent=true; no temporary block/rate-limit policy exists; `vendaerp_search_products` remains active/risk=read; VendaERP activity remains 68 events with SHA-256 `47de715854412222801f1f03c89b27d28ab64d0c2a5e824e04453539900e0c36`; 28PRO work/outbound remained `0/0`. An unauthenticated call to the canonical work endpoint returned 401 and created no work.
+
+Second adversarial review found a mandatory pre-effect identity boundary: canonical customer work creation derives `actorUserId` from a genuine human session via `getSessionContext(Authorization)`. Existing accepted ADRs explicitly reject admin/service-role impersonation, minted/extracted owner JWTs, direct SQL work creation and direct Organization Adapter invocation for real customer work. This execution channel had no genuine 28PRO owner browser session available.
+
+Therefore no Task Drain or temporary policy was installed: installing them without a ready owner session would leave temporary control-plane state active while the canonical work could not be submitted immediately after drain release. No VendaERP/provider call, production model call, customer work, Paperclip issue/run, migration, outbound effect or runtime mutation occurred.
+
+ADR 0243 is **SAFE STOP / OWNER SESSION REQUIRED / NO PROVIDER CALL / NO PRODUCTION MUTATION**.
+
+Next execution must be coordinated with a genuine authenticated 28PRO owner session already ready at the normal Wandora customer-work surface. Only then follow ADR 0242's frozen order: Task Drain -> install/dry-run block + rate_limit=1 -> prove zero consumption/quiescence -> release Task Drain -> owner submits exactly one canonical work -> one-shot read -> capture counter/activity -> cleanup temporary policies -> STOP.
+
 ## Reconciled checkpoint — ADR 0242 hard one-call provider budget GREEN
 
 ADR 0241 is merged at `main@9571e4e98fcd0dec01dc93faa842aafcf008eadc`; open PRs were 0 and post-merge workflows were 4/4 GREEN at ADR 0242 entry. Production remains unchanged: Ana `428b6730...` is `idle` on `wandora_mastra`; Task Drain is OFF/quiescent with activeRuns=0/pendingWakes=0; 28PRO work/outbound remain `0/0`; VendaERP activity remains 68 events with unchanged SHA-256 `47de715854412222801f1f03c89b27d28ab64d0c2a5e824e04453539900e0c36`; no temporary live block/rate policy exists.
