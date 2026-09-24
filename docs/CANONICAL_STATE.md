@@ -1,3 +1,13 @@
+## Reconciled checkpoint — ADR 0237 post-promotion failure semantics GREEN
+
+ADR 0234 failure propagation is live and its executable semantics were re-attested without any provider/model call. Live Core remains `wandora/core:organization-adapter-candidate-4a54b5d8f14c` / revision `4a54b5d8f14c469989fad277189f6ebdfb8fb1f0`, healthy/restart 0 with healthz/readyz 200. Paperclip remains the same healthy `v2026.916.0` container; VendaERP MCP hash remains unchanged.
+
+28PRO remains one Ana `active + supervised`, work operations `0`, outbound attempts `0`. Focused failure-semantics tests are 13/13 GREEN. The disposable DB-backed verifier is 34/34 GREEN, including a new regression proving that `execution_uncertain` work rejects both same-run replay and successor-run execution before Tool Gateway/Mastra.
+
+Decision: **GO only for a separate customer-work-based one-shot read execution**. Do not reuse the ADR 0232 generic comment-driven shape as business authority. Paperclip remains lifecycle/recovery/tool-policy authority; Wandora adds no retry/lifecycle/one-shot subsystem.
+
+Next slice: **28PRO VendaERP Customer-Work One-Shot Product Read Execution V4 — READ ONLY**. Reconcile again before any effect; at most one provider dispatch; Human Send/Gateway outbound remain OFF.
+
 ## Reconciled checkpoint — ADR 0236 ADR 0234 Core-only production promotion COMPLETE
 
 ADR 0234 read-tool failure propagation is now live in production.

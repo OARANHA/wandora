@@ -378,3 +378,68 @@ test('exact provider run is bound once and supervised result becomes review-read
     summary: 'Resumo pronto para revisão.',
   });
 });
+
+test('execution-uncertain work blocks same-run replay and successor runs before another execution', async () => {
+  await resetFixture();
+  const provider = new WorkProvider();
+  const service = new OrganizationAdapterService(
+    runtimePool,
+    provider,
+    undefined,
+    () => '95000000-0000-4000-8000-0000000000a5',
+  );
+  const work = await service.ensureCatalogEmployeeWork({
+    organizationId: ORG,
+    actorUserId: USER,
+    employeeId: EMPLOYEE,
+    idempotencyKey: 'execution-uncertain-key',
+    title: 'Consultar catálogo',
+    description: 'Consulta supervisionada somente leitura.',
+  });
+  const firstRun = '96000000-0000-4000-8000-0000000000b1';
+  const successorRun = '96000000-0000-4000-8000-0000000000b2';
+
+  assert.deepEqual(await service.prepareCatalogEmployeeWorkExecution({
+    organizationId: ORG,
+    employeeId: EMPLOYEE,
+    workId: work.id,
+    paperclipRunId: firstRun,
+    title: 'Consultar catálogo',
+    description: 'Consulta supervisionada somente leitura.',
+  }), { kind: 'execute' });
+
+  await service.markCatalogEmployeeWorkExecutionUncertain({
+    organizationId: ORG,
+    employeeId: EMPLOYEE,
+    workId: work.id,
+    paperclipRunId: firstRun,
+  });
+
+  for (const paperclipRunId of [firstRun, successorRun]) {
+    await assert.rejects(
+      service.prepareCatalogEmployeeWorkExecution({
+        organizationId: ORG,
+        employeeId: EMPLOYEE,
+        workId: work.id,
+        paperclipRunId,
+        title: 'Consultar catálogo',
+        description: 'Consulta supervisionada somente leitura.',
+      }),
+      (error: unknown) => error instanceof DigitalEmployeeWorkError
+        && error.code === 'work-execution-uncertain',
+    );
+  }
+
+  const row = await fixturePool.query(
+    `SELECT status::text AS status, provider_run_ref, execution_id, result_summary
+       FROM wandora_private.digital_employee_work_operations
+      WHERE organization_id=$1 AND id=$2`,
+    [ORG, work.id],
+  );
+  assert.deepEqual(row.rows[0], {
+    status: 'execution_uncertain',
+    provider_run_ref: firstRun,
+    execution_id: null,
+    result_summary: null,
+  });
+});
