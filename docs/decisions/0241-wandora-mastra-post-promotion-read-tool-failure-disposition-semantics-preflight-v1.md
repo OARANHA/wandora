@@ -156,6 +156,25 @@ normalizedUsage = true
 
 No production Paperclip mutation occurred.
 
+## Focused Core failure-propagation validation
+
+The no-DB focused Core suite was re-run under Node 24 and finished:
+
+```text
+tests = 13
+pass = 13
+fail = 0
+```
+
+It includes the exact ADR 0232 semantic guardrails:
+
+- `mastra supervised runtime cannot turn a read-tool failure into textual success`;
+- private execution bridge maps the retained failure to bounded `422 read-tool-failed`;
+- the Paperclip read bridge collapses repeated MCP `isError=true` results;
+- an identical denied/failed read is not retried inside the same run.
+
+This independently re-attests the model/tool failure latch in addition to the DB-backed durable-work proof below.
+
 ## Disposable pinned-Paperclip E2E using live-equivalent bytes
 
 The verifier used:
@@ -310,6 +329,16 @@ response sha256 =
 ```
 
 The response hash is unchanged from ADRs 0236, 0239 and 0240.
+
+The live read-only VendaERP MCP mount also remains byte-identical:
+
+```text
+server.mjs sha256 =
+6f27914c887e5ada8330f9eeb836f33b3626ad9c667d3c22dda77ddc55da683f
+
+WANDORA_SOURCE_COMMIT sha256 =
+5635e6b4b8500481983cf6cde952bdba675e9826de06345c27bac81eb5719e3d
+```
 
 Core production logs during the disposable validation window contained no VendaERP, Mistral, read-tool, Paperclip-execution or Mastra execution markers.
 
