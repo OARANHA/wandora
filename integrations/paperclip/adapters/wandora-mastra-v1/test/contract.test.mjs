@@ -194,7 +194,10 @@ test('customer-work read-tool failure blocks the exact Paperclip issue and still
     globalThis.fetch = async (url, init = {}) => {
       requests.push({ url: String(url), init });
       if (String(url) === BRIDGE_URL) {
-        return new Response(JSON.stringify({ error: 'read-tool-failed' }), {
+        return new Response(JSON.stringify({
+          error: 'read-tool-failed',
+          reason: 'product-list-shape',
+        }), {
           status: 422,
           headers: { 'content-type': 'application/json' },
         });
@@ -218,7 +221,40 @@ test('customer-work read-tool failure blocks the exact Paperclip issue and still
 
     await assert.rejects(
       createServerAdapter().execute(executionContext()),
-      /wandora_execution_failed_422/,
+      /wandora_execution_failed_422_product-list-shape/,
+    );
+    assert.deepEqual(requests.map((request) => request.init.method), ['POST', 'PATCH']);
+  });
+});
+
+test('customer-work read-tool failure drops an unapproved diagnostic reason', async () => {
+  await withAdapterEnvironment(async () => {
+    const requests = [];
+    globalThis.fetch = async (url, init = {}) => {
+      requests.push({ url: String(url), init });
+      if (String(url) === BRIDGE_URL) {
+        return new Response(JSON.stringify({
+          error: 'read-tool-failed',
+          reason: 'provider-secret-shaped-value',
+        }), {
+          status: 422,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+      assert.equal(String(url), `http://localhost:3100/api/issues/${ISSUE_ID}`);
+      return new Response(JSON.stringify({ id: ISSUE_ID, status: 'blocked' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    };
+
+    await assert.rejects(
+      createServerAdapter().execute(executionContext()),
+      (error) => {
+        assert.equal(error.message, 'wandora_execution_failed_422');
+        assert.equal(error.message.includes('provider-secret-shaped-value'), false);
+        return true;
+      },
     );
     assert.deepEqual(requests.map((request) => request.init.method), ['POST', 'PATCH']);
   });
