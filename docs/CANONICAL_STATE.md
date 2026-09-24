@@ -6,7 +6,7 @@ The exact prequalified VendaERP MCP `server.mjs` from source `c697c9c803ac03dfaf
 
 Live mounted-byte validation passed MCP initialize/tools-list (8 read-only tools) and synthetic in-memory proofs for `product-list-shape` and `product-name-missing`. A connection drop after file replacement was reconciled by readback before any repeat.
 
-Protected/final state remained: Core/Paperclip healthy/restart 0, Task Drain OFF/quiescent after explicit native completion, Ana idle, work=1 completed, unfinished=0, outbound=0, and VendaERP activity byte-identical at 70 events / SHA-256 `e7114e6f43675b0634a186b35a9d1b440ccf57fbd00179c1853ee85c38a97d8b`. No provider/model call, migration, template/Connection/grant/install/profile/catalog/secret mutation occurred.
+Protected/final state remained: Core/Paperclip healthy/restart 0, Task Drain OFF/quiescent after native TTL expiry; a subsequent native DELETE/readback returned `wasActive=false` and confirmed the final OFF/quiescent state. Ana remained idle, work=1 completed, unfinished=0, outbound=0, and VendaERP activity stayed byte-identical at 70 events / SHA-256 `e7114e6f43675b0634a186b35a9d1b440ccf57fbd00179c1853ee85c38a97d8b`. No provider/model call, migration, template/Connection/grant/install/profile/catalog/secret mutation occurred.
 
 ADR 0250 is **COMPLETE / GREEN / MCP FILE PROMOTION EXECUTED / NO PROVIDER CALL**.
 
