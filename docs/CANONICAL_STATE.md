@@ -4,9 +4,9 @@ ADR 0250 is live and production remains clean: Core `46741f8d...` and Paperclip 
 
 Second adversarial review found that ADR 0250's safe MCP `structuredContent.error.reason` is preserved by Paperclip in the live Tool Gateway response but discarded by the current Core read bridge when it converts the MCP semantic error to `tool-failed`. Paperclip persists only redacted result summary/hash and does not durably expose normal local-stdio stderr for a successful JSON-RPC response. Therefore another real product read would risk spending the one allowed provider call without preserving the diagnostic reason.
 
-ADR 0251 extends only the Wandora-owned Core contract: for MCP `invalid-provider-response`, it allowlists `product-list-shape` and `product-name-missing`, carries that optional reason on `PaperclipToolGatewayReadBridgeError`, and returns it alongside the unchanged private HTTP `422 {error:"read-tool-failed"}`. Unknown reasons are discarded. `wandora_mastra@0.5.0` lifecycle behavior is unchanged and focused tests prove an optional reason still produces the same Paperclip-native blocked disposition.
+ADR 0251 extends the existing Wandora-owned semantic boundary without adding state: for MCP `invalid-provider-response`, Core allowlists `product-list-shape` and `product-name-missing`, carries that optional reason on `PaperclipToolGatewayReadBridgeError`, and returns it alongside the unchanged private HTTP `422 {error:"read-tool-failed"}`. Unknown reasons are discarded. `wandora_mastra@0.5.0` keeps the same Paperclip-native blocked disposition and failed run, but projects an allowlisted reason onto the existing adapter error message so Paperclip's existing `heartbeatRuns.error` / stop metadata can retain the diagnosis; unapproved reasons keep the legacy generic error. No diagnostic table or lifecycle mechanism is added.
 
-Validation: focused Core tests 12/12 GREEN; Core typecheck/build GREEN; `wandora_mastra` contract 9/9 GREEN. No provider/model call or production mutation occurred.
+Validation: focused Core tests 12/12 GREEN; Core typecheck/build GREEN; `wandora_mastra` contract 10/10 GREEN. No provider/model call or production mutation occurred.
 
 ADR 0251 is **CODE COMPLETE / NO EFFECT / NO PROVIDER CALL / CI REQUIRED**.
 
