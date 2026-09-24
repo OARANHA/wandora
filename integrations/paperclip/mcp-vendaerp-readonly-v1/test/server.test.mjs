@@ -83,13 +83,19 @@ test('uses only the template-bound VendaERP origin, GET and exact credential hea
   assert.equal(url.origin, origin);
   assert.equal(url.pathname, '/api/request/Produtos/Pesquisar');
   assert.equal(url.searchParams.get('codigo'), 'ABC');
+  assert.equal(url.searchParams.get('nome'), 'Tinta');
+  assert.equal(url.searchParams.get('categoria'), 'Premium');
+  assert.equal(url.searchParams.get('marca'), 'Marca');
+  assert.equal(url.searchParams.get('ean'), '789');
   assert.equal(url.searchParams.get('pageSize'), '50');
   assert.equal(url.searchParams.get('skip'), '10');
   assert.equal(call.init.method, 'GET');
   assert.equal(call.init.redirect, 'error');
+  assert.equal(call.init.headers.accept, 'application/json');
   assert.equal(call.init.headers['Authorization-Token'], 'secret-token');
   assert.equal(call.init.headers.User, 'secret-user');
   assert.equal(call.init.headers.App, 'secret-app');
+  assert.equal(call.init.headers['user-agent'], 'Wandora-VendaERP-ReadOnly-MCP/1.0');
 });
 
 test('projects products into the provider-neutral contract', async () => {
@@ -123,6 +129,38 @@ test('projects products into the provider-neutral contract', async () => {
     minimumSalePrice: 229.9,
     stockBalance: 12,
   }]);
+});
+
+test('direct PascalCase product arrays pass the top-level list gate and expose only the separate casing gap', async () => {
+  const client = createVendaErpClient({
+    tenant,
+    credentials,
+    fetchImpl: async () => jsonResponse([{
+      ID: 'p1',
+      Codigo: 'PREMIUM-PLUS',
+      Nome: 'PREMIUM PLUS',
+      Categoria: 'Servicos',
+      Marca: 'VendaERP',
+      PrecoVenda: 199.9,
+      PrecoMinimoVenda: 149.9,
+      EstoqueSaldo: 7,
+      EstoqueUnidade: 'UN',
+      UnidadeComercial: 'UN',
+      PrecosTabelas: [],
+      Categorias: [],
+    }]),
+  });
+
+  await assert.rejects(
+    client.searchProducts({ pageSize: 5, skip: 0 }),
+    (error) => {
+      assert.equal(error instanceof VendaErpAdapterError, true);
+      assert.equal(error.code, 'invalid-provider-response');
+      assert.equal(error.reason, 'product-name-missing');
+      assert.equal(error.shape, undefined);
+      return true;
+    },
+  );
 });
 
 test('classifies product response failures with safe enumerated reasons', async () => {
