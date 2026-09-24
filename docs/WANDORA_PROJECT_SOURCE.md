@@ -1,3 +1,24 @@
+## Reconciled checkpoint — ADR 0250 VendaERP safe-subreason MCP promotion COMPLETE / GREEN / NO PROVIDER CALL
+
+ADR 0249 was merged at `main@1a018c024ede186f3c55c061740fb3ca6e1d7abe` with post-merge push workflows 4/4 GREEN before effect.
+
+The exact qualified VendaERP MCP runtime files were promoted under Paperclip-native Task Drain by atomic same-filesystem replacement of only `server.mjs` and `WANDORA_SOURCE_COMMIT`. No Paperclip/Core restart, Connection/template/grant/install/profile/catalog/secret mutation, migration, provider call, model call or outbound effect occurred.
+
+Live host/container hashes now match the candidate exactly:
+- `server.mjs` = `c740d1237374fe065907857465fe63ba6052ddb97096631fdb5ca94f90f9db9b`
+- `WANDORA_SOURCE_COMMIT` = `a24786e3011ca0a28dc3840af50917b4787c857f60db84ef638f69fa812accb6`
+- source marker content = `c697c9c803ac03dfafa52bf730a7e28c6191fda6`
+
+Exact live bytes passed corrected `--network none` MCP discovery (8/8 read-only) and synthetic `product-list-shape` / `product-name-missing` proofs. The first discovery command failure was only malformed JSON-RPC from shell quoting and had no provider/network effect.
+
+Protected validation remained clean: Core/Paperclip healthy/restart 0, Core healthz/readyz 200/200, Ana idle, work=1 completed, unfinished=0, outbound=0, no active VendaERP stdio process, and VendaERP activity remained exactly 70 events with SHA-256 `e7114e6f43675b0634a186b35a9d1b440ccf57fbd00179c1853ee85c38a97d8b`. Maintenance logs showed no VendaERP/model/tool-error execution.
+
+Task Drain was explicitly ended through the native Paperclip API; final state is OFF/quiescent with activeRuns=0 and pendingWakes=0. Rollback was not required.
+
+ADR 0250 is **COMPLETE / GREEN / MCP FILE PROMOTION EXECUTED / NO PROVIDER CALL**.
+
+Next slice: **ADR 0251 — 28PRO VendaERP Product Diagnostic One-Shot V2 Preflight — HARD PROVIDER CALL BUDGET / NO EFFECT**. It must reuse the already-qualified Paperclip-native block/rate-limit controls from ADR 0242 and must not add retries or a new lifecycle mechanism.
+
 ## Reconciled checkpoint — ADR 0250 VendaERP safe-subreason MCP production promotion COMPLETE / GREEN / NO PROVIDER CALL
 
 ADR 0249 was merged at `main@1a018c024ede186f3c55c061740fb3ca6e1d7abe`; post-merge push workflows closed 4/4 GREEN before effect. Open PRs were 0.
