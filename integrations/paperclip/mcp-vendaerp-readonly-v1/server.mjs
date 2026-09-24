@@ -10,11 +10,18 @@ const ENV = Object.freeze({
   app: 'VENDAERP_APP',
 });
 
+const SAFE_LOG_SUBREASONS = new Set([
+  'product-list-shape-invalid',
+  'product-name-missing',
+  'product-name-pascal-case-present',
+]);
+
 export class VendaErpAdapterError extends Error {
-  constructor(code, message) {
+  constructor(code, message, subreason) {
     super(message);
     this.name = 'VendaErpAdapterError';
     this.code = code;
+    this.subreason = subreason;
   }
 }
 
@@ -335,6 +342,7 @@ export function createVendaErpClient({
         throw new VendaErpAdapterError(
           'invalid-provider-response',
           'Business system product response is invalid.',
+          'product-list-shape-invalid',
         );
       }
       return rows.map((row) => {
@@ -343,6 +351,9 @@ export function createVendaErpClient({
           throw new VendaErpAdapterError(
             'invalid-provider-response',
             'Business system product is missing its name.',
+            text(row.Nome)
+              ? 'product-name-pascal-case-present'
+              : 'product-name-missing',
           );
         }
         return {
@@ -609,10 +620,15 @@ async function handleMessage(message, options = {}) {
       const code = error instanceof VendaErpAdapterError
         ? error.code
         : 'internal-error';
+      const subreason = error instanceof VendaErpAdapterError
+        && SAFE_LOG_SUBREASONS.has(error.subreason)
+        ? error.subreason
+        : undefined;
       console.error(JSON.stringify({
         event: 'wandora.vendaerp-readonly.tool-error',
         tool: name,
         code,
+        ...(subreason ? { subreason } : {}),
       }));
       return rpcToolErrorResult(id, error);
     }
