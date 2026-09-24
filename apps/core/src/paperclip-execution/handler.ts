@@ -141,7 +141,13 @@ export function createPaperclipExecutionHandler(deps: {
         return { status: 409, body: { error: 'employee-execution-unavailable' } };
       }
       if (error instanceof PaperclipToolGatewayReadBridgeError && error.code === 'tool-failed') {
-        return { status: 422, body: { error: 'read-tool-failed' } };
+        return {
+          status: 422,
+          body: {
+            error: 'read-tool-failed',
+            ...(error.reason ? { reason: error.reason } : {}),
+          },
+        };
       }
       return { status: 500, body: { error: 'internal-error' } };
     }
