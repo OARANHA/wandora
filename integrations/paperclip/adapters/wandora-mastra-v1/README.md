@@ -50,11 +50,11 @@ Normalized Wandora execution usage is returned as Paperclip adapter `usage` with
 
 - the task carries the canonical private `wandora-work-v1` marker;
 - Core returns HTTP `422`; and
-- the bounded response is exactly `{"error":"read-tool-failed"}`;
+- the bounded response has `error="read-tool-failed"`; it may additionally carry the allowlisted diagnostic `reason="product-list-shape"` or `reason="product-name-missing"`, which does not change lifecycle disposition;
 
 the same run-scoped Paperclip identity moves the exact issue to native `blocked` with an `unblockDescriptor` owned by the executing Paperclip agent. The unblock action requires the read-tool problem to be resolved and a **fresh explicitly authorized Wandora customer work** before any later read.
 
-The adapter then still fails the current run. It does **not** turn the provider/tool failure into success and it does not invent a Wandora retry or lifecycle engine. Paperclip remains the issue/run/recovery authority.
+The adapter then still fails the current run. When the Core response contains one of the two allowlisted diagnostic reasons, the adapter's existing failure message is narrowed to `wandora_execution_failed_422_<reason>`; Paperclip persists that already-existing adapter error surface on the failed run. Missing or unapproved reasons retain the legacy `wandora_execution_failed_422` message, so arbitrary provider text cannot become durable run data. It does **not** turn the provider/tool failure into success and it does not invent a Wandora retry or lifecycle engine. Paperclip remains the issue/run/recovery authority.
 
 The blocking write is bounded and fail-closed:
 
