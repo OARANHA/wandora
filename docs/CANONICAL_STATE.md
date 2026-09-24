@@ -1,3 +1,11 @@
+## Reconciled checkpoint — ADR 0256 VendaERP response-path reconciliation + Diagnostic V3 preflight PARTIAL / NO PROVIDER CALL
+
+GitHub reconciliation confirms `main@d0075258b14d9a9b901c8b23ffb448b1787774b7` and ADR 0255 as the latest merged checkpoint at entry. The owner-provided evidence describes a direct top-level Produto array using PascalCase fields, but the attachment bytes were not available in the current session index.
+
+Code-path review proves the MCP performs `fetch -> text -> JSON.parse -> records` with no intervening response envelope. A direct array of object records therefore cannot produce `product-list-shape`. New code-only regression evidence proves a direct PascalCase product array passes the top-level list gate and reaches the distinct historical casing failure `product-name-missing`. Exact GET path/query/headers are now fully asserted in tests. No parser broadening or casing change was made.
+
+The registered `wandora-vps-01` Desktop Commander device was offline during this session, so live ADR 0255 `shape` evidence could not be independently re-read. ADR 0256 is therefore **NO-GO for a third provider call until runtime readback is restored**. No provider/model/outbound call or production mutation occurred.
+
 ## Reconciled checkpoint — ADR 0255 safe product-shape MCP production promotion COMPLETE / NO PROVIDER CALL
 
 ADR 0254 is merged at `main@da54546b3df2636536c19fd8ed142beb1c1e5b33`; post-merge push workflows are 4/4 GREEN.
