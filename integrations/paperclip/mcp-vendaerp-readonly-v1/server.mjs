@@ -13,6 +13,34 @@ const SAFE_ERROR_REASONS = new Set([
   'product-list-shape',
   'product-name-missing',
 ]);
+const SAFE_RESPONSE_SHAPES = new Set([
+  'null',
+  'string',
+  'number',
+  'boolean',
+  'array-non-object',
+  'object-data-array',
+  'object-Data-array',
+  'object-items-array',
+  'object-Items-array',
+  'object-produtos-array',
+  'object-Produtos-array',
+  'object-result-array',
+  'object-Result-array',
+  'object-results-array',
+  'object-Results-array',
+  'object-value-array',
+  'object-Value-array',
+  'object-response-array',
+  'object-Response-array',
+  'object-error',
+  'object-Error',
+  'object-errors',
+  'object-Errors',
+  'object-message',
+  'object-Message',
+  'object-other',
+]);
 
 function safeErrorReason(value) {
   return typeof value === 'string' && SAFE_ERROR_REASONS.has(value)
@@ -20,12 +48,43 @@ function safeErrorReason(value) {
     : undefined;
 }
 
+function safeResponseShape(value) {
+  return typeof value === 'string' && SAFE_RESPONSE_SHAPES.has(value)
+    ? value
+    : undefined;
+}
+
+function productListShape(value) {
+  if (value === null) return 'null';
+  if (Array.isArray(value)) return 'array-non-object';
+  if (typeof value !== 'object') {
+    return safeResponseShape(typeof value);
+  }
+
+  for (const key of [
+    'data', 'Data',
+    'items', 'Items',
+    'produtos', 'Produtos',
+    'result', 'Result',
+    'results', 'Results',
+    'value', 'Value',
+    'response', 'Response',
+  ]) {
+    if (Array.isArray(value[key])) return safeResponseShape(`object-${key}-array`);
+  }
+  for (const key of ['error', 'Error', 'errors', 'Errors', 'message', 'Message']) {
+    if (Object.hasOwn(value, key)) return safeResponseShape(`object-${key}`);
+  }
+  return 'object-other';
+}
+
 export class VendaErpAdapterError extends Error {
-  constructor(code, message, { reason } = {}) {
+  constructor(code, message, { reason, shape } = {}) {
     super(message);
     this.name = 'VendaErpAdapterError';
     this.code = code;
     this.reason = safeErrorReason(reason);
+    this.shape = safeResponseShape(shape);
   }
 }
 
@@ -332,21 +391,23 @@ export function createVendaErpClient({
     },
 
     async searchProducts(input = {}) {
-      const rows = records(
-        await getJson('/api/request/Produtos/Pesquisar', {
-          codigo: input.code,
-          nome: input.name,
-          categoria: input.category,
-          marca: input.brand,
-          ean: input.barcode,
-          ...page(input),
-        }),
-      );
+      const payload = await getJson('/api/request/Produtos/Pesquisar', {
+        codigo: input.code,
+        nome: input.name,
+        categoria: input.category,
+        marca: input.brand,
+        ean: input.barcode,
+        ...page(input),
+      });
+      const rows = records(payload);
       if (!rows) {
         throw new VendaErpAdapterError(
           'invalid-provider-response',
           'Business system product response is invalid.',
-          { reason: 'product-list-shape' },
+          {
+            reason: 'product-list-shape',
+            shape: productListShape(payload),
+          },
         );
       }
       return rows.map((row) => {
@@ -580,7 +641,14 @@ function rpcToolErrorResult(id, error) {
   const reason = error instanceof VendaErpAdapterError
     ? error.reason
     : undefined;
-  const safe = { code, ...optional(reason, 'reason') };
+  const shape = error instanceof VendaErpAdapterError
+    ? error.shape
+    : undefined;
+  const safe = {
+    code,
+    ...optional(reason, 'reason'),
+    ...optional(shape, 'shape'),
+  };
   return rpcResult(id, {
     content: [{ type: 'text', text: JSON.stringify({ error: code }) }],
     structuredContent: { error: safe },
@@ -629,11 +697,15 @@ async function handleMessage(message, options = {}) {
       const reason = error instanceof VendaErpAdapterError
         ? error.reason
         : undefined;
+      const shape = error instanceof VendaErpAdapterError
+        ? error.shape
+        : undefined;
       console.error(JSON.stringify({
         event: 'wandora.vendaerp-readonly.tool-error',
         tool: name,
         code,
         ...optional(reason, 'reason'),
+        ...optional(shape, 'shape'),
       }));
       return rpcToolErrorResult(id, error);
     }

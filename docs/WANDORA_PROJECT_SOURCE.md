@@ -1,3 +1,15 @@
+## Reconciled checkpoint — ADR 0253 safe product-list structural fingerprint CODE COMPLETE / NO PROVIDER CALL
+
+ADR 0252 is merged at main@27e844da6f88964cc0959191ddcf312594976878; post-merge push workflows are 4/4 GREEN. Final production state remains Task Drain OFF/quiescent, ADR0252 policies=0, activity=72 events / SHA-256 6dc3de78ff954bcebda966f4daaa5d0847f369d28eb5f43e99f2bfffc2eb35fb, work=2, unfinished=1, outbound=0, and Ana truthfully error / wandora_execution_failed_422.
+
+Public/accepted contract evidence still says Produtos/Pesquisar returns a direct array of Produto, while ADR 0252 proved the live 28PRO response does not satisfy the current array-of-objects parser. The exact envelope remains unknown because raw provider payload was intentionally not persisted.
+
+ADR 0253 changes only the replaceable VendaERP MCP candidate to add an optional allowlisted structural shape alongside the existing invalid-provider-response / product-list-shape diagnostic. It does not accept any new provider shape. The MCP text error remains unchanged; arbitrary keys/values/raw payload/credentials cannot be emitted. Synthetic local validation is 12/12 GREEN + static verifier GREEN, with no network/provider/model call.
+
+ADR 0253 is **CODE COMPLETE / NO EFFECT / NO PROVIDER CALL / CI REQUIRED**.
+
+Next after merge: separate MCP promotion preflight and promotion, both NO PROVIDER CALL, before any separately authorized bounded diagnostic execution.
+
 ## Reconciled checkpoint — ADR 0252 diagnostic one-shot V2 COMPLETE / product-list-shape / hard budget honored
 
 ADR 0252 executed exactly one genuine owner-originated 28PRO work under the Paperclip-native hard one-call budget. New execution-specific block + rate-limit guards were qualified under Task Drain with the full eight-tool dry-run matrix and zero pre-consumption, then Task Drain was ended before owner submission.

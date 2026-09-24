@@ -137,6 +137,7 @@ test('classifies product response failures with safe enumerated reasons', async 
       assert.equal(error instanceof VendaErpAdapterError, true);
       assert.equal(error.code, 'invalid-provider-response');
       assert.equal(error.reason, 'product-list-shape');
+      assert.equal(error.shape, 'object-items-array');
       return true;
     },
   );
@@ -147,6 +148,38 @@ test('classifies product response failures with safe enumerated reasons', async 
     { reason: 'must-not-leak-provider-detail' },
   );
   assert.equal(unsafeReason.reason, undefined);
+
+  const unsafeShape = new VendaErpAdapterError(
+    'invalid-provider-response',
+    'safe message',
+    { reason: 'product-list-shape', shape: 'must-not-leak-provider-shape' },
+  );
+  assert.equal(unsafeShape.reason, 'product-list-shape');
+  assert.equal(unsafeShape.shape, undefined);
+
+  for (const [body, expectedShape] of [
+    [[null], 'array-non-object'],
+    [{ Message: 'must-not-log-provider-message' }, 'object-Message'],
+    [null, 'null'],
+    ['must-not-log-provider-text', 'string'],
+  ]) {
+    const client = createVendaErpClient({
+      tenant,
+      credentials,
+      fetchImpl: async () => jsonResponse(body),
+    });
+    await assert.rejects(
+      client.searchProducts(),
+      (error) => {
+        assert.equal(error instanceof VendaErpAdapterError, true);
+        assert.equal(error.code, 'invalid-provider-response');
+        assert.equal(error.reason, 'product-list-shape');
+        assert.equal(error.shape, expectedShape);
+        assert.equal(String(error).includes('must-not-log'), false);
+        return true;
+      },
+    );
+  }
 
   const missingName = createVendaErpClient({
     tenant,
@@ -377,6 +410,7 @@ test('stdio product parse failure exposes only safe normalized subreason', async
     error: {
       code: 'invalid-provider-response',
       reason: 'product-list-shape',
+      shape: 'object-items-array',
     },
   });
   assert.equal(
@@ -387,6 +421,7 @@ test('stdio product parse failure exposes only safe normalized subreason', async
   const serializedErr = stderr.join('');
   assert.match(serializedErr, /"code":"invalid-provider-response"/);
   assert.match(serializedErr, /"reason":"product-list-shape"/);
+  assert.match(serializedErr, /"shape":"object-items-array"/);
   assert.equal(serializedErr.includes('must-not-log-product'), false);
   assert.equal(serializedErr.includes('secret-token'), false);
   assert.equal(serializedErr.includes('secret-user'), false);
