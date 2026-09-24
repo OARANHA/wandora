@@ -7,5 +7,7 @@
   "wandoraBridgeTimeoutMs": 60000,
   "customerWorkCompletion": "run-scoped-issue-done-after-result",
   "usageBasis": "per_run",
-  "paperclipIssueApi": "PAPERCLIP_LISTEN_HOST+PAPERCLIP_LISTEN_PORT"
+  "paperclipIssueApi": "PAPERCLIP_LISTEN_HOST+PAPERCLIP_LISTEN_PORT",
+  "customerWorkReadToolFailureDisposition": "run-scoped-issue-blocked-before-failed-adapter-return",
+  "customerWorkReadToolFailureScope": "exact-422-read-tool-failed-only"
 }

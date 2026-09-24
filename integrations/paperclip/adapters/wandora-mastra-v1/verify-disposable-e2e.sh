@@ -144,6 +144,11 @@ const server = http.createServer((request, response) => {
       if (!workId || !issueId || !token || String(body?.task?.description ?? '').includes('wandora-work-v1:')) {
         throw new Error('invalid_reviewed_customer_work_request');
       }
+      if (String(body?.task?.title ?? '') === 'Disposable customer-work read-tool failure proof') {
+        response.writeHead(422, { 'content-type': 'application/json' });
+        response.end('{"error":"read-tool-failed"}');
+        return;
+      }
       response.writeHead(200, { 'content-type': 'application/json' });
       response.end(JSON.stringify({
         executionId,
@@ -539,6 +544,60 @@ printf '%s\n' "PAPERCLIP_WANDORA_CUSTOMER_WORK_SINGLE_RUN_COMPLETION_OK"
 printf '%s\n' "customer_work_run_count=$work_run_count"
 printf '%s\n' "customer_work_continuation_count=$continuation_count"
 printf '%s\n' "customer_work_usage=$runtime_usage"
+
+FAIL_WORK_ID="44444444-4444-4333-8333-444444444444"
+fail_issue_body="$(node -e '
+  process.stdout.write(JSON.stringify({
+    title: "Disposable customer-work read-tool failure proof",
+    description: `<!-- wandora-work-v1:${process.argv[2]} -->\\nProve native blocked disposition after a bounded read-tool failure.`,
+    status: "todo",
+    priority: "high",
+    assigneeAgentId: process.argv[1]
+  }));
+' "$AGENT_ID" "$FAIL_WORK_ID")"
+fail_issue_json="$(pc_api POST "/api/companies/$COMPANY_ID/issues" "$fail_issue_body")"
+FAIL_ISSUE_ID="$(printf '%s' "$fail_issue_json" | json_field id)"
+
+FAIL_RUN_ID=""
+FAIL_RUN_STATUS=""
+for _ in $(seq 1 60); do
+  FAIL_RUN_ID="$(pc_sql "select id::text from heartbeat_runs where company_id='$COMPANY_ID'::uuid and context_snapshot->>'issueId'='$FAIL_ISSUE_ID' order by created_at desc limit 1;")"
+  if [ -n "$FAIL_RUN_ID" ]; then
+    FAIL_RUN_STATUS="$(pc_sql "select status::text from heartbeat_runs where id='$FAIL_RUN_ID'::uuid;")"
+    case "$FAIL_RUN_STATUS" in
+      succeeded|failed|interrupted|cancelled|timed_out) break ;;
+    esac
+  fi
+  sleep 1
+done
+if [ "$FAIL_RUN_STATUS" != "failed" ]; then
+  printf 'Focused read-tool failure run did not fail as required: issue=%s run=%s status=%s\n' "$FAIL_ISSUE_ID" "$FAIL_RUN_ID" "$FAIL_RUN_STATUS" >&2
+  exit 43
+fi
+
+fail_error_code="$(pc_sql "select coalesce(error_code,'') from heartbeat_runs where id='$FAIL_RUN_ID'::uuid;")"
+test "$fail_error_code" = "adapter_failed"
+fail_issue_status="$(pc_sql "select status::text from issues where id='$FAIL_ISSUE_ID'::uuid;")"
+test "$fail_issue_status" = "blocked"
+fail_unblock_owner="$(pc_sql "select coalesce(unblock_descriptor->'owner'->>'agentId','') from issues where id='$FAIL_ISSUE_ID'::uuid;")"
+test "$fail_unblock_owner" = "$AGENT_ID"
+fail_unblock_action="$(pc_sql "select coalesce(unblock_descriptor->>'action','') from issues where id='$FAIL_ISSUE_ID'::uuid;")"
+test "$fail_unblock_action" = "Resolve the read-tool failure, then create a fresh explicitly authorized Wandora customer work if another read is required."
+
+# Wait beyond the scheduler floor. The failed run remains failed, but the native
+# blocked disposition is a valid Paperclip-owned next-action path and must suppress
+# automatic issue_continuation_needed successor execution.
+sleep 12
+fail_run_count="$(pc_sql "select count(*) from heartbeat_runs where company_id='$COMPANY_ID'::uuid and context_snapshot->>'issueId'='$FAIL_ISSUE_ID';")"
+test "$fail_run_count" = "1"
+fail_continuation_count="$(pc_sql "select count(*) from heartbeat_runs where company_id='$COMPANY_ID'::uuid and context_snapshot->>'issueId'='$FAIL_ISSUE_ID' and (context_snapshot->>'wakeReason'='issue_continuation_needed' or context_snapshot->>'retryReason'='issue_continuation_needed');")"
+test "$fail_continuation_count" = "0"
+
+printf '%s\n' "PAPERCLIP_WANDORA_CUSTOMER_WORK_READ_TOOL_FAILURE_BLOCKED_DISPOSITION_OK"
+printf '%s\n' "failure_run_status=$FAIL_RUN_STATUS"
+printf '%s\n' "failure_issue_status=$fail_issue_status"
+printf '%s\n' "failure_run_count=$fail_run_count"
+printf '%s\n' "failure_continuation_count=$fail_continuation_count"
 
 printf '%s\n' "PAPERCLIP_WANDORA_MASTRA_DISPOSABLE_E2E_ATTESTATION_V1_OK"
 printf '%s\n' "migration_014_applied=false"

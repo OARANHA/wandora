@@ -10,6 +10,8 @@ const DEFAULT_BRIDGE_TIMEOUT_MS = 60000;
 const MIN_BRIDGE_TIMEOUT_MS = 10000;
 const MAX_BRIDGE_TIMEOUT_MS = 120000;
 const ISSUE_COMPLETION_TIMEOUT_MS = 5000;
+const READ_TOOL_FAILURE_UNBLOCK_ACTION =
+  'Resolve the read-tool failure, then create a fresh explicitly authorized Wandora customer work if another read is required.';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function requiredString(value, code, max = 4096) {
@@ -243,6 +245,81 @@ async function completeCustomerWorkIssue(issueId, runToken, paperclipRunId) {
   }
 }
 
+async function patchIssueBlockedOnce(url, issueId, paperclipAgentId, runToken, paperclipRunId) {
+  let response;
+  try {
+    response = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        authorization: `Bearer ${runToken}`,
+        'x-paperclip-run-id': paperclipRunId,
+        'content-type': 'application/json',
+        accept: 'application/json',
+      },
+      body: JSON.stringify({
+        status: 'blocked',
+        unblockDescriptor: {
+          owner: { agentId: paperclipAgentId },
+          action: READ_TOOL_FAILURE_UNBLOCK_ACTION,
+        },
+      }),
+      signal: AbortSignal.timeout(ISSUE_COMPLETION_TIMEOUT_MS),
+    });
+  } catch {
+    return 'ambiguous';
+  }
+
+  if (!response.ok) {
+    if (response.status >= 400 && response.status < 500) {
+      throw new Error(`paperclip_issue_block_failed_${response.status}`);
+    }
+    return 'ambiguous';
+  }
+
+  const value = await response.json().catch(() => null);
+  if (isRecord(value) && value.id === issueId && value.status === 'blocked') {
+    return 'blocked';
+  }
+  return 'ambiguous';
+}
+
+async function blockCustomerWorkIssueAfterReadToolFailure(
+  issueId,
+  paperclipAgentId,
+  runToken,
+  paperclipRunId,
+) {
+  const url = paperclipIssueUrl(issueId);
+  const first = await patchIssueBlockedOnce(
+    url,
+    issueId,
+    paperclipAgentId,
+    runToken,
+    paperclipRunId,
+  );
+  if (first === 'blocked') return;
+
+  const status = await readIssueStatus(url, runToken, paperclipRunId);
+  if (status === 'blocked') return;
+  if (status !== 'todo' && status !== 'in_progress') {
+    throw new Error('paperclip_issue_block_uncertain');
+  }
+
+  const second = await patchIssueBlockedOnce(
+    url,
+    issueId,
+    paperclipAgentId,
+    runToken,
+    paperclipRunId,
+  );
+  if (second === 'blocked') return;
+
+  const confirmed = await readIssueStatus(url, runToken, paperclipRunId);
+  if (confirmed !== 'blocked') {
+    throw new Error('paperclip_issue_block_uncertain');
+  }
+}
+
 export function createServerAdapter() {
   return {
     type: TYPE,
@@ -304,7 +381,21 @@ export function createServerAdapter() {
       } catch {
         throw new Error('wandora_execution_unavailable');
       }
-      if (!response.ok) throw new Error(`wandora_execution_failed_${response.status}`);
+      if (!response.ok) {
+        if (response.status === 422 && task.workId) {
+          const failure = await response.json().catch(() => null);
+          if (isRecord(failure) && failure.error === 'read-tool-failed') {
+            const issueId = requiredString(task.issueId, 'paperclip_work_issue_id_required', 255);
+            await blockCustomerWorkIssueAfterReadToolFailure(
+              issueId,
+              paperclipAgentId,
+              runToken,
+              paperclipRunId,
+            );
+          }
+        }
+        throw new Error(`wandora_execution_failed_${response.status}`);
+      }
 
       const result = successPayload(await response.json());
       if (task.workId) {
