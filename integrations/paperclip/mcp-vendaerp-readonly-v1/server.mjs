@@ -9,12 +9,23 @@ const ENV = Object.freeze({
   user: 'VENDAERP_USER',
   app: 'VENDAERP_APP',
 });
+const SAFE_ERROR_REASONS = new Set([
+  'product-list-shape',
+  'product-name-missing',
+]);
+
+function safeErrorReason(value) {
+  return typeof value === 'string' && SAFE_ERROR_REASONS.has(value)
+    ? value
+    : undefined;
+}
 
 export class VendaErpAdapterError extends Error {
-  constructor(code, message) {
+  constructor(code, message, { reason } = {}) {
     super(message);
     this.name = 'VendaErpAdapterError';
     this.code = code;
+    this.reason = safeErrorReason(reason);
   }
 }
 
@@ -335,6 +346,7 @@ export function createVendaErpClient({
         throw new VendaErpAdapterError(
           'invalid-provider-response',
           'Business system product response is invalid.',
+          { reason: 'product-list-shape' },
         );
       }
       return rows.map((row) => {
@@ -343,6 +355,7 @@ export function createVendaErpClient({
           throw new VendaErpAdapterError(
             'invalid-provider-response',
             'Business system product is missing its name.',
+            { reason: 'product-name-missing' },
           );
         }
         return {
@@ -564,9 +577,13 @@ function rpcToolErrorResult(id, error) {
   const code = error instanceof VendaErpAdapterError
     ? error.code
     : 'internal-error';
+  const reason = error instanceof VendaErpAdapterError
+    ? error.reason
+    : undefined;
+  const safe = { code, ...optional(reason, 'reason') };
   return rpcResult(id, {
     content: [{ type: 'text', text: JSON.stringify({ error: code }) }],
-    structuredContent: { error: { code } },
+    structuredContent: { error: safe },
     isError: true,
   });
 }
@@ -609,10 +626,14 @@ async function handleMessage(message, options = {}) {
       const code = error instanceof VendaErpAdapterError
         ? error.code
         : 'internal-error';
+      const reason = error instanceof VendaErpAdapterError
+        ? error.reason
+        : undefined;
       console.error(JSON.stringify({
         event: 'wandora.vendaerp-readonly.tool-error',
         tool: name,
         code,
+        ...optional(reason, 'reason'),
       }));
       return rpcToolErrorResult(id, error);
     }
