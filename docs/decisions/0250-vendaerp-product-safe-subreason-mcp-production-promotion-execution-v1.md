@@ -263,13 +263,12 @@ No provider/model call occurred.
 
 ## Task Drain completion
 
-The bounded Task Drain expired through its native TTL before the explicit stop command was executed.
+The Task Drain was explicitly ended through the native Paperclip Board API before TTL expiry.
 
-The subsequent native Paperclip Board API DELETE/readback truthfully returned:
+The first native stop/readback, executed at approximately `2026-09-24T08:22:05Z`, returned:
 
 ```text
-before.draining=false
-stopped.wasActive=false
+ended.wasActive=true
 after.draining=false
 after.startedAt=null
 after.expiresAt=null
@@ -278,7 +277,18 @@ after.pendingWakes=0
 after.quiescent=true
 ```
 
-Therefore this ADR does **not** claim that the explicit DELETE caused admission restoration. The TTL ended the drain; the later native DELETE/readback only confirmed the final OFF/quiescent state.
+A second idempotent native stop/readback at approximately `2026-09-24T08:22:11Z` returned:
+
+```text
+before.draining=false
+stopped.wasActive=false
+after.draining=false
+after.activeRuns=0
+after.pendingWakes=0
+after.quiescent=true
+```
+
+Therefore admission restoration was caused by the first explicit native stop; the TTL remained only a backstop.
 
 ## Final production state
 
@@ -338,7 +348,7 @@ ADR 0168 remains preserved.
 - Work/outbound changed? **No.**
 - Live mounted bytes validated? **Yes.**
 - Safe subreasons proven on live bytes with synthetic I/O? **Yes.**
-- Task Drain final OFF/quiescent? **Yes; TTL ended it before the explicit DELETE, which then confirmed `wasActive=false`.**
+- Task Drain final OFF/quiescent? **Yes; the first explicit native stop returned `wasActive=true`, and a second idempotent stop confirmed `wasActive=false`.**
 
 ## Decision
 
