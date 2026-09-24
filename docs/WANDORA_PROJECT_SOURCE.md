@@ -1,3 +1,17 @@
+## Reconciled checkpoint — ADR 0242 hard one-call provider budget GREEN
+
+ADR 0241 is merged at `main@9571e4e98fcd0dec01dc93faa842aafcf008eadc`; open PRs were 0 and post-merge workflows were 4/4 GREEN at ADR 0242 entry. Production remains unchanged: Ana `428b6730...` is `idle` on `wandora_mastra`; Task Drain is OFF/quiescent with activeRuns=0/pendingWakes=0; 28PRO work/outbound remain `0/0`; VendaERP activity remains 68 events with unchanged SHA-256 `47de715854412222801f1f03c89b27d28ab64d0c2a5e824e04453539900e0c36`; no temporary live block/rate policy exists.
+
+Pinned Paperclip `dffc2b3c...` proves `tool_rate_limit_counters` is authoritative and atomically consumes the final slot. Focused upstream tests for final-slot atomicity, persisted run/issue integrity, connected-MCP rate limiting and Task Drain start/stop are GREEN. The live-equivalent VendaERP MCP product-read test also proves one `searchProducts` invocation performs exactly one provider `fetch` and the implementation has no automatic retry. Disposable proofs captured the real counter before cleanup (`limit=1`, `remaining=0`, second decision `rate_limited`, count=1) and proved cleanup cascades the counter.
+
+Second adversarial review corrected the old ADR 0231 issue-profile plan: Ana's live gateway is `gateway_only` and gateway profile precedence beats issue profile precedence. The qualified guard instead uses Paperclip-native policies that evaluate before profile allowance: a temporary agent+VendaERP `block` policy for the seven non-product reads plus an agent+product `rate_limit=1`. A disposable permissive gateway proof confirmed the block wins over the gateway profile and the product gets exactly one atomic slot.
+
+Task Drain cannot stay active through canonical work creation because Paperclip scheduling suppression makes `requestWakeup` return no run, which would fail the Organization Adapter dispatch. Frozen execution order is therefore: Task Drain ON/quiescent -> install and dry-run both policies with zero rate consumption -> Task Drain OFF -> immediately create exactly one canonical Wandora customer work -> no manual retry/wake -> capture counter/activity before policy cleanup -> delete only temporary policies, never the canonical work/issue.
+
+ADR 0242 is **GREEN / HARD ONE-CALL BUDGET QUALIFIED / NO PROVIDER CALL**. A real provider read is eligible only in the next separate bounded read-only execution slice.
+
+Next slice: **28PRO VendaERP Canonical Customer-Work One-Shot Product Read Execution V1 — READ ONLY**.
+
 ## Reconciled checkpoint — ADR 0241 post-promotion read-tool failure semantics GREEN
 
 ADR 0240 is merged at `main@f19715f2a90a3ea36c0194b33cbe02d11f353ac0`; post-merge workflows are 4/4 GREEN. Production remains exactly one loaded/enabled `wandora_mastra@0.5.0` on healthy/restart-0 Paperclip `v2026.916.0`; Core remains `organization-adapter-candidate-4a54b5d8f14c` / revision `4a54b5d8f14c469989fad277189f6ebdfb8fb1f0`, healthy/restart 0.
