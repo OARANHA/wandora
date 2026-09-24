@@ -261,28 +261,24 @@ Core provider/model markers = 0
 
 No provider/model call occurred.
 
-## Explicit Task Drain completion
+## Task Drain completion
 
-After protected validation, Task Drain was explicitly ended through the native Paperclip Board API.
+The bounded Task Drain expired through its native TTL before the explicit stop command was executed.
 
-Authoritative response:
-
-```text
-wasActive=true
-```
-
-Immediate readback:
+The subsequent native Paperclip Board API DELETE/readback truthfully returned:
 
 ```text
-draining=false
-startedAt=null
-expiresAt=null
-activeRuns=0
-pendingWakes=0
-quiescent=true
+before.draining=false
+stopped.wasActive=false
+after.draining=false
+after.startedAt=null
+after.expiresAt=null
+after.activeRuns=0
+after.pendingWakes=0
+after.quiescent=true
 ```
 
-The TTL was not used as the admission restoration mechanism.
+Therefore this ADR does **not** claim that the explicit DELETE caused admission restoration. The TTL ended the drain; the later native DELETE/readback only confirmed the final OFF/quiescent state.
 
 ## Final production state
 
@@ -342,7 +338,7 @@ ADR 0168 remains preserved.
 - Work/outbound changed? **No.**
 - Live mounted bytes validated? **Yes.**
 - Safe subreasons proven on live bytes with synthetic I/O? **Yes.**
-- Task Drain explicitly ended? **Yes.**
+- Task Drain final OFF/quiescent? **Yes; TTL ended it before the explicit DELETE, which then confirmed `wasActive=false`.**
 
 ## Decision
 
