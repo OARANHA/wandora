@@ -236,13 +236,22 @@ Two read-only validation commands initially returned non-zero for harness reason
 
 Both checks were rerun with bounded comparisons that correctly treat zero activity/zero markers as success. No runtime mutation was repeated because of either harness correction.
 
-## Task Drain exit deviation
+## Task Drain explicit completion
 
-ADR 0235 preferred an explicit `DELETE /api/instance/task-drain` after validation.
+After direct post-promotion validation proved Core healthy/ready, Paperclip unchanged, zero live runs, unchanged VendaERP activity and work/outbound = 0/0, Task Drain was explicitly ended through the native Paperclip contract:
 
-The operator execution control blocked two attempts to invoke that destructive HTTP method **before the command reached the VPS/runtime**. No DELETE request reached Paperclip.
+```text
+DELETE /api/instance/task-drain
+```
 
-The already-configured bounded native TTL was therefore allowed to expire. Subsequent authoritative Paperclip GET readback proved:
+Authoritative response:
+
+```text
+HTTP 200
+{ "wasActive": true }
+```
+
+Immediate GET readback proved:
 
 ```text
 draining=false
@@ -253,11 +262,11 @@ pendingWakes=0
 quiescent=true
 ```
 
-This is a procedural deviation from the preferred explicit exit, not a product/runtime failure. Run admission was restored only by Paperclip's own bounded Task Drain semantics; no alternative maintenance-lock subsystem was introduced.
+Therefore the preferred explicit exit from ADR 0235 did execute successfully. Paperclip's bounded TTL remained only a safety backstop and did not become the mechanism that restored admission.
 
 ## Final readback
 
-After Task Drain expiry:
+After explicit Task Drain completion:
 
 ```text
 main = 71346756f01771127a99e25672f220e5d5fa1ccb
@@ -322,8 +331,8 @@ ADR 0168 remains preserved.
 - Were work/outbound effects created? **No.**
 - Was any provider/model call made? **No.**
 - Did Connection activity change? **No.**
-- Did the preferred explicit Task Drain DELETE execute? **No; operator execution controls blocked it before runtime.**
-- Did Paperclip restore run admission safely through its bounded native TTL? **Yes, and GET proved false/quiescent afterward.**
+- Did the preferred explicit Task Drain DELETE execute? **Yes; HTTP 200 returned `wasActive=true`.**
+- Did immediate GET prove admission restored safely? **Yes; `draining=false`, zero active/pending runs and `quiescent=true`.**
 - Is rollback still locally available? **Yes.**
 - Is the promoted Core healthy and ready after admission restoration? **Yes.**
 
