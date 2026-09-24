@@ -1,3 +1,15 @@
+## Reconciled checkpoint — ADR 0248 safe product-response subreason observability CODE COMPLETE / NO PROVIDER CALL
+
+ADR 0247 is merged at `main@9264dcffdb340d434e754760702615d2111bafe2` and production remains on Core `organization-adapter-candidate-46741f8d82d0` / revision `46741f8d82d041b3f3cdde3d209c923e630db968`, healthy/restart 0 with healthz/readyz 200/200. Task Drain is OFF/quiescent; Ana is idle; work=1 completed, unfinished=0, outbound=0; VendaERP activity remains exactly 70 events with SHA-256 `e7114e6f43675b0634a186b35a9d1b440ccf57fbd00179c1853ee85c38a97d8b`.
+
+The remaining business ambiguity is provider-side `invalid-provider-response`: existing evidence cannot distinguish an invalid product-list shape from a product missing required `nome`. ADR 0248 corrects only the replaceable VendaERP MCP adapter to attach an allowlisted structured `reason`: `product-list-shape` or `product-name-missing`. Arbitrary reasons are discarded. The existing text MCP error shape remains unchanged; the reason is limited to `structuredContent.error` and the safe stderr event. No raw provider payload, product data, URL, arguments or credentials are retained.
+
+Validation is synthetic/no-network: `npm run verify` = 12/12 GREEN + static verifier GREEN. The production MCP bytes remain unchanged at SHA-256 `6f27914c887e5ada8330f9eeb836f33b3626ad9c667d3c22dda77ddc55da683f`; no provider/model call or production mutation occurred.
+
+ADR 0248 is **CODE COMPLETE / NO EFFECT / NO PROVIDER CALL / CI REQUIRED**.
+
+Next slice after merge: **VendaERP Product Safe Subreason MCP Promotion Preflight V1 — NO PROVIDER CALL**. A second real VendaERP read remains prohibited until promotion and post-promotion re-attestation complete.
+
 ## Reconciled checkpoint — ADR 0247 post-promotion re-attestation GREEN / NO PROVIDER CALL
 
 ADR 0246 is live: Core `organization-adapter-candidate-46741f8d82d0` / revision `46741f8d82d041b3f3cdde3d209c923e630db968`, healthy/restart 0, healthz/readyz 200/200. Paperclip remains the same container/image; Task Drain is OFF/quiescent; Ana is idle.
