@@ -1,3 +1,11 @@
+## Reconciled checkpoint — ADR 0235 ADR 0234 production promotion preflight GREEN
+
+ADR 0234 read-tool failure propagation is merged at main `4a54b5d8f14c469989fad277189f6ebdfb8fb1f0`. The post-merge Core artifact `10783439687` is independently verified and source-addressed to the exact main tree. Live Core remains `fc8721...`, healthy/restart 0; Paperclip/MCP/adapter are unchanged; Task Drain is OFF/quiescent; live runs/work/outbound = 0/0/0; rollback image is locally present.
+
+ADR 0235 authorizes only a separate Core-only production promotion using the same 12-file Compose project under Paperclip-native Task Drain. No provider/model call is authorized.
+
+Next slice: **ADR 0234 Read Tool Failure Propagation Production Promotion Execution V1**.
+
 ## Reconciled checkpoint — ADR 0234 read-tool failure propagation CODE COMPLETE
 
 ADR 0233's authority decision is implemented without changing Paperclip lifecycle, Tool Gateway context or `wandora_mastra` success semantics.
