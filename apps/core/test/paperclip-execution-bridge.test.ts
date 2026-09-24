@@ -241,3 +241,32 @@ test('Paperclip execution handler exposes a bounded code for read-tool failure',
   });
   assert.deepEqual(response, { status: 422, body: { error: 'read-tool-failed' } });
 });
+
+
+test('Paperclip execution handler exposes only an allowlisted read-tool failure reason', async () => {
+  const timestamp = String(Math.floor(NOW / 1000));
+  const handler = createPaperclipExecutionHandler({
+    secret: SECRET,
+    verifyRunIdentity: async () => ({
+      paperclipAgentId: AGENT,
+      paperclipCompanyId: COMPANY,
+      catalogKey: 'ana-commercial-v1' as const,
+    }),
+    service: {
+      execute: async () => {
+        throw new PaperclipToolGatewayReadBridgeError('tool-failed', 'product-list-shape');
+      },
+    },
+    now: () => NOW,
+  });
+  const response = await handler({
+    rawBody: body,
+    timestamp,
+    signature: signPaperclipExecutionRequest(SECRET, timestamp, body),
+    runToken: 'opaque-run-token',
+  });
+  assert.deepEqual(response, {
+    status: 422,
+    body: { error: 'read-tool-failed', reason: 'product-list-shape' },
+  });
+});
