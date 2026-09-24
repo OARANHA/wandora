@@ -1413,7 +1413,9 @@ Paperclip remains lifecycle/recovery/disposition authority; Wandora does not own
 
 ADR 0241 re-attested the promoted semantics without provider/model calls. Exact current-main adapter bytes are byte-identical to the live 0.5.0 package; pinned disposable Paperclip proves both success and read-tool failure converge to exactly one run and zero continuations, while the Core durable-work verifier proves `execution_uncertain` blocks same-run and successor-run re-entry before another execution.
 
-A real provider read is still separately gated. ADR 0233 left actual Tool Gateway rate-limit participation unresolved after cleanup, so the remaining gate is a no-provider qualification of a hard one-provider-call budget using Paperclip-owned Tool Gateway policy/rate-limit state and authoritative counter evidence.
+A real provider read remains separately gated. ADR 0242 qualified the Paperclip-native hard one-provider-call budget, and ADR 0244 exercised that budget in the first genuine owner-originated 28PRO work: exactly one product dispatch, no retry/successor provider call, and zero outbound. Later slices corrected the real Tool Gateway envelope boundary and promoted safe MCP parser subreasons without another provider call.
+
+ADR 0251 closes the remaining diagnostic-loss boundary without changing lifecycle authority. For MCP `invalid-provider-response` only, Core may carry `product-list-shape` or `product-name-missing` into the private `422 read-tool-failed` body. Unknown reasons are discarded. The top-level `read-tool-failed` contract remains unchanged, so `wandora_mastra@0.5.0` still maps the exact customer-work failure to Paperclip-native `blocked` and still fails the adapter run. No provider payload is persisted and no retry/lifecycle capability is internalized. Until this change is merged, promoted and re-attested, another real provider read remains NO-GO.
 
 
 ## Historical Paperclip agent error projection — ADR 0155
