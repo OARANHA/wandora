@@ -1,6 +1,6 @@
 # ADR 0251 — Read-Tool Safe Diagnostic Reason Propagation V1
 
-Status: **CODE COMPLETE / NO EFFECT / NO PROVIDER CALL / CI REQUIRED**  
+Status: **CODE COMPLETE / NO EFFECT / NO PROVIDER CALL / CI REQUIRED**
 Date: 2026-09-24
 
 ## Objective
@@ -198,11 +198,24 @@ failure.error == read-tool-failed
 canonical customer work is present
 ```
 
-It ignores unrelated extra JSON fields.
+The lifecycle decision still ignores unrelated extra JSON fields.
 
-A focused adapter test now proves the same issue is still moved to Paperclip-native `blocked` when the 422 includes an allowlisted reason.
+The same existing adapter failure surface is also the minimum durable diagnostic carrier. Pinned Paperclip writes the thrown adapter error message into `heartbeatRuns.error` and the existing run stop metadata while keeping `errorCode=adapter_failed`. Therefore, after the exact issue has been moved to native `blocked`, `wandora_mastra` appends only an allowlisted reason to the existing failure message:
 
-No adapter runtime code change is required.
+```text
+wandora_execution_failed_422_product-list-shape
+wandora_execution_failed_422_product-name-missing
+```
+
+Missing or unapproved reasons retain the legacy:
+
+```text
+wandora_execution_failed_422
+```
+
+This does not change success/failure disposition, retry authority or issue lifecycle. It reuses Paperclip's existing durable run-error surface and adds no Wandora-owned diagnostic store.
+
+Focused adapter tests prove both the allowlisted suffix and the unknown-reason drop while preserving the exact Paperclip-native `blocked` mutation.
 
 ## Second adversarial review
 
@@ -217,7 +230,7 @@ Rejected:
 7. spending another provider call before the reason can survive the existing semantic boundary;
 8. trusting arbitrary MCP reason strings.
 
-The minimum safe change is the existing Core contract extension above.
+The minimum safe change is the bounded Core contract extension plus a bounded adapter projection onto Paperclip's existing durable run-error message. No new state or lifecycle mechanism is required.
 
 ## Validation
 
@@ -252,7 +265,7 @@ Adapter contract:
 
 ```text
 wandora_mastra-v1
-9/9 GREEN
+10/10 GREEN
 ```
 
 The canonical customer-work failure test uses:
@@ -261,7 +274,7 @@ The canonical customer-work failure test uses:
 {"error":"read-tool-failed","reason":"product-list-shape"}
 ```
 
-and still proves exact Paperclip-native blocking plus failed adapter run.
+and still proves exact Paperclip-native blocking plus failed adapter run. The persisted adapter failure message is narrowed to `wandora_execution_failed_422_product-list-shape`; an unapproved reason is discarded and retains the legacy generic message.
 
 ## Production effects
 
