@@ -1,3 +1,17 @@
+## Reconciled checkpoint — ADR 0250 VendaERP safe-subreason MCP promotion COMPLETE / GREEN / NO PROVIDER CALL
+
+ADR 0249 was merged at `main@1a018c024ede186f3c55c061740fb3ca6e1d7abe` with post-merge workflows 4/4 GREEN before effect.
+
+The exact prequalified VendaERP MCP `server.mjs` from source `c697c9c803ac03dfafa52bf730a7e28c6191fda6` was atomically promoted under Paperclip-native Task Drain. Live hash is now `c740d1237374fe065907857465fe63ba6052ddb97096631fdb5ca94f90f9db9b`; source-marker hash is `a24786e3011ca0a28dc3840af50917b4787c857f60db84ef638f69fa812accb6`. No Paperclip restart occurred.
+
+Live mounted-byte validation passed MCP initialize/tools-list (8 read-only tools) and synthetic in-memory proofs for `product-list-shape` and `product-name-missing`. A connection drop after file replacement was reconciled by readback before any repeat.
+
+Protected/final state remained: Core/Paperclip healthy/restart 0, Task Drain OFF/quiescent after native TTL expiry; a subsequent native DELETE/readback returned `wasActive=false` and confirmed the final OFF/quiescent state. Ana remained idle, work=1 completed, unfinished=0, outbound=0, and VendaERP activity stayed byte-identical at 70 events / SHA-256 `e7114e6f43675b0634a186b35a9d1b440ccf57fbd00179c1853ee85c38a97d8b`. No provider/model call, migration, template/Connection/grant/install/profile/catalog/secret mutation occurred.
+
+ADR 0250 is **COMPLETE / GREEN / MCP FILE PROMOTION EXECUTED / NO PROVIDER CALL**.
+
+Next real provider read, if executed, must reuse the Paperclip-native hard one-call budget and genuine owner-originated canonical customer-work path; it must not be retried.
+
 ## Reconciled checkpoint — ADR 0249 VendaERP safe-subreason MCP promotion preflight GREEN / NO PROVIDER CALL
 
 ADR 0248 is merged at `main@c697c9c803ac03dfafa52bf730a7e28c6191fda6`; post-merge push workflows are 6/6 GREEN. Production remains unchanged: Core `46741f8d...` healthy/restart 0, Paperclip `v2026.916.0` healthy/restart 0, Task Drain OFF/quiescent, Ana idle, work=1 completed, unfinished=0, outbound=0, and VendaERP activity remains exactly 70 events with SHA-256 `e7114e6f43675b0634a186b35a9d1b440ccf57fbd00179c1853ee85c38a97d8b`.
