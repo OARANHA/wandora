@@ -173,23 +173,28 @@ The continuation and handoff runs did not dispatch another product tool call.
 
 Therefore the execution did not exceed one actual provider dispatch, but **not for the reason ADR 0231 expected**.
 
-## Rate-limit policy mismatch
+## Rate-limit audit interpretation
 
-The real Tool Gateway policy decision for the product call recorded:
+The final Tool Gateway policy-decision event for the allowed product call records:
 
 ```text
 reasonCode = allow_profile
 matchedPolicyIds = []
 rateLimitState = null
+effectiveProfileIds = [temporary issue profile]
 ```
 
-Therefore the temporary `rate_limit` policy did **not** participate in the actual Tool Gateway decision.
+That final event does **not** prove that the temporary `rate_limit` policy was skipped.
 
-A later non-consuming policy-test could still project the expected one-tool visibility, but that does not prove the rate policy was applied to the live Tool Gateway call.
+Pinned Paperclip evaluates matching `rate_limit` policies before grants/profiles. When a matching rate limit is still below its limit, Paperclip calls `enforceRateLimit(...)` and then continues. The final allow decision may therefore be `allow_profile` with empty `matchedPolicyIds` and no `rateLimitState`. Only a blocking rate-limit decision returns `decision=rate_limited` with the rate policy ID/state.
 
-The execution must therefore not credit the rate-limit policy with enforcing the one-call budget.
+Likewise, the post-cleanup activity rows now expose `issueId=null`, but Tool Gateway durable rows use issue foreign keys with `ON DELETE SET NULL`. PRO-10 was deleted during cleanup, while the source run's own `contextSnapshot.issueId` durably proves the run had the correct issue context.
 
-The exact cause of this policy-test/live-evaluation mismatch is **not yet proven** and must be investigated separately.
+Therefore the live V3 evidence neither proves nor disproves that the first successful allowance consumed the temporary rate-limit slot. The policy/counter was deleted during cleanup, so no authoritative post-hoc counter readback remains.
+
+The durable one-call fact for this slice is narrower and sufficient: exactly one real Tool Gateway/provider dispatch occurred across the three PRO-10 runs.
+
+The next slice should improve observability only if needed; it must not invent a second rate-limit or lifecycle subsystem.
 
 ## Reconciliation of ADR 0231
 
@@ -304,7 +309,7 @@ No further VendaERP call was made during diagnosis or cleanup.
 - How many real product Tool Gateway calls occurred? **Exactly one.**
 - Did that call succeed semantically? **No; it returned `invalid-provider-response`.**
 - Did any trusted product rows result? **No.**
-- Did the rate-limit policy demonstrably enforce the live call? **No.**
+- Can the final allow audit prove whether the non-exceeded rate-limit consumed a slot? **No; Paperclip does not retain that non-blocking policy in the final allow decision, and cleanup removed the counter.**
 - Did Paperclip create another lifecycle run? **Yes, `issue_continuation_needed`.**
 - Did Paperclip later create `finish_successful_run_handoff`? **Yes.**
 - Did either later run invoke VendaERP? **No evidence of any Tool Gateway call; connection activity says no.**
@@ -324,21 +329,22 @@ invalid-provider-response
 
 It did not produce trusted product data.
 
-The live execution also disproved two assumptions:
+The live execution disproved the end-to-end lifecycle assumption behind the V3 authorization:
 
-1. comment-driven handoff exclusion alone is insufficient because productive-terminal continuation can first create a non-comment successor;
-2. the temporary issue/tool rate-limit policy did not participate in the real Tool Gateway decision even though isolated policy tests appeared compatible.
+1. comment-driven handoff exclusion alone is insufficient because productive-terminal continuation can first create a non-comment successor.
+
+The execution does **not** establish a second finding that the temporary rate-limit failed to participate. The final allow audit cannot answer that question after the non-blocking limiter continued to the profile decision, and cleanup removed the policy counter.
 
 No further VendaERP retry is authorized.
 
 Next slice:
 
-**Comment-Driven Read Tool Terminal Semantics + Tool Policy Live-Context Reconciliation V1 — CODE/RESEARCH ONLY / NO PROVIDER CALL**
+**Comment-Driven Read Tool Terminal Semantics + Grounded Provider Result Authority V1 — CODE/RESEARCH ONLY / NO PROVIDER CALL**
 
 That slice must prove, before any implementation:
 
 - which existing Paperclip-native disposition/terminal contract should own a bounded read-tool failure;
 - how to prevent provider-unverified model output from becoming customer-visible provider truth;
-- why the issue-scoped `rate_limit` policy did not match the live Tool Gateway context;
-- whether the fix belongs in Wandora adapter semantics, Paperclip configuration/reuse, or an upstream Paperclip contract;
+- whether any additional rate-limit observability is needed without changing Paperclip's policy authority;
+- whether the terminal/result fix belongs in Wandora adapter semantics, Paperclip configuration/reuse, or an upstream Paperclip contract;
 - that no duplicate lifecycle engine, retry engine or second policy system is introduced.
