@@ -5,8 +5,21 @@ const MAX_TOKEN = 16_384;
 const DEFAULT_TIMEOUT_MS = 5_000;
 const DEFAULT_SESSION_TTL_MS = 60_000;
 
+export type PaperclipReadToolFailureReason =
+  | 'product-list-shape'
+  | 'product-name-missing';
+
+function safeReadToolFailureReason(value: unknown): PaperclipReadToolFailureReason | undefined {
+  return value === 'product-list-shape' || value === 'product-name-missing'
+    ? value
+    : undefined;
+}
+
 export class PaperclipToolGatewayReadBridgeError extends Error {
-  constructor(readonly code: 'invalid' | 'denied' | 'unavailable' | 'tool-failed') {
+  constructor(
+    readonly code: 'invalid' | 'denied' | 'unavailable' | 'tool-failed',
+    readonly reason?: PaperclipReadToolFailureReason,
+  ) {
     super(code === 'invalid'
       ? 'Paperclip Tool Gateway input is invalid.'
       : code === 'denied'
@@ -247,7 +260,18 @@ export function createPaperclipToolGatewayReadBridge(deps: {
               if (!isRecord(result)) return result;
               const data = isRecord(result.data) ? result.data : undefined;
               if (data?.isError === true || result.error === 'MCP tool returned an error result') {
-                throw new PaperclipToolGatewayReadBridgeError('tool-failed');
+                const structuredContent = isRecord(data?.structuredContent)
+                  ? data.structuredContent
+                  : undefined;
+                const structuredError = isRecord(structuredContent?.error)
+                  ? structuredContent.error
+                  : undefined;
+                throw new PaperclipToolGatewayReadBridgeError(
+                  'tool-failed',
+                  structuredError?.code === 'invalid-provider-response'
+                    ? safeReadToolFailureReason(structuredError.reason)
+                    : undefined,
+                );
               }
               if ('data' in result) return result.data;
               if ('content' in result) return result.content;
