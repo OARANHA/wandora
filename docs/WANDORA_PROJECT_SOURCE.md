@@ -1,3 +1,16 @@
+## Reconciled checkpoint — ADR 0244 one-shot safety GREEN / business read failed safe / real-envelope correction code complete
+
+A genuine authenticated 28PRO owner submitted exactly one canonical customer work. Work 17eb846e... created Paperclip issue PRO-14 / 27d28163... and exactly one assignment run 6f928fe8.... The native Paperclip rate-limit counter was captured before cleanup at limit=1 / remaining=0; VendaERP activity moved exactly 68 -> 70 with only the expected policy_decision + call_completed for vendaerp_search_products {"pageSize":5,"skip":0}. No retry/successor/manual wake/outbound occurred.
+
+The provider returned MCP isError=true with safe code invalid-provider-response, so no product data was trusted. The execution exposed a real contract gap: Paperclip correctly returns /api/tool-gateway/tools/call as an execution envelope {invocationId,status,tool,result}, while Core's bridge tested the MCP semantic error at the top level. ADR 0241's fixture had mocked the inner result directly, so the real envelope allowed error text to become a successful model summary.
+
+The Wandora-owned bridge is corrected code-only to unwrap a real completed execution envelope before applying the existing data.isError / MCP error check, while preserving legacy direct-result compatibility and per-run identical-call dedupe. Focused bridge tests are 6/6 GREEN; focused Mastra/handler tests are GREEN; Core typecheck/build are GREEN. Local DB integration tests could not initialize because the fresh clone lacked Supabase tenant routing context (ENOIDENTIFIER); GitHub Core CI remains required.
+
+Temporary Paperclip policies were removed after evidence capture; their rate counter cascaded away. Final live state: Task Drain OFF/quiescent, Ana idle, temporary guards/counters 0, VendaERP activity 70 with SHA-256 e7114e6f43675b0634a186b35a9d1b440ccf57fbd00179c1853ee85c38a97d8b, 28PRO work exactly 1 and outbound 0. No second provider call was made.
+
+ADR 0244 is **EXECUTION SAFETY GREEN / BUSINESS READ FAILED SAFE / CODE CORRECTION COMPLETE / NO SECOND PROVIDER CALL**.
+
+Next: merge the Core correction only after CI, then perform a separate **Tool Gateway Real Envelope Read-Error Core Promotion Preflight V1 — NO PROVIDER CALL**.
 ## Reconciled checkpoint — ADR 0243 one-shot product-read execution SAFE STOP on owner-session gate
 
 ADR 0242 is merged at `main@3e8fcacd2e1a68fbf0a1e7cf75cffe798f3069fe`; open PRs were 0 and the exact post-merge workflows were 4/4 GREEN before ADR 0243 entry. The execution slice reconciled repository/runtime first and did not repeat ADR 0242 proofs.
