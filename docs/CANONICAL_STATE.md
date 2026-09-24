@@ -1,3 +1,17 @@
+## Reconciled checkpoint — ADR 0245 Core promotion preflight GREEN / NO PROVIDER CALL
+
+ADR 0244 correction is merged and post-merge CI-green. Current main at preflight is `d1dcc517fe2eaeb34d77d010e4a0045aff85f10a`; the executable Core candidate remains exactly `46741f8d82d041b3f3cdde3d209c923e630db968`, with no executable delta from that candidate to current main.
+
+Post-merge Core Candidate Artifact `10794878077` was independently downloaded to the VPS. GitHub ZIP digest and VPS SHA-256 match exactly at `ffa055b1cbf7c8cbd0b9b545cf1b6329bc3984494ce82b19d0f2b550f85c9e70`. The inner archive passed `SHA256SUMS`; candidate manifest/source tree/image identities are exact. Candidate image remains absent from the Docker daemon.
+
+The live twelve-file Core Compose project was rendered with current and candidate image tags using the same existing secret paths/GID. Structural diff is exactly one path, `/services/core/image`; non-image hashes are identical at `941a21aecf07932b804a4285bb7e1fcd08a396a6682fd5aa378e892b1461c8e3`. Rollback image `organization-adapter-candidate-4a54b5d8f14c` is local.
+
+Runtime remains no-effect: Core/Paperclip healthy/restart 0, Core healthz/readyz 200/200, Task Drain OFF/quiescent, Ana idle, work=1 completed, unfinished=0, outbound=0, temporary guards=0, VendaERP activity remains 70 events with SHA-256 `e7114e6f43675b0634a186b35a9d1b440ccf57fbd00179c1853ee85c38a97d8b`, and VendaERP MCP hash remains unchanged. No model/provider call occurred.
+
+ADR 0245 is **GREEN / NO EFFECT / GO FOR SEPARATE CORE-ONLY PRODUCTION PROMOTION / NO PROVIDER CALL**.
+
+Next slice: **ADR 0246 — Tool Gateway Real Envelope Read-Error Core Production Promotion Execution V1 — NO PROVIDER CALL**.
+
 ## Reconciled checkpoint — ADR 0244 correction merged / post-merge CI GREEN
 
 PR #317 was squash-merged at `main@46741f8d82d041b3f3cdde3d209c923e630db968` from exact head `12c251dfd8888f606bbb1426e1266597f1eea94c`. PR checks closed 9/9 GREEN and the post-merge push workflows closed 7/7 GREEN: Core CI, Core Candidate Artifact, Messaging Gateway CI, Paperclip Mastra Adapter CI, Paperclip OpenAPI Compatibility, Platform Admin CI and Web CI.
