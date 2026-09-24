@@ -11,7 +11,7 @@ ADR 0234 read-tool failure propagation is now live in production.
 - 28PRO live runs = 0; VendaERP Connection activity remained 0 with identical snapshot hash;
 - Wandora work/outbound = 0/0;
 - no provider/model call and no migration occurred;
-- the preferred explicit Task Drain DELETE was blocked by operator execution controls before runtime; Paperclip's bounded native TTL expired and authoritative GET proved `draining=false`, zero active/pending runs and `quiescent=true`.
+- Paperclip-native Task Drain protected the transition; explicit `DELETE /api/instance/task-drain` returned HTTP 200 with `wasActive=true`, and immediate GET proved `draining=false`, zero active/pending runs and `quiescent=true`.
 
 ADR 0236 records the execution as **COMPLETE / GREEN / NO PROVIDER CALL**.
 
