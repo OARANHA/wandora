@@ -43,3 +43,24 @@ The completion write is bounded and fail-closed:
 - non-customer work preserves the legacy adapter lifecycle.
 
 Normalized Wandora execution usage is returned as Paperclip adapter `usage` with `usageBasis=per_run`. The logical model remains `wandora-supervised-v1`; concrete provider/model identity stays implementation telemetry.
+
+## Customer-work read-tool failure disposition
+
+`wandora_mastra@0.5.0` adds one narrow failure-side lifecycle mapping without changing Paperclip lifecycle authority. When, and only when, all of the following are true:
+
+- the task carries the canonical private `wandora-work-v1` marker;
+- Core returns HTTP `422`; and
+- the bounded response is exactly `{"error":"read-tool-failed"}`;
+
+the same run-scoped Paperclip identity moves the exact issue to native `blocked` with an `unblockDescriptor` owned by the executing Paperclip agent. The unblock action requires the read-tool problem to be resolved and a **fresh explicitly authorized Wandora customer work** before any later read.
+
+The adapter then still fails the current run. It does **not** turn the provider/tool failure into success and it does not invent a Wandora retry or lifecycle engine. Paperclip remains the issue/run/recovery authority.
+
+The blocking write is bounded and fail-closed:
+
+- one exact customer-work issue only;
+- unrelated `422` responses preserve legacy behavior;
+- non-customer work preserves legacy behavior;
+- an ambiguous block write is read back before any repeat mutation;
+- a pre-existing native `blocked` status is accepted without overwrite/retry;
+- if native blocking cannot be persisted, the adapter still fails and Wandora's durable `execution_uncertain` gate prevents a successor run from reaching model/tool/provider execution for that work.

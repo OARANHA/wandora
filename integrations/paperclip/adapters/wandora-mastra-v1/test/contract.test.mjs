@@ -186,3 +186,179 @@ test('non-customer work preserves legacy lifecycle and does not patch Paperclip 
     assert.equal(requests.length, 1);
   });
 });
+
+
+test('customer-work read-tool failure blocks the exact Paperclip issue and still fails the adapter', async () => {
+  await withAdapterEnvironment(async () => {
+    const requests = [];
+    globalThis.fetch = async (url, init = {}) => {
+      requests.push({ url: String(url), init });
+      if (String(url) === BRIDGE_URL) {
+        return new Response(JSON.stringify({ error: 'read-tool-failed' }), {
+          status: 422,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+      assert.equal(String(url), `http://localhost:3100/api/issues/${ISSUE_ID}`);
+      assert.equal(init.method, 'PATCH');
+      assert.equal(init.headers.authorization, 'Bearer opaque-run-token-never-in-body');
+      assert.equal(init.headers['x-paperclip-run-id'], executionContext().runId);
+      assert.deepEqual(JSON.parse(String(init.body)), {
+        status: 'blocked',
+        unblockDescriptor: {
+          owner: { agentId: executionContext().agent.id },
+          action: 'Resolve the read-tool failure, then create a fresh explicitly authorized Wandora customer work if another read is required.',
+        },
+      });
+      return new Response(JSON.stringify({ id: ISSUE_ID, status: 'blocked' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    };
+
+    await assert.rejects(
+      createServerAdapter().execute(executionContext()),
+      /wandora_execution_failed_422/,
+    );
+    assert.deepEqual(requests.map((request) => request.init.method), ['POST', 'PATCH']);
+  });
+});
+
+test('ambiguous read-tool failure blocking reads the issue before any repeat mutation', async () => {
+  await withAdapterEnvironment(async () => {
+    const requests = [];
+    globalThis.fetch = async (url, init = {}) => {
+      requests.push({ url: String(url), init });
+      if (String(url) === BRIDGE_URL) {
+        return new Response(JSON.stringify({ error: 'read-tool-failed' }), {
+          status: 422,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+      assert.equal(String(url), `http://localhost:3100/api/issues/${ISSUE_ID}`);
+      if (init.method === 'PATCH') throw new TypeError('synthetic local block timeout');
+      assert.equal(init.method, 'GET');
+      return new Response(JSON.stringify({ id: ISSUE_ID, status: 'blocked' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    };
+
+    await assert.rejects(
+      createServerAdapter().execute(executionContext()),
+      /wandora_execution_failed_422/,
+    );
+    assert.deepEqual(requests.map((request) => request.init.method), ['POST', 'PATCH', 'GET']);
+  });
+});
+
+test('ambiguous read-tool blocking repeats at most once only after readback proves work is still active', async () => {
+  await withAdapterEnvironment(async () => {
+    const requests = [];
+    let issueCalls = 0;
+    globalThis.fetch = async (url, init = {}) => {
+      requests.push({ url: String(url), init });
+      if (String(url) === BRIDGE_URL) {
+        return new Response(JSON.stringify({ error: 'read-tool-failed' }), {
+          status: 422,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+      assert.equal(String(url), `http://localhost:3100/api/issues/${ISSUE_ID}`);
+      issueCalls += 1;
+      if (issueCalls === 1) {
+        assert.equal(init.method, 'PATCH');
+        throw new TypeError('synthetic first block timeout');
+      }
+      if (issueCalls === 2) {
+        assert.equal(init.method, 'GET');
+        return new Response(JSON.stringify({ id: ISSUE_ID, status: 'in_progress' }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+      assert.equal(issueCalls, 3);
+      assert.equal(init.method, 'PATCH');
+      return new Response(JSON.stringify({ id: ISSUE_ID, status: 'blocked' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    };
+
+    await assert.rejects(
+      createServerAdapter().execute(executionContext()),
+      /wandora_execution_failed_422/,
+    );
+    assert.deepEqual(
+      requests.map((request) => request.init.method),
+      ['POST', 'PATCH', 'GET', 'PATCH'],
+    );
+  });
+});
+
+test('definitive Paperclip 4xx while blocking fails closed without readback or repeat mutation', async () => {
+  await withAdapterEnvironment(async () => {
+    const requests = [];
+    globalThis.fetch = async (url, init = {}) => {
+      requests.push({ url: String(url), init });
+      if (String(url) === BRIDGE_URL) {
+        return new Response(JSON.stringify({ error: 'read-tool-failed' }), {
+          status: 422,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+      assert.equal(String(url), `http://localhost:3100/api/issues/${ISSUE_ID}`);
+      assert.equal(init.method, 'PATCH');
+      return new Response(JSON.stringify({ error: 'forbidden' }), {
+        status: 403,
+        headers: { 'content-type': 'application/json' },
+      });
+    };
+
+    await assert.rejects(
+      createServerAdapter().execute(executionContext()),
+      /paperclip_issue_block_failed_403/,
+    );
+    assert.deepEqual(requests.map((request) => request.init.method), ['POST', 'PATCH']);
+  });
+});
+
+test('unrelated customer-work 422 does not claim a read-tool blocker disposition', async () => {
+  await withAdapterEnvironment(async () => {
+    const requests = [];
+    globalThis.fetch = async (url, init = {}) => {
+      requests.push({ url: String(url), init });
+      assert.equal(String(url), BRIDGE_URL);
+      return new Response(JSON.stringify({ error: 'employee-unavailable' }), {
+        status: 422,
+        headers: { 'content-type': 'application/json' },
+      });
+    };
+
+    await assert.rejects(
+      createServerAdapter().execute(executionContext()),
+      /wandora_execution_failed_422/,
+    );
+    assert.equal(requests.length, 1);
+  });
+});
+
+test('non-customer work read-tool failure preserves legacy lifecycle without issue mutation', async () => {
+  await withAdapterEnvironment(async () => {
+    const requests = [];
+    globalThis.fetch = async (url, init = {}) => {
+      requests.push({ url: String(url), init });
+      assert.equal(String(url), BRIDGE_URL);
+      return new Response(JSON.stringify({ error: 'read-tool-failed' }), {
+        status: 422,
+        headers: { 'content-type': 'application/json' },
+      });
+    };
+
+    await assert.rejects(
+      createServerAdapter().execute(executionContext('Sem marcador de customer work.')),
+      /wandora_execution_failed_422/,
+    );
+    assert.equal(requests.length, 1);
+  });
+});

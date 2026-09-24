@@ -1,3 +1,13 @@
+## Reconciled checkpoint — ADR 0238 customer-work read-tool failure native disposition CODE COMPLETE
+
+ADR 0237's strict one-shot gap is corrected in code without duplicating Paperclip lifecycle. Candidate `wandora_mastra@0.5.0` recognizes only canonical customer work plus exact Core `422 read-tool-failed`, moves the exact Paperclip issue to native `blocked` with a run-scoped self-owned `unblockDescriptor`, then still fails the adapter run. Generic/non-work failures preserve existing behavior; ambiguous blocking is read back before any repeat mutation.
+
+Pinned Paperclip `dffc2b3c...` source proves `blocked` is a valid provider-native disposition. Disposable E2E proves the failure run remains `failed`, the issue becomes `blocked`, run count stays exactly 1 and `issue_continuation_needed` successors remain 0 beyond the scheduler floor. Adapter tests = 9/9 GREEN; loader contract = GREEN; ADR 0237's unchanged Core DB-backed work safety remains 34/34 GREEN. Deterministic candidate package SHA-256 = `64795ff7d2c519ef6303ab0944bac02d27aadf8b919860b832c2e6fac4defb62`.
+
+No VendaERP/model call, production mutation, migration, Paperclip fork, new lifecycle/retry state or outbound effect occurred. Production still runs `wandora_mastra@0.4.0`, so another real provider read remains prohibited.
+
+Next slice: **ADR 0239 — Paperclip Customer-Work Read-Tool Failure Terminal Disposition Mapping Production Promotion Preflight V1 — NO PROVIDER CALL**.
+
 ## Reconciled checkpoint — ADR 0237 post-promotion failure semantics GREEN / provider read NO-GO
 
 ADR 0234 failure propagation is live and re-attested without provider/model calls. The live Core remains `wandora/core:organization-adapter-candidate-4a54b5d8f14c` / revision `4a54b5d8f14c469989fad277189f6ebdfb8fb1f0`, healthy/restart 0 with healthz/readyz 200. Paperclip remains the same healthy `v2026.916.0` container and the VendaERP MCP hash is unchanged.
