@@ -1,3 +1,17 @@
+## Reconciled checkpoint — ADR 0231 one-shot replay + provider budget GREEN
+
+ADR 0230's NO-GO conclusion is superseded after two additional adversarial reviews of pinned Paperclip and a live no-provider control-plane proof.
+
+- successful `issue_commented` runs remain excluded from `finish_successful_run_handoff`;
+- historical PRO-8 `wandora_mastra` runs are confirmed `runtimeMode=legacy`;
+- a failed post-adapter-entry legacy run lacks positive `providerWorkStarted=false` evidence, so `legacyExecutionNeedsReconciliation()` holds it before generic recovery;
+- Paperclip issue/tool-scoped `rate_limit=1` additionally enforces a hard one-product-call budget inside the run;
+- live PRO-9 proof: assigned backlog created 0 runs, issue profile produced 1 allow / 7 deny, first rate slot allowed, second decision rate_limited;
+- cleanup complete: PRO-9/profile/policy absent, connection activity 0, live runs 0, Task Drain OFF/quiescent, work/outbound 0/0;
+- no model or VendaERP/provider call occurred.
+
+ADR 0231 authorizes only a separate **28PRO VendaERP Comment-Driven One-Shot Product Read Execution V3 — READ ONLY**. No code/runtime promotion is required first.
+
 ## Reconciled checkpoint — ADR 0230 comment-driven one-shot preflight NO-GO
 
 The Paperclip comment-driven path is proven to exclude `finish_successful_run_handoff`, but a failed Wandora bridge run currently becomes Paperclip `adapter_failed`, which is classified as transient infrastructure and may create an automatic `issue_continuation_needed` successor. Therefore one-shot behavior is not yet proven.
