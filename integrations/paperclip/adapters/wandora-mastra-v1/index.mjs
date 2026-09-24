@@ -31,6 +31,12 @@ function isRecord(value) {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function safeReadToolFailureReason(value) {
+  return value === 'product-list-shape' || value === 'product-name-missing'
+    ? value
+    : null;
+}
+
 function nonNegativeInteger(value) {
   return Number.isInteger(value) && value >= 0 ? value : null;
 }
@@ -386,12 +392,16 @@ export function createServerAdapter() {
           const failure = await response.json().catch(() => null);
           if (isRecord(failure) && failure.error === 'read-tool-failed') {
             const issueId = requiredString(task.issueId, 'paperclip_work_issue_id_required', 255);
+            const reason = safeReadToolFailureReason(failure.reason);
             await blockCustomerWorkIssueAfterReadToolFailure(
               issueId,
               paperclipAgentId,
               runToken,
               paperclipRunId,
             );
+            if (reason) {
+              throw new Error(`wandora_execution_failed_422_${reason}`);
+            }
           }
         }
         throw new Error(`wandora_execution_failed_${response.status}`);
