@@ -1,3 +1,24 @@
+## Reconciled checkpoint — ADR 0236 ADR 0234 Core-only production promotion COMPLETE
+
+ADR 0234 read-tool failure propagation is now live in production.
+
+- canonical entry for execution = `main@71346756f01771127a99e25672f220e5d5fa1ccb`; ADR 0235 = GREEN;
+- promoted Core = `wandora/core:organization-adapter-candidate-4a54b5d8f14c`, revision `4a54b5d8f14c469989fad277189f6ebdfb8fb1f0`;
+- Core = healthy / restart 0 / healthz 200 / readyz 200;
+- only Core was recreated through the exact twelve-file live Compose project;
+- Paperclip remained the same container/image, healthy/restart 0;
+- `wandora_mastra@0.4.0` and VendaERP MCP remained unchanged;
+- 28PRO live runs = 0; VendaERP Connection activity remained 0 with identical snapshot hash;
+- Wandora work/outbound = 0/0;
+- no provider/model call and no migration occurred;
+- the preferred explicit Task Drain DELETE was blocked by operator execution controls before runtime; Paperclip's bounded native TTL expired and authoritative GET proved `draining=false`, zero active/pending runs and `quiescent=true`.
+
+ADR 0236 records the execution as **COMPLETE / GREEN / NO PROVIDER CALL**.
+
+Another VendaERP/provider read remains prohibited.
+
+Next slice: **ADR 0234 Read Tool Failure Propagation Post-Promotion Failure-Semantics Preflight V1 — NO PROVIDER CALL**.
+
 ## Reconciled checkpoint — ADR 0235 ADR 0234 production promotion preflight GREEN
 
 ADR 0234 read-tool failure propagation is merged at main `4a54b5d8f14c469989fad277189f6ebdfb8fb1f0`. The post-merge Core artifact `10783439687` is independently verified and source-addressed to the exact main tree. Live Core remains `fc8721...`, healthy/restart 0; Paperclip/MCP/adapter are unchanged; Task Drain is OFF/quiescent; live runs/work/outbound = 0/0/0; rollback image is locally present.
