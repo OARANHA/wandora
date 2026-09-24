@@ -152,12 +152,6 @@ server.mjs =
 c740d1237374fe065907857465fe63ba6052ddb97096631fdb5ca94f90f9db9b
 
 WANDORA_SOURCE_COMMIT =
-a24786e3011ca0a28dc3840af50917b4787c857465fe63ba6052ddb97096631fdb5ca94f90f9db9b
-```
-
-Correction: the authoritative marker hash is the separately verified value:
-
-```text
 a24786e3011ca0a28dc3840af50917b4787c857f60db84ef638f69fa812accb6
 ```
 
