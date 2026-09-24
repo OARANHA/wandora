@@ -1,3 +1,17 @@
+## Reconciled checkpoint — ADR 0240 wandora_mastra@0.5.0 production promotion COMPLETE
+
+ADR 0239 is merged at `main@9c8ebb0d543fc773dc812cd63baccc7295de735f`; post-merge workflows closed 4/4 GREEN before effect. ADR 0240 then promoted only the Paperclip external adapter under native Task Drain, with no provider/model call.
+
+Production now runs exactly one loaded/enabled `wandora_mastra@0.5.0` from retained content-addressed path `64795ff7.../package`. Paperclip was recreated exactly once on the unchanged `wandora/paperclip:v2026.916.0` image and is healthy/restart 0 as container `4b187dc5...`. Core remains unchanged at `wandora/core:organization-adapter-candidate-4a54b5d8f14c` / revision `4a54b5d8f14c469989fad277189f6ebdfb8fb1f0`, healthy/restart 0.
+
+The install was dispatched exactly once and returned `version=0.5.0`, exact candidate path and `requiresRestart=true`. Pre-restart readback proved `0.5.0` loaded + test-environment PASS while Task Drain remained active/quiescent. Restart cleared Task Drain by design; post-restart readback proves `draining=false`, `activeRuns=0`, `pendingWakes=0`, `quiescent=true`, adapter `0.5.0` loaded/enabled and test-environment PASS.
+
+The new registry SHA-256 is `bd7665892541f787b9062ca4124fc3bfb9454458007e9c5742c4ba36b4e38169`; the qualified 0.5.0 package files remain exact and the old 0.4.0 rollback path remains retained. 28PRO work operations/outbound attempts remain `0/0`. VendaERP Connection activity remains byte-identical at SHA-256 `47de715854412222801f1f03c89b27d28ab64d0c2a5e824e04453539900e0c36`; maintenance-window log scans found no Core/Mastra/VendaERP execution marker. No migration, Core/MCP/Connection/grant/secret/profile/catalog mutation or outbound effect occurred.
+
+ADR 0240 is **COMPLETE / GREEN / NO PROVIDER CALL**. Another real VendaERP/provider read remains NO-GO.
+
+Next slice: **ADR 0241 — wandora_mastra@0.5.0 Post-Promotion Read-Tool Failure Disposition Semantics Preflight V1 — NO PROVIDER CALL**.
+
 ## Reconciled checkpoint — ADR 0239 wandora_mastra@0.5.0 promotion preflight GREEN
 
 ADR 0238 is merged at main@9f40ccfd3469d9e8c465155ddd95f85c76b45348; post-merge workflows are 6/6 GREEN and open PRs were 0 at preflight. Production remains unchanged: Core organization-adapter-candidate-4a54b5d8f14c / revision 4a54b5d8f14c469989fad277189f6ebdfb8fb1f0 healthy/restart 0; Paperclip v2026.916.0 is the same healthy container/restart 0; live wandora_mastra@0.4.0 is loaded/enabled from retained package 6390812d... and official test-environment PASS.

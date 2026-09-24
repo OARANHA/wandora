@@ -1249,7 +1249,7 @@ Mistral / mistral-small-2603 (current provider implementation)
 
 This is an implementation selection, not durable product identity. A future Runtime X/provider Y must continue to satisfy the same Wandora contract.
 
-The live execution path now uses `wandora_mastra@0.3.0` and Core `mastra-supervised-model`. Runtime activation by itself does not create Paperclip work or call the model.
+The live execution path now uses `wandora_mastra@0.5.0` and Core `mastra-supervised-model`. Runtime activation or adapter promotion by itself does not create Paperclip work or call the model.
 
 Current effect boundary remains:
 
@@ -1302,7 +1302,7 @@ If step 3 is ambiguous, the adapter reads the exact issue before repeating the l
 
 This ordering prevents Paperclip's native stranded-issue reconciler from generating an unnecessary `issue_continuation_needed` run after completed one-shot work while keeping Paperclip authoritative for issue/run lifecycle.
 
-The first production execution occurred with live `wandora_mastra@0.3.0` before this convergence behavior existed. Its second historical Paperclip recovery run was rejected before model execution, so the business result and external-effect boundary remained safe. `wandora_mastra@0.4.0` is repository-qualified in disposable Paperclip but is not live until a separately reviewed production-promotion slice.
+The first production execution occurred with live `wandora_mastra@0.3.0` before this convergence behavior existed. Its second historical Paperclip recovery run was rejected before model execution, so the business result and external-effect boundary remained safe. `wandora_mastra@0.4.0` was later promoted by ADR 0154; ADR 0240 subsequently promoted `wandora_mastra@0.5.0`, preserving the 0.4.0 success-side terminalization/usage contract and adding the qualified failure-side disposition described below.
 
 Normalized runtime token usage crosses the Agent Runtime -> Paperclip adapter boundary as provider-neutral `per_run` usage. Concrete Mistral/Mastra identifiers remain implementation telemetry; `wandora-supervised-v1` remains the stable Wandora execution identity.
 
@@ -1394,6 +1394,24 @@ Production promotion did not replay the historical work. MED-1 is now `done`, re
 External-effect authority is unchanged: Human Send and Gateway outbound remain Wandora-owned and OFF. Paperclip Task Drain was used only as the native pre-restart quiescence guard.
 
 The Paperclip Ana lifecycle projection remains historical `error` from the rejected continuation run. This is a separate Paperclip-owned readiness concern and must be reconciled in a no-effect slice before another customer work admission; it must not be hidden by a Wandora-native lifecycle duplicate.
+
+## Live customer-work read-tool failure disposition — ADR 0240
+
+Production now runs `wandora_mastra@0.5.0` behind the same Paperclip-owned external-adapter boundary. The 0.4.0 success-side contract remains unchanged. The additional failure-side rule is deliberately narrow:
+
+```text
+canonical Wandora customer work
+  -> Core returns exact 422 read-tool-failed
+  -> Wandora durable work remains execution_uncertain / no durable success
+  -> same run-scoped Paperclip identity moves the exact issue to native blocked
+     with an unblockDescriptor owned by the executing Paperclip agent
+  -> adapter run remains failed
+  -> Paperclip generic continuation recovery does not replay the read
+```
+
+Paperclip remains lifecycle/recovery/disposition authority; Wandora does not own a parallel retry engine or task state machine. The retained 0.4.0 package is rollback evidence, not an alternate active implementation. ADR 0240 promoted only the adapter and recreated only Paperclip under native Task Drain; Core, VendaERP MCP, Connections/grants/secrets and outbound policy were unchanged.
+
+A real provider read is still separately gated. The promoted semantics must first pass a post-promotion no-provider preflight before another one-shot read may be designed.
 
 
 ## Historical Paperclip agent error projection — ADR 0155
