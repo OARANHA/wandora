@@ -230,7 +230,20 @@ export function createPaperclipToolGatewayReadBridge(deps: {
                 throw new PaperclipToolGatewayReadBridgeError('unavailable');
               }
               if (callResponse.status !== 200) throw gatewayFailure(callResponse.status);
-              const result = await parseJson(callResponse);
+              const responseBody = await parseJson(callResponse);
+              let result = responseBody;
+              if (
+                isRecord(responseBody)
+                && typeof responseBody.invocationId === 'string'
+                && typeof responseBody.tool === 'string'
+                && typeof responseBody.status === 'string'
+                && 'result' in responseBody
+              ) {
+                if (responseBody.status !== 'completed') {
+                  throw new PaperclipToolGatewayReadBridgeError('tool-failed');
+                }
+                result = responseBody.result;
+              }
               if (!isRecord(result)) return result;
               const data = isRecord(result.data) ? result.data : undefined;
               if (data?.isError === true || result.error === 'MCP tool returned an error result') {

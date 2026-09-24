@@ -62,8 +62,13 @@ test('Paperclip read bridge exposes only authorized connection-backed read tools
     }
     if (url.endsWith('/api/tool-gateway/tools/call')) {
       return new Response(JSON.stringify({
-        content: 'ignored fallback',
-        data: { items: [{ code: 'P1', name: 'Tinta' }] },
+        invocationId: 'invocation-success',
+        status: 'completed',
+        tool: 'vendaerp_search_products',
+        result: {
+          content: 'ignored fallback',
+          data: { items: [{ code: 'P1', name: 'Tinta' }] },
+        },
       }), { status: 200, headers: { 'content-type': 'application/json' } });
     }
     throw new Error('unexpected request');
@@ -231,6 +236,49 @@ test('Paperclip read bridge does not retry an identical denied read call inside 
 });
 
 
+test('Paperclip read bridge fails closed on a non-completed Tool Gateway execution envelope', async () => {
+  const fetchImpl: typeof fetch = async (input) => {
+    const url = String(input);
+    if (url.endsWith('/api/tool-gateway/sessions')) {
+      return new Response(JSON.stringify({
+        sessionId: 'session-envelope-pending',
+        token: 'ephemeral-gateway-token',
+        expiresAt: new Date(Date.now() + 60_000).toISOString(),
+      }), { status: 201, headers: { 'content-type': 'application/json' } });
+    }
+    if (url.endsWith('/api/tool-gateway/tools')) {
+      return new Response(JSON.stringify([{
+        name: 'vendaerp_search_products',
+        displayName: 'VendaERP Search Products',
+        description: 'Read products.',
+        parametersSchema: { type: 'object' },
+        providerType: 'mcp_local_stdio',
+        risk: 'read',
+        connectionId: CONNECTION,
+        catalogEntryId: CATALOG,
+      }]), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    if (url.endsWith('/api/tool-gateway/tools/call')) {
+      return new Response(JSON.stringify({
+        invocationId: 'invocation-pending',
+        status: 'pending',
+        tool: 'vendaerp_search_products',
+        result: null,
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    throw new Error('unexpected request');
+  };
+
+  const bridge = createPaperclipToolGatewayReadBridge({
+    agentMeUrl: 'http://wandora-paperclip:3100/api/agents/me',
+    fetchImpl,
+  });
+  const tools = await bridge({ runToken: 'opaque-run-token', paperclipRunId: RUN });
+
+  await assert.rejects(tools[0]!.execute({ pageSize: 5, skip: 0 }), (error: unknown) =>
+    error instanceof PaperclipToolGatewayReadBridgeError && error.code === 'tool-failed');
+});
+
 test('Paperclip read bridge fails closed and collapses repeated MCP isError results', async () => {
   let calls = 0;
   const fetchImpl: typeof fetch = async (input) => {
@@ -257,15 +305,20 @@ test('Paperclip read bridge fails closed and collapses repeated MCP isError resu
     if (url.endsWith('/api/tool-gateway/tools/call')) {
       calls += 1;
       return new Response(JSON.stringify({
-        content: '{"error":"provider-unavailable"}',
-        data: {
-          content: [{ type: 'text', text: '{"error":"provider-unavailable"}' }],
-          structuredContent: { error: { code: 'provider-unavailable' } },
-          isError: true,
-          transport: 'local_stdio',
-          spawnedLocalProcess: true,
+        invocationId: 'invocation-mcp-error',
+        status: 'completed',
+        tool: 'vendaerp_search_products',
+        result: {
+          content: '{"error":"provider-unavailable"}',
+          data: {
+            content: [{ type: 'text', text: '{"error":"provider-unavailable"}' }],
+            structuredContent: { error: { code: 'provider-unavailable' } },
+            isError: true,
+            transport: 'local_stdio',
+            spawnedLocalProcess: true,
+          },
+          error: 'MCP tool returned an error result',
         },
-        error: 'MCP tool returned an error result',
       }), { status: 200, headers: { 'content-type': 'application/json' } });
     }
     throw new Error('unexpected request');
