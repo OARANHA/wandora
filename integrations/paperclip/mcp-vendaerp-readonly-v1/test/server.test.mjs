@@ -125,6 +125,33 @@ test('projects products into the provider-neutral contract', async () => {
   }]);
 });
 
+test('classifies product response failures with safe allowlisted subreasons', async () => {
+  const shapeClient = createVendaErpClient({
+    tenant, credentials, fetchImpl: async () => jsonResponse({ items: [] }),
+  });
+  await assert.rejects(shapeClient.searchProducts(), (error) =>
+    error instanceof VendaErpAdapterError
+      && error.code === 'invalid-provider-response'
+      && error.subreason === 'product-list-shape-invalid');
+
+  const missingNameClient = createVendaErpClient({
+    tenant, credentials, fetchImpl: async () => jsonResponse([{ codigo: 'P1' }]),
+  });
+  await assert.rejects(missingNameClient.searchProducts(), (error) =>
+    error instanceof VendaErpAdapterError
+      && error.code === 'invalid-provider-response'
+      && error.subreason === 'product-name-missing');
+
+  const pascalNameClient = createVendaErpClient({
+    tenant, credentials,
+    fetchImpl: async () => jsonResponse([{ Nome: 'Tinta', Codigo: 'P1' }]),
+  });
+  await assert.rejects(pascalNameClient.searchProducts(), (error) =>
+    error instanceof VendaErpAdapterError
+      && error.code === 'invalid-provider-response'
+      && error.subreason === 'product-name-pascal-case-present');
+});
+
 test('maps all eight tools to the frozen read-only endpoint allowlist', async () => {
   const calls = [];
   const bodies = new Map([
