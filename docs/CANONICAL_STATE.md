@@ -1,12 +1,12 @@
-## Reconciled checkpoint — ADR 0237 post-promotion failure semantics GREEN
+## Reconciled checkpoint — ADR 0237 post-promotion failure semantics GREEN / provider read NO-GO
 
-ADR 0234 failure propagation is live and its executable semantics were re-attested without any provider/model call. Live Core remains `wandora/core:organization-adapter-candidate-4a54b5d8f14c` / revision `4a54b5d8f14c469989fad277189f6ebdfb8fb1f0`, healthy/restart 0 with healthz/readyz 200. Paperclip remains the same healthy `v2026.916.0` container; VendaERP MCP hash remains unchanged.
+ADR 0234 failure propagation is live and re-attested without provider/model calls. The live Core remains `wandora/core:organization-adapter-candidate-4a54b5d8f14c` / revision `4a54b5d8f14c469989fad277189f6ebdfb8fb1f0`, healthy/restart 0 with healthz/readyz 200. Paperclip remains the same healthy `v2026.916.0` container and the VendaERP MCP hash is unchanged.
 
-28PRO remains one Ana `active + supervised`, work operations `0`, outbound attempts `0`. Focused failure-semantics tests are 13/13 GREEN. The disposable DB-backed verifier is 34/34 GREEN, including a new regression proving that `execution_uncertain` work rejects both same-run replay and successor-run execution before Tool Gateway/Mastra.
+Focused failure tests are 13/13 GREEN. The disposable DB-backed verifier is 34/34 GREEN, including a new test-only regression proving that `execution_uncertain` customer work rejects both same-run replay and a different successor run before Tool Gateway/Mastra. 28PRO remains one Ana `active + supervised`, work operations `0`, outbound attempts `0`.
 
-Decision: **GO only for a separate customer-work-based one-shot read execution**. Do not reuse the ADR 0232 generic comment-driven shape as business authority. Paperclip remains lifecycle/recovery/tool-policy authority; Wandora adds no retry/lifecycle/one-shot subsystem.
+Second adversarial review found the remaining strict one-shot gap: `wandora_mastra@0.4.0` converts Core `422 read-tool-failed` into a generic thrown adapter failure, and pinned Paperclip classifies `adapter_failed` as transient continuation infrastructure with bounded automatic retries. Those successors are now blocked by Wandora before model/tool/provider execution, but their creation is still possible; therefore another real provider read is **NO-GO**.
 
-Next slice: **28PRO VendaERP Customer-Work One-Shot Product Read Execution V4 — READ ONLY**. Reconcile again before any effect; at most one provider dispatch; Human Send/Gateway outbound remain OFF.
+Next slice: **Paperclip Customer-Work Read-Tool Failure Terminal Disposition Mapping V1 — CODE ONLY / NO PROVIDER CALL**. Reuse Paperclip-native lifecycle/disposition; do not create Wandora retry/lifecycle state.
 
 ## Reconciled checkpoint — ADR 0236 ADR 0234 Core-only production promotion COMPLETE
 
