@@ -1,3 +1,15 @@
+## Reconciled checkpoint — ADR 0244 correction merged / post-merge CI GREEN
+
+PR #317 was squash-merged at `main@46741f8d82d041b3f3cdde3d209c923e630db968` from exact head `12c251dfd8888f606bbb1426e1266597f1eea94c`. PR checks closed 9/9 GREEN and the post-merge push workflows closed 7/7 GREEN: Core CI, Core Candidate Artifact, Messaging Gateway CI, Paperclip Mastra Adapter CI, Paperclip OpenAPI Compatibility, Platform Admin CI and Web CI.
+
+ADR 0244's production evidence is unchanged: the authenticated 28PRO owner created exactly one canonical work `17eb846e...`; Paperclip created issue `PRO-14` and exactly one assignment run `6f928fe8...`; the native rate-limit counter was captured at `limit=1 / remaining=0`; VendaERP activity moved exactly `68 -> 70` for the single bounded `vendaerp_search_products {"pageSize":5,"skip":0}` attempt; no retry/successor/manual wake/outbound occurred. The provider returned safe code `invalid-provider-response`, so the business read failed safe and no product data was trusted.
+
+The Wandora-owned Tool Gateway read bridge correction is now merged and CI-green. It unwraps the real Paperclip execution envelope before applying the existing MCP semantic-error check, without changing Paperclip, adding retry/lifecycle state, or duplicating provider capability.
+
+Production remains intentionally unchanged after the merge: Paperclip `v2026.916.0` is healthy/restart 0 and Core remains `organization-adapter-candidate-4a54b5d8f14c` / revision `4a54b5d8f14c469989fad277189f6ebdfb8fb1f0`, healthy/restart 0. No second VendaERP/provider call occurred.
+
+Next slice: **Tool Gateway Real Envelope Read-Error Core Promotion Preflight V1 — NO PROVIDER CALL**. Do not perform another real VendaERP read until the merged Core correction is separately promoted and re-attested.
+
 ## Reconciled checkpoint — ADR 0244 one-shot safety GREEN / business read failed safe / real-envelope correction code complete
 
 A genuine authenticated 28PRO owner submitted exactly one canonical customer work. Work 17eb846e... created Paperclip issue PRO-14 / 27d28163... and exactly one assignment run 6f928fe8.... The native Paperclip rate-limit counter was captured before cleanup at limit=1 / remaining=0; VendaERP activity moved exactly 68 -> 70 with only the expected policy_decision + call_completed for vendaerp_search_products {"pageSize":5,"skip":0}. No retry/successor/manual wake/outbound occurred.

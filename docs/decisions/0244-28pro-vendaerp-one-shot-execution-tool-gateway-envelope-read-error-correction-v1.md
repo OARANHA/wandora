@@ -1,6 +1,6 @@
 # ADR 0244 — 28PRO VendaERP One-Shot Execution + Tool Gateway Envelope Read-Error Correction V1
 
-Status: **EXECUTION SAFETY GREEN / BUSINESS READ FAILED SAFE / CODE CORRECTION COMPLETE / NO SECOND PROVIDER CALL**
+Status: **ACCEPTED / MERGED / EXECUTION SAFETY GREEN / BUSINESS READ FAILED SAFE / POST-MERGE CI GREEN / NO SECOND PROVIDER CALL**
 Date: 2026-09-24
 
 ## Objective
@@ -200,12 +200,33 @@ No migration, runtime restart, provider write, customer message, e-mail, WhatsAp
 - Was a second provider call used to debug the issue? **No.**
 - Is the provider-response-shape root cause itself proven? **No; only the safe code invalid-provider-response is proven.**
 
+## Merge validation
+
+PR #317 was squash-merged as:
+
+```text
+main = 46741f8d82d041b3f3cdde3d209c923e630db968
+PR head = 12c251dfd8888f606bbb1426e1266597f1eea94c
+PR checks = 9/9 GREEN
+post-merge push workflows = 7/7 GREEN
+```
+
+Production was re-read after merge and remained unchanged:
+
+```text
+Paperclip = wandora/paperclip:v2026.916.0 / healthy / restart 0
+Core = wandora/core:organization-adapter-candidate-4a54b5d8f14c
+Core revision = 4a54b5d8f14c469989fad277189f6ebdfb8fb1f0
+```
+
+The merge itself caused no runtime promotion and no additional VendaERP/provider call.
+
 ## Decision
 
 **ONE-SHOT SAFETY = GREEN.**
 **BUSINESS PRODUCT READ = FAILED SAFE.**
-**REAL TOOL-GATEWAY ENVELOPE FAILURE PROPAGATION CORRECTION = CODE COMPLETE, pending CI.**
+**REAL TOOL-GATEWAY ENVELOPE FAILURE PROPAGATION CORRECTION = MERGED / CI GREEN.**
 
-Another real VendaERP read remains prohibited until this Core correction is merged, separately promoted, and re-attested in production.
+Another real VendaERP read remains prohibited until the merged Core correction is separately promoted and re-attested in production.
 
 Next slice after merge: **Tool Gateway Real Envelope Read-Error Core Promotion Preflight V1 — NO PROVIDER CALL.**
