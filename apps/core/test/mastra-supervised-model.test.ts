@@ -253,3 +253,85 @@ test('mastra supervised runtime exposes only supplied read tools without leaking
     server.close();
   }
 });
+
+test('mastra supervised runtime cannot turn a read-tool failure into textual success', async () => {
+  let requests = 0;
+  let toolCalls = 0;
+  const { server, baseUrl } = await listen(async (req, res) => {
+    let raw = '';
+    for await (const chunk of req) raw += chunk;
+    requests += 1;
+    res.writeHead(200, { 'content-type': 'application/json' });
+    if (requests === 1) {
+      res.end(JSON.stringify({
+        id: 'chatcmpl-tool-error',
+        object: 'chat.completion',
+        created: 1,
+        model: 'mistral-small-2603',
+        choices: [{
+          index: 0,
+          message: {
+            role: 'assistant',
+            content: null,
+            tool_calls: [{
+              id: 'call-product',
+              type: 'function',
+
+              function: {
+                name: 'vendaerp_search_products',
+                arguments: '{"pageSize":5,"skip":0}',
+              },
+            }],
+          },
+          finish_reason: 'tool_calls',
+        }],
+        usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
+      }));
+      return;
+    }
+    res.end(JSON.stringify({
+      id: 'chatcmpl-after-tool-error',
+      object: 'chat.completion',
+      created: 2,
+      model: 'mistral-small-2603',
+      choices: [{
+        index: 0,
+        message: { role: 'assistant', content: '{"summary":"Não deveria virar sucesso."}' },
+        finish_reason: 'stop',
+      }],
+      usage: { prompt_tokens: 12, completion_tokens: 6, total_tokens: 18 },
+    }));
+  });
+
+  try {
+    const runtime = new MastraSupervisedModelAgentRuntime(config(baseUrl));
+    await assert.rejects(
+      runtime.executeAssignedTask({
+        organizationId: ORG,
+        employee: plannerInput().employee,
+        task: { title: 'Consultar produto', description: 'Faça uma leitura apenas.' },
+        grounding: {
+          officialFacts: [],
+          houseRules: [],
+          workContext: { title: 'Consultar produto', description: 'Faça uma leitura apenas.' },
+        },
+        readTools: [{
+          name: 'vendaerp_search_products',
+          title: 'VendaERP Search Products',
+          description: 'Consulta produtos sem alterar o ERP.',
+          inputSchema: { type: 'object', properties: {}, additionalProperties: true },
+          execute: async () => {
+            toolCalls += 1;
+            throw new Error('synthetic-read-tool-failed');
+          },
+        }],
+      }),
+      /synthetic-read-tool-failed/,
+    );
+
+    assert.equal(toolCalls, 1);
+    assert.ok(requests >= 1);
+  } finally {
+    server.close();
+  }
+});

@@ -94,13 +94,26 @@ export class MastraSupervisedModelAgentRuntime implements AgentRuntime, AgentTas
         temperature: 0.2,
       },
     };
+    let readToolFailed = false;
+    let firstReadToolError: unknown;
     const runtimeTools = Object.fromEntries((input.readTools ?? []).map((tool) => [
       tool.name,
       createTool({
         id: tool.name,
         description: tool.description,
         inputSchema: tool.inputSchema as any,
-        execute: async (parameters: unknown) => tool.execute(parameters),
+        execute: async (parameters: unknown) => {
+          if (readToolFailed) throw firstReadToolError;
+          try {
+            return await tool.execute(parameters);
+          } catch (error) {
+            if (!readToolFailed) {
+              readToolFailed = true;
+              firstReadToolError = error;
+            }
+            throw error;
+          }
+        },
       }),
     ]));
 
@@ -120,21 +133,28 @@ export class MastraSupervisedModelAgentRuntime implements AgentRuntime, AgentTas
         })
       : this.taskAgent;
 
-    const result = Object.keys(runtimeTools).length > 0
-      ? await executionAgent.generate(messages, {
-          ...baseOptions,
-          maxSteps: 5,
-          structuredOutput: {
-            schema: taskOutputSchema,
-          },
-        })
-      : await executionAgent.generate(messages, {
-          ...baseOptions,
-          maxSteps: 1,
-          structuredOutput: {
-            schema: taskOutputSchema,
-          },
-        });
+    let result;
+    try {
+      result = Object.keys(runtimeTools).length > 0
+        ? await executionAgent.generate(messages, {
+            ...baseOptions,
+            maxSteps: 5,
+            structuredOutput: {
+              schema: taskOutputSchema,
+            },
+          })
+        : await executionAgent.generate(messages, {
+            ...baseOptions,
+            maxSteps: 1,
+            structuredOutput: {
+              schema: taskOutputSchema,
+            },
+          });
+    } catch (error) {
+      if (readToolFailed) throw firstReadToolError;
+      throw error;
+    }
+    if (readToolFailed) throw firstReadToolError;
 
     const output = taskOutputSchema.parse(result.object);
     const usage = {

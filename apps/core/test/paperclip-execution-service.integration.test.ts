@@ -7,6 +7,7 @@ import {
   PaperclipExecutionBindingError,
   PaperclipExecutionService,
 } from '../src/paperclip-execution/service.js';
+import { PaperclipToolGatewayReadBridgeError } from '../src/paperclip-execution/tool-gateway-read-bridge.js';
 
 const ORG = '71000000-0000-4000-8000-0000000000a1';
 const EMPLOYEE = '72000000-0000-4000-8000-0000000000a1';
@@ -395,6 +396,69 @@ test('Tool Gateway failure after work preparation marks execution uncertain befo
     /synthetic Tool Gateway failure/,
   );
   assert.equal(runtimeCalls, 0);
+  assert.deepEqual(uncertain, [{
+    organizationId: ORG,
+    employeeId: EMPLOYEE,
+    workId: WORK,
+    paperclipRunId: RUN,
+  }]);
+});
+
+test('read-tool failure after work preparation marks execution uncertain and never records success', async () => {
+  await resetFixture('active');
+  const WORK = '76000000-0000-4000-8000-0000000000a5';
+  let toolCalls = 0;
+  let recordCalls = 0;
+  const uncertain: unknown[] = [];
+  const service = new PaperclipExecutionService(
+    runtimePool,
+    {
+      executeAssignedTask: async (input) => {
+        const tool = input.readTools?.[0];
+        assert.ok(tool);
+        await tool.execute({ pageSize: 5, skip: 0 });
+        throw new Error('runtime must not continue after read-tool failure');
+      },
+    },
+    emptyGroundingProjection,
+    {
+      async prepareCatalogEmployeeWorkExecution() {
+        return { kind: 'execute' as const };
+      },
+
+      async recordCatalogEmployeeWorkResult() {
+        recordCalls += 1;
+      },
+      async markCatalogEmployeeWorkExecutionUncertain(input) {
+        uncertain.push(input);
+      },
+    },
+    async () => [{
+      name: 'vendaerp_search_products',
+      title: 'VendaERP Search Products',
+      description: 'Read products.',
+      inputSchema: { type: 'object', properties: {}, additionalProperties: true },
+      execute: async () => {
+        toolCalls += 1;
+        throw new PaperclipToolGatewayReadBridgeError('tool-failed');
+      },
+    }],
+  );
+
+  await assert.rejects(
+    service.execute({
+      identity: { paperclipAgentId: AGENT, paperclipCompanyId: COMPANY, catalogKey: 'ana-commercial-v1' },
+      runToken: 'synthetic-run-token',
+      paperclipRunId: RUN,
+      workId: WORK,
+
+      task: { title: 'Consultar catálogo', description: 'Somente leitura.' },
+    }),
+    (error: unknown) =>
+      error instanceof PaperclipToolGatewayReadBridgeError && error.code === 'tool-failed',
+  );
+  assert.equal(toolCalls, 1);
+  assert.equal(recordCalls, 0);
   assert.deepEqual(uncertain, [{
     organizationId: ORG,
     employeeId: EMPLOYEE,

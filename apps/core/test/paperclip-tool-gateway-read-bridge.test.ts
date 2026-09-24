@@ -281,8 +281,8 @@ test('Paperclip read bridge fails closed and collapses repeated MCP isError resu
   });
 
   await assert.rejects(tools[0]!.execute({ pageSize: 5, skip: 0 }), (error: unknown) =>
-    error instanceof PaperclipToolGatewayReadBridgeError && error.code === 'unavailable');
+    error instanceof PaperclipToolGatewayReadBridgeError && error.code === 'tool-failed');
   await assert.rejects(tools[0]!.execute({ skip: 0, pageSize: 5 }), (error: unknown) =>
-    error instanceof PaperclipToolGatewayReadBridgeError && error.code === 'unavailable');
+    error instanceof PaperclipToolGatewayReadBridgeError && error.code === 'tool-failed');
   assert.equal(calls, 1);
 });
