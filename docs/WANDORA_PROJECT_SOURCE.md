@@ -1,3 +1,19 @@
+## Reconciled checkpoint — ADR 0246 Core promotion COMPLETE / GREEN / NO PROVIDER CALL
+
+ADR 0245 was merged at `main@be85e5f4409a5f90134c148ef0ee550af7401416`; post-merge workflows were 4/4 GREEN and open PRs were 0 before effect.
+
+The exact prequalified Core artifact `organization-adapter-candidate-46741f8d82d0` was loaded and promoted under Paperclip-native Task Drain. Only the `core` service was force-recreated with `--no-deps` using the exact live twelve-file Compose project and existing secret paths/GID. Core transitioned once from container `92f83c...` to `72b05d...`.
+
+Production Core is now `wandora/core:organization-adapter-candidate-46741f8d82d0`, image id `sha256:789efb36999246b62c7b7a95211903d3a74504471c1cde9d0f4aa4c11deb4cc4`, revision `46741f8d82d041b3f3cdde3d209c923e630db968`, healthy/restart 0 with healthz/readyz 200/200. Paperclip retained the exact same container/image and remains healthy/restart 0; `wandora_mastra@0.5.0` and VendaERP MCP bytes are unchanged.
+
+Protected validation proved Task Drain active/quiescent, Ana idle, work=1 completed, unfinished=0, outbound=0, VendaERP activity byte-identical at 70 events / SHA-256 `e7114e6f43675b0634a186b35a9d1b440ccf57fbd00179c1853ee85c38a97d8b`, and zero maintenance-window provider/model markers. No provider/model call or migration occurred.
+
+Task Drain was explicitly ended through the native Paperclip API and returned `wasActive=true`; final state is OFF/quiescent with activeRuns=0/pendingWakes=0. Rollback was not needed.
+
+ADR 0246 is **COMPLETE / GREEN / CORE-ONLY PRODUCTION PROMOTION EXECUTED / NO PROVIDER CALL**.
+
+Next slice: **ADR 0247 — Tool Gateway Real Envelope Read-Error Post-Promotion Re-Attestation V1 — NO PROVIDER CALL**.
+
 ## Reconciled checkpoint — ADR 0245 Core promotion preflight GREEN / NO PROVIDER CALL
 
 ADR 0244 correction is merged and post-merge CI-green. Current main at preflight is `d1dcc517fe2eaeb34d77d010e4a0045aff85f10a`; the executable Core candidate remains exactly `46741f8d82d041b3f3cdde3d209c923e630db968`, with no executable delta from that candidate to current main.
