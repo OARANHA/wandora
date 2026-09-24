@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import type { AssignedTask } from '../agent-runtime/task-runtime.js';
 import { PaperclipExecutionBindingError, type PaperclipExecutionService } from './service.js';
+import { PaperclipToolGatewayReadBridgeError } from './tool-gateway-read-bridge.js';
 import {
   PaperclipRunIdentityError,
   type PaperclipRunIdentity,
@@ -138,6 +139,9 @@ export function createPaperclipExecutionHandler(deps: {
       }
       if (error instanceof PaperclipExecutionBindingError) {
         return { status: 409, body: { error: 'employee-execution-unavailable' } };
+      }
+      if (error instanceof PaperclipToolGatewayReadBridgeError && error.code === 'tool-failed') {
+        return { status: 422, body: { error: 'read-tool-failed' } };
       }
       return { status: 500, body: { error: 'internal-error' } };
     }
