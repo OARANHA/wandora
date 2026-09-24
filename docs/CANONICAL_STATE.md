@@ -1,3 +1,17 @@
+## Reconciled checkpoint — ADR 0252 diagnostic one-shot V2 COMPLETE / product-list-shape / hard budget honored
+
+ADR 0252 executed exactly one genuine owner-originated 28PRO work under the Paperclip-native hard one-call budget. New execution-specific block + rate-limit guards were qualified under Task Drain with the full eight-tool dry-run matrix and zero pre-consumption, then Task Drain was ended before owner submission.
+
+The single admitted `vendaerp_search_products {"pageSize":5,"skip":0}` consumed the native counter exactly once: `limit=1 / remaining=0`. Tool Gateway activity increased exactly from 70 to 72 events: one policy decision plus one call completed for the same run. Governed result evidence classified the provider response as `invalid-provider-response / product-list-shape`. It was not `product-name-missing`. No raw provider payload was persisted, so the exact unrecognized list envelope is not yet proven.
+
+Lifecycle stayed one-shot: one assignment run `22ff09f4-d659-4790-89b9-3884ff303a9d`, `retry_of_run_id=null`, `continuation_attempt=0`, `scheduled_retry_at=null`; one owner-work wake plus one same-issue wake coalesced into the same run; no successor/manual retry/provider dispatch. Outbound remained 0.
+
+Core failed closed as expected. The new work remains truthfully `execution_uncertain`; Ana remains Paperclip `error / wandora_execution_failed_422`. Those states were not force-rewritten. After evidence capture, only the two ADR0252 temporary policies were deleted. Final state: Task Drain OFF/quiescent, temporary policies=0, counter residue=0, active runs=0, pending wakes=0, activity=72 events / SHA-256 `6dc3de78ff954bcebda966f4daaa5d0847f369d28eb5f43e99f2bfffc2eb35fb`, work=2 total, unfinished=1, outbound=0.
+
+ADR 0252 is **COMPLETE / HARD ONE-PROVIDER-CALL BUDGET HONORED / SAFE DIAGNOSTIC RESULT = product-list-shape / ZERO OUTBOUND**.
+
+Next slice is **NO PROVIDER CALL**: reconcile the documented/accepted `Produtos/Pesquisar` response list shape and update only the replaceable VendaERP MCP parser if justified. Do not broaden parsing by guesswork or persist raw provider payload.
+
 ## Reconciled checkpoint — ADR 0251 product diagnostic one-shot V2 preflight GREEN / NO PROVIDER CALL
 
 ADR 0250 is live and reconciled at `main@3170144a202371527fda6f6154515be317a91679`; post-merge push workflows are 4/4 GREEN and open PRs were 0 at ADR 0251 entry. The live VendaERP MCP remains exact at server SHA-256 `c740d1237374fe065907857465fe63ba6052ddb97096631fdb5ca94f90f9db9b` and source-marker SHA-256 `a24786e3011ca0a28dc3840af50917b4787c857f60db84ef638f69fa812accb6`.
