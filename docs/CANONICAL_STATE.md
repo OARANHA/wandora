@@ -1,3 +1,17 @@
+## Reconciled checkpoint — ADR 0248 safe VendaERP product subreason observability CODE COMPLETE / NO PROVIDER CALL
+
+ADR 0247 is merged at `main@9264dcffdb340d434e754760702615d2111bafe2`; post-merge workflows are 4/4 GREEN and open PRs were 0 before this slice.
+
+The existing VendaERP MCP product parser has two proven `invalid-provider-response` branches that current evidence cannot distinguish: invalid direct-array shape vs a product without usable lowercase `nome`. ADR 0248 adds only a closed stderr-only subreason allowlist: `product-list-shape-invalid`, `product-name-missing`, and `product-name-pascal-case-present`. It does not log raw payloads or business values, does not expose subreason through MCP output, and does not accept PascalCase data.
+
+Exact candidate validation is 11/11 tests GREEN, static verifier `WANDORA_VENDAERP_READONLY_MCP_V1_OK`, and clean `git diff --check`. Exact branch blobs are server `5e9b88202fab30fbb4284eb4224f4b7c34db625d` and test `dc4bb54c9cd8fac6d3a80a1c7c99bfa262783ff9`.
+
+Production remains no-effect: Core promoted revision `46741f8...` healthy, Paperclip unchanged, Task Drain OFF/quiescent, Ana idle, 28PRO work=1 completed, unfinished=0, outbound=0, VendaERP activity=70 with SHA-256 `e7114e6f43675b0634a186b35a9d1b440ccf57fbd00179c1853ee85c38a97d8b`. No provider/model call occurred.
+
+ADR 0248 is **CODE COMPLETE / NO EFFECT / NO PROVIDER CALL / OBSERVE, DO NOT NORMALIZE**.
+
+Next after merge: **ADR 0249 — VendaERP Product Safe Subreason MCP Production Promotion Preflight V1 — NO PROVIDER CALL**.
+
 ## Reconciled checkpoint — ADR 0247 post-promotion re-attestation GREEN / NO PROVIDER CALL
 
 ADR 0246 is live: Core `organization-adapter-candidate-46741f8d82d0` / revision `46741f8d82d041b3f3cdde3d209c923e630db968`, healthy/restart 0, healthz/readyz 200/200. Paperclip remains the same container/image; Task Drain is OFF/quiescent; Ana is idle.
