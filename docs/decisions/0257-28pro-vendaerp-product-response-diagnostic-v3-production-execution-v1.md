@@ -121,6 +121,20 @@ The `wandora-agent` target has no authorized human browser Bearer session availa
 
 The hard-budget design remains GREEN. Paperclip operator identity is no longer an unknown: the protected Board key is valid and instance-admin. The current control-plane blocker is narrower: the governed operator boundary still lacks a non-secret, allowlisted way to invoke the three official Paperclip routes required to read/qualify Task Drain and Tool Policy without exposing the Board token. The genuine 28PRO owner browser session remains a separate later gate for the canonical customer-work POST.
 
+### Governed capability decision after second review
+
+A temporary Paperclip-CLI source candidate was explored only in an isolated workspace and was **not promoted**. Validation was abandoned after the execution broker repeatedly restarted while installing the Paperclip monorepo dependencies under an unsupported host Node 18 runtime (Paperclip requires Node >=24.11). A separate loose `adr0257-paperclipai-candidate` wrapper was discovered in the operational workspace; live `paperclipai ops:task-drain-status` proved it is **not installed**. It is not authoritative and was not executed as an operator path.
+
+The selected boundary is instead the existing `remote-ops-mcp` operational control plane: add three explicit semantic capabilities that proxy only Paperclip's official APIs using the already-protected Board credential inside `wandora-paperclip`:
+
+- Task Drain status read (`GET /api/instance/task-drain`);
+- company Tool Policy list (`GET /api/companies/:companyId/tools/policies`);
+- Tool Policy read-only qualification (`POST /api/companies/:companyId/tools/policy/test`) with `consumeRateLimit=false` and `writeAuditEvent=false` enforced server-side by the capability.
+
+Rejected alternatives remain: generic HTTP proxy, arbitrary container `node`/`curl`/shell, direct auth-store reads, new Board keys, Paperclip database access, or a Wandora-owned duplicate policy subsystem.
+
+Current `remote-ops-mcp` canonical source was reconciled at `65fc66d781090308d4d4a8dddc305f0bf4dc4474`. Its governed Docker exec path is already narrow and working. However this target has read-only anonymous HTTPS access to `OARANHA/remote-ops-mcp` but no authenticated GitHub write credential: a `git push --dry-run` fails before mutation with `could not read Username for 'https://github.com'`. Therefore no unversioned production hotfix is permitted; the capability change must first be committed/pushed to that repository and pass its normal build/test path.
+
 The required operator intervention is minimal and contains no secret disclosure:
 
 1. establish/confirm a normal authenticated 28PRO owner session in the Wandora Web;

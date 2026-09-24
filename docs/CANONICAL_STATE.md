@@ -6,6 +6,8 @@ Pinned Paperclip CLI/source inspection proves v0.3.1 exposes no public command f
 
 Production effects remain zero: no Task Drain mutation, no policy mutation, no rate-limit consumption, no provider/model call, no outbound, no parser change. Cloud Control remains a separate gap and is not provisioned. The later canonical 28PRO owner-session gate remains independent from Paperclip operator auth.
 
+Additional ADR 0257 boundary reconciliation: the selected next implementation is three explicit semantic Paperclip operator capabilities in `remote-ops-mcp` (Task Drain status read, Tool Policy list read, and Tool Policy test with `consumeRateLimit=false` + `writeAuditEvent=false` enforced by the capability). Generic HTTP/container shell and Paperclip core patching are rejected. `remote-ops-mcp` source is reconciled at `65fc66d781090308d4d4a8dddc305f0bf4dc4474`, but this VPS target currently lacks authenticated GitHub write access to `OARANHA/remote-ops-mcp`; a push dry-run failed before mutation. No unversioned production hotfix is authorized.
+
 ## Reconciled checkpoint — ADR 0257 Diagnostic V3 production execution SAFE STOP / NO EFFECT / OWNER SESSION REQUIRED
 
 Remote Git readback through the authorized `wandora-agent` deploy-key path proves `main@bbca752b5d2f2b952e88b63b73322cba52678702`. Paperclip/Core/Web/Gateway are running and healthy. Fresh Core source review proves the canonical customer-work POST requires a valid human `Authorization: Bearer ...` session and uses the verified human session user as `actorUserId`.
