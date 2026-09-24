@@ -1,3 +1,19 @@
+## Reconciled checkpoint — ADR 0255 safe product-shape MCP production promotion COMPLETE / NO PROVIDER CALL
+
+ADR 0254 is merged at `main@da54546b3df2636536c19fd8ed142beb1c1e5b33`; post-merge push workflows are 4/4 GREEN.
+
+After chat interruption, Remote Desktop Commander history proved that the protected promotion had already started: Paperclip Task Drain was successfully started at 2026-09-24T10:36:36Z, and the exact ADR 0254 candidate files were atomically renamed over the live MCP at 10:36:53Z. No repeat promotion was performed.
+
+The live host and Paperclip bind now expose `server.mjs` SHA-256 `67a42d84b2faf86dd7986967afd2e73dcd180bd357a7b64c327a482511edf303` and source marker `18549a59a5fd82fe1efbe07902dbc189a3ceb609` / marker SHA-256 `e436a3b5029d30e1614dfaeb2717153361759ee2fdf8fa972f957341c36e5a56`.
+
+While Task Drain remained active/quiescent, the live mounted bytes passed 8-tool discovery and allowlisted structural fingerprint tests under `--network none`. Paperclip/Core stayed healthy with restart 0. VendaERP activity remained byte-identical at 72 events / SHA-256 `6dc3de78ff954bcebda966f4daaa5d0847f369d28eb5f43e99f2bfffc2eb35fb`; work=2, unfinished=1, outbound=0. No provider/model call occurred.
+
+Task Drain was explicitly stopped through Paperclip and returned `wasActive=true`; final state is OFF/quiescent with activeRuns=0 and pendingWakes=0. Ana remains truthfully `error / wandora_execution_failed_422` and the ADR 0252 work remains unresolved; neither was force-rewritten.
+
+ADR 0255 is **COMPLETE / PROMOTED / NO PROVIDER CALL / ZERO OUTBOUND**.
+
+Next provider-facing work, if separately approved, must remain hard-budgeted and use the new safe `shape` evidence rather than persisting raw provider payload.
+
 ## Reconciled checkpoint — ADR 0254 safe product-shape MCP promotion preflight GREEN / NO PROVIDER CALL
 
 ADR 0253 is merged at `main@18549a59a5fd82fe1efbe07902dbc189a3ceb609`; post-merge push workflows are 6/6 GREEN. The exact merged candidate `server.mjs` is Git blob `1687678d6543834993d0413ec94f761fd860ebb1`, SHA-256 `67a42d84b2faf86dd7986967afd2e73dcd180bd357a7b64c327a482511edf303`, with source marker `18549a59a5fd82fe1efbe07902dbc189a3ceb609` / marker SHA-256 `e436a3b5029d30e1614dfaeb2717153361759ee2fdf8fa972f957341c36e5a56`.
