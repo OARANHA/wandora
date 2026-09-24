@@ -1,3 +1,17 @@
+## Reconciled checkpoint — ADR 0251 safe read-tool diagnostic reason propagation CODE COMPLETE / NO PROVIDER CALL
+
+ADR 0250 is live and production remains clean: Core `46741f8d...` and Paperclip `v2026.916.0` are healthy/restart 0; Task Drain is OFF/quiescent; Ana is idle; work=1 completed, unfinished=0, outbound=0; VendaERP activity remains exactly 70 events with SHA-256 `e7114e6f43675b0634a186b35a9d1b440ccf57fbd00179c1853ee85c38a97d8b`; live MCP hash is `c740d1237374fe065907857465fe63ba6052ddb97096631fdb5ca94f90f9db9b`.
+
+Second adversarial review found that ADR 0250's safe MCP `structuredContent.error.reason` is preserved by Paperclip in the live Tool Gateway response but discarded by the current Core read bridge when it converts the MCP semantic error to `tool-failed`. Paperclip persists only redacted result summary/hash and does not durably expose normal local-stdio stderr for a successful JSON-RPC response. Therefore another real product read would risk spending the one allowed provider call without preserving the diagnostic reason.
+
+ADR 0251 extends only the Wandora-owned Core contract: for MCP `invalid-provider-response`, it allowlists `product-list-shape` and `product-name-missing`, carries that optional reason on `PaperclipToolGatewayReadBridgeError`, and returns it alongside the unchanged private HTTP `422 {error:"read-tool-failed"}`. Unknown reasons are discarded. `wandora_mastra@0.5.0` lifecycle behavior is unchanged and focused tests prove an optional reason still produces the same Paperclip-native blocked disposition.
+
+Validation: focused Core tests 12/12 GREEN; Core typecheck/build GREEN; `wandora_mastra` contract 9/9 GREEN. No provider/model call or production mutation occurred.
+
+ADR 0251 is **CODE COMPLETE / NO EFFECT / NO PROVIDER CALL / CI REQUIRED**.
+
+A second real provider read remains **NO-GO** until merge, Core candidate promotion, live synthetic re-attestation, and a fresh ADR-0242-style hard-one-call preflight.
+
 ## Reconciled checkpoint — ADR 0250 VendaERP safe-subreason MCP promotion COMPLETE / GREEN / NO PROVIDER CALL
 
 ADR 0249 was merged at `main@1a018c024ede186f3c55c061740fb3ca6e1d7abe` with post-merge workflows 4/4 GREEN before effect.
