@@ -1,3 +1,17 @@
+## Reconciled checkpoint — ADR 0254 safe product-shape MCP promotion preflight GREEN / NO PROVIDER CALL
+
+ADR 0253 is merged at `main@18549a59a5fd82fe1efbe07902dbc189a3ceb609`; post-merge push workflows are 6/6 GREEN. The exact merged candidate `server.mjs` is Git blob `1687678d6543834993d0413ec94f761fd860ebb1`, SHA-256 `67a42d84b2faf86dd7986967afd2e73dcd180bd357a7b64c327a482511edf303`, with source marker `18549a59a5fd82fe1efbe07902dbc189a3ceb609` / marker SHA-256 `e436a3b5029d30e1614dfaeb2717153361759ee2fdf8fa972f957341c36e5a56`.
+
+The live rollback remains exact at `server.mjs` SHA-256 `c740d1237374fe065907857465fe63ba6052ddb97096631fdb5ca94f90f9db9b` and source-marker SHA-256 `a24786e3011ca0a28dc3840af50917b4787c857f60db84ef638f69fa812accb6`. Paperclip still uses the same host directory through a read-only bind mount and no VendaERP stdio process was active.
+
+Exact candidate bytes passed 8-tool MCP discovery and allowlisted shape probes under `--network none`. No provider wrapper is newly accepted; the parser remains fail-closed and model-visible text error is unchanged.
+
+Production remained no-effect: Paperclip/Core healthy/restart 0, Task Drain OFF/quiescent, no temporary policies/counters, Connection active/healthy local_stdio, gateway active/gateway_only, activity=72 events / SHA-256 `6dc3de78ff954bcebda966f4daaa5d0847f369d28eb5f43e99f2bfffc2eb35fb`, work=2, unfinished=1, outbound=0. Ana remains truthfully `error / wandora_execution_failed_422`; neither Ana nor the ADR 0252 work was force-reconciled.
+
+ADR 0254 is **GREEN / NO EFFECT / GO FOR SEPARATE MCP FILE PROMOTION / NO PROVIDER CALL**.
+
+Next slice: **ADR 0255 — VendaERP Safe Product-Shape Fingerprint MCP Production Promotion Execution V1 — NO PROVIDER CALL**.
+
 ## Reconciled checkpoint — ADR 0253 safe product-list structural fingerprint CODE COMPLETE / NO PROVIDER CALL
 
 ADR 0252 is merged at main@27e844da6f88964cc0959191ddcf312594976878; post-merge push workflows are 4/4 GREEN. Final production state remains Task Drain OFF/quiescent, ADR0252 policies=0, activity=72 events / SHA-256 6dc3de78ff954bcebda966f4daaa5d0847f369d28eb5f43e99f2bfffc2eb35fb, work=2, unfinished=1, outbound=0, and Ana truthfully error / wandora_execution_failed_422.
