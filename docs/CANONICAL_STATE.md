@@ -1,3 +1,13 @@
+## Reconciled checkpoint — ADR 0257 Diagnostic V3 production execution SAFE STOP / NO EFFECT / OWNER SESSION REQUIRED
+
+Remote Git readback through the authorized `wandora-agent` deploy-key path proves `main@bbca752b5d2f2b952e88b63b73322cba52678702`. Paperclip/Core/Web/Gateway are running and healthy. Fresh Core source review proves the canonical customer-work POST requires a valid human `Authorization: Bearer ...` session and uses the verified human session user as `actorUserId`.
+
+The execution broker has no authorized 28PRO owner browser Bearer session. No bypass, service-role impersonation, direct DB insertion, plugin-internal work creation or secret extraction is permitted. Therefore ADR 0257 stopped **before** starting Task Drain or creating temporary policies. No VendaERP/provider call, model call, outbound, work mutation or parser change occurred.
+
+The hard budget remains frozen: Task Drain for guard installation -> block the seven non-product tools -> product `rate_limit=1` -> dry-run with `consumeRateLimit=false` -> prove remaining=1 -> Task Drain OFF -> exactly one canonical owner customer work -> capture only allowlisted `code/reason/shape` -> prove counter 1->0 / exactly one provider GET / no retry or other tool -> remove only temporary policies -> final OFF/quiescent -> STOP.
+
+Next continuation must first establish/confirm a normal authenticated 28PRO owner browser session. Do not submit the work before the protected guards are installed.
+
 ## Reconciled checkpoint — ADR 0256 VendaERP response-path reconciliation + Diagnostic V3 preflight GREEN / NO PROVIDER CALL
 
 GitHub/runtime reconciliation confirms `main@d0075258b14d9a9b901c8b23ffb448b1787774b7` remains the latest merged checkpoint at entry and PR #335 remains clean/mergeable. The owner-provided evidence describes a direct top-level Produto array using PascalCase fields; the attachment is evidence about the interface/export, not proof that those exact bytes were the raw ADR 0252 HTTP response.
