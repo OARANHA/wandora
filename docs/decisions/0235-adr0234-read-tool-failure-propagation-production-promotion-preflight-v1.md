@@ -137,6 +137,21 @@ The live Core Compose project uses the same twelve files that must be reused dur
 
 The five existing Core secret mounts remain read-only and unchanged: DB password, gateway ingress HMAC, model API key, organization-adapter secret directory, and Paperclip execution bridge HMAC.
 
+The effective live 12-file Compose render was also compared with the candidate render while reconstructing the required interpolation values from the running container. The result was:
+
+```text
+DIFF_COUNT = 1
+DIFF_PATH  = /services/core/image
+
+CURRENT_NONIMAGE_SHA256 =
+9adac269d6995056273ba801b389067d01fccc6ac0c4cac6d318d40fe2def295
+
+CANDIDATE_NONIMAGE_SHA256 =
+9adac269d6995056273ba801b389067d01fccc6ac0c4cac6d318d40fe2def295
+```
+
+Therefore the effective production composition is proven image-only, not merely inferred from source diffs. The candidate image was not loaded by this preflight.
+
 ## Rollback
 
 The exact current live image remains locally available:
