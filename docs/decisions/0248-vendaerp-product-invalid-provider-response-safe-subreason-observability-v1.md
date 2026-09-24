@@ -1,6 +1,6 @@
 # ADR 0248 — VendaERP Product Invalid-Provider-Response Safe Subreason Observability V1
 
-Status: **CODE COMPLETE / NO EFFECT / NO PROVIDER CALL / CI REQUIRED**  
+Status: **CODE COMPLETE / NO EFFECT / NO PROVIDER CALL / CI REQUIRED**
 Date: 2026-09-24
 
 ## Objective
@@ -103,6 +103,7 @@ Only the existing VendaERP MCP adapter and its tests change:
 - `integrations/paperclip/mcp-vendaerp-readonly-v1/test/server.test.mjs`
 
 No Core, Paperclip, Mastra adapter, schema, migration, connection, grant, secret or production config change belongs to this ADR.
+
 ## Validation
 
 Local no-network validation after rebase on canonical main:
