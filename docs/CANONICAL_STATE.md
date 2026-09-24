@@ -1,10 +1,12 @@
-## Reconciled checkpoint — ADR 0256 VendaERP response-path reconciliation + Diagnostic V3 preflight PARTIAL / NO PROVIDER CALL
+## Reconciled checkpoint — ADR 0256 VendaERP response-path reconciliation + Diagnostic V3 preflight GREEN / NO PROVIDER CALL
 
-GitHub reconciliation confirms `main@d0075258b14d9a9b901c8b23ffb448b1787774b7` and ADR 0255 as the latest merged checkpoint at entry. The owner-provided evidence describes a direct top-level Produto array using PascalCase fields, but the attachment bytes were not available in the current session index.
+GitHub/runtime reconciliation confirms `main@d0075258b14d9a9b901c8b23ffb448b1787774b7` remains the latest merged checkpoint at entry and PR #335 remains clean/mergeable. The owner-provided evidence describes a direct top-level Produto array using PascalCase fields; the attachment is evidence about the interface/export, not proof that those exact bytes were the raw ADR 0252 HTTP response.
 
-Code-path review proves the MCP performs `fetch -> text -> JSON.parse -> records` with no intervening response envelope. A direct array of object records therefore cannot produce `product-list-shape`. New code-only regression evidence proves a direct PascalCase product array passes the top-level list gate and reaches the distinct historical casing failure `product-name-missing`. Exact GET path/query/headers are now fully asserted in tests. No parser broadening or casing change was made.
+Code-path review proves the MCP performs `fetch -> text -> JSON.parse -> records` with no intervening response envelope. A direct array of object records therefore cannot produce `product-list-shape`. The regression proof confirms a direct PascalCase product array passes the list gate and reaches the distinct casing failure `product-name-missing`. No parser broadening or casing change was made.
 
-The registered `wandora-vps-01` Desktop Commander device was offline during this session, so live ADR 0255 `shape` evidence could not be independently re-read. ADR 0256 is therefore **NO-GO for a third provider call until runtime readback is restored**. No provider/model/outbound call or production mutation occurred.
+Runtime readback is restored through `@MCP_WANDORA_VPS`. Paperclip and Core are healthy/restart 0, and the live MCP hashes/source marker exactly match ADR 0255. The live source contains the allowlisted structural `shape` classifier. Paperclip logs preserve the authenticated post-promotion Task Drain/policy/activity readbacks and show no later control-plane/provider mutation; the canonical ADR 0255 body-level snapshot remains OFF/quiescent, temporary policies/counters 0, activity 72, work=2, unfinished=1, outbound=0.
+
+The historical ADR 0252 call predates `shape` instrumentation, so its exact envelope cannot be recovered retroactively. A new bounded provider read is technically necessary only if resolving that envelope remains a priority. ADR 0256 does **not** execute it: V3 requires a separate effect-authorizing slice with the existing Paperclip-native one-call budget. No provider/model/outbound call or production mutation occurred here.
 
 ## Reconciled checkpoint — ADR 0255 safe product-shape MCP production promotion COMPLETE / NO PROVIDER CALL
 
