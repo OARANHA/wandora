@@ -1,3 +1,17 @@
+## Reconciled checkpoint — ADR 0251 product diagnostic one-shot V2 preflight GREEN / NO PROVIDER CALL
+
+ADR 0250 is live and reconciled at `main@3170144a202371527fda6f6154515be317a91679`; post-merge push workflows are 4/4 GREEN and open PRs were 0 at ADR 0251 entry. The live VendaERP MCP remains exact at server SHA-256 `c740d1237374fe065907857465fe63ba6052ddb97096631fdb5ca94f90f9db9b` and source-marker SHA-256 `a24786e3011ca0a28dc3840af50917b4787c857f60db84ef638f69fa812accb6`.
+
+Live preflight is clean: Paperclip/Core healthy/restart 0; Task Drain OFF/quiescent; Ana idle; Connection active/healthy local_stdio; gateway active/gateway_only; exactly 8 active VendaERP tools, all READ-only/non-write/non-destructive; temporary block/rate-limit policies=0; work=1 completed, unfinished=0, outbound=0; VendaERP activity remains 70 events with SHA-256 `e7114e6f43675b0634a186b35a9d1b440ccf57fbd00179c1853ee85c38a97d8b`.
+
+ADR 0251 reuses ADR 0242/0244's Paperclip-native hard one-provider-call budget: block the seven non-product tools plus `rate_limit=1` for `vendaerp_search_products`, dry-run with `consumeRateLimit=false`, prove no pre-consumption, release Task Drain, then accept exactly one owner-originated customer work and no retry/manual wake/duplicate submission.
+
+Paperclip's existing governed activity proves MCP `structuredContent.error` is retained in the redacted `resultSummary`; therefore ADR 0250's new allowlisted `reason` will be recoverable after one bounded failure without raw provider payload persistence or a third provider call. The non-canonical branch `feat/adr0251-read-tool-safe-diagnostic-reason-propagation-v1` is not selected as a prerequisite because its diagnostic-loss premise is contradicted by this live evidence; widening Core/Mastra before learning the provider shape is unnecessary.
+
+ADR 0251 is **GREEN / NO EFFECT / HARD ONE-PROVIDER-CALL BUDGET REUSED / OWNER SESSION REQUIRED FOR EXECUTION / NO PROVIDER CALL**.
+
+Next slice: **ADR 0252 — 28PRO VendaERP Product Diagnostic One-Shot V2 Production Execution V1**. Do not install guards until the genuine 28PRO owner browser session is confirmed ready.
+
 ## Reconciled checkpoint — ADR 0250 VendaERP safe-subreason MCP promotion COMPLETE / GREEN / NO PROVIDER CALL
 
 ADR 0249 was merged at `main@1a018c024ede186f3c55c061740fb3ca6e1d7abe` with post-merge workflows 4/4 GREEN before effect.
