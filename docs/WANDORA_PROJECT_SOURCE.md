@@ -1,3 +1,17 @@
+## Reconciled checkpoint — ADR 0239 wandora_mastra@0.5.0 promotion preflight GREEN
+
+ADR 0238 is merged at main@9f40ccfd3469d9e8c465155ddd95f85c76b45348; post-merge workflows are 6/6 GREEN and open PRs were 0 at preflight. Production remains unchanged: Core organization-adapter-candidate-4a54b5d8f14c / revision 4a54b5d8f14c469989fad277189f6ebdfb8fb1f0 healthy/restart 0; Paperclip v2026.916.0 is the same healthy container/restart 0; live wandora_mastra@0.4.0 is loaded/enabled from retained package 6390812d... and official test-environment PASS.
+
+The exact post-merge adapter artifact is GitHub artifact 10788382398, provenance-pinned to main@9f40ccf..., with wandora-paperclip-adapter-mastra-0.5.0.tgz SHA-256 64795ff7d2c519ef6303ab0944bac02d27aadf8b919860b832c2e6fac4defb62. Independent VPS npm pack reproduced the same hash. The live 0.4.0 registry/package was frozen under /home/wandora-admin/preflights/adr0239-read-tool-failure-disposition-promotion-v1/rollback-0.4.0; registry SHA-256 is 45e0ca8d1ba002754a56de189ac1586cac99378a782a674bce36093290877a17. Candidate persistent target remains absent.
+
+Task Drain remains OFF with activeRuns=0, pendingWakes=0, quiescent=true. 28PRO work operations/outbound attempts remain 0/0. VendaERP Connection activity response hash remains exactly 47de715854412222801f1f03c89b27d28ab64d0c2a5e824e04453539900e0c36, proving zero activity delta. No provider/model call occurred.
+
+Second adversarial review adds a mandatory rollback guard: install changes the adapter in-memory while the first Task Drain is active, and Paperclip restart clears that drain. Any rollback required after restart must establish a new native Task Drain before restoring 0.4.0.
+
+ADR 0239 is GREEN / GO for a separate adapter-only production promotion execution, NO PROVIDER CALL. Another real VendaERP/provider read remains NO-GO.
+
+Next slice: ADR 0240 — wandora_mastra@0.5.0 Read-Tool Failure Disposition Production Promotion Execution V1 — NO PROVIDER CALL.
+
 ## Reconciled checkpoint — ADR 0238 customer-work read-tool failure native disposition CODE COMPLETE
 
 ADR 0237's strict one-shot gap is corrected in code without duplicating Paperclip lifecycle. Candidate `wandora_mastra@0.5.0` recognizes only canonical customer work plus exact Core `422 read-tool-failed`, moves the exact Paperclip issue to native `blocked` with a run-scoped self-owned `unblockDescriptor`, then still fails the adapter run. Generic/non-work failures preserve existing behavior; ambiguous blocking is read back before any repeat mutation.
