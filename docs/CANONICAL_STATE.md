@@ -1,3 +1,11 @@
+## Reconciled checkpoint — ADR 0257 Paperclip operator auth VALIDATED / GOVERNED API GAP / NO EFFECT
+
+The official Paperclip CLI now executes through the governed `wandora-agent` Docker-exec boundary restricted to `wandora-paperclip` + `paperclipai`. Fresh `paperclipai auth whoami --api-base http://127.0.0.1:3100 --json` proved `source=board_key`, `isInstanceAdmin=true`, active `owner` membership in 28PRO company `5d7ec217-118c-4292-8136-0a9ab16926ea`, and safe `keyId=97334a78-a4cc-480e-8b6b-62763b4ab3bb`. The protected auth store/token was not read, copied, exported or printed.
+
+Pinned Paperclip CLI/source inspection proves v0.3.1 exposes no public command for Tool Policy list/test, Task Drain, or generic authenticated API requests. The three required server routes remain official Paperclip APIs, but the current governed operator boundary cannot invoke them without adding a narrow non-secret capability. Direct `auth.json` reads, arbitrary `curl`/`node`/shell, DB access, new Board keys or parallel auth remain forbidden.
+
+Production effects remain zero: no Task Drain mutation, no policy mutation, no rate-limit consumption, no provider/model call, no outbound, no parser change. Cloud Control remains a separate gap and is not provisioned. The later canonical 28PRO owner-session gate remains independent from Paperclip operator auth.
+
 ## Reconciled checkpoint — ADR 0257 Diagnostic V3 production execution SAFE STOP / NO EFFECT / OWNER SESSION REQUIRED
 
 Remote Git readback through the authorized `wandora-agent` deploy-key path proves `main@bbca752b5d2f2b952e88b63b73322cba52678702`. Paperclip/Core/Web/Gateway are running and healthy. Fresh Core source review proves the canonical customer-work POST requires a valid human `Authorization: Bearer ...` session and uses the verified human session user as `actorUserId`.

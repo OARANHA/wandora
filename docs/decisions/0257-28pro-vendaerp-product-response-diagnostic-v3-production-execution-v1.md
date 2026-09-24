@@ -1,6 +1,6 @@
 # ADR 0257 — 28PRO VendaERP Product Response Diagnostic V3 Production Execution V1
 
-Status: **SAFE STOP / NO EFFECT / OWNER SESSION REQUIRED / NO PROVIDER CALL**  
+Status: **SAFE STOP / NO EFFECT / PAPERCLIP BOARD AUTH VALIDATED / GOVERNED API GAP / OWNER SESSION REQUIRED / NO PROVIDER CALL**
 Date: 2026-09-24
 
 ## Objective
@@ -40,6 +40,23 @@ Paperclip/Core/Web/Gateway = running + healthy
 ```
 
 ADR 0255 / ADR 0256 evidence remains authoritative for the live VendaERP MCP structural classifier and for the hard-budget design.
+
+### Paperclip operator-auth reconciliation
+
+The governed `wandora-agent` Docker exec boundary now permits only `wandora-paperclip` + `paperclipai`. The official CLI executed successfully inside the live Paperclip container:
+
+```text
+paperclipai version = 0.3.1
+source               = board_key
+isInstanceAdmin      = true
+28PRO membership     = owner / active
+28PRO company        = 5d7ec217-118c-4292-8136-0a9ab16926ea
+keyId                = 97334a78-a4cc-480e-8b6b-62763b4ab3bb
+```
+
+The protected credential store remained in place and was not read, copied, exported or printed. The token never appeared in argv, environment output, Git or chat.
+
+Pinned CLI/source inspection proves Paperclip v0.3.1 does **not** expose public CLI commands for `GET /api/companies/:companyId/tools/policies`, `POST /api/companies/:companyId/tools/policy/test`, or `GET /api/instance/task-drain`, and it exposes no generic authenticated API-request command. Those server routes remain official Paperclip APIs, but using them through this operator boundary still requires a governed capability that preserves the protected Board credential without reading/exporting the auth store.
 
 ## Capability Authority / Reuse Gate
 
@@ -92,6 +109,8 @@ The `wandora-agent` target has no authorized human browser Bearer session availa
 - Can the browser session be extracted from server containers? **No.** Browser session material is not a server-side credential surface and secret-custody controls must not be bypassed.
 - Should temporary Paperclip guards be installed while the owner-session gate is unresolved? **No.** Do not leave production policies active awaiting an external manual step.
 - Should the sole provider slot be consumed through another path merely to obtain `shape`? **No.**
+- Should `curl`, `node`, arbitrary shell, direct `auth.json` reads, DB access or a second auth subsystem be introduced merely to reach the three Paperclip control-plane routes? **No.** The missing capability must remain narrow, governed and Paperclip-official.
+- Is the existing Board credential itself still a blocker? **No.** It was freshly validated via official `paperclipai auth whoami`, with instance-admin authority and active owner membership in 28PRO.
 - Provider/model/outbound call performed? **No.**
 - Task Drain or temporary policies created? **No.**
 - Historical Ana/work state rewritten? **No.**
@@ -100,7 +119,7 @@ The `wandora-agent` target has no authorized human browser Bearer session availa
 
 **SAFE STOP BEFORE EFFECT.**
 
-The hard-budget design remains GREEN, but ADR 0257 cannot start the protected mutation sequence until a genuine 28PRO owner browser session is available for the canonical POST.
+The hard-budget design remains GREEN. Paperclip operator identity is no longer an unknown: the protected Board key is valid and instance-admin. The current control-plane blocker is narrower: the governed operator boundary still lacks a non-secret, allowlisted way to invoke the three official Paperclip routes required to read/qualify Task Drain and Tool Policy without exposing the Board token. The genuine 28PRO owner browser session remains a separate later gate for the canonical customer-work POST.
 
 The required operator intervention is minimal and contains no secret disclosure:
 
