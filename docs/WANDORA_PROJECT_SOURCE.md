@@ -1,3 +1,17 @@
+## Reconciled checkpoint — ADR 0232 VendaERP comment-driven V3 NOT GREEN
+
+The real V3 execution produced exactly one audited `vendaerp_search_products {"pageSize":5,"skip":0}` Tool Gateway call. The MCP returned `isError=true` with safe code `invalid-provider-response`; no trusted product rows were obtained.
+
+The original `issue_commented` heartbeat run nevertheless ended technically `succeeded`. Paperclip periodic recovery then created an `issue_continuation_needed` successor, followed by a `finish_successful_run_handoff` run. Neither successor has a Tool Gateway call, although both model-authored comments claimed product success with mutually inconsistent data. Those comments are untrusted/hallucinated and are not provider evidence.
+
+The temporary `rate_limit` policy also did not participate in the live gateway decision: `matchedPolicyIds=[]`, `rateLimitState=null`, `reasonCode=allow_profile`. Policy-test/live-context parity is therefore unresolved.
+
+All PRO-10/11/12 temporary issues/profiles/policies were removed. Final state: live runs 0, Task Drain OFF/quiescent, Core/Paperclip healthy/restart 0, work/outbound 0/0.
+
+No further VendaERP retry is authorized.
+
+Next slice: **Comment-Driven Read Tool Terminal Semantics + Tool Policy Live-Context Reconciliation V1 — CODE/RESEARCH ONLY / NO PROVIDER CALL**.
+
 ## Reconciled checkpoint — ADR 0231 one-shot replay + provider budget GREEN
 
 ADR 0230's NO-GO conclusion is superseded after two additional adversarial reviews of pinned Paperclip and a live no-provider control-plane proof.
