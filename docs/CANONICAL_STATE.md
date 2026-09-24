@@ -1,3 +1,17 @@
+## Reconciled checkpoint — ADR 0249 VendaERP safe-subreason MCP promotion preflight GREEN / NO PROVIDER CALL
+
+ADR 0248 is merged at `main@c697c9c803ac03dfafa52bf730a7e28c6191fda6`; post-merge push workflows are 6/6 GREEN. Production remains unchanged: Core `46741f8d...` healthy/restart 0, Paperclip `v2026.916.0` healthy/restart 0, Task Drain OFF/quiescent, Ana idle, work=1 completed, unfinished=0, outbound=0, and VendaERP activity remains exactly 70 events with SHA-256 `e7114e6f43675b0634a186b35a9d1b440ccf57fbd00179c1853ee85c38a97d8b`.
+
+The exact merged deployable MCP artifact is `server.mjs` from `main@c697c9c...`: Git blob `8dae8f49611988a021d903fc9e01d77330805675`, SHA-256 `c740d1237374fe065907857465fe63ba6052ddb97096631fdb5ca94f90f9db9b`. The current live rollback remains frozen at SHA-256 `6f27914c887e5ada8330f9eeb836f33b3626ad9c667d3c22dda77ddc55da683f`.
+
+Pinned Paperclip proves `local_stdio` spawns the mounted template command per invocation. The active template still points to `/opt/wandora/integrations/vendaerp-readonly-mcp/server.mjs`; the host directory is operator-writable and bind-mounted read-only into Paperclip. Therefore the qualified promotion is an atomic file+source-marker replacement under native Task Drain, with no Paperclip restart and no template/Connection/grant/install/profile/catalog/secret mutation.
+
+The exact candidate passed `--network none` MCP initialize/tools-list (8/8 read-only) and synthetic `product-list-shape` / `product-name-missing` proofs. No provider/model call or production mutation occurred.
+
+ADR 0249 is **GREEN / NO EFFECT / GO FOR SEPARATE MCP FILE PROMOTION / NO PROVIDER CALL**.
+
+Next slice: **ADR 0250 — VendaERP Product Safe Subreason MCP Production Promotion Execution V1 — NO PROVIDER CALL**.
+
 ## Reconciled checkpoint — ADR 0248 safe product-response subreason observability CODE COMPLETE / NO PROVIDER CALL
 
 ADR 0247 is merged at `main@9264dcffdb340d434e754760702615d2111bafe2` and production remains on Core `organization-adapter-candidate-46741f8d82d0` / revision `46741f8d82d041b3f3cdde3d209c923e630db968`, healthy/restart 0 with healthz/readyz 200/200. Task Drain is OFF/quiescent; Ana is idle; work=1 completed, unfinished=0, outbound=0; VendaERP activity remains exactly 70 events with SHA-256 `e7114e6f43675b0634a186b35a9d1b440ccf57fbd00179c1853ee85c38a97d8b`.
