@@ -1411,7 +1411,9 @@ canonical Wandora customer work
 
 Paperclip remains lifecycle/recovery/disposition authority; Wandora does not own a parallel retry engine or task state machine. The retained 0.4.0 package is rollback evidence, not an alternate active implementation. ADR 0240 promoted only the adapter and recreated only Paperclip under native Task Drain; Core, VendaERP MCP, Connections/grants/secrets and outbound policy were unchanged.
 
-A real provider read is still separately gated. The promoted semantics must first pass a post-promotion no-provider preflight before another one-shot read may be designed.
+ADR 0241 re-attested the promoted semantics without provider/model calls. Exact current-main adapter bytes are byte-identical to the live 0.5.0 package; pinned disposable Paperclip proves both success and read-tool failure converge to exactly one run and zero continuations, while the Core durable-work verifier proves `execution_uncertain` blocks same-run and successor-run re-entry before another execution.
+
+A real provider read is still separately gated. ADR 0233 left actual Tool Gateway rate-limit participation unresolved after cleanup, so the remaining gate is a no-provider qualification of a hard one-provider-call budget using Paperclip-owned Tool Gateway policy/rate-limit state and authoritative counter evidence.
 
 
 ## Historical Paperclip agent error projection — ADR 0155

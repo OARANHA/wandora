@@ -1,3 +1,15 @@
+## Reconciled checkpoint — ADR 0241 post-promotion read-tool failure semantics GREEN
+
+ADR 0240 is merged at `main@f19715f2a90a3ea36c0194b33cbe02d11f353ac0`; post-merge workflows are 4/4 GREEN. Production remains exactly one loaded/enabled `wandora_mastra@0.5.0` on healthy/restart-0 Paperclip `v2026.916.0`; Core remains `organization-adapter-candidate-4a54b5d8f14c` / revision `4a54b5d8f14c469989fad277189f6ebdfb8fb1f0`, healthy/restart 0.
+
+The four adapter files in exact current main are byte-identical to the four live package files. Node 24 adapter contracts are 9/9 GREEN; pinned Paperclip loader proof is GREEN. Disposable pinned-Paperclip E2E using those live-equivalent bytes proves both success and failure converge to exactly one run / zero continuations; the failure case is `run=failed`, `issue=blocked`, with a real self-owned `unblockDescriptor`. The disposable Core/Organization Adapter verifier is 34/34 GREEN, including `execution_uncertain` rejecting both same-run replay and successor runs before another execution and read-tool failure never recording durable success.
+
+Final production readback remains adapter `0.5.0` loaded/enabled + test-environment PASS, Task Drain OFF with activeRuns=0/pendingWakes=0/quiescent=true, 28PRO work/outbound `0/0`, and VendaERP Connection activity byte-identical at SHA-256 `47de715854412222801f1f03c89b27d28ab64d0c2a5e824e04453539900e0c36`. No provider/model call or outbound occurred.
+
+ADR 0241 is **GREEN / POST-PROMOTION FAILURE SEMANTICS RE-ATTESTED / NO PROVIDER CALL**. The ADR 0232 lifecycle/read-tool semantic counterexample is resolved for canonical customer work, but a real provider read remains NO-GO because the hard one-provider-call Tool Gateway budget still requires a separate no-provider proof with authoritative limiter/counter evidence before cleanup.
+
+Next slice: **ADR 0242 — VendaERP Customer-Work One-Shot Hard Provider-Call Budget Preflight V1 — NO PROVIDER CALL**.
+
 ## Reconciled checkpoint — ADR 0240 wandora_mastra@0.5.0 production promotion COMPLETE
 
 ADR 0239 is merged at `main@9c8ebb0d543fc773dc812cd63baccc7295de735f`; post-merge workflows closed 4/4 GREEN before effect. ADR 0240 then promoted only the Paperclip external adapter under native Task Drain, with no provider/model call.
