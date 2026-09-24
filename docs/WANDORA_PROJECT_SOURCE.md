@@ -1,3 +1,15 @@
+## Reconciled checkpoint — ADR 0247 post-promotion re-attestation GREEN / NO PROVIDER CALL
+
+ADR 0246 is live: Core `organization-adapter-candidate-46741f8d82d0` / revision `46741f8d82d041b3f3cdde3d209c923e630db968`, healthy/restart 0, healthz/readyz 200/200. Paperclip remains the same container/image; Task Drain is OFF/quiescent; Ana is idle.
+
+The live compiled `/app/dist/paperclip-execution/tool-gateway-read-bridge.js` contains the real-envelope guard and MCP semantic-error check. Synthetic in-memory re-attestation executed against those live bytes proved: completed envelope + inner MCP `isError=true` => `tool-failed`; identical repeated parameters collapse to one synthetic Tool Gateway call; non-completed envelope fails closed; valid completed envelope returns inner data. No network/provider/model call was used.
+
+Final no-effect readback remains: work=1 completed, unfinished=0, outbound=0, temporary guards/counters=0, VendaERP activity=70 events with SHA-256 `e7114e6f43675b0634a186b35a9d1b440ccf57fbd00179c1853ee85c38a97d8b`.
+
+ADR 0247 is **GREEN / NO EFFECT / LIVE FAILURE SEMANTICS PROVEN / NO PROVIDER CALL**.
+
+Next slice: **VendaERP Product Invalid-Provider-Response Safe Subreason Observability V1 — NO PROVIDER CALL**. A second real provider read remains prohibited until the current `invalid-provider-response` ambiguity can be distinguished safely without raw provider payload persistence.
+
 ## Reconciled checkpoint — ADR 0246 Core promotion COMPLETE / GREEN / NO PROVIDER CALL
 
 ADR 0245 was merged at `main@be85e5f4409a5f90134c148ef0ee550af7401416`; post-merge workflows were 4/4 GREEN and open PRs were 0 before effect.
