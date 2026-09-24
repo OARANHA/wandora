@@ -125,6 +125,49 @@ test('projects products into the provider-neutral contract', async () => {
   }]);
 });
 
+test('classifies product response failures with safe enumerated reasons', async () => {
+  const invalidShape = createVendaErpClient({
+    tenant,
+    credentials,
+    fetchImpl: async () => jsonResponse({ items: [] }),
+  });
+  await assert.rejects(
+    invalidShape.searchProducts(),
+    (error) => {
+      assert.equal(error instanceof VendaErpAdapterError, true);
+      assert.equal(error.code, 'invalid-provider-response');
+      assert.equal(error.reason, 'product-list-shape');
+      return true;
+    },
+  );
+
+  const unsafeReason = new VendaErpAdapterError(
+    'invalid-provider-response',
+    'safe message',
+    { reason: 'must-not-leak-provider-detail' },
+  );
+  assert.equal(unsafeReason.reason, undefined);
+
+  const missingName = createVendaErpClient({
+    tenant,
+    credentials,
+    fetchImpl: async () => jsonResponse([{
+      id: 'must-not-leak-id',
+      codigo: 'must-not-leak-code',
+    }]),
+  });
+  await assert.rejects(
+    missingName.searchProducts(),
+    (error) => {
+      assert.equal(error instanceof VendaErpAdapterError, true);
+      assert.equal(error.code, 'invalid-provider-response');
+      assert.equal(error.reason, 'product-name-missing');
+      assert.equal(String(error).includes('must-not-leak'), false);
+      return true;
+    },
+  );
+});
+
 test('maps all eight tools to the frozen read-only endpoint allowlist', async () => {
   const calls = [];
   const bodies = new Map([
@@ -279,6 +322,75 @@ test('stdio MCP handshake exposes the same eight tools without provider access',
     listed.result.tools.map((tool) => tool.name),
     TOOL_DEFINITIONS.map((tool) => tool.name),
   );
+});
+
+test('stdio product parse failure exposes only safe normalized subreason', async () => {
+  const serverUrl = new URL('../server.mjs', import.meta.url).href;
+  const script = [
+    `import { runStdio } from ${JSON.stringify(serverUrl)};`,
+    `await runStdio({`,
+    `  tenant: ${JSON.stringify(tenant)},`,
+    `  credentials: ${JSON.stringify(credentials)},`,
+    `  fetchImpl: async () => new Response(JSON.stringify({ items: [{ nome: 'must-not-log-product' }] }), {`,
+    `    status: 200,`,
+    `    headers: { 'content-type': 'application/json' },`,
+    `  }),`,
+    `});`,
+  ].join('\n');
+  const child = spawn(process.execPath, ['--input-type=module', '--eval', script], {
+    cwd: new URL('..', import.meta.url),
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
+  const stdout = [];
+  const stderr = [];
+  child.stdout.setEncoding('utf8');
+  child.stderr.setEncoding('utf8');
+  child.stdout.on('data', (chunk) => stdout.push(chunk));
+  child.stderr.on('data', (chunk) => stderr.push(chunk));
+
+  child.stdin.write(JSON.stringify({
+    jsonrpc: '2.0',
+    id: 10,
+    method: 'tools/call',
+    params: {
+      name: 'vendaerp_search_products',
+      arguments: { pageSize: 5, skip: 0 },
+    },
+  }) + '\n');
+
+  await new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('stdio reason timeout')), 3000);
+    const check = setInterval(() => {
+      if (stdout.join('').includes('"id":10')) {
+        clearTimeout(timer);
+        clearInterval(check);
+        resolve();
+      }
+    }, 10);
+  });
+  child.stdin.end();
+
+  const serializedOut = stdout.join('').trim().split(/\n+/).map(JSON.parse);
+  const failedCall = serializedOut.find((line) => line.id === 10);
+  assert.equal(failedCall.result.isError, true);
+  assert.deepEqual(failedCall.result.structuredContent, {
+    error: {
+      code: 'invalid-provider-response',
+      reason: 'product-list-shape',
+    },
+  });
+  assert.equal(
+    failedCall.result.content[0].text,
+    '{"error":"invalid-provider-response"}',
+  );
+
+  const serializedErr = stderr.join('');
+  assert.match(serializedErr, /"code":"invalid-provider-response"/);
+  assert.match(serializedErr, /"reason":"product-list-shape"/);
+  assert.equal(serializedErr.includes('must-not-log-product'), false);
+  assert.equal(serializedErr.includes('secret-token'), false);
+  assert.equal(serializedErr.includes('secret-user'), false);
+  assert.equal(serializedErr.includes('secret-app'), false);
 });
 
 test('stdio tool failure logs only safe normalized error metadata', async () => {
