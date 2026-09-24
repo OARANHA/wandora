@@ -1,3 +1,22 @@
+## Reconciled checkpoint — ADR 0234 read-tool failure propagation CODE COMPLETE
+
+ADR 0233's authority decision is implemented without changing Paperclip lifecycle, Tool Gateway context or `wandora_mastra` success semantics.
+
+- the supervised Mastra runtime latches the first read-tool exception across one execution;
+- later model text cannot convert a failed provider/tool read into successful Wandora execution;
+- repeated read-tool attempts after the first failure are rejected;
+- MCP `isError=true` maps to bounded `tool-failed`;
+- Core exposes only safe private HTTP 422 `read-tool-failed`;
+- customer-work integration coverage proves read-tool failure marks prepared work uncertain and does not record durable success.
+
+Focused tests = 13/13 GREEN; Core typecheck/build = GREEN. The DB-backed customer-work regression is CI-authoritative.
+
+No provider call, production mutation, Paperclip change, adapter replacement, migration or outbound effect occurred.
+
+Another VendaERP read remains prohibited.
+
+Next slice: **ADR 0234 Read Tool Failure Propagation Promotion Preflight V1 — NO PROVIDER CALL**.
+
 ## Reconciled checkpoint — ADR 0233 read-tool terminal semantics authority GREEN
 
 ADR 0232's failed-safe execution remains the live truth, but its post-cleanup conclusion that the issue-scoped rate-limit was proven not to participate is superseded. Pinned Paperclip resolves Tool Gateway issue context from the persisted run, deleted issue foreign keys are SET NULL in audit rows, and a non-blocking rate-limit may continue to a final allow_profile decision without appearing in matchedPolicyIds/rateLimitState.
