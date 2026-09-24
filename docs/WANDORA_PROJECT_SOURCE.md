@@ -1,3 +1,18 @@
+## Reconciled checkpoint — ADR 0232 V3 one-shot live proof FAILED SAFELY
+
+ADR 0232 supersedes ADR 0231 only where ADR 0231 authorized the V3 provider-read execution. The live PRO-10 proof disproved two safety assumptions:
+
+- one human `issue_commented` source run was followed automatically by `issue_continuation_needed`, then by `finish_successful_run_handoff`;
+- the real Tool Gateway call persisted `issueId=null`, `matchedPolicyIds=[]` and `rateLimitState=null`, so the issue-scoped `rate_limit=1` policy did not match or consume a slot.
+
+Exactly one real `vendaerp_search_products {"pageSize":5,"skip":0}` Tool Gateway attempt is evidenced, and it returned MCP `isError=true` with safe code `invalid-provider-response`. Product-like text produced by successor runs had no Tool Gateway/provider evidence and is untrusted.
+
+PRO-10 was fully cleaned. The concurrent PRO-12 proof owner also cleaned its own issue/profile/policy/binding. Final live state: no V3 residual issue/profile/policy, live runs 0, Task Drain OFF/quiescent, Core/Paperclip healthy, work/outbound 0/0.
+
+No further VendaERP provider read is authorized.
+
+Next slice: **Paperclip One-Shot Lifecycle + Tool Gateway Run-Context Authority Review V1 — CODE/SOURCE ONLY / NO PROVIDER CALL**.
+
 ## Reconciled checkpoint — ADR 0231 one-shot replay + provider budget GREEN
 
 ADR 0230's NO-GO conclusion is superseded after two additional adversarial reviews of pinned Paperclip and a live no-provider control-plane proof.
