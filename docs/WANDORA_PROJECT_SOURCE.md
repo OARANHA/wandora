@@ -1,3 +1,13 @@
+## Reconciled checkpoint — ADR 0233 read-tool terminal semantics authority GREEN
+
+ADR 0232's failed-safe execution remains the live truth, but its post-cleanup conclusion that the issue-scoped rate-limit was proven not to participate is superseded. Pinned Paperclip resolves Tool Gateway issue context from the persisted run, deleted issue foreign keys are SET NULL in audit rows, and a non-blocking rate-limit may continue to a final allow_profile decision without appearing in matchedPolicyIds/rateLimitState.
+
+The proven semantic gap is Wandora-owned: MCP isError was rejected by the read bridge, Mastra absorbed the tool exception and returned a model summary, Core accepted that as success, and Paperclip therefore saw a succeeded run with the issue still in_progress. Paperclip then correctly invoked productive-terminal continuation recovery.
+
+Paperclip already owns lifecycle/disposition. Wandora already reuses status=done for existing customer work through wandora_mastra@0.4.0. No new lifecycle or Tool Gateway subsystem is authorized.
+
+Next slice: **Wandora Read Tool Failure Propagation V1 — CODE ONLY / NO PROVIDER CALL**. Another VendaERP read remains prohibited.
+
 ## Reconciled checkpoint — ADR 0232 V3 one-shot live proof FAILED SAFELY
 
 ADR 0232 supersedes ADR 0231 only where ADR 0231 authorized the V3 provider-read execution. The live PRO-10 proof disproved two safety assumptions:
