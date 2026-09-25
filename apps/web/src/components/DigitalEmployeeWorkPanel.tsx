@@ -41,9 +41,11 @@ const stateLabel: Record<WorkItem['state'], string> = {
 export function DigitalEmployeeWorkPanel({
   employeeId,
   employeeName,
+  compact = false,
 }: {
   employeeId: string;
   employeeName: string;
+  compact?: boolean;
 }) {
   const { activeOrganization, authFetch } = useAuth();
   const [title, setTitle] = useState('');
@@ -199,7 +201,7 @@ export function DigitalEmployeeWorkPanel({
     : null;
 
   return (
-    <section className="mt-5 rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4">
+    <section className={`${compact ? '' : 'mt-5 '}rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4`}>
       <div className="flex items-start gap-3">
         <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white text-indigo-600 shadow-sm">
           <Bot className="size-4" />
@@ -293,7 +295,19 @@ export function DigitalEmployeeWorkPanel({
                     {stateLabel[item.state]}
                   </span>
                 </div>
-                {item.result ? (
+                {compact ? (
+                  <div className="mt-2 flex items-center justify-between gap-3">
+                    <p className="m-0 line-clamp-2 text-xs leading-5 text-slate-500">
+                      {item.description}
+                    </p>
+                    <Link
+                      to="/work"
+                      className="shrink-0 text-xs font-black text-slate-800 underline decoration-2 underline-offset-4"
+                    >
+                      {item.result ? 'Abrir resultado' : 'Ver trabalho'}
+                    </Link>
+                  </div>
+                ) : item.result ? (
                   <div className="mt-3 rounded-xl border-2 border-[#09090b]/15 bg-[#f8f4e8] p-4">
                     <div className="mb-3 text-[10px] font-black uppercase tracking-[0.12em] text-[#09090b]/40">
                       Resultado interno
