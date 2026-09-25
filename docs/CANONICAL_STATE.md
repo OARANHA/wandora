@@ -1,3 +1,13 @@
+## Reconciled checkpoint — ADR 0261 owner work flow MERGED / CI GREEN / NO PRODUCTION EFFECT
+
+ADR 0261 is merged at `main@30a4854c175a0a20b1c788e9873f58411412480f`. PR #341 passed Web, Core, Platform Admin and Messaging Gateway CI before merge; the post-merge push workflows also completed GREEN.
+
+The customer product flow is now canonical in code: Team confirms successful supervised-work assignment and links directly to Trabalho; Trabalho reads the existing per-employee customer-work contracts to show in-progress, review-ready, uncertain and recent work while keeping the separate attention-required queue distinct; AppShell can show a session-local completion notice when a work item transitions to `review-ready`; Conversas remains canonical customer/channel history only; Aprovações no longer contains fictitious demo records.
+
+No new table, migration, notification store, unread/read model, work lifecycle, provider capability or backend state was introduced. The completion notice is intentionally ephemeral because Wandora has no durable unread-work-result contract.
+
+Production Web remains unchanged. No customer work, provider/model call, outbound action, Paperclip mutation or production promotion occurred in this slice. Next effectful step, if desired, is a separate Web production promotion preflight/execution for the exact merged artifact.
+
 ## Reconciled checkpoint — ADR 0260 Ana VendaERP product read SUCCESS
 
 Ana successfully completed a real owner-originated 28PRO customer work through `Wandora -> Paperclip -> Ana/Mastra -> Tool Gateway -> VendaERP`. Run `dd8fcd32-278e-446f-8fb5-de2a1a0d67b1` made exactly one product tool call, completed successfully with no retry/outbound, and returned five real products. Temporary one-shot guard policies were removed; final Tool Policies=[] and Task Drain OFF/quiescent.
