@@ -17,8 +17,62 @@ No Task Drain mutation, policy mutation, provider/model call, rate-limit consump
 
 # ADR 0257 — 28PRO VendaERP Product Response Diagnostic V3 Production Execution V1
 
-Status: **SAFE STOP / NO EFFECT / PAPERCLIP BOARD AUTH VALIDATED / GOVERNED API GAP / OWNER SESSION REQUIRED / NO PROVIDER CALL**
+Status: **COMPLETE / EXECUTED / EXACT SAFE DIAGNOSTIC = invalid-provider-response / product-list-shape / shape=null / ONE PROVIDER CALL / ZERO RETRY / ZERO OUTBOUND**
 Date: 2026-09-24
+
+
+## Production execution result — 2026-09-25
+
+The previously documented SAFE STOP gates were later resolved without bypassing the accepted trust boundaries:
+
+- governed Remote-Ops-MCP Paperclip capabilities were implemented behind the existing operational adapter boundary and promoted after canonical review/CI;
+- a genuine authenticated 28PRO owner session submitted exactly one customer work through the normal Wandora route;
+- temporary Paperclip block/rate-limit guards were installed only for the bounded execution and removed afterward.
+
+The admitted run was:
+
+`d6ec458f-31ce-43f6-a2ae-60da58ac1c32`
+
+Paperclip request logs prove exactly one:
+
+`POST /api/tool-gateway/tools/call`
+
+for that run, with no second Tool Gateway call in the relevant execution window. The completed tool invocation is `7ba22b32-4884-4ab3-8924-1a54a25c0d71`.
+
+Official Paperclip activity for Ana proves:
+
+- Connection: `8e2c23f4-73f5-444a-8647-71428819ea91`;
+- Catalog Entry: `165fcdca-8021-41dd-90e5-f0f143adeac3`;
+- upstream tool: `vendaerp_search_products`;
+- arguments: `{"pageSize":5,"skip":0}`;
+- Tool Gateway outcome: `call_completed / success / tool_completed`;
+- safe provider diagnostic: `invalid-provider-response / product-list-shape / shape=null`.
+
+The exact safe structural classifier therefore resolves the ADR 0256 uncertainty: the live provider response reached the parser as JSON `null` at the list-shape gate. This is not a direct product array and is not the `product-name-missing` path.
+
+The safe Tool Connection readback initially returned zero matches when filtering by upstream name `vendaerp_search_products`. Reconciliation proved Paperclip persists the Tool Gateway event name as the namespaced descriptor `mcp.wandora-vendaerp-readonly-v1-8e2c23f4:vendaerp-search-products`. Using that persisted name returns exactly two events for the run: `policy_decision allow/allow_profile` and `call_completed success/tool_completed`.
+
+Both persisted Tool Call events expose `rateLimitState=null`; no numeric counter is therefore asserted from this readback. The hard one-call proof instead rests on the execution-specific policy design plus the single Tool Gateway call/no-retry evidence. No further provider call was made to recover evidence.
+
+Final reconciliation after cleanup:
+
+- Task Drain OFF;
+- quiescent=true;
+- activeRuns=0;
+- pendingWakes=0;
+- Tool Policies=[];
+- Paperclip healthy;
+- Core healthy;
+- no additional provider/model/outbound call during readback or documentation.
+
+Remote-Ops-MCP support used for governed evidence recovery is canonical in its own repository: PR #23 introduced `paperclip_tool_connection_activity_safe`; PR #24 aligned its read window with Paperclip's official max 100 and passed CI. A duplicate PR #25 created after interruption was reconciled and closed without merge.
+
+### Final decision
+
+ADR 0257 is **COMPLETE**.
+
+The next slice is a parser-compatibility decision based on proven `shape=null`. It must not assume that documented direct-array evidence describes this live failure. Any parser change must remain in the replaceable VendaERP provider adapter, pass the Capability Authority / Reuse Gate, receive a second adversarial review, and preserve fail-closed behavior. No new provider call is authorized by this ADR.
+
 
 ## Objective
 

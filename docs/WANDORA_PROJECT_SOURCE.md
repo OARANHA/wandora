@@ -1,3 +1,19 @@
+## Reconciled checkpoint — ADR 0257 diagnostic V3 EXECUTED / exact shape=null / hard one-call budget honored
+
+ADR 0257 executed one genuine owner-originated 28PRO customer work through the normal path `Wandora -> Paperclip -> Ana/Mastra -> Tool Gateway -> VendaERP`. Paperclip logs prove one Tool Gateway POST for run `d6ec458f-31ce-43f6-a2ae-60da58ac1c32`, no second Tool Gateway call/retry, and Core failed closed with `wandora_execution_failed_422`.
+
+Official Paperclip activity for Ana proves the completed invocation used Connection `8e2c23f4-73f5-444a-8647-71428819ea91`, Catalog Entry `165fcdca-8021-41dd-90e5-f0f143adeac3`, and exactly `{"pageSize":5,"skip":0}`. Its persisted resultSummary classifies the live provider response as `invalid-provider-response / product-list-shape / shape=null`. This is the exact structural evidence ADR 0256 could not recover retroactively.
+
+The safe Remote-Ops activity readback also found the same run after using Paperclip's persisted namespaced tool name `mcp.wandora-vendaerp-readonly-v1-8e2c23f4:vendaerp-search-products`: one `policy_decision allow/allow_profile` and one `call_completed success/tool_completed`. Persisted `rateLimitState` is null on both events, so no numeric counter value is claimed from those records. The earlier zero-count readback was a filter-name mismatch, not absence of the call.
+
+Remote-Ops-MCP governance support is live from merged PR #23; PR #24 aligned the safe activity window with Paperclip's canonical max 100 and passed CI. A duplicate PR #25 created after chat interruption was closed unmerged after reconciliation.
+
+Final production reconciliation: Task Drain OFF/quiescent, activeRuns=0, pendingWakes=0, Tool Policies=[], Paperclip healthy, Core healthy. No additional provider call was made during evidence recovery or documentation. Temporary guards are removed and outbound remains untouched.
+
+ADR 0257 is **COMPLETE / EXACT SAFE DIAGNOSTIC = invalid-provider-response / product-list-shape / shape=null / ONE PROVIDER CALL / ZERO RETRY / ZERO OUTBOUND**.
+
+Next slice must decide parser compatibility from this proven `shape=null` evidence. Do not broaden the replaceable VendaERP parser by guesswork; apply Capability Authority / Reuse Gate and a second adversarial review before any parser change or new provider call.
+
 ## 2026-09-24 — governed operator runtime reconciliation
 
 Fresh-session runtime reconciliation proves the Remote-Ops-MCP schema and read/qualification path are now operational:
