@@ -1571,3 +1571,26 @@ migration 017 semantic state — LIVE / verified / zero rows
 The rejected candidate demonstrated that React/UI correctness is not sufficient evidence for a customer API surface: the Web Nginx bridge is an explicit authorization/routing boundary and must have its own verifier.
 
 This is a bridge defect only. It does not change capability authority: Wandora still owns official facts/Regras da Casa semantics; Paperclip and Mastra retain their previously accepted operational authority. No RAG, memory, vector, retrieval or second grounding store is justified by this gap.
+
+
+## Integration capability projection — ADR 0278
+
+The business-system integration boundary is layered:
+
+```text
+Wandora customer/product semantics
+  -> BusinessCapability vocabulary
+  -> organization integration capability projection
+       ^
+       | normalized operational evidence
+Paperclip Applications / Connections / grants / catalog / profiles / health
+       |
+       v
+provider implementation (VendaERP MCP today)
+```
+
+At execution time, Fast Read narrows the organization projection again using only the current run's Tool Gateway-authorized read tools.
+
+This separation prevents five concepts from collapsing into one: provider integration identity, connection health/readiness, provider-supported business capability, organization-available capability and run-authorized tool access.
+
+No integration registry or tool registry is introduced. Provider IDs, tool names, grant IDs, secret refs and catalog IDs remain behind provider adapters. VendaERP is not the central contract; another business-system provider can project into the same Wandora semantic vocabulary.

@@ -5271,3 +5271,16 @@ Owner-authorized hire and activation completed through the existing customer con
 28PRO is now starter-workforce ready. No Mastra run or external send was caused by activation.
 
 Next safe slice: **Paperclip Business-System Connection Container + REST Tool Gateway Read-Only Qualification V1 — CODE ONLY / NO EFFECT**; only after that should the real 28PRO VendaERP read-only connection be activated.
+
+
+## ADR 0278 — Integration Capability Plane V1
+
+Status: **CODE COMPLETE / IMPLEMENTATION CI GREEN / NO PRODUCTION EFFECT**.
+
+Paperclip remains operational authority for Applications, Connections, grants, secrets, installs, Tool Catalog, Tool Profiles/policies, health/readiness, run-scoped Tool Gateway authorization and tool audit.
+
+Wandora now has only the minimum provider-neutral semantic projection contract required to answer what a connected business system supports and what is currently available to the organization. `BusinessCapability` remains semantic vocabulary, not a tool registry. Final Fast Read availability is computed by intersecting organization-available semantic capabilities with run-authorized capabilities.
+
+No new table, migration, integration registry, tool registry, grant/secret store, lifecycle or provider-specific customer contract was introduced. VendaERP remains the first provider adapter only. JEV and the post-Issue semantic-decision plugin remain outside this operational plane.
+
+Next: exact-head CI, merge, then **Paperclip Integration Capability Projection + Disposable Attestation V1 — CODE ONLY / NO PRODUCTION EFFECT**.
