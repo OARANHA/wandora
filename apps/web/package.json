@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && node scripts/verify-invite-acceptance.mjs && node scripts/verify-recovery-access.mjs && node scripts/verify-reviewed-bridge.mjs && node scripts/verify-work-result-rendering.mjs && node scripts/verify-company-grounding-surface.mjs && node scripts/verify-business-density-v1.mjs && node scripts/verify-home-greeting-company-drawer-v1.mjs && node scripts/verify-grounding-source-file-upload-v1.mjs && node scripts/verify-company-profile-onboarding-v1.mjs && node scripts/verify-app-shell-design-system.mjs && node scripts/verify-grounding-api-bridge.mjs && node scripts/verify-owner-work-flow-v1.mjs && node scripts/verify-work-operator-drawer-v1.mjs && vite build",
+    "build": "tsc -b && node scripts/verify-invite-acceptance.mjs && node scripts/verify-recovery-access.mjs && node scripts/verify-reviewed-bridge.mjs && node scripts/verify-work-result-rendering.mjs && node scripts/verify-company-grounding-surface.mjs && node scripts/verify-business-density-v1.mjs && node scripts/verify-home-greeting-company-drawer-v1.mjs && node scripts/verify-grounding-source-file-upload-v1.mjs && node scripts/verify-company-profile-onboarding-v1.mjs && node scripts/verify-app-shell-design-system.mjs && node scripts/verify-grounding-api-bridge.mjs && node scripts/verify-owner-work-flow-v1.mjs && node scripts/verify-work-operator-drawer-v1.mjs && node scripts/verify-employee-development-surface-v1.mjs && vite build",
     "typecheck": "tsc -b --pretty false",
     "preview": "vite preview"
   },
