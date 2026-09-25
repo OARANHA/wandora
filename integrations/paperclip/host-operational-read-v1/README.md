@@ -11,6 +11,8 @@ This directory is CODE ONLY / NO PRODUCTION EFFECT. It does not patch the live P
 - commit: d554c4789ed3930f8a53ac9fdf6503b3187097da
 - patch SHA-256: fc0ce000b2fa5051f10fb71cfece71df17e9b4953779486d951b3f2990cd8bfb
 
+Retained patch path: integrations/paperclip/patches/v2026.916.1-host-operational-read-v1.patch
+
 ## Purpose
 
 The current accepted Paperclip stable keeps Connection, Connection-grant, catalog,
@@ -38,7 +40,7 @@ run authority and is never persisted by Wandora or plugin.state.
 
 ## CI
 
-.github/workflows/paperclip-host-operational-read-ci.yml checks out the exact upstream
+.github/workflows/paperclip-host-operational-read-extension-ci.yml checks out the exact upstream
 commit, applies this patch, runs a static safety verifier, installs the frozen upstream
 dependencies under Node 24, typechecks the plugin SDK + server, and runs focused tests.
 
