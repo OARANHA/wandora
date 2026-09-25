@@ -19,13 +19,11 @@ const fixturePool = new Pool({ connectionString: process.env.FIXTURE_DATABASE_UR
 
 const emptyGroundingProjection = {
   async project(_organizationId: string, workContext: AssignedTask) {
-    return { officialFacts: [], houseRules: [], workContext };
-  },
-};
-
-const emptyEmployeeDevelopmentProjection = {
-  async project() {
-    return [];
+    return {
+      officialFacts: [],
+      houseRules: [],
+      workContext,
+    };
   },
 };
 
@@ -74,7 +72,7 @@ test('private execution requires the canonical Wandora employee to be active', a
       runtimeCalls += 1;
       return { model: 'test', summary: 'should-not-run', usage: { inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, totalTokens: 0 } };
     },
-  }, emptyGroundingProjection, emptyEmployeeDevelopmentProjection);
+  }, emptyGroundingProjection);
 
   await assert.rejects(
     service.execute({
@@ -96,7 +94,7 @@ test('active exact binding reaches AgentTaskRuntime without provider identifiers
       received = input;
       return { model: 'wandora-supervised-v1', summary: 'Proposta supervisionada', usage: { inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, totalTokens: 0 } };
     },
-  }, emptyGroundingProjection, emptyEmployeeDevelopmentProjection);
+  }, emptyGroundingProjection);
 
   const result = await service.execute({
     identity: { paperclipAgentId: AGENT, paperclipCompanyId: COMPANY, catalogKey: 'ana-commercial-v1' },
@@ -147,7 +145,6 @@ test('Wandora work correlation is verified and result is committed without enter
       },
     },
     emptyGroundingProjection,
-    emptyEmployeeDevelopmentProjection,
     {
       async prepareCatalogEmployeeWorkExecution(input) {
         preparation.push(input);
@@ -209,7 +206,6 @@ test('cached exact work result prevents a duplicate AgentTaskRuntime execution',
       },
     },
     emptyGroundingProjection,
-    emptyEmployeeDevelopmentProjection,
     {
       async prepareCatalogEmployeeWorkExecution() {
         return {
@@ -264,7 +260,6 @@ test('runtime failure marks exact work execution uncertain and never retries ins
       },
     },
     emptyGroundingProjection,
-    emptyEmployeeDevelopmentProjection,
     {
       async prepareCatalogEmployeeWorkExecution() {
         return { kind: 'execute' as const };
@@ -320,7 +315,6 @@ test('execution service keeps Paperclip credentials outside runtime input while 
       },
     },
     emptyGroundingProjection,
-    emptyEmployeeDevelopmentProjection,
     undefined,
     async (input) => {
       bridgeInput = input;
@@ -376,7 +370,6 @@ test('Tool Gateway failure after work preparation marks execution uncertain befo
       },
     },
     emptyGroundingProjection,
-    emptyEmployeeDevelopmentProjection,
     {
       async prepareCatalogEmployeeWorkExecution() {
         return { kind: 'execute' as const };
@@ -429,7 +422,6 @@ test('read-tool failure after work preparation marks execution uncertain and nev
       },
     },
     emptyGroundingProjection,
-    emptyEmployeeDevelopmentProjection,
     {
       async prepareCatalogEmployeeWorkExecution() {
         return { kind: 'execute' as const };
