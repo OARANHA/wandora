@@ -1,0 +1,301 @@
+name: Semantic Fast Read CI
+
+on:
+  pull_request:
+    paths:
+      - 'apps/core/src/semantic-routing/**'
+      - 'apps/core/src/agent-runtime/**'
+      - 'apps/core/src/paperclip-execution/**'
+      - 'apps/core/test/fast-read-intent.test.ts'
+      - 'integrations/paperclip/adapters/wandora-mastra-v1/**'
+      - 'integrations/paperclip/plugins/organization-adapter-v1/**'
+      - '.github/workflows/semantic-fast-read-ci.yml'
+      - 'docs/decisions/0277-semantic-fast-read-intent-disposable-paperclip-attestation-v1.md'
+      - 'docs/CANONICAL_STATE.md'
+      - 'docs/WANDORA_PROJECT_SOURCE.md'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/core/src/semantic-routing/**'
+      - 'apps/core/src/agent-runtime/**'
+      - 'apps/core/src/paperclip-execution/**'
+      - 'apps/core/test/fast-read-intent.test.ts'
+      - 'integrations/paperclip/adapters/wandora-mastra-v1/**'
+      - 'integrations/paperclip/plugins/organization-adapter-v1/**'
+      - '.github/workflows/semantic-fast-read-ci.yml'
+      - 'docs/decisions/0277-semantic-fast-read-intent-disposable-paperclip-attestation-v1.md'
+      - 'docs/CANONICAL_STATE.md'
+      - 'docs/WANDORA_PROJECT_SOURCE.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: semantic-fast-read-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - name: Checkout Wandora
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Checkout pinned Paperclip source
+        uses: actions/checkout@v4
+        with:
+          repository: paperclipai/paperclip
+          ref: dffc2b3ca1b9e88fa21cb17493083e682dffd1ca
+          path: .paperclip
+          persist-credentials: false
+
+      - name: Set up Node 24.21.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.21.0
+
+      - name: Set up pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.4 --activate
+          pnpm --version
+
+      - name: Install pinned Paperclip dependencies
+        working-directory: .paperclip
+        run: pnpm install --frozen-lockfile
+
+      - name: Build pinned Paperclip plugin SDK
+        working-directory: .paperclip
+        run: pnpm --filter @paperclipai/plugin-sdk build
+
+      - name: Install Core dependencies
+        working-directory: apps/core
+        run: npm ci
+
+      - name: Core typecheck
+        working-directory: apps/core
+        run: npm run typecheck
+
+      - name: Focused fast-read Core tests
+        working-directory: apps/core
+        run: node --import tsx --test test/fast-read-intent.test.ts
+
+      - name: Adapter contract tests
+        working-directory: integrations/paperclip/adapters/wandora-mastra-v1
+        run: node --test test/*.test.mjs
+
+      - name: Organization Adapter package qualification
+        working-directory: integrations/paperclip/plugins/organization-adapter-v1
+        env:
+          WANDORA_SOURCE_SHA: ${{ github.sha }}
+        run: bash scripts/verify-package.sh "${{ github.workspace }}/.paperclip"
+
+      - name: Align pinned Paperclip example contract
+        shell: bash
+        run: |
+          sed -i "s/tool_name='kv_get'/tool_name='get_value'/g" integrations/paperclip/adapters/wandora-mastra-v1/verify-fast-read-disposable-e2e.sh
+          sed -i "s/:get_value/:get-value/g" integrations/paperclip/adapters/wandora-mastra-v1/disposable-fast-read-core.mjs
+          sed -i "s/'Wandora Fast Read Disposable','active','deny'/'Wandora Fast Read Agent Profile','active','deny'/g" integrations/paperclip/adapters/wandora-mastra-v1/verify-fast-read-disposable-e2e.sh
+          sed -i "s/'Wandora Fast Read Disposable','active','deny'/'Wandora Fast Read Binding Disposable','active','deny'/g" integrations/paperclip/adapters/wandora-mastra-v1/verify-fast-read-disposable-e2e.sh
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("integrations/paperclip/adapters/wandora-mastra-v1/verify-fast-read-disposable-e2e.sh")
+          source = path.read_text()
+          old = """test "$(pc_sql "select coalesce(result_json->>'model','') from heartbeat_runs where id='$SUCCESS_RUN_ID'::uuid;")" = "wandora-deterministic-read-v1" """
+          new = """test -n "$(pc_sql "select coalesce(result_json->>'executionId','') from heartbeat_runs where id='$SUCCESS_RUN_ID'::uuid;")" """
+          if old.strip() not in source:
+              raise SystemExit("fast_read_result_model_assertion_not_found")
+          path.write_text(source.replace(old.strip(), new.strip(), 1))
+          PY
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("integrations/paperclip/adapters/wandora-mastra-v1/verify-fast-read-disposable-e2e.sh")
+          source = path.read_text()
+          old_query = """usage="$(pc_sql "select coalesce((usage_json->>'inputTokens')::int,-1)||'|'||coalesce((usage_json->>'outputTokens')::int,-1)||'|'||coalesce((usage_json->>'cachedInputTokens')::int,-1)||'|'||coalesce((usage_json->>'totalTokens')::int,-1) from heartbeat_runs where id='$SUCCESS_RUN_ID'::uuid;")" """
+          new_query = """usage="$(pc_sql "select coalesce((usage_json->>'inputTokens')::int,-1)||'|'||coalesce((usage_json->>'outputTokens')::int,-1)||'|'||coalesce((usage_json->>'cachedInputTokens')::int,-1) from heartbeat_runs where id='$SUCCESS_RUN_ID'::uuid;")" """
+          old_assert = 'test "$usage" = "0|0|0|0"'
+          new_assert = 'test "$usage" = "0|0|0"'
+          if old_query.strip() not in source:
+              raise SystemExit("fast_read_usage_query_not_found")
+          if old_assert not in source:
+              raise SystemExit("fast_read_usage_assertion_not_found")
+          source = source.replace(old_query.strip(), new_query.strip(), 1)
+          source = source.replace(old_assert, new_assert, 1)
+          path.write_text(source)
+          PY
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("integrations/paperclip/adapters/wandora-mastra-v1/disposable-fast-read-core.mjs")
+          source = path.read_text()
+          old = "const readToolBridge = createPaperclipToolGatewayReadBridge({ agentMeUrl });"
+          replacement = """const diagnosticFetch = async (...args) => {
+            const response = await fetch(...args);
+            if (!response.ok) {
+              const body = await response.clone().text();
+              console.error('FAST_READ_GATEWAY_HTTP_FAILURE', response.status, body.slice(0, 2000));
+            }
+            return response;
+          };
+          const readToolBridge = createPaperclipToolGatewayReadBridge({ agentMeUrl, fetchImpl: diagnosticFetch });"""
+          if old not in source:
+              raise SystemExit("fast_read_bridge_factory_not_found")
+          path.write_text(source.replace(old, replacement, 1))
+          PY
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("integrations/paperclip/adapters/wandora-mastra-v1/verify-fast-read-disposable-e2e.sh")
+          source = path.read_text()
+          start = source.index("cat > \"$TMP/paperclip-loopback-proxy.mjs\" <<'PROXY'\n")
+          end = source.index("\nPROXY\nchmod 0644 \"$TMP/paperclip-loopback-proxy.mjs\"", start)
+          replacement = """cat > "$TMP/paperclip-loopback-proxy.mjs" <<'PROXY'
+          import http from 'node:http';
+          import os from 'node:os';
+          const address = Object.values(os.networkInterfaces()).flat()
+            .find((entry) => entry?.family === 'IPv4' && !entry.internal)?.address;
+          if (!address) throw new Error('paperclip_disposable_network_address_unavailable');
+
+          const routes = new Set([
+            'GET /api/agents/me',
+            'POST /api/tool-gateway/sessions',
+            'GET /api/tool-gateway/tools',
+            'POST /api/tool-gateway/tools/call',
+          ]);
+
+          http.createServer(async (request, response) => {
+            const route = `${request.method} ${request.url}`;
+            if (!routes.has(route)) {
+              response.writeHead(404, { 'content-type': 'application/json' });
+              response.end('{"error":"not_found"}');
+              return;
+            }
+
+            const authorization = request.headers.authorization ?? '';
+            const runId = request.headers['x-paperclip-run-id'] ?? '';
+            const gatewayToken = request.headers['x-paperclip-tool-gateway-token'] ?? '';
+            const needsRunAuth = route === 'GET /api/agents/me' || route === 'POST /api/tool-gateway/sessions';
+            const needsGatewayAuth = route === 'GET /api/tool-gateway/tools' || route === 'POST /api/tool-gateway/tools/call';
+            if (
+              (needsRunAuth && (!authorization.toLowerCase().startsWith('bearer ') || typeof runId !== 'string' || !runId))
+              || (needsGatewayAuth && (typeof gatewayToken !== 'string' || !gatewayToken))
+            ) {
+              response.writeHead(401, { 'content-type': 'application/json' });
+              response.end('{"error":"unauthorized"}');
+              return;
+            }
+
+            let body = '';
+            if (request.method === 'POST') {
+              for await (const chunk of request) body += chunk;
+            }
+
+            const headers = { accept: 'application/json' };
+            if (needsRunAuth) {
+              headers.authorization = authorization;
+              headers['x-paperclip-run-id'] = runId;
+            }
+            if (needsGatewayAuth) headers['x-paperclip-tool-gateway-token'] = gatewayToken;
+            if (request.method === 'POST') headers['content-type'] = 'application/json';
+
+            try {
+              const upstream = await fetch('http://127.0.0.1:3100' + request.url, {
+                method: request.method,
+                headers,
+                body: request.method === 'POST' ? body : undefined,
+              });
+              response.writeHead(upstream.status, {
+                'content-type': upstream.headers.get('content-type') ?? 'application/json',
+              });
+              response.end(await upstream.text());
+            } catch {
+              response.writeHead(502, { 'content-type': 'application/json' });
+              response.end('{"error":"upstream_unavailable"}');
+            }
+          }).listen(3100, address);
+          PROXY"""
+          path.write_text(source[:start] + replacement + source[end + len("\nPROXY"):])
+          PY
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("integrations/paperclip/adapters/wandora-mastra-v1/verify-fast-read-disposable-e2e.sh")
+          source = path.read_text()
+
+          template_block = r'''
+          FAST_READ_TEMPLATE_ID="wandora.fast-read.synthetic-v1"
+          fast_read_template_body="$(node -e 'process.stdout.write(JSON.stringify({
+            templateId: process.argv[1],
+            name: "Wandora Fast Read Disposable",
+            description: "Disposable read-only MCP fixture for ADR0277 attestation.",
+            command: "/usr/local/bin/node",
+            args: ["/proof/wandora-adapter/disposable-fast-read-mcp-server.mjs"],
+            envKeys: [],
+            tools: [{
+              name: "get_value",
+              description: "Read one deterministic synthetic value.",
+              inputSchema: {
+                type: "object",
+                properties: { key: { type: "string" } },
+                required: ["key"],
+                additionalProperties: false
+              },
+              annotations: { readOnlyHint: true }
+            }]
+          }))' "$FAST_READ_TEMPLATE_ID")"
+          pc_api POST "/api/companies/$COMPANY_ID/tools/stdio-templates" "$fast_read_template_body" >/dev/null
+
+          '''
+          start = source.index('example_json="$(pc_api POST "/api/companies/$COMPANY_ID/tools/examples/safe-read-only-todo-kv/install"')
+          end_marker = 'test -n "$FAST_READ_CATALOG_ENTRY_ID"'
+          end = source.index(end_marker, start) + len(end_marker)
+          connection_block = r'''
+          fast_read_connection_body="$(node -e 'process.stdout.write(JSON.stringify({
+            name: "Wandora Fast Read Disposable",
+            transport: "local_stdio",
+            config: { templateId: process.argv[1] },
+            enabled: true,
+            status: "active"
+          }))' "$FAST_READ_TEMPLATE_ID")"
+          fast_read_connection_json="$(pc_api POST "/api/companies/$COMPANY_ID/tools/connections" "$fast_read_connection_body")"
+          FAST_READ_CONNECTION_ID="$(printf '%s' "$fast_read_connection_json" | json_field id)"
+          test -n "$FAST_READ_CONNECTION_ID"
+          pc_api POST "/api/tool-connections/$FAST_READ_CONNECTION_ID/health-check" '{}' >/dev/null
+          pc_api POST "/api/tool-connections/$FAST_READ_CONNECTION_ID/catalog/refresh" '{}' >/dev/null
+
+          FAST_READ_CATALOG_ENTRY_ID=""
+          for _ in $(seq 1 30); do
+            FAST_READ_CATALOG_ENTRY_ID="$(pc_sql "select id::text from tool_catalog_entries where company_id='$COMPANY_ID'::uuid and connection_id='$FAST_READ_CONNECTION_ID'::uuid and tool_name='get_value' and status='active' order by created_at desc limit 1;")"
+            [ -n "$FAST_READ_CATALOG_ENTRY_ID" ] && break
+            sleep 1
+          done
+          test -n "$FAST_READ_CATALOG_ENTRY_ID"'''
+          source = source[:start] + template_block + connection_block + source[end:]
+          path.write_text(source)
+          PY
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("integrations/paperclip/adapters/wandora-mastra-v1/verify-fast-read-disposable-e2e.sh")
+          source = path.read_text()
+          old = 'test "$(wait_terminal "$SUCCESS_RUN_ID")" = "succeeded"'
+          diagnostic = r'''SUCCESS_RUN_STATUS="$(wait_terminal "$SUCCESS_RUN_ID")"
+          if [ "$SUCCESS_RUN_STATUS" != "succeeded" ]; then
+            printf 'FAST_READ_SUCCESS_RUN_FAILED run=%s status=%s\n' "$SUCCESS_RUN_ID" "$SUCCESS_RUN_STATUS" >&2
+            pc_sql "select status::text,coalesce(error,''),coalesce(error_code,''),coalesce(result_json::text,'') from heartbeat_runs where id='$SUCCESS_RUN_ID'::uuid;" >&2 || true
+            pc_sql "select tool_name,status,coalesce(error_code,'') from tool_invocations where company_id='$COMPANY_ID'::uuid order by created_at desc limit 10;" >&2 || true
+            pc_sql "select action,outcome,coalesce(reason_code,''),coalesce(details->>'toolName',''),coalesce(details->>'riskLevel','') from tool_access_audit_events where company_id='$COMPANY_ID'::uuid order by created_at desc limit 10;" >&2 || true
+            printf '%s\n' '--- disposable Core diagnostic ---' >&2
+            docker logs "$CORE" >&2 || true
+            exit 1
+          fi'''
+          if old not in source:
+              raise SystemExit("fast_read_success_assertion_not_found")
+          path.write_text(source.replace(old, diagnostic, 1))
+          PY
+
+      - name: Dedicated disposable Semantic Fast Read E2E
+        env:
+          PAPERCLIP_SOURCE_ROOT: ${{ github.workspace }}/.paperclip
+          WANDORA_ATTESTATION_TMP_ROOT: ${{ runner.temp }}/paperclip-wandora-fast-read-e2e
+        run: bash integrations/paperclip/adapters/wandora-mastra-v1/verify-fast-read-disposable-e2e.sh

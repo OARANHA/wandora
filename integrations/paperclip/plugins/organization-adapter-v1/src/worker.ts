@@ -2,8 +2,9 @@ import type { PluginContext } from '@paperclipai/plugin-sdk';
 import { definePlugin, runWorker } from '@paperclipai/plugin-sdk';
 import { activateManagedCatalogEmployee } from './activation.js';
 import { CATALOG_KEY } from './catalog.js';
-import { parseActivationWebhook, parseReconcileWebhook, parseWorkWebhook, requireFreshTimestamp, requireHmacSecret, verifySignature } from './contract.js';
+import { parseActivationWebhook, parseFastReadWebhook, parseReconcileWebhook, parseWorkWebhook, requireFreshTimestamp, requireHmacSecret, verifySignature } from './contract.js';
 import { ensureManagedCatalogEmployeeWork } from './work.js';
+import { ensureManagedCatalogEmployeeFastRead } from './fast-read.js';
 
 let pluginContext: PluginContext | null = null;
 type SecretRef = { type: 'secret_ref'; secretId: string };
@@ -56,6 +57,17 @@ const plugin = definePlugin({
         workId: request.workId,
         title: request.title,
         description: request.description,
+      });
+      return;
+    }
+    if (input.endpointKey === 'employee-fast-read') {
+      const request = parseFastReadWebhook(input);
+      await authenticateRequest(pluginContext, request);
+      await ensureManagedCatalogEmployeeFastRead(pluginContext, {
+        companyId: request.companyId,
+        correlationId: request.correlationId,
+        intentToken: request.intentToken,
+        request: request.request,
       });
       return;
     }

@@ -3,6 +3,7 @@ import test from 'node:test';
 import { createHmac } from 'node:crypto';
 import {
   parseActivationWebhook,
+  parseFastReadWebhook,
   parseReconcileWebhook,
   parseWorkWebhook,
   requireFreshTimestamp,
@@ -113,6 +114,44 @@ test('work accepts only bounded Wandora work and rejects provider identifiers', 
     headers: {
       'x-wandora-timestamp': timestamp,
       'x-wandora-signature': workSignature,
+    },
+  }), /invalid_wandora_request/);
+});
+
+
+test('fast read accepts only bounded provider-neutral intent transport and rejects provider identifiers', () => {
+  const fastReadBody = JSON.stringify({
+    companyId: 'company-test-only',
+    catalogKey: 'ana-commercial-v1',
+    correlationId: '22222222-2222-4222-8222-222222222222',
+    intentToken: 'wfri1.synthetic.signature',
+    request: 'Qual o preço do PREMIUM PLUS?',
+  });
+  const fastReadSignature = `sha256=${createHmac('sha256', secret).update(`${timestamp}.${fastReadBody}`).digest('hex')}`;
+  const req = parseFastReadWebhook({
+    endpointKey: 'employee-fast-read',
+    parsedBody: JSON.parse(fastReadBody),
+    rawBody: fastReadBody,
+    headers: {
+      'x-wandora-timestamp': timestamp,
+      'x-wandora-signature': fastReadSignature,
+    },
+  });
+  assert.equal(req.correlationId, '22222222-2222-4222-8222-222222222222');
+  assert.equal(req.intentToken, 'wfri1.synthetic.signature');
+  assert.equal(req.request, 'Qual o preço do PREMIUM PLUS?');
+
+  const withProviderTool = {
+    ...JSON.parse(fastReadBody),
+    toolName: 'vendaerp_search_products',
+  };
+  assert.throws(() => parseFastReadWebhook({
+    endpointKey: 'employee-fast-read',
+    parsedBody: withProviderTool,
+    rawBody: JSON.stringify(withProviderTool),
+    headers: {
+      'x-wandora-timestamp': timestamp,
+      'x-wandora-signature': fastReadSignature,
     },
   }), /invalid_wandora_request/);
 });

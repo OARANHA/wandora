@@ -362,3 +362,78 @@ test('non-customer work read-tool failure preserves legacy lifecycle without iss
     assert.equal(requests.length, 1);
   });
 });
+
+
+test('issue-less plugin invoke fast-read wake is transported to Core without Paperclip issue mutation', async () => {
+  await withAdapterEnvironment(async () => {
+    const envelope = {
+      version: 1,
+      correlationId: '33333333-3333-4333-8333-333333333333',
+      intentToken: 'wfri1.synthetic.signature',
+      request: 'Qual o preço do PREMIUM PLUS?',
+    };
+    const context = executionContext();
+    delete context.context.paperclipIssue;
+    context.context.wakeReason = 'wandora_fast_read_v1';
+    context.context.paperclipWake = {
+      agentMessage: {
+        text: 'WANDORA_FAST_READ_V1 ' + Buffer.from(JSON.stringify(envelope)).toString('base64url'),
+        source: 'plugin_invoke',
+        pluginKey: 'wandora.organization-adapter-v1',
+      },
+    };
+
+    const requests = [];
+    globalThis.fetch = async (url, init = {}) => {
+      requests.push({ url: String(url), init });
+      assert.equal(String(url), BRIDGE_URL);
+      return new Response(JSON.stringify({
+        executionId: 'fast_disposable_1',
+        model: 'wandora-deterministic-read-v1',
+        summary: 'PREMIUM PLUS\nPreço: R$ 129,90',
+        usage: { inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, totalTokens: 0 },
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    };
+
+    const result = await createServerAdapter().execute(context);
+    assert.equal(result.exitCode, 0);
+    assert.equal(result.model, 'wandora-deterministic-read-v1');
+    assert.deepEqual(result.usage, { inputTokens: 0, outputTokens: 0, cachedInputTokens: 0 });
+    assert.equal(requests.length, 1);
+
+    const body = JSON.parse(String(requests[0].init.body));
+    assert.equal(body.task.workId, null);
+    assert.equal(body.task.issueId, null);
+    assert.equal(body.task.title, envelope.request);
+    assert.equal(body.task.description, null);
+    assert.deepEqual(body.fastRead, {
+      intentToken: envelope.intentToken,
+      correlationId: envelope.correlationId,
+    });
+  });
+});
+
+test('malformed fast-read plugin invoke transport is rejected before the Core bridge', async () => {
+  await withAdapterEnvironment(async () => {
+    const context = executionContext();
+    delete context.context.paperclipIssue;
+    context.context.wakeReason = 'wandora_fast_read_v1';
+    context.context.paperclipWake = {
+      agentMessage: {
+        text: 'WANDORA_FAST_READ_V1 not-valid-base64-json',
+        source: 'plugin_invoke',
+        pluginKey: 'wandora.organization-adapter-v1',
+      },
+    };
+    let calls = 0;
+    globalThis.fetch = async () => {
+      calls += 1;
+      throw new Error('must not be called');
+    };
+    await assert.rejects(
+      createServerAdapter().execute(context),
+      /wandora_fast_read_wake_invalid/,
+    );
+    assert.equal(calls, 0);
+  });
+});

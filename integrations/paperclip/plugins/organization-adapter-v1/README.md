@@ -42,3 +42,14 @@ The work webhook does not enable Human Send, Gateway outbound or any external cu
 Version 0.3.1 fixes a false-negative customer-work gate discovered after the first real work. Paperclip v2026.916.0 considers agent `error` invokable, but 0.3.0 required literal `idle` before `issues.requestWakeup`.
 
 0.3.1 accepts only `idle | error` at the Wandora pre-admission layer, keeps `running` and all other states rejected, and still delegates final invokability to Paperclip `issues.requestWakeup` / `heartbeat.wakeup`. It adds no capability, webhook, outbound authority or lifecycle mutation.
+
+
+## Issue-less Fast Read Dispatch V1 — 0.4.0
+
+Version 0.4.0 adds the code-only `employee-fast-read` admission boundary. The webhook accepts only a Wandora correlation id, signed fast-read intent token and customer request, reusing the existing company-scoped HMAC custody. Concrete provider tool names, credentials and grants are not part of this contract.
+
+The plugin resolves the existing managed employee and uses Paperclip-native `agents.invoke` to create an issue-less operational run. Paperclip `plugin.state` stores only a company-scoped dispatch receipt keyed by the Wandora correlation id so an exact duplicate returns the original run instead of invoking twice; an ambiguous `dispatching` receipt fails closed.
+
+The intent itself remains Wandora-owned and stateless. Core independently verifies that intent after Paperclip run identity resolution and before opening the Tool Gateway. Paperclip remains authority for run lifecycle, Connections/grants/secrets/policies, Tool Gateway authorization and tool-call audit.
+
+This source change does **not** install or promote 0.4.0 in production.

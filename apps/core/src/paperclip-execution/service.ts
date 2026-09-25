@@ -69,17 +69,14 @@ export class PaperclipExecutionService {
     }
   }
 
-  async execute(input: {
-    identity: PaperclipRunIdentity;
-    runToken: string;
-    paperclipRunId: string;
-    workId?: string | null;
-    task: AssignedTask;
-  }): Promise<{ executionId: string; model: string; summary: string; usage: NormalizedExecutionUsage }> {
-    const organizationId = await this.resolveOrganization(input.identity.paperclipCompanyId);
+  async resolveExecutionBinding(identity: PaperclipRunIdentity): Promise<{
+    organizationId: string;
+    employee: EmployeeRow;
+  }> {
+    const organizationId = await this.resolveOrganization(identity.paperclipCompanyId);
     const providerAgentRef = paperclipManagedAgentRef(
-      input.identity.paperclipCompanyId,
-      input.identity.catalogKey,
+      identity.paperclipCompanyId,
+      identity.catalogKey,
     );
 
     const employee = await this.scoped(organizationId, async (client) => {
@@ -102,6 +99,17 @@ export class PaperclipExecutionService {
       return result.rows[0];
     });
     if (!employee) throw new PaperclipExecutionBindingError('employee-unavailable');
+    return { organizationId, employee };
+  }
+
+  async execute(input: {
+    identity: PaperclipRunIdentity;
+    runToken: string;
+    paperclipRunId: string;
+    workId?: string | null;
+    task: AssignedTask;
+  }): Promise<{ executionId: string; model: string; summary: string; usage: NormalizedExecutionUsage }> {
+    const { organizationId, employee } = await this.resolveExecutionBinding(input.identity);
 
     const executionId = `exec_${createHash('sha256')
       .update(JSON.stringify(['paperclip-run-v1', organizationId, employee.employee_id, input.paperclipRunId]))

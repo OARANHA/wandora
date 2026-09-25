@@ -59,8 +59,10 @@ JSON
   --outfile="$ROOT/.test-build/activation.mjs" --alias:@paperclipai/plugin-sdk="$SDK_JS"
 "$ESBUILD" "$ROOT/src/work.ts" --bundle --platform=node --format=esm --target=node24 \
   --outfile="$ROOT/.test-build/work.mjs" --alias:@paperclipai/plugin-sdk="$SDK_JS"
+"$ESBUILD" "$ROOT/src/fast-read.ts" --bundle --platform=node --format=esm --target=node24 \
+  --outfile="$ROOT/.test-build/fast-read.mjs" --alias:@paperclipai/plugin-sdk="$SDK_JS"
 
-node --test "$ROOT/test/contract.test.mjs" "$ROOT/test/activation.test.mjs" "$ROOT/test/work.test.mjs"
+node --test "$ROOT/test/contract.test.mjs" "$ROOT/test/activation.test.mjs" "$ROOT/test/work.test.mjs" "$ROOT/test/fast-read.test.mjs"
 node "$ROOT/scripts/verify-artifact.mjs"
 node --check "$ROOT/dist/manifest.js"
 node --check "$ROOT/dist/worker.js"

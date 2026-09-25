@@ -43,10 +43,10 @@ assert_static_activation_contract() {
   grep -Fq 'pluginContext.agents.managed.reconcile(catalogKey, companyId)' "$PLUGIN_WORKER"
 
   # The live adapter remains the production baseline until a separately reviewed
-  # promotion. The v0.3.x candidate keeps activation and work as different webhook
+  # promotion. The v0.4.x candidate keeps activation, work and fast-read as different webhook
   # contracts. Activation itself must still use only managed read + resume and
   # must never create an issue, wake a run or invoke an agent.
-  grep -Fq "version: '0.3.1'" "$CANDIDATE_PLUGIN_ROOT/src/manifest.ts"
+  grep -Fq "version: '0.4.0'" "$CANDIDATE_PLUGIN_ROOT/src/manifest.ts"
   grep -Fq "'agents.resume'" "$CANDIDATE_PLUGIN_ROOT/src/manifest.ts"
   grep -Fq "'issues.create'" "$CANDIDATE_PLUGIN_ROOT/src/manifest.ts"
   grep -Fq "'issues.wakeup'" "$CANDIDATE_PLUGIN_ROOT/src/manifest.ts"
@@ -61,10 +61,15 @@ assert_static_activation_contract() {
     echo 'organization_adapter_activation_path_must_not_touch_work' >&2
     exit 1
   fi
-  if grep -R -Fq 'agents.invoke' "$CANDIDATE_PLUGIN_ROOT/src"; then
-    echo 'organization_adapter_candidate_must_not_invoke_agent_directly' >&2
+  if grep -F 'agents.invoke' \
+      "$CANDIDATE_PLUGIN_ROOT/src/activation.ts" \
+      "$CANDIDATE_PLUGIN_ROOT/src/work.ts" \
+      "$CANDIDATE_PLUGIN_ROOT/src/worker.ts" | grep -q .; then
+    echo 'organization_adapter_non_fast_read_path_must_not_invoke_agent_directly' >&2
     exit 1
   fi
+  grep -Fq "'agents.invoke'" "$CANDIDATE_PLUGIN_ROOT/src/manifest.ts"
+  grep -Fq 'ctx.agents.invoke' "$CANDIDATE_PLUGIN_ROOT/src/fast-read.ts"
 
   test -f "$CORE/src/runtime/organization-adapter.ts"
   grep -Fq 'createPaperclipOrganizationAdapterFileSecretResolver' "$CORE/src/runtime/organization-adapter.ts"
