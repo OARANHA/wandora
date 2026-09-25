@@ -1,3 +1,17 @@
+## Reconciled checkpoint — ADR 0271 Team workbench production GREEN
+
+ADR 0271 is live in production as a Web-only promotion.
+
+Production Web now runs `wandora/web:candidate-d9d4d6babf97`, revision `d9d4d6babf97c88f450dc60baa1ddb83bafd6a8e`, healthy, restart 0. Exact Web artifact 10857772377 was qualified and its synthetic merge tree exactly matched merged `main`.
+
+Team desktop now keeps employee development on the left and the work assignment/recent-work surface on the right. Recent work is compact and delegates detailed result viewing to the canonical Work surface instead of expanding full results inline.
+
+Live validation returned 200 for /healthz, /team, /work and /login, and the live bundle contains Responsabilidades, Aprendizados, Autonomia, Dar trabalho para, Trabalhos recentes and Abrir resultado.
+
+Core, Paperclip and Messaging Gateway remained unchanged and healthy. No migration, provider/model call, customer work or outbound effect occurred in this promotion.
+
+Rollback selector: `wandora/web:candidate-7edf5895f3e3`; backup: `/opt/wandora/stacks/web/.env.adr0271.before`.
+
 ## Reconciled checkpoint — ADR 0269 single-prompt work production GREEN
 
 ADR 0269 is live in production as a Web-only promotion.
