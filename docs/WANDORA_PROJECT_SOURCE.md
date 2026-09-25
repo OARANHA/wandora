@@ -3773,3 +3773,16 @@ The final Fast Read capability set is the intersection of organization availabil
 New code is limited to `apps/core/src/integrations/capability-plane.ts` plus focused tests. There is no migration/table, provider call, model call, customer work, outbound, deployment or production mutation.
 
 Next gate: exact-head GitHub-hosted CI. After merge, the next slice is **Paperclip Integration Capability Projection + Disposable Attestation V1 — CODE ONLY / NO PRODUCTION EFFECT**.
+
+
+## Reconciled checkpoint — ADR 0279 Paperclip Integration Capability Projection preflight
+
+ADR 0279 is **PREFLIGHT COMPLETE / SAFE READ BOUNDARY GAP IDENTIFIED / NO PRODUCTION EFFECT**.
+
+Paperclip already owns Applications, Connections, grants, catalog, Tool Profiles/policies, health/readiness and Tool Gateway audit. However, pinned production Paperclip exposes the full integration-state reads through Board-authenticated routes, while the normal plugin SDK has no equivalent Connection/catalog/health read client.
+
+The Organization Adapter therefore cannot safely derive the full organization Integration Capability Projection through stable SDK calls today. Core must not receive a Paperclip Board/admin credential, and plugin.state/Wandora tables must not mirror provider operational state merely to compensate for this gap.
+
+No code implementation was started. The next safe slice is to qualify a narrow Paperclip-side read adapter or a newer SDK/release that exposes the required read-only facts without Board authority leaking into Core.
+
+No migration, registry, provider call, model call, customer work, outbound, deploy or production mutation occurred.
