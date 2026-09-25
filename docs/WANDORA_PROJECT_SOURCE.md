@@ -1,3 +1,13 @@
+## Reconciled checkpoint — ADR 0264 employee development / accumulated learning authority
+
+The next product capability is now architecturally classified before implementation.
+
+Wandora distinguishes four layers: reusable employee template, company-wide official facts/Regras da Casa, employee-specific approved responsibility/behavior/practice, and current work context.
+
+Accumulated experience may produce candidate learning, but in supervised mode it does not become durable learning automatically. Approved employee-specific guidance is a legitimate Wandora semantic that must survive Paperclip/Mastra replacement; operational Skills/Decision Training remain Paperclip-owned and runtime memory/working-memory/semantic-recall/context mechanics remain Mastra-owned.
+
+No table/migration/API/runtime/UI/provider mutation is authorized by ADR 0264. The next slice must prove the minimum durable contract, if any, before persistence is added.
+
 ## Reconciled checkpoint — ADR 0263 Work operator drawer EXECUTED / GREEN / WEB ONLY
 
 The compact Work operational surface is now live in production. PR #344 merged at `main@ef74657ba80f818db3c0377d337cb06d087f7ec5` after Web, Core, Platform Admin and Messaging Gateway CI all passed.
