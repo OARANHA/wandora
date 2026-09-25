@@ -24,15 +24,23 @@ const head = execFileSync("git", ["-C", upstreamRoot, "rev-parse", "HEAD"], {
 }).trim();
 assert.equal(head, expectedUpstream, "unexpected Paperclip upstream commit");
 
-const changed = execFileSync(
+const modified = execFileSync(
   "git",
   ["-C", upstreamRoot, "diff", "--name-only"],
   { encoding: "utf8" },
 )
   .trim()
   .split("\n")
-  .filter(Boolean)
-  .sort();
+  .filter(Boolean);
+const untracked = execFileSync(
+  "git",
+  ["-C", upstreamRoot, "ls-files", "--others", "--exclude-standard"],
+  { encoding: "utf8" },
+)
+  .trim()
+  .split("\n")
+  .filter(Boolean);
+const changed = [...new Set([...modified, ...untracked])].sort();
 
 const expectedChanged = [
   "packages/plugins/sdk/src/host-client-factory.ts",
