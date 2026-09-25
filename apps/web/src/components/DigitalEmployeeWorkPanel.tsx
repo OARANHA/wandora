@@ -271,15 +271,23 @@ export function DigitalEmployeeWorkPanel({
                 <div>
                   <p className="m-0 text-sm font-black">Trabalho enviado para {employeeName}</p>
                   <p className="m-0 mt-1 text-xs leading-5 text-[#09090b]/65">
-                    Acompanhe aqui pelos recentes ou abra a área Trabalho para ver o resultado completo.
+                    Acompanhe o status e abra o resultado em Trabalho. Conversas continua reservada ao histórico real de clientes e canais.
                   </p>
-                  <button
-                    type="button"
-                    onClick={() => setTab('recent')}
-                    className="mt-3 inline-flex items-center gap-2 text-xs font-black underline decoration-2 underline-offset-4"
-                  >
-                    Ver trabalhos recentes <ArrowRight className="size-4" />
-                  </button>
+                  <div className="mt-3 flex flex-wrap gap-3">
+                    <Link
+                      to="/work"
+                      className="inline-flex items-center gap-2 text-xs font-black underline decoration-2 underline-offset-4"
+                    >
+                      Acompanhar trabalho <ArrowRight className="size-4" />
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => setTab('recent')}
+                      className="text-xs font-black underline decoration-2 underline-offset-4"
+                    >
+                      Ver recentes
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
