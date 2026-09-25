@@ -81,8 +81,9 @@ test('same correlation with changed intent fails closed', async () => {
   assert.equal(second.invokeCalls(), 0);
 });
 
-test('non-idle employee cannot receive fast read', async () => {
-  const h = harness({ status: 'running' });
-  await assert.rejects(ensureManagedCatalogEmployeeFastRead(h.ctx, input), /managed_employee_not_ready:running/);
-  assert.equal(h.invokeCalls(), 0);
+test('delegates employee lifecycle admission to Paperclip agents.invoke', async () => {
+  const h = harness({ status: 'error' });
+  const result = await ensureManagedCatalogEmployeeFastRead(h.ctx, input);
+  assert.equal(result.runId, '44444444-4444-4444-8444-444444444444');
+  assert.equal(h.invokeCalls(), 1);
 });
