@@ -1,3 +1,15 @@
+## Reconciled checkpoint — ADR 0266 employee development durable contract implementation
+
+ADR 0266 implements the minimum provider-neutral employee-development contract in repository code only.
+
+Migration 020 defines employee-scoped `responsibility | behavior | practice` entries with provenance `owner_statement | approved_learning | approved_correction`, source evidence, active/retired lifecycle, correction history, tenant isolation and bounded owner/admin mutation functions. Core receives table SELECT only.
+
+Core also adds provider-neutral human read/mutation routes and a bounded exact-employee runtime projection `employeeGuidance[]`, structurally separate from `officialFacts[]`, `houseRules[]` and `workContext`. Readiness fails closed if the development storage boundary is unavailable while Paperclip execution is enabled.
+
+Paperclip Skills/Decision Training and Mastra memory remain delegated. No candidate-learning queue, Web surface, production migration, provider mutation, model call, customer work or outbound effect is included.
+
+Next gate is CI + merge; production activation requires a separate preflight.
+
 ## Reconciled checkpoint — ADR 0265 employee development durable contract preflight
 
 ADR 0265 proves the minimum durable contract gap for employee-specific development after exhausting reuse options.

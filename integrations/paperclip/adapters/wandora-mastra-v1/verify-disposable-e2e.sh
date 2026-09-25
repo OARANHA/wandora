@@ -199,7 +199,7 @@ CREATE DATABASE paperclip_attestation OWNER paperclip_attestation;
 SQL
 
 MIGRATIONS="$ROOT/infra/stacks/supabase/migrations"
-for migration in   20260914_001_core_multitenant_auth_v1.sql   20260914_002_ana_vertical_slice_v1.sql   20260914_003_core_runtime_role_v1.sql   20260915_004_supervised_proposal_v1.sql   20260915_005_human_supervision_read_v1.sql   20260915_006_human_session_bootstrap_v1.sql   20260915_007_human_send_proposal_v1.sql   20260916_008_private_tenant_provisioning_v1.sql   20260916_009_platform_provisioner_role_v1.sql   20260916_010_organization_adapter_state_v1.sql   20260916_011_organization_adapter_service_contract_v1.sql   20260918_013_customer_hire_tenant_eligibility_v1.sql   20260922_017_organization_grounding_contract_v1.sql; do
+for migration in   20260914_001_core_multitenant_auth_v1.sql   20260914_002_ana_vertical_slice_v1.sql   20260914_003_core_runtime_role_v1.sql   20260915_004_supervised_proposal_v1.sql   20260915_005_human_supervision_read_v1.sql   20260915_006_human_session_bootstrap_v1.sql   20260915_007_human_send_proposal_v1.sql   20260916_008_private_tenant_provisioning_v1.sql   20260916_009_platform_provisioner_role_v1.sql   20260916_010_organization_adapter_state_v1.sql   20260916_011_organization_adapter_service_contract_v1.sql   20260918_013_customer_hire_tenant_eligibility_v1.sql   20260922_017_organization_grounding_contract_v1.sql   20260925_020_digital_employee_development_contract_v1.sql; do
   docker cp "$MIGRATIONS/$migration" "$DB:/tmp/$migration" >/dev/null
   docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$WANDORA_DB" -f "/tmp/$migration" >/dev/null
 done
@@ -359,8 +359,8 @@ docker exec "$CORE" node --input-type=module -e '
 '
 
 # Migration 014 is deliberately NOT applied in this attestation.
-# Migration 017 is applied only to this disposable database because the execution
-# bridge readiness contract now requires the organization-grounding read boundary.
+# Migrations 017 and 020 are applied only to this disposable database because the execution
+# bridge readiness contract now requires organization grounding plus employee-development read boundaries.
 # Install only a disposable resolver shim with the same callable boundary so
 # /readyz and the end-to-end bridge can be proven without changing migration state.
 docker exec -i "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$WANDORA_DB" <<'SQL' >/dev/null

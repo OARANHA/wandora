@@ -94,6 +94,7 @@ test('mastra supervised model runtime keeps inbound deterministic and model work
           content: 'Quando não souber, declarar desconhecido.',
           provenance: { type: 'owner_statement', sourceLabel: null },
         }],
+        employeeGuidance: [],
         workContext: {
           title: 'Preparar resumo comercial',
           description: 'Organize os próximos passos para revisão do owner.',
@@ -136,6 +137,7 @@ test('mastra supervised model runtime keeps inbound deterministic and model work
         content: 'Quando não souber, declarar desconhecido.',
         provenance: { type: 'owner_statement', sourceLabel: null },
       }],
+      employeeGuidance: [],
       workContext: {
         title: 'Preparar resumo comercial',
         description: 'Organize os próximos passos para revisão do owner.',
@@ -178,6 +180,7 @@ test('mastra supervised model runtime aborts before the Paperclip bridge timeout
         grounding: {
           officialFacts: [],
           houseRules: [],
+      employeeGuidance: [],
           workContext: { title: 'Timeout proof', description: 'Do not wait forever.' },
         },
       }),
@@ -220,6 +223,7 @@ test('mastra supervised runtime exposes only supplied read tools without leaking
       grounding: {
         officialFacts: [],
         houseRules: [],
+          employeeGuidance: [],
         workContext: { title: 'Consultar catálogo', description: 'Use leitura se necessário.' },
       },
       readTools: [{
@@ -313,6 +317,7 @@ test('mastra supervised runtime cannot turn a read-tool failure into textual suc
         grounding: {
           officialFacts: [],
           houseRules: [],
+      employeeGuidance: [],
           workContext: { title: 'Consultar produto', description: 'Faça uma leitura apenas.' },
         },
         readTools: [{

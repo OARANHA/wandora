@@ -13,10 +13,23 @@ export type RuntimeGroundingStatement = {
   };
 };
 
-export type RuntimeGroundingProjection = {
+export type RuntimeEmployeeGuidance = {
+  kind: 'responsibility' | 'behavior' | 'practice';
+  content: string;
+  provenance: {
+    type: 'owner_statement' | 'approved_learning' | 'approved_correction';
+    sourceLabel: string | null;
+  };
+};
+
+export type RuntimeOrganizationGroundingProjection = {
   officialFacts: RuntimeGroundingStatement[];
   houseRules: RuntimeGroundingStatement[];
   workContext: AssignedTask;
+};
+
+export type RuntimeGroundingProjection = RuntimeOrganizationGroundingProjection & {
+  employeeGuidance: RuntimeEmployeeGuidance[];
 };
 
 export type RuntimeReadTool = {

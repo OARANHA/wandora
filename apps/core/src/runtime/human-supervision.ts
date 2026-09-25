@@ -16,6 +16,10 @@ import {
 } from '../organization-adapter/contracts.js';
 import type { OrganizationAdapterService } from '../organization-adapter/service.js';
 import type { HumanDigitalEmployeeActivationService } from '../supervision/human-digital-employee-activation.js';
+import {
+  HumanEmployeeDevelopmentConflictError,
+  type HumanDigitalEmployeeDevelopmentService,
+} from '../supervision/human-digital-employee-development.js';
 import type { HumanDigitalEmployeesReadService } from '../supervision/human-digital-employees-read.js';
 import type { HumanStarterWorkforceReadinessService } from '../supervision/human-starter-workforce-readiness.js';
 import {
@@ -41,6 +45,9 @@ const DIGITAL_EMPLOYEES_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/digital-e
 const STARTER_WORKFORCE_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/starter-workforce$/;
 const DIGITAL_EMPLOYEE_ACTIVATE_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/digital-employees\/([^/]+)\/activate$/;
 const DIGITAL_EMPLOYEE_WORK_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/digital-employees\/([^/]+)\/work$/;
+const DIGITAL_EMPLOYEE_DEVELOPMENT_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/digital-employees\/([^/]+)\/development$/;
+const DIGITAL_EMPLOYEE_DEVELOPMENT_RETIRE_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/digital-employees\/([^/]+)\/development\/([^/]+)\/retire$/;
+const DIGITAL_EMPLOYEE_DEVELOPMENT_CORRECT_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/digital-employees\/([^/]+)\/development\/([^/]+)\/correct$/;
 const CONVERSATIONS_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/conversations$/;
 const CONVERSATION_DETAIL_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/conversations\/([^/]+)$/;
 const GROUNDING_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/grounding$/;
@@ -100,6 +107,18 @@ export function isHumanDigitalEmployeeActivationPath(pathname: string): boolean 
 export function isHumanDigitalEmployeeWorkPath(pathname: string): boolean {
   const match = DIGITAL_EMPLOYEE_WORK_PATH_RE.exec(pathname);
   return Boolean(match?.[1] && match?.[2] && UUID_RE.test(match[1]) && UUID_RE.test(match[2]));
+}
+
+export function isHumanDigitalEmployeeDevelopmentMutationPath(pathname: string): boolean {
+  for (const expression of [
+    DIGITAL_EMPLOYEE_DEVELOPMENT_PATH_RE,
+    DIGITAL_EMPLOYEE_DEVELOPMENT_RETIRE_PATH_RE,
+    DIGITAL_EMPLOYEE_DEVELOPMENT_CORRECT_PATH_RE,
+  ]) {
+    const match = expression.exec(pathname);
+    if (match && match.slice(1).every((value) => Boolean(value && UUID_RE.test(value)))) return true;
+  }
+  return false;
 }
 
 export function isHumanCompanyProfileMutationPath(pathname: string, method: string | undefined): boolean {
@@ -258,6 +277,51 @@ function parseGroundingCorrectionRequest(rawBody: string | undefined): {
   }
 }
 
+function parseEmployeeDevelopmentCreateRequest(rawBody: string | undefined): {
+  kind: 'responsibility' | 'behavior' | 'practice';
+  content: string;
+  provenanceType: 'owner_statement' | 'approved_learning';
+  sourceRef: string | null;
+  sourceLabel: string | null;
+} | undefined {
+  if (!rawBody || rawBody.length > 8_192) return undefined;
+  try {
+    const parsed = JSON.parse(rawBody) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return undefined;
+    const record = parsed as Record<string, unknown>;
+    const allowed = new Set(['kind', 'content', 'provenanceType', 'sourceRef', 'sourceLabel']);
+    if (Object.keys(record).some((key) => !allowed.has(key))) return undefined;
+    if (!['responsibility', 'behavior', 'practice'].includes(String(record.kind))) return undefined;
+    if (record.provenanceType !== 'owner_statement' && record.provenanceType !== 'approved_learning') return undefined;
+    if (typeof record.content !== 'string') return undefined;
+    const content = record.content.trim();
+    if (!content || content.length > 4000) return undefined;
+    const sourceRef = record.sourceRef == null ? null : typeof record.sourceRef === 'string' ? record.sourceRef.trim() : undefined;
+    const sourceLabel = record.sourceLabel == null ? null : typeof record.sourceLabel === 'string' ? record.sourceLabel.trim() : undefined;
+    if (sourceRef === undefined || sourceLabel === undefined) return undefined;
+    if (sourceRef !== null && (!sourceRef || sourceRef.length > 1024)) return undefined;
+    if (sourceLabel !== null && (!sourceLabel || sourceLabel.length > 255)) return undefined;
+    if (record.provenanceType === 'approved_learning' && sourceRef === null) return undefined;
+    return {
+      kind: record.kind as 'responsibility' | 'behavior' | 'practice',
+      content,
+      provenanceType: record.provenanceType,
+      sourceRef,
+      sourceLabel,
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+function parseEmployeeDevelopmentCorrectionRequest(rawBody: string | undefined): {
+  content: string;
+  sourceRef: string;
+  sourceLabel: string | null;
+} | undefined {
+  return parseGroundingCorrectionRequest(rawBody);
+}
+
 function parseConfirmationVersion(rawBody: string | undefined): string | undefined {
   if (!rawBody || rawBody.length > 1_024) return undefined;
   try {
@@ -282,6 +346,7 @@ export function createHumanSupervisionHandler(
   companyProfileService?: HumanCompanyProfileService,
   companyRegistryLookup?: CompanyRegistryLookupService,
   starterWorkforceReadinessService?: HumanStarterWorkforceReadinessService,
+  employeeDevelopmentService?: HumanDigitalEmployeeDevelopmentService,
 ) {
   return async (request: HumanSupervisionRequest): Promise<HumanSupervisionResponse> => {
     try {
@@ -444,6 +509,65 @@ export function createHumanSupervisionHandler(
           authorization: request.authorization,
           idempotencyKey,
           ...creation,
+        });
+        return { status: 200, body: { entry } };
+      }
+
+      const developmentRetireMatch = DIGITAL_EMPLOYEE_DEVELOPMENT_RETIRE_PATH_RE.exec(request.pathname);
+      if (developmentRetireMatch) {
+        const [organizationId, employeeId, entryId] = developmentRetireMatch.slice(1);
+        if (!organizationId || !employeeId || !entryId || !UUID_RE.test(organizationId) || !UUID_RE.test(employeeId) || !UUID_RE.test(entryId)) {
+          return { status: 404, body: { error: 'not-found' } };
+        }
+        if (!employeeDevelopmentService) return { status: 404, body: { error: 'not-found' } };
+        if (request.method !== 'POST') return { status: 405, body: { error: 'method-not-allowed' } };
+        if (request.rawBody?.trim()) return { status: 400, body: { error: 'invalid-employee-development-request' } };
+        const idempotencyKey = request.idempotencyKey?.trim();
+        if (!idempotencyKey || idempotencyKey.length > 255) return { status: 400, body: { error: 'invalid-employee-development-request' } };
+        const entry = await employeeDevelopmentService.retire({
+          organizationId, employeeId, entryId, authorization: request.authorization, idempotencyKey,
+        });
+        return { status: 200, body: { entry } };
+      }
+
+      const developmentCorrectMatch = DIGITAL_EMPLOYEE_DEVELOPMENT_CORRECT_PATH_RE.exec(request.pathname);
+      if (developmentCorrectMatch) {
+        const [organizationId, employeeId, entryId] = developmentCorrectMatch.slice(1);
+        if (!organizationId || !employeeId || !entryId || !UUID_RE.test(organizationId) || !UUID_RE.test(employeeId) || !UUID_RE.test(entryId)) {
+          return { status: 404, body: { error: 'not-found' } };
+        }
+        if (!employeeDevelopmentService) return { status: 404, body: { error: 'not-found' } };
+        if (request.method !== 'POST') return { status: 405, body: { error: 'method-not-allowed' } };
+        const idempotencyKey = request.idempotencyKey?.trim();
+        const correction = parseEmployeeDevelopmentCorrectionRequest(request.rawBody);
+        if (!idempotencyKey || idempotencyKey.length > 255 || !correction) {
+          return { status: 400, body: { error: 'invalid-employee-development-request' } };
+        }
+        const entry = await employeeDevelopmentService.correct({
+          organizationId, employeeId, entryId, authorization: request.authorization, idempotencyKey, ...correction,
+        });
+        return { status: 200, body: { entry } };
+      }
+
+      const developmentMatch = DIGITAL_EMPLOYEE_DEVELOPMENT_PATH_RE.exec(request.pathname);
+      if (developmentMatch) {
+        const [organizationId, employeeId] = developmentMatch.slice(1);
+        if (!organizationId || !employeeId || !UUID_RE.test(organizationId) || !UUID_RE.test(employeeId)) {
+          return { status: 404, body: { error: 'not-found' } };
+        }
+        if (!employeeDevelopmentService) return { status: 404, body: { error: 'not-found' } };
+        if (request.method === 'GET') {
+          const items = await employeeDevelopmentService.list(request.authorization, organizationId, employeeId);
+          return { status: 200, body: { items } };
+        }
+        if (request.method !== 'POST') return { status: 405, body: { error: 'method-not-allowed' } };
+        const idempotencyKey = request.idempotencyKey?.trim();
+        const creation = parseEmployeeDevelopmentCreateRequest(request.rawBody);
+        if (!idempotencyKey || idempotencyKey.length > 255 || !creation) {
+          return { status: 400, body: { error: 'invalid-employee-development-request' } };
+        }
+        const entry = await employeeDevelopmentService.create({
+          organizationId, employeeId, authorization: request.authorization, idempotencyKey, ...creation,
         });
         return { status: 200, body: { entry } };
       }
@@ -654,6 +778,9 @@ export function createHumanSupervisionHandler(
         return { status: 404, body: { error: 'not-found' } };
       }
       if (error instanceof HumanGroundingConflictError) {
+        return { status: 409, body: { error: error.code } };
+      }
+      if (error instanceof HumanEmployeeDevelopmentConflictError) {
         return { status: 409, body: { error: error.code } };
       }
       if (error instanceof DigitalEmployeeActivationError) {

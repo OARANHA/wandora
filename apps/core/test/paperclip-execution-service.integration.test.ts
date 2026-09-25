@@ -120,6 +120,7 @@ test('active exact binding reaches AgentTaskRuntime without provider identifiers
     grounding: {
       officialFacts: [],
       houseRules: [],
+      employeeGuidance: [],
       workContext: { title: 'Qualificar', description: 'Entender necessidade' },
     },
   });

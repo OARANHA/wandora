@@ -53,6 +53,7 @@ test('MASTRA DETERMINISTIC AGENT RUNTIME V1', async (t) => {
       grounding: {
         officialFacts: [],
         houseRules: [],
+          employeeGuidance: [],
         workContext: {
           title: 'Qualificar contato',
           description: 'Entender a necessidade do contato.',

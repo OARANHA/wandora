@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { Pool, PoolClient } from 'pg';
+import type { EmployeeDevelopmentProjection } from '../agent-runtime/employee-development.js';
 import type { OrganizationGroundingProjection } from '../agent-runtime/organization-grounding.js';
 import type { AgentTaskRuntime, AssignedTask, NormalizedExecutionUsage, RuntimeReadTool } from '../agent-runtime/task-runtime.js';
 import { paperclipManagedAgentRef } from '../organization-adapter/paperclip-provider.js';
@@ -39,6 +40,7 @@ export class PaperclipExecutionService {
       runToken: string;
       paperclipRunId: string;
     }) => Promise<RuntimeReadTool[]>,
+    private readonly employeeDevelopmentProjection?: EmployeeDevelopmentProjection,
   ) {}
 
   private async resolveOrganization(providerCompanyRef: string): Promise<string> {
@@ -105,7 +107,16 @@ export class PaperclipExecutionService {
       .update(JSON.stringify(['paperclip-run-v1', organizationId, employee.employee_id, input.paperclipRunId]))
       .digest('hex')}`;
 
-    const grounding = await this.groundingProjection.project(organizationId, input.task);
+    const [organizationGrounding, employeeGuidance] = await Promise.all([
+      this.groundingProjection.project(organizationId, input.task),
+      this.employeeDevelopmentProjection
+        ? this.employeeDevelopmentProjection.project(organizationId, employee.employee_id)
+        : Promise.resolve([]),
+    ]);
+    const grounding = {
+      ...organizationGrounding,
+      employeeGuidance,
+    };
 
     if (input.workId) {
       if (!this.workProjection) {
