@@ -120,6 +120,19 @@ export function createRuntimeReadinessChecker(
           reason: 'organization-grounding-runtime-boundary-unavailable',
         };
       }
+
+      try {
+        await pool.query(`
+          SELECT 1
+            FROM wandora.digital_employee_guidance_entries
+           LIMIT 0;
+        `);
+      } catch {
+        return {
+          ready: false,
+          reason: 'digital-employee-guidance-runtime-boundary-unavailable',
+        };
+      }
     }
 
     return { ready: true };
