@@ -4,12 +4,12 @@ import { CATALOG_KEY, EXECUTION_ADAPTER_TYPE } from './catalog.js';
 const manifest: PaperclipPluginManifestV1 = {
   id: 'wandora.organization-adapter-v1',
   apiVersion: 1,
-  version: '0.4.0',
+  version: '0.5.0',
   displayName: 'Wandora Organization Adapter V1',
   description: 'Headless company-scoped managed catalog employee adapter for Wandora.',
   author: 'Wandora',
   categories: ['automation', 'connector'],
-  capabilities: ['agents.managed', 'agents.resume', 'agents.invoke', 'issues.read', 'issues.create', 'issues.wakeup', 'plugin.state.read', 'plugin.state.write', 'webhooks.receive', 'secrets.read-ref'],
+  capabilities: ['agents.managed', 'agents.resume', 'agents.invoke', 'issues.read', 'issues.create', 'issues.wakeup', 'plugin.state.read', 'plugin.state.write', 'webhooks.receive', 'secrets.read-ref', 'tools.operational.read'],
   entrypoints: { worker: './dist/worker.js' },
   instanceConfigSchema: {
     type: 'object',
