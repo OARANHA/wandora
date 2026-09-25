@@ -85,10 +85,6 @@ export async function ensureManagedCatalogEmployeeFastRead(
   if (managed.status !== 'resolved' || !managed.agentId || !managed.agent) {
     throw new Error('managed_employee_missing');
   }
-  if (managed.agent.status !== 'idle') {
-    throw new Error('managed_employee_not_ready:' + managed.agent.status);
-  }
-
   const correlationId = canonicalUuid(input.correlationId);
   const hash = requestHash(input);
   const key = stateKey(input);
@@ -101,6 +97,10 @@ export async function ensureManagedCatalogEmployeeFastRead(
     }
     if (stored.status === 'dispatched' && stored.runId) return { runId: stored.runId };
     throw new Error('fast_read_dispatch_uncertain');
+  }
+
+  if (managed.agent.status !== 'idle') {
+    throw new Error('managed_employee_not_ready:' + managed.agent.status);
   }
 
   const dispatching: FastReadDispatchReceipt = {
