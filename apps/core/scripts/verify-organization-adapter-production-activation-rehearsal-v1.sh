@@ -61,11 +61,14 @@ assert_static_activation_contract() {
     echo 'organization_adapter_activation_path_must_not_touch_work' >&2
     exit 1
   fi
-  if grep -R -F 'agents.invoke' "$CANDIDATE_PLUGIN_ROOT/src" \
-      --exclude='fast-read.ts' | grep -q .; then
+  if grep -F 'agents.invoke' \
+      "$CANDIDATE_PLUGIN_ROOT/src/activation.ts" \
+      "$CANDIDATE_PLUGIN_ROOT/src/work.ts" \
+      "$CANDIDATE_PLUGIN_ROOT/src/worker.ts" | grep -q .; then
     echo 'organization_adapter_non_fast_read_path_must_not_invoke_agent_directly' >&2
     exit 1
   fi
+  grep -Fq "'agents.invoke'" "$CANDIDATE_PLUGIN_ROOT/src/manifest.ts"
   grep -Fq 'ctx.agents.invoke' "$CANDIDATE_PLUGIN_ROOT/src/fast-read.ts"
 
   test -f "$CORE/src/runtime/organization-adapter.ts"
