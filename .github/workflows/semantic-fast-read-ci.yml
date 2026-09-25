@@ -1,0 +1,97 @@
+name: Semantic Fast Read CI
+
+on:
+  pull_request:
+    paths:
+      - 'apps/core/src/semantic-routing/**'
+      - 'apps/core/src/agent-runtime/**'
+      - 'apps/core/src/paperclip-execution/**'
+      - 'apps/core/test/fast-read-intent.test.ts'
+      - 'integrations/paperclip/adapters/wandora-mastra-v1/**'
+      - 'integrations/paperclip/plugins/organization-adapter-v1/**'
+      - '.github/workflows/semantic-fast-read-ci.yml'
+      - 'docs/decisions/0277-semantic-fast-read-intent-disposable-paperclip-attestation-v1.md'
+      - 'docs/CANONICAL_STATE.md'
+      - 'docs/WANDORA_PROJECT_SOURCE.md'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/core/src/semantic-routing/**'
+      - 'apps/core/src/agent-runtime/**'
+      - 'apps/core/src/paperclip-execution/**'
+      - 'apps/core/test/fast-read-intent.test.ts'
+      - 'integrations/paperclip/adapters/wandora-mastra-v1/**'
+      - 'integrations/paperclip/plugins/organization-adapter-v1/**'
+      - '.github/workflows/semantic-fast-read-ci.yml'
+      - 'docs/decisions/0277-semantic-fast-read-intent-disposable-paperclip-attestation-v1.md'
+      - 'docs/CANONICAL_STATE.md'
+      - 'docs/WANDORA_PROJECT_SOURCE.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: semantic-fast-read-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - name: Checkout Wandora
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Checkout pinned Paperclip source
+        uses: actions/checkout@v4
+        with:
+          repository: paperclipai/paperclip
+          ref: dffc2b3ca1b9e88fa21cb17493083e682dffd1ca
+          path: .paperclip
+          persist-credentials: false
+
+      - name: Set up Node 24.21.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.21.0
+
+      - name: Set up pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.4 --activate
+          pnpm --version
+
+      - name: Install pinned Paperclip dependencies
+        working-directory: .paperclip
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Core dependencies
+        working-directory: apps/core
+        run: npm ci
+
+      - name: Core typecheck
+        working-directory: apps/core
+        run: npm run typecheck
+
+      - name: Focused fast-read Core tests
+        working-directory: apps/core
+        run: node --import tsx --test test/fast-read-intent.test.ts
+
+      - name: Adapter contract tests
+        working-directory: integrations/paperclip/adapters/wandora-mastra-v1
+        run: node --test test/*.test.mjs
+
+      - name: Organization Adapter package qualification
+        working-directory: integrations/paperclip/plugins/organization-adapter-v1
+        env:
+          WANDORA_SOURCE_SHA: ${{ github.sha }}
+        run: bash scripts/verify-package.sh "${{ github.workspace }}/.paperclip"
+
+      - name: Dedicated disposable Semantic Fast Read E2E
+        env:
+          PAPERCLIP_SOURCE_ROOT: ${{ github.workspace }}/.paperclip
+          WANDORA_ATTESTATION_TMP_ROOT: ${{ runner.temp }}/paperclip-wandora-fast-read-e2e
+        run: bash integrations/paperclip/adapters/wandora-mastra-v1/verify-fast-read-disposable-e2e.sh
