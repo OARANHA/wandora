@@ -1,3 +1,15 @@
+## Reconciled checkpoint — ADR 0262 Web promotion preflight BLOCKED / SAFE STOP / NO PRODUCTION EFFECT
+
+ADR 0261 is merged and CI-green. Production Web remains unchanged on `wandora/web:candidate-0a7f36833188` and healthy.
+
+Exact qualified Web artifact for the owner-work flow is GitHub Actions artifact `10848923851` from Web CI #963, digest `sha256:22e7c16154dc97ffa61450aad99adfa31166a2543ccbff8f6701c0528739ee2e`, head SHA `18aec627eb50db1b3f5617345c5dc98f58d09ed8`.
+
+The bounded production preflight stopped safely before artifact staging: the Remote-Ops execution broker runs as `wandora-exec` and cannot read/execute the canonical ADR 0192 helper `/home/wandora-admin/bin/wandora-github-artifact` (`Permission denied`, helper readable=no, executable=no). No token/helper content was read and no temporary connector URL or generic authenticated curl bypass was used.
+
+Resume only after the helper is intentionally executable/readable through the governed host permission boundary or Remote-Ops gains a dedicated semantic artifact-staging capability that preserves credential custody and performs GitHub digest + path traversal + internal SHA256SUMS verification.
+
+No Web/Core/Paperclip/Gateway mutation, customer work, provider/model call, outbound or credential exposure occurred.
+
 ## Reconciled checkpoint — ADR 0261 owner work flow MERGED / CI GREEN / NO PRODUCTION EFFECT
 
 ADR 0261 is merged at `main@30a4854c175a0a20b1c788e9873f58411412480f`. PR #341 passed Web, Core, Platform Admin and Messaging Gateway CI before merge; the post-merge push workflows also completed GREEN.
