@@ -5284,3 +5284,19 @@ Wandora now has only the minimum provider-neutral semantic projection contract r
 No new table, migration, integration registry, tool registry, grant/secret store, lifecycle or provider-specific customer contract was introduced. VendaERP remains the first provider adapter only. JEV and the post-Issue semantic-decision plugin remain outside this operational plane.
 
 Next: exact-head CI, merge, then **Paperclip Integration Capability Projection + Disposable Attestation V1 — CODE ONLY / NO PRODUCTION EFFECT**.
+
+
+## ADR 0279 — Paperclip Integration Capability Projection preflight
+
+Status: **PREFLIGHT COMPLETE / SAFE READ BOUNDARY GAP IDENTIFIED / NO PRODUCTION EFFECT**.
+
+The ADR 0278 semantic projection remains valid, but its next provider-specific adapter is intentionally not implemented yet.
+
+Pinned Paperclip source proves the required Applications/Connections/grants/catalog/health reads are available through Board-authenticated routes. The plugin SDK does not expose equivalent Tool Connection/catalog/health reads; generic `ctx.authorization.grants` are principal permission grants and `ctx.tools` is registration-only.
+
+Rejected:
+- Core carrying a Paperclip Board/admin credential;
+- Organization Adapter mirroring Connections/catalog/health into plugin.state;
+- a new Wandora integration/tool registry.
+
+Next gate: qualify a safe Paperclip-side operational read boundary, preferably by reusing a newer native SDK/API capability if available.
