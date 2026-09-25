@@ -3795,3 +3795,20 @@ Paperclip current stable `v2026.916.1` was qualified against the ADR 0279 gap. N
 Architecture remains fail-closed: no Board credential in Core, no direct Paperclip DB coupling, no Connection/catalog/grant/health mirror, no `plugin.state` shadow database. A future solution must be a narrowly capability-gated Paperclip host/plugin read extension returning only bounded provider-neutral facts to ADR 0278.
 
 Next canonical slice: **Paperclip Host Operational Read Capability Extension Preflight V1 — CODE ONLY / NO PRODUCTION EFFECT**.
+
+
+## 2026-09-25 — ADR 0281 Paperclip host operational-read capability extension preflight
+
+ADR 0281 is **CODE COMPLETE / CI REQUIRED / NO PRODUCTION EFFECT**.
+
+Exact Wandora base: `main@d19aeaa96780a0846a34b73e3faf7c7383fe6b5e`. Exact Paperclip qualification source: `v2026.916.1@d554c4789ed3930f8a53ac9fdf6503b3187097da`.
+
+The smallest safe provider-side extension reuses Paperclip's existing worker↔host JSON-RPC, manifest capability enforcement, host-issued invocation company scope and `toolAccessService`. It adds one capability (`tools.operational.read`), one bounded SDK client (`ctx.toolAccess.readOperationalSnapshot`) and a cached-only catalog read. The normal Paperclip `listCatalog()` was explicitly rejected because a stale remote catalog may trigger provider I/O; the new `listCatalogCached()` never refreshes or resolves credentials.
+
+The snapshot omits Board/admin credentials, provider credentials, secret refs, grant/catalog/profile IDs, Connection IDs/UIDs and raw database state. Provider tool names/application keys remain implementation evidence inside the replaceable adapter only and must not become Wandora `BusinessCapability` semantics.
+
+The retained provider patch is `integrations/paperclip/patches/v2026.916.1-host-operational-read-v1.patch`. GitHub-hosted CI applies it to the exact upstream commit, runs capability/cross-tenant tests, proves stale cached-catalog reads cause zero provider refresh, and typechecks the patched SDK/server under Node 24.21.0 + pnpm 9.15.4.
+
+Production remains unchanged: Paperclip `v2026.916.0` healthy; Task Drain OFF; activeRuns=0; pendingWakes=0; quiescent=true; zero provider/model/customer/outbound effect.
+
+Next only after exact PR-head CI GREEN: disposable ADR 0279 Integration Capability Plane attestation against an isolated Paperclip candidate/lab. Production activation remains a separate slice.
