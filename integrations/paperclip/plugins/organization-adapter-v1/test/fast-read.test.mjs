@@ -63,7 +63,7 @@ test('duplicate correlation returns the original run and never invokes twice', a
   const receipt = first.writes.at(-1);
   assert.equal(initial.runId, '44444444-4444-4444-8444-444444444444');
 
-  const second = harness({ stored: receipt });
+  const second = harness({ stored: receipt, status: 'error' });
   const replay = await ensureManagedCatalogEmployeeFastRead(second.ctx, input);
   assert.equal(replay.runId, initial.runId);
   assert.equal(second.invokeCalls(), 0);
