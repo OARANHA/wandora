@@ -1,3 +1,20 @@
+## Reconciled checkpoint — ADR 0264 Digital Employee Accumulated Learning Authority
+
+ADR 0264 defines the architecture/product boundary for accumulated learning of a digital employee without creating a Wandora memory/training engine.
+
+Canonical decision:
+- company-wide authoritative facts/rules remain in Wandora organization grounding;
+- runtime episodic/working/semantic memory remains delegated to Mastra/current runtime provider;
+- procedural skills + per-agent skill assignment remain Paperclip operational authority;
+- decision-training examples/snapshots remain Paperclip operational authority;
+- the real Wandora product gap is only the minimum provider-neutral semantics of approved employee-specific role/learning declarations, if a following reuse proof shows existing Wandora-owned state cannot represent them correctly.
+
+No table, migration, API, runtime mutation, provider mutation, customer work, model call or outbound effect was performed.
+
+The intended flow is experience -> learning candidate -> classification/authority -> company grounding OR employee-specific approved learning OR Paperclip skill/decision-training evidence OR episodic/discard.
+
+Next slice: Digital Employee Role + Approved Learning Reuse Preflight V1 — NO EFFECT.
+
 ## Reconciled checkpoint — ADR 0263 Work operator drawer EXECUTED / GREEN / WEB ONLY
 
 The compact Work operational surface is now live in production. PR #344 merged at `main@ef74657ba80f818db3c0377d337cb06d087f7ec5` after Web, Core, Platform Admin and Messaging Gateway CI all passed.
