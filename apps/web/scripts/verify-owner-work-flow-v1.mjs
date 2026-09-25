@@ -14,6 +14,11 @@ const requireText = (source, text, label) => {
 
 requireText(workPanel, 'Acompanhar trabalho', 'post-submit follow-up CTA');
 requireText(workPanel, 'Conversas continua reservada ao histórico real de clientes e canais.', 'work/conversation boundary');
+requireText(workPanel, 'if (!normalizedRequest) return;', 'single required supervised-work prompt');
+requireText(workPanel, ': normalizedRequest;', 'single prompt canonical description fallback');
+requireText(workPanel, 'Detalhes adicionais (opcional).', 'optional work details');
+requireText(workPanel, 'disabled={mutation.isPending || !title.trim()}', 'single prompt submit gate');
+
 requireText(workPage, 'ACOMPANHE DO PEDIDO AO RESULTADO.', 'owner work lifecycle');
 requireText(workPage, 'SÓ INTERROMPE VOCÊ QUANDO PRECISA.', 'attention separation');
 requireText(workPage, 'customer-supervised-work-overview', 'supervised-work read projection');
