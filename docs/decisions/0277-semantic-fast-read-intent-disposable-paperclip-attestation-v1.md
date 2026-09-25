@@ -1,6 +1,6 @@
 # ADR 0277 — Semantic Fast Read Intent + Disposable Paperclip Attestation V1
 
-Status: **CODE COMPLETE / CI QUALIFICATION PENDING / NO PRODUCTION EFFECT**  
+Status: **CODE COMPLETE / IMPLEMENTATION CI GREEN / NO PRODUCTION EFFECT**  
 Date: 2026-09-25
 
 ## Context
@@ -137,10 +137,12 @@ The plugin:
 
 1. authenticates the request using the existing company-scoped Wandora HMAC boundary;
 2. resolves the existing managed employee;
-3. requires the managed employee to be idle;
-4. writes a Paperclip-owned `plugin.state` dispatch receipt keyed by correlation;
-5. calls native `ctx.agents.invoke`;
+3. checks the Paperclip-owned `plugin.state` dispatch receipt keyed by correlation before any new dispatch;
+4. returns the original Paperclip run for an exact duplicate correlation/input;
+5. delegates new-run lifecycle admission to native `ctx.agents.invoke`;
 6. stores the resulting Paperclip run id.
+
+The plugin deliberately does **not** implement its own `agent.status === idle` lifecycle gate. The pinned Paperclip SDK defines `agents.invoke` as the operational admission boundary and rejects lifecycle states such as paused, terminated and pending approval. Duplicating that policy in the Wandora adapter was rejected under ADR 0168.
 
 The prompt is a provider-neutral bounded envelope. It contains no concrete tool name.
 
@@ -253,6 +255,8 @@ The accepted transport is the existing authenticated Organization Adapter plugin
 
 The accepted replay mitigation is short-lived signed intent plus the Paperclip-owned operational dispatch receipt.
 
+A final adversarial review after removing the duplicate adapter-side lifecycle gate confirmed the authority split. JEV 1.13.0 returned `proceed_fast` with probability 0.77: Wandora retains semantic intent/idempotency semantics while Paperclip remains the sole operational lifecycle admission authority.
+
 ## Disposable E2E qualification
 
 The pinned disposable Paperclip attestation must prove the exact path:
@@ -287,16 +291,42 @@ Required invariants:
 
 The duplicate-capability negative case is created only inside the disposable Paperclip database by duplicating the synthetic read-only KV catalog binding. It is not a product registry or production mutation.
 
-## Local validation before PR
+## Qualification evidence
 
-Currently GREEN locally:
+Implementation qualification head `ae40de47de5fa4dc21b4aa7e1f6990f1ec364cbb` completed **10/10 GitHub-hosted workflows GREEN** under ADR 0158, including:
 
-- adapter contract tests: 11/11;
-- Organization Adapter fast-read dispatch/idempotency tests: 5/5;
-- `git diff --check`;
-- disposable E2E shell syntax.
+- Semantic Fast Read CI run `36158799595`;
+- Core CI run `36158799448`;
+- Paperclip Mastra Adapter CI run `36158799566`;
+- Organization Adapter Plugin CI run `36158799454`;
+- Core Candidate Artifact, Web, Messaging Gateway, Platform Admin, Paperclip OpenAPI Compatibility and VendaERP Read-Only MCP CI.
 
-A previous focused Core test run was 6/6 GREEN before the local dependency directory was cleared. A subsequent reinstall attempt on the VPS broker failed with npm `ECONNRESET` and the broker host is Node 18, below Core's required Node >=22.13. Therefore final Core typecheck/build/tests and the full disposable E2E must be qualified by the canonical GitHub-hosted Ubuntu 24.04 CI per ADR 0158.
+The dedicated pinned-Paperclip disposable attestation emitted:
+
+```text
+PAPERCLIP_WANDORA_FAST_READ_DISPOSABLE_ATTESTATION_V1_OK
+paperclip_issue_delta=0
+paperclip_run_delta=1
+read_tool_call_delta=1
+model_usage=0|0|0
+agentic_calls=0
+expired_tool_delta=0
+unauthorized_tool_delta=0
+duplicate_capability_tool_delta=0
+```
+
+Additional hosted qualification proves:
+
+- Core typecheck GREEN;
+- focused Core fast-read tests GREEN;
+- adapter contract tests GREEN;
+- Organization Adapter package qualification GREEN;
+- normal Paperclip -> Core -> Mastra disposable E2E remains GREEN;
+- Organization Adapter production-activation rehearsal remains GREEN;
+- duplicate correlation returns the original run even after Paperclip reports the managed agent in an error state;
+- new dispatch lifecycle admission is delegated to Paperclip `agents.invoke`, not reimplemented by Wandora.
+
+The final documentation-only PR head must also complete CI GREEN before merge. Production remains untouched.
 
 ## Effect boundary
 
@@ -317,6 +347,6 @@ network/auth change to wandora-jev-mcp = 0
 
 ## Merge gate
 
-**Do not merge until the exact PR head is CI GREEN, including Core CI, Organization Adapter plugin CI and the disposable Paperclip -> Core -> Tool Gateway fast-read attestation.**
+The implementation qualification head is GREEN. **Do not merge until the exact final PR head (including this documentation checkpoint) is also CI GREEN.**
 
 Production enablement remains a separate preflight/execution slice even after merge.
