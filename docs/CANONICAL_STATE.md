@@ -1,3 +1,11 @@
+## Reconciled checkpoint — ADR 0258 official PascalCase product projection CODE COMPLETE / NO PROVIDER CALL
+
+ADR 0257 proved the live bounded unfiltered VendaERP product read failed as `invalid-provider-response / product-list-shape / shape=null`. Official integration documentation defines `GET /api/request/Produtos/Pesquisar` as returning a Produto list with PascalCase fields. The live replaceable MCP already accepts a direct array structurally but previously projected only legacy camelCase product fields.
+
+ADR 0258 changes only the replaceable VendaERP MCP product projection to support explicit known aliases such as `nome|Nome`, `codigo|Codigo`, `precoVenda|PrecoVenda` and the other documented product fields. It does not accept new top-level wrappers, does not case-fold arbitrary keys, and continues to fail closed on JSON `null`.
+
+Synthetic/no-network validation is required in CI. No provider/model/outbound call or production mutation occurs in this slice. After merge, promotion remains a separate NO PROVIDER CALL slice before any new bounded customer-work test.
+
 ## Reconciled checkpoint — ADR 0257 diagnostic V3 EXECUTED / exact shape=null / hard one-call budget honored
 
 ADR 0257 executed one genuine owner-originated 28PRO customer work through the normal path `Wandora -> Paperclip -> Ana/Mastra -> Tool Gateway -> VendaERP`. Paperclip logs prove one Tool Gateway POST for run `d6ec458f-31ce-43f6-a2ae-60da58ac1c32`, no second Tool Gateway call/retry, and Core failed closed with `wandora_execution_failed_422`.
