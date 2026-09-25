@@ -1,6 +1,6 @@
 # ADR 0281 — Paperclip Host Operational Read Capability Extension Preflight V1
 
-Status: CODE COMPLETE / FOCUSED CI REQUIRED / NO PRODUCTION EFFECT
+Status: PREFLIGHT GREEN / HOST EXTENSION QUALIFIED / NO PRODUCTION EFFECT
 Date: 2026-09-25
 
 ## Context
@@ -204,6 +204,35 @@ The dedicated CI workflow Paperclip Host Operational Read Extension CI must:
 
 No production credential, Docker control plane, customer data or live provider is required.
 
+## Exact-head CI qualification
+
+Implementation head:
+
+`e4060656cab70ffcf408eb4aa3fbabd127c855d1`
+
+completed **9/9 GitHub Actions workflows GREEN**:
+
+- Paperclip Host Operational Read Extension CI — run 36175260177;
+- Core CI — run 36175260057;
+- Semantic Fast Read CI — run 36175259966;
+- Organization Adapter Plugin CI — run 36175259967;
+- Paperclip OpenAPI Compatibility — run 36175259996;
+- VendaERP Read-Only MCP CI — run 36175260232;
+- Web CI — run 36175260069;
+- Platform Admin CI — run 36175259960;
+- Messaging Gateway CI — run 36175260073.
+
+The dedicated extension gate proved on GitHub-hosted ubuntu-24.04 / Node 24.21.0:
+
+- exact upstream checkout and patch apply;
+- static authority/leak verifier GREEN;
+- pinned dependency install GREEN;
+- patched plugin SDK typecheck GREEN;
+- patched Paperclip server typecheck GREEN;
+- focused capability, cross-company, host-service tenant/leak and cache-only tests GREEN.
+
+The first dedicated run on an earlier head failed only because the static verifier used `git diff --name-only`, which omits new untracked files created by `git apply`. The verifier was corrected to union modified and untracked paths without widening the allowlist; the exact implementation head above then passed the complete gate.
+
 ## Effect boundary
 
 Paperclip production patch/upgrade = 0
@@ -225,4 +254,4 @@ After the exact final PR head is GREEN, this preflight may be marked complete an
 
 Only then may a later slice implement the Paperclip-side adapter consumption and the ADR 0279 disposable Integration Capability Projection attestation. Production Paperclip promotion remains a separate effect-authorizing preflight/execution.
 
-ADR 0281 is currently CODE COMPLETE / FOCUSED CI REQUIRED / NO PRODUCTION EFFECT.
+ADR 0281 is **PREFLIGHT GREEN / HOST EXTENSION QUALIFIED / NO PRODUCTION EFFECT**.
