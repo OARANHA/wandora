@@ -13,9 +13,19 @@ export type RuntimeGroundingStatement = {
   };
 };
 
+export type RuntimeEmployeeGuidance = {
+  kind: 'responsibility' | 'behavior' | 'practice';
+  content: string;
+  provenance: {
+    type: 'owner_statement' | 'approved_learning' | 'approved_correction';
+    sourceLabel: string | null;
+  };
+};
+
 export type RuntimeGroundingProjection = {
   officialFacts: RuntimeGroundingStatement[];
   houseRules: RuntimeGroundingStatement[];
+  employeeGuidance: RuntimeEmployeeGuidance[];
   workContext: AssignedTask;
 };
 
