@@ -193,7 +193,7 @@ SELECT wandora.correct_digital_employee_development_entry(
   '2026-09-25T08:04:00Z'
 );
 
-DO $
+DO $$
 DECLARE
   old_status text;
   new_status text;
@@ -219,7 +219,7 @@ BEGIN
     RAISE EXCEPTION 'employee_development_correction_history_failed';
   END IF;
 END
-$;
+$$;
 
 SELECT set_config('wandora.organization_id','e1000000-0000-4000-8000-000000000001',true);
 
