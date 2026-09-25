@@ -5275,7 +5275,7 @@ Next safe slice: **Paperclip Business-System Connection Container + REST Tool Ga
 
 ## ADR 0278 — Integration Capability Plane V1
 
-Status: **CODE COMPLETE / CI PENDING / NO PRODUCTION EFFECT**.
+Status: **CODE COMPLETE / IMPLEMENTATION CI GREEN / NO PRODUCTION EFFECT**.
 
 Paperclip remains operational authority for Applications, Connections, grants, secrets, installs, Tool Catalog, Tool Profiles/policies, health/readiness, run-scoped Tool Gateway authorization and tool audit.
 
