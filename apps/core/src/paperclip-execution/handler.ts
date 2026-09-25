@@ -1,6 +1,8 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import type { AssignedTask } from '../agent-runtime/task-runtime.js';
 import { PaperclipExecutionBindingError, type PaperclipExecutionService } from './service.js';
+import { FastReadIntentError } from '../semantic-routing/fast-read-intent.js';
+import type { PaperclipFastReadExecutionService } from './fast-read.js';
 import { PaperclipToolGatewayReadBridgeError } from './tool-gateway-read-bridge.js';
 import {
   PaperclipRunIdentityError,
@@ -41,6 +43,7 @@ function parseBody(rawBody: string): {
   paperclipRunId: string;
   workId: string | null;
   task: AssignedTask;
+  fastRead: { intentToken: string; correlationId: string } | null;
 } | undefined {
   let value: unknown;
   try { value = JSON.parse(rawBody); } catch { return undefined; }
@@ -62,12 +65,22 @@ function parseBody(rawBody: string): {
   if (!title && !description) return undefined;
   if (workId !== null && !UUID_RE.test(workId)) return undefined;
 
+  let fastRead: { intentToken: string; correlationId: string } | null = null;
+  if (value.fastRead !== undefined && value.fastRead !== null) {
+    if (!isRecord(value.fastRead) || workId !== null) return undefined;
+    const intentToken = optionalText(value.fastRead.intentToken, 8192);
+    const correlationId = optionalText(value.fastRead.correlationId, 64);
+    if (!intentToken || !correlationId || !UUID_RE.test(correlationId) || description !== null) return undefined;
+    fastRead = { intentToken, correlationId: correlationId.toLowerCase() };
+  }
+
   return {
     paperclipAgentId,
     paperclipCompanyId,
     paperclipRunId,
     workId,
     task: { title: title ?? description!, description },
+    fastRead,
   };
 }
 
@@ -101,6 +114,7 @@ export function createPaperclipExecutionHandler(deps: {
     paperclipCompanyId: string;
   }) => Promise<PaperclipRunIdentity>;
   service: Pick<PaperclipExecutionService, 'execute'>;
+  fastReadService?: Pick<PaperclipFastReadExecutionService, 'execute'>;
   now?: () => number;
 }) {
   const now = deps.now ?? (() => Date.now());
@@ -122,6 +136,21 @@ export function createPaperclipExecutionHandler(deps: {
         paperclipAgentId: parsed.paperclipAgentId,
         paperclipCompanyId: parsed.paperclipCompanyId,
       });
+      if (parsed.fastRead) {
+        if (!deps.fastReadService) {
+          return { status: 409, body: { error: 'fast-read-unavailable' } };
+        }
+        const result = await deps.fastReadService.execute({
+          identity,
+          runToken,
+          paperclipRunId: parsed.paperclipRunId,
+          intentToken: parsed.fastRead.intentToken,
+          correlationId: parsed.fastRead.correlationId,
+          request: parsed.task.title,
+          nowMs: now(),
+        });
+        return { status: 200, body: result };
+      }
       const result = await deps.service.execute({
         identity,
         runToken,
@@ -137,8 +166,14 @@ export function createPaperclipExecutionHandler(deps: {
           body: { error: error.code === 'invalid' ? 'unauthorized' : 'paperclip-identity-unavailable' },
         };
       }
+      if (error instanceof FastReadIntentError) {
+        return { status: 401, body: { error: 'fast-read-intent-invalid' } };
+      }
       if (error instanceof PaperclipExecutionBindingError) {
         return { status: 409, body: { error: 'employee-execution-unavailable' } };
+      }
+      if (error instanceof Error && error.message === 'fast_read_capability_unavailable') {
+        return { status: 409, body: { error: 'fast-read-capability-unavailable' } };
       }
       if (error instanceof PaperclipToolGatewayReadBridgeError && error.code === 'tool-failed') {
         return { status: 422, body: { error: 'read-tool-failed' } };

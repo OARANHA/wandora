@@ -38,6 +38,34 @@ function nonNegativeInteger(value) {
 const WORK_MARKER_RE =
   /^<!-- wandora-work-v1:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}) -->\r?\n?/i;
 
+const FAST_READ_PROMPT_PREFIX = 'WANDORA_FAST_READ_V1 ';
+
+function fastReadWake(context) {
+  const wake = isRecord(context?.paperclipWake) ? context.paperclipWake : null;
+  const message = wake && isRecord(wake.agentMessage) ? wake.agentMessage : null;
+  if (!message || message.source !== 'plugin_invoke' || message.pluginKey !== 'wandora.organization-adapter-v1') {
+    return null;
+  }
+  if (context?.paperclipIssue) throw new Error('wandora_fast_read_issue_not_allowed');
+
+  const text = requiredString(message.text, 'wandora_fast_read_message_required', 24000);
+  if (!text.startsWith(FAST_READ_PROMPT_PREFIX)) return null;
+
+  let value;
+  try {
+    value = JSON.parse(Buffer.from(text.slice(FAST_READ_PROMPT_PREFIX.length), 'base64url').toString('utf8'));
+  } catch {
+    throw new Error('wandora_fast_read_wake_invalid');
+  }
+  if (!isRecord(value) || value.version !== 1) throw new Error('wandora_fast_read_wake_invalid');
+
+  const correlationId = requiredString(value.correlationId, 'wandora_fast_read_correlation_required', 64).toLowerCase();
+  if (!UUID_RE.test(correlationId)) throw new Error('wandora_fast_read_correlation_invalid');
+  const intentToken = requiredString(value.intentToken, 'wandora_fast_read_intent_required', 8192);
+  const request = requiredString(value.request, 'wandora_fast_read_request_required', MAX_TASK_TEXT);
+  return { correlationId, intentToken, request };
+}
+
 function reviewedTask(context) {
   const issue = context?.paperclipIssue && typeof context.paperclipIssue === 'object'
     ? context.paperclipIssue
@@ -355,13 +383,31 @@ export function createServerAdapter() {
       const paperclipAgentId = requiredString(ctx.agent?.id, 'paperclip_agent_id_required', 255);
       const paperclipCompanyId = requiredString(ctx.agent?.companyId, 'paperclip_company_id_required', 255);
       const paperclipRunId = requiredString(ctx.runId, 'paperclip_run_id_required', 255);
-      const task = reviewedTask(ctx.context);
+      const fastRead = fastReadWake(ctx.context);
+      const task = fastRead
+        ? {
+            workId: null,
+            issueId: null,
+            identifier: null,
+            title: fastRead.request,
+            description: null,
+            workMode: null,
+            wakeReason: optionalString(ctx.context?.wakeReason, 24_000),
+            wakeCommentId: null,
+          }
+        : reviewedTask(ctx.context);
       const timestamp = String(Math.floor(Date.now() / 1000));
       const rawBody = JSON.stringify({
         paperclipAgentId,
         paperclipCompanyId,
         paperclipRunId,
         task,
+        ...(fastRead ? {
+          fastRead: {
+            intentToken: fastRead.intentToken,
+            correlationId: fastRead.correlationId,
+          },
+        } : {}),
       });
       const signature = sign(secret, timestamp, rawBody);
 

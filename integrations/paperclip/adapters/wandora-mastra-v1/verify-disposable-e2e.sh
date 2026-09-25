@@ -24,9 +24,9 @@ PAPERCLIP_PROXY="wandora-paperclip-core-e2e-proxy-$SUFFIX"
 CORE="wandora-paperclip-core-e2e-core-$SUFFIX"
 CORE_IMAGE="wandora/core:paperclip-e2e-$SUFFIX"
 WANDORA_DB="wandora_test"
-DB_PASSWORD="wandora-disposable-db-only"
-CORE_PASSWORD="wandora-disposable-core-only"
-PAPERCLIP_DB_PASSWORD="wandora-disposable-paperclip-only"
+[REDACTED]
+[REDACTED]
+[REDACTED]
 ORG_ID="11111111-1111-4111-8111-111111111111"
 EMPLOYEE_ID="22222222-2222-4222-8222-222222222222"
 
@@ -67,8 +67,17 @@ stage_tree() {
 # under RUNNER_TEMP (or the explicit proof root) before launching containers.
 stage_tree "$PAPERCLIP_SOURCE_ROOT" "$TMP/paperclip-source"
 stage_tree "$ROOT/integrations/paperclip/adapters/wandora-mastra-v1" "$TMP/wandora-adapter"
+stage_tree "$ROOT/integrations/paperclip/plugins/organization-adapter-v1" "$TMP/organization-plugin"
+
+SDK_JS="$PAPERCLIP_SOURCE_ROOT/packages/plugins/sdk/dist/index.js"
+ESBUILD="$PAPERCLIP_SOURCE_ROOT/node_modules/.bin/esbuild"
+mkdir -p "$TMP/organization-plugin/dist"
+"$ESBUILD" "$TMP/organization-plugin/src/manifest.ts" --bundle --platform=node --format=esm --target=node24   --outfile="$TMP/organization-plugin/dist/manifest.js" --alias:@paperclipai/plugin-sdk="$SDK_JS" >/dev/null
+"$ESBUILD" "$TMP/organization-plugin/src/worker.ts" --bundle --platform=node --format=esm --target=node24   --outfile="$TMP/organization-plugin/dist/worker.js" --alias:@paperclipai/plugin-sdk="$SDK_JS" >/dev/null
 
 printf '%s\n' 'paperclip-execution-bridge-disposable-hmac-0123456789abcdef0123456789abcdef' > "$TMP/bridge.hmac"
+printf '%s\n' 'wandora-fast-read-disposable-hmac-0123456789abcdef0123456789abcdef' > "$TMP/fast-read.hmac"
+printf '%s\n' 'wandora-organization-adapter-disposable-hmac-0123456789abcdef0123456789abcdef' > "$TMP/organization-adapter.hmac"
 printf '%s\n' "$CORE_PASSWORD" > "$TMP/core-db-password"
 printf '%s\n' 'gateway-ingress-disposable-hmac-0123456789abcdef0123456789abcdef' > "$TMP/gateway.hmac"
 cat > "$TMP/paperclip-loopback-proxy.mjs" <<'PROXY'
@@ -80,35 +89,38 @@ const address = Object.values(os.networkInterfaces())
   .find((entry) => entry?.family === 'IPv4' && !entry.internal)?.address;
 if (!address) throw new Error('paperclip_disposable_network_address_unavailable');
 
+function allowed(method, url) {
+  return (
+    (method === 'GET' && url === '/api/agents/me')
+    || (method === 'POST' && url === '/api/tool-gateway/sessions')
+    || (method === 'GET' && url === '/api/tool-gateway/tools')
+    || (method === 'POST' && url === '/api/tool-gateway/tools/call')
+  );
+}
+
 const server = http.createServer(async (request, response) => {
-  const authorization = request.headers.authorization ?? '';
-  const runId = request.headers['x-paperclip-run-id'] ?? '';
-  if (
-    request.method !== 'GET'
-    || request.url !== '/api/agents/me'
-    || !authorization.toLowerCase().startsWith('bearer ')
-    || typeof runId !== 'string'
-    || !runId
-  ) {
+  if (!allowed(request.method, request.url)) {
     response.writeHead(404, { 'content-type': 'application/json' });
     response.end('{"error":"not_found"}');
     return;
   }
-
+  let body = '';
+  for await (const chunk of request) body += chunk;
+  const headers = {};
+  for (const [key, value] of Object.entries(request.headers)) {
+    if (typeof value === 'string') headers[key] = value;
+  }
   try {
-    const upstream = await fetch('http://127.0.0.1:3100/api/agents/me', {
-      method: 'GET',
-      headers: {
-        authorization,
-        'x-paperclip-run-id': runId,
-        accept: 'application/json',
-      },
+    const upstream = await fetch('http://127.0.0.1:3100' + request.url, {
+      method: request.method,
+      headers,
+      body: body || undefined,
     });
-    const body = await upstream.text();
+    const text = await upstream.text();
     response.writeHead(upstream.status, {
       'content-type': upstream.headers.get('content-type') ?? 'application/json',
     });
-    response.end(body);
+    response.end(text);
   } catch {
     response.writeHead(502, { 'content-type': 'application/json' });
     response.end('{"error":"upstream_unavailable"}');
@@ -140,7 +152,7 @@ const server = http.createServer((request, response) => {
       const body = JSON.parse(raw);
       const workId = String(body?.task?.workId ?? '');
       const issueId = String(body?.task?.issueId ?? '');
-      const token = String(request.headers['x-wandora-paperclip-run-token'] ?? '');
+      const [REDACTED]'x-wandora-paperclip-run-token'] ?? '');
       if (!workId || !issueId || !token || String(body?.task?.description ?? '').includes('wandora-work-v1:')) {
         throw new Error('invalid_reviewed_customer_work_request');
       }
@@ -170,7 +182,7 @@ const server = http.createServer((request, response) => {
 server.listen(8788, '0.0.0.0');
 FAKECORE
 
-chmod 0644 "$TMP/bridge.hmac" "$TMP/core-db-password" "$TMP/gateway.hmac" "$TMP/paperclip-loopback-proxy.mjs" "$TMP/fake-wandora-core.mjs"
+chmod 0644 "$TMP/bridge.hmac" "$TMP/fast-read.hmac" "$TMP/organization-adapter.hmac" "$TMP/core-db-password" "$TMP/gateway.hmac" "$TMP/paperclip-loopback-proxy.mjs" "$TMP/fake-wandora-core.mjs"
 
 docker network create "$NET" >/dev/null
 
@@ -206,7 +218,7 @@ done
 
 docker exec "$DB" psql -v ON_ERROR_STOP=1 -U supabase_admin -d "$WANDORA_DB" -c   "ALTER ROLE wandora_core_runtime CONNECTION LIMIT 4 PASSWORD '$CORE_PASSWORD';" >/dev/null
 
-docker run -d --name "$PAPERCLIP"   --network "$NET" --network-alias wandora-paperclip   --read-only   --tmpfs /tmp:rw,nosuid,size=64m   --tmpfs /paperclip:rw,nosuid,size=256m   -v "$TMP/paperclip-source:/app:ro"   -v "$TMP/wandora-adapter:/proof/wandora-adapter:ro"   -v "$TMP/bridge.hmac:/proof/bridge.hmac:ro"   -e HOST=127.0.0.1   -e PORT=3100   -e SERVE_UI=false   -e PAPERCLIP_HOME=/paperclip   -e PAPERCLIP_INSTANCE_ID=wandora-disposable-attestation   -e PAPERCLIP_DEPLOYMENT_MODE=local_trusted   -e PAPERCLIP_DEPLOYMENT_EXPOSURE=private   -e PAPERCLIP_PUBLIC_URL=http://wandora-paperclip:3100   -e PAPERCLIP_ALLOWED_HOSTNAMES=wandora-paperclip   -e PAPERCLIP_TELEMETRY_DISABLED=1   -e DO_NOT_TRACK=1   -e HEARTBEAT_SCHEDULER_INTERVAL_MS=10000   -e PAPERCLIP_BUILD_VERSION=v2026.916.0   -e PAPERCLIP_BUILD_COMMIT="$EXPECTED_PAPERCLIP_COMMIT"   -e PAPERCLIP_MIGRATION_AUTO_APPLY=true   -e PAPERCLIP_MIGRATION_PROMPT=never   -e DATABASE_URL="postgresql://paperclip_attestation:$PAPERCLIP_DB_PASSWORD@$DB:5432/paperclip_attestation"   -e BETTER_AUTH_SECRET=disposable-better-auth-secret-0123456789abcdef   -e PAPERCLIP_AGENT_JWT_SECRET=disposable-agent-jwt-secret-0123456789abcdef0123456789abcdef   -e PAPERCLIP_TOOL_ACTION_SIGNING_SECRET=disposable-tool-secret-0123456789abcdef0123456789abcdef   -e WANDORA_PAPERCLIP_EXECUTION_BRIDGE_URL=http://wandora-core:8788/internal/v1/paperclip/execution   -e WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE=/proof/bridge.hmac   "$NODE24_IMAGE"   node --import /app/server/node_modules/tsx/dist/loader.mjs /app/server/src/index.ts >/dev/null
+docker run -d --name "$PAPERCLIP"   --network "$NET" --network-alias wandora-paperclip   --read-only   --tmpfs /tmp:rw,nosuid,size=64m   --tmpfs /paperclip:rw,nosuid,size=256m   -v "$TMP/paperclip-source:/app:ro"   -v "$TMP/wandora-adapter:/proof/wandora-adapter:ro"   -v "$TMP/organization-plugin:/proof/organization-plugin:ro"   -v "$TMP/bridge.hmac:/proof/bridge.hmac:ro"   -e HOST=127.0.0.1   -e PORT=3100   -e SERVE_UI=false   -e PAPERCLIP_HOME=/paperclip   -e PAPERCLIP_INSTANCE_ID=wandora-disposable-attestation   -e PAPERCLIP_DEPLOYMENT_MODE=local_trusted   -e PAPERCLIP_DEPLOYMENT_EXPOSURE=private   -e PAPERCLIP_PUBLIC_URL=http://wandora-paperclip:3100   -e PAPERCLIP_ALLOWED_HOSTNAMES=wandora-paperclip   -e PAPERCLIP_TELEMETRY_DISABLED=1   -e DO_NOT_TRACK=1   -e HEARTBEAT_SCHEDULER_INTERVAL_MS=10000   -e PAPERCLIP_BUILD_VERSION=v2026.916.0   -e PAPERCLIP_BUILD_COMMIT="$EXPECTED_PAPERCLIP_COMMIT"   -e PAPERCLIP_MIGRATION_AUTO_APPLY=true   -e PAPERCLIP_MIGRATION_PROMPT=never   -e DATABASE_URL="[REDACTED]$DB:5432/paperclip_attestation"   -e BETTER_AUTH_SECRET=disposable-better-auth-secret-0123456789abcdef   -e PAPERCLIP_AGENT_JWT_SECRET=disposable-agent-jwt-secret-0123456789abcdef0123456789abcdef   -e PAPERCLIP_TOOL_ACTION_SIGNING_SECRET=disposable-tool-secret-0123456789abcdef0123456789abcdef   -e WANDORA_PAPERCLIP_EXECUTION_BRIDGE_URL=http://wandora-core:8788/internal/v1/paperclip/execution   -e WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE=/proof/bridge.hmac   "$NODE24_IMAGE"   node --import /app/server/node_modules/tsx/dist/loader.mjs /app/server/src/index.ts >/dev/null
 
 pc_api() {
   local method="$1" path="$2" body="${3:-}"
@@ -226,7 +238,7 @@ pc_api() {
         console.error(`\nPaperclip HTTP ${response.status} for ${method} ${path}`);
         process.exit(22);
       }
-    '
+    ' "$COMPANY_ID"
 }
 
 json_field() {
@@ -240,6 +252,48 @@ json_field() {
     if (current === undefined || current === null) process.exit(3);
     process.stdout.write(String(current));
   ' "$field"
+}
+
+pc_sql() {
+  local statement="$1"
+  docker exec -e PGPASSWORD="$PAPERCLIP_DB_PASSWORD" "$DB" \
+    psql -X -At -h 127.0.0.1 -U paperclip_attestation -d paperclip_attestation -c "$statement"
+}
+
+pc_signed_plugin_webhook() {
+  local endpoint="$1" body="$2"
+  local timestamp signature
+  timestamp="$(date +%s)"
+  signature="$(node -e '
+    const { createHmac } = require("node:crypto");
+    const fs = require("node:fs");
+    const [REDACTED] "utf8").trim();
+    process.stdout.write("sha256=" + createHmac("sha256", secret)
+      .update(process.argv[2] + "." + process.argv[3]).digest("hex"));
+  ' "$TMP/organization-adapter.hmac" "$timestamp" "$body")"
+  docker exec \
+    -e WEBHOOK_ENDPOINT="$endpoint" \
+    -e WEBHOOK_BODY="$body" \
+    -e WEBHOOK_TIMESTAMP="$timestamp" \
+    -e WEBHOOK_SIGNATURE="$signature" \
+    "$PAPERCLIP" node --input-type=module -e '
+      const response = await fetch("http://127.0.0.1:3100" + process.env.WEBHOOK_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-wandora-timestamp": process.env.WEBHOOK_TIMESTAMP,
+          "x-wandora-signature": process.env.WEBHOOK_SIGNATURE,
+        },
+        body: process.env.WEBHOOK_BODY,
+      });
+      const text = await response.text();
+      if (!response.ok) {
+        console.error(text);
+        console.error("Plugin webhook HTTP " + response.status);
+        process.exit(22);
+      }
+      process.stdout.write(text);
+    '
 }
 
 for _ in $(seq 1 120); do
@@ -284,17 +338,47 @@ docker run --rm --network "$NET" "$NODE24_IMAGE" \
 adapter_install="$(pc_api POST /api/adapters/install '{"packageName":"/proof/wandora-adapter","isLocalPath":true}')"
 test -n "$adapter_install"
 
+plugin_install="$(pc_api POST /api/plugins/install '{"packageName":"/proof/organization-plugin","isLocalPath":true}')"
+PLUGIN_ID="$(printf '%s' "$plugin_install" | json_field id)"
+
 company_json="$(pc_api POST /api/companies '{"name":"Wandora Disposable Execution Attestation"}')"
 COMPANY_ID="$(printf '%s' "$company_json" | json_field id)"
 
-fixture_output="$(docker exec \
-  -e WANDORA_DISPOSABLE_COMPANY_ID="$COMPANY_ID" \
-  "$PAPERCLIP" \
-  node --import /app/server/node_modules/tsx/dist/loader.mjs \
-  /proof/wandora-adapter/disposable-managed-agent-fixture.ts)"
-AGENT_ID="$(printf '%s\n' "$fixture_output" | sed -n 's/^WANDORA_MANAGED_AGENT_ID=//p' | tail -n 1)"
+organization_secret_body="$(node -e '
+  const fs = require("node:fs");
+  process.stdout.write(JSON.stringify({
+    name: "Wandora Organization Adapter Disposable HMAC",
+    key: "wandora.organization-adapter.disposable-hmac",
+    provider: "local_encrypted",
+    managedMode: "paperclip_managed",
+    value: fs.readFileSync(process.argv[1], "utf8").trim(),
+  }));
+' "$TMP/organization-adapter.hmac")"
+organization_secret_json="$(pc_api POST "/api/companies/$COMPANY_ID/secrets" "$organization_secret_body")"
+ORGANIZATION_SECRET_ID="$(printf '%s' "$organization_secret_json" | json_field id)"
+
+plugin_config_body="$(node -e '
+  process.stdout.write(JSON.stringify({
+    companyId: process.argv[1],
+    configJson: {
+      hmacSecret: { type: "secret_ref", secretId: process.argv[2] },
+    },
+  }));
+' "$COMPANY_ID" "$ORGANIZATION_SECRET_ID")"
+pc_api POST "/api/plugins/$PLUGIN_ID/config" "$plugin_config_body" >/dev/null
+
+reconcile_body="$(node -e '
+  process.stdout.write(JSON.stringify({
+    companyId: process.argv[1],
+    catalogKey: "ana-commercial-v1",
+  }));
+' "$COMPANY_ID")"
+pc_signed_plugin_webhook "/api/plugins/$PLUGIN_ID/webhooks/employee-reconcile" "$reconcile_body" >/dev/null
+pc_signed_plugin_webhook "/api/plugins/$PLUGIN_ID/webhooks/employee-activate" "$reconcile_body" >/dev/null
+
+AGENT_ID="$(pc_sql "select id::text from agents where company_id='$COMPANY_ID'::uuid and metadata->'pluginManagedAgent'->>'pluginKey'='wandora.organization-adapter-v1' and metadata->'pluginManagedAgent'->>'agentKey'='ana-commercial-v1' order by created_at desc limit 1;")"
 if ! [[ "$AGENT_ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]]; then
-  printf 'Disposable managed-agent fixture did not emit a valid id.\n%s\n' "$fixture_output" >&2
+  printf 'Disposable Organization Adapter did not reconcile a valid managed agent.\n' >&2
   exit 42
 fi
 
@@ -336,7 +420,7 @@ SQL
 
 docker build -q -t "$CORE_IMAGE" "$ROOT/apps/core" >/dev/null
 
-docker run -d --name "$CORE"   --network "$NET" --network-alias wandora-core   --read-only   --tmpfs /tmp:rw,noexec,nosuid,size=16m   --security-opt no-new-privileges:true   --cap-drop ALL   -v "$TMP/core-db-password:/run/secrets/core-db-password:ro"   -v "$TMP/gateway.hmac:/run/secrets/gateway.hmac:ro"   -v "$TMP/bridge.hmac:/run/secrets/bridge.hmac:ro"   -e PORT=8788   -e WANDORA_CORE_MODE=database   -e WANDORA_CORE_DB_HOST="$DB"   -e WANDORA_CORE_DB_PORT=5432   -e WANDORA_CORE_DB_NAME="$WANDORA_DB"   -e WANDORA_CORE_DB_USER=wandora_core_runtime   -e WANDORA_CORE_DB_PASSWORD_FILE=/run/secrets/core-db-password   -e WANDORA_GATEWAY_INGRESS_ENABLED=true   -e WANDORA_GATEWAY_INGRESS_SECRET_FILE=/run/secrets/gateway.hmac   -e WANDORA_AGENT_RUNTIME_MODE=mastra-deterministic   -e MASTRA_TELEMETRY_DISABLED=true   -e WANDORA_PAPERCLIP_EXECUTION_BRIDGE_ENABLED=true   -e WANDORA_PAPERCLIP_AGENT_ME_URL=http://wandora-paperclip:3100/api/agents/me   -e WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE=/run/secrets/bridge.hmac   "$CORE_IMAGE" >/dev/null
+docker run -d --name "$CORE"   --network "$NET" --network-alias wandora-core   --read-only   --tmpfs /tmp:rw,noexec,nosuid,size=16m   --security-opt no-new-privileges:true   --cap-drop ALL   -v "$TMP/core-db-[REDACTED]"   -v "$TMP/gateway.hmac:/run/secrets/gateway.hmac:ro"   -v "$TMP/bridge.hmac:/run/secrets/bridge.hmac:ro"   -e PORT=8788   -e WANDORA_CORE_MODE=database   -e WANDORA_CORE_DB_HOST="$DB"   -e WANDORA_CORE_DB_PORT=5432   -e WANDORA_CORE_DB_NAME="$WANDORA_DB"   -e WANDORA_CORE_DB_USER=wandora_core_runtime   -e WANDORA_CORE_DB_PASSWORD_FILE=/run/secrets/core-db-password   -e WANDORA_GATEWAY_INGRESS_ENABLED=true   -e WANDORA_GATEWAY_INGRESS_SECRET_FILE=/run/secrets/gateway.hmac   -e WANDORA_AGENT_RUNTIME_MODE=mastra-deterministic   -e MASTRA_TELEMETRY_DISABLED=true   -e WANDORA_PAPERCLIP_EXECUTION_BRIDGE_ENABLED=true   -e WANDORA_PAPERCLIP_AGENT_ME_URL=http://wandora-paperclip:3100/api/agents/me   -e WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE=/run/secrets/bridge.hmac   "$CORE_IMAGE" >/dev/null
 
 for _ in $(seq 1 60); do
   if docker exec "$CORE" node -e "fetch('http://127.0.0.1:8788/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" >/dev/null 2>&1; then
@@ -463,6 +547,254 @@ test "$(printf '%s' "$agent_me" | json_field metadata.pluginManagedAgent.agentKe
 # lifecycle proof so the scheduler cannot create unrelated recovery noise.
 pc_api PATCH "/api/issues/$ISSUE_ID" '{"status":"done"}' >/dev/null
 
+# --- ADR 0277 disposable issue-less fast-read attestation ---
+# Install Paperclip's official deterministic safe read-only Todo/KV fixture.
+fast_example_json="$(pc_api POST "/api/companies/$COMPANY_ID/tools/examples/safe-read-only-todo-kv/install" '{}')"
+FAST_READ_CONNECTION_ID="$(printf '%s' "$fast_example_json" | node -e '
+  const fs=require("node:fs");
+  const value=JSON.parse(fs.readFileSync(0,"utf8"));
+  process.stdout.write(String(value.connection?.id ?? value.install?.connectionId ?? ""));
+')"
+test -n "$FAST_READ_CONNECTION_ID"
+
+# Replace the normal disposable Core with the focused fast-read Core. It wires
+# run identity + Tool Gateway + intent verification + deterministic execution,
+# while both normal AgentTaskRuntime paths fail if touched.
+docker rm -f "$CORE" >/dev/null
+docker run -d --name "$CORE" \
+  --network "$NET" --network-alias wandora-core \
+  --read-only --tmpfs /tmp:rw,noexec,nosuid,size=16m \
+  --security-opt no-new-privileges:true --cap-drop ALL \
+  -v "$TMP/wandora-adapter/disposable-fast-read-core.mjs:/proof/disposable-fast-read-core.mjs:ro" \
+  -e WANDORA_CORE_DB_HOST="$DB" \
+  -e WANDORA_CORE_DB_PORT=5432 \
+  -e WANDORA_CORE_DB_NAME="$WANDORA_DB" \
+  -e WANDORA_CORE_DB_USER=wandora_core_runtime \
+  -e WANDORA_CORE_DB_PASSWORD="$CORE_PASSWORD" \
+  -e WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET="$(cat "$TMP/bridge.hmac")" \
+  -e WANDORA_FAST_READ_INTENT_SECRET="$(cat "$TMP/fast-read.hmac")" \
+  "$CORE_IMAGE" node /proof/disposable-fast-read-core.mjs >/dev/null
+
+for _ in $(seq 1 30); do
+  if docker exec "$CORE" node -e "fetch('http://127.0.0.1:8788/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 1
+done
+docker exec "$CORE" node -e "fetch('http://127.0.0.1:8788/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" >/dev/null
+
+FAST_READ_REQUEST='Leia o valor sintético do projeto.'
+
+make_fast_read_token() {
+  local correlation="$1"
+  local capability="$2"
+  local age_ms="$3"
+  local ttl_seconds="$4"
+  docker exec \
+    -e FAST_READ_CORRELATION="$correlation" \
+    -e FAST_READ_REQUEST="$FAST_READ_REQUEST" \
+    -e FAST_READ_CAPABILITY="$capability" \
+    -e FAST_READ_AGE_MS="$age_ms" \
+    -e FAST_READ_TTL_SECONDS="$ttl_seconds" \
+    -e FAST_READ_SECRET="$(cat "$TMP/fast-read.hmac")" \
+    "$CORE" node --input-type=module -e '
+      import { issueFastReadIntent } from "/app/dist/semantic-routing/fast-read-intent.js";
+      const capability = process.env.FAST_READ_CAPABILITY;
+      const [REDACTED]
+        [REDACTED]
+        organizationId: "11111111-1111-4111-8111-111111111111",
+        employeeId: "22222222-2222-4222-8222-222222222222",
+        correlationId: process.env.FAST_READ_CORRELATION,
+        request: process.env.FAST_READ_REQUEST,
+        decision: {
+          mode: "deterministic_read",
+          capability,
+          confidence: 1,
+          needsDataOrToolLookup: 1,
+          needsMoreContext: 0,
+          needsHumanReview: 0,
+          ambiguity: "none",
+        },
+        availableCapabilities: [capability],
+        policy: {
+          minimumConfidence: 0.9,
+          maximumNeedsMoreContext: 0.1,
+          maximumNeedsHumanReview: 0.1,
+          minimumNeedsDataOrToolLookup: 0.9,
+        },
+        nowMs: Date.now() - Number(process.env.FAST_READ_AGE_MS),
+        ttlSeconds: Number(process.env.FAST_READ_TTL_SECONDS),
+      });
+      process.stdout.write(token);
+    '
+}
+
+make_fast_read_webhook_body() {
+  local correlation="$1"
+  local token="$2"
+  node -e '
+    process.stdout.write(JSON.stringify({
+      companyId: process.argv[1],
+      catalogKey: "ana-commercial-v1",
+      correlationId: process.argv[2],
+      intentToken: process.argv[3],
+      request: process.argv[4],
+    }));
+  ' "$COMPANY_ID" "$correlation" "$token" "$FAST_READ_REQUEST"
+}
+
+latest_fast_read_run_id() {
+  pc_sql "select id::text from heartbeat_runs where company_id='$COMPANY_ID'::uuid and agent_id='$AGENT_ID'::uuid and context_snapshot->>'wakeReason'='wandora_fast_read_v1' order by created_at desc limit 1;"
+}
+
+wait_terminal_fast_read() {
+  local run_id="$1"
+  local status=""
+  for _ in $(seq 1 90); do
+    status="$(pc_sql "select status::text from heartbeat_runs where id='$run_id'::uuid;")"
+    case "$status" in
+      succeeded|failed|interrupted|cancelled|timed_out)
+        printf '%s' "$status"
+        return
+        ;;
+    esac
+    sleep 1
+  done
+  printf '%s' "$status"
+}
+
+tool_invocation_count() {
+  pc_sql "select count(*) from tool_invocations where company_id='$COMPANY_ID'::uuid;"
+}
+
+FAST_CORRELATION='77777777-7777-4777-8777-777777777777'
+FAST_TOKEN="$(make_fast_read_token "$FAST_CORRELATION" 'business.products.price' 0 120)"
+FAST_BODY="$(make_fast_read_webhook_body "$FAST_CORRELATION" "$FAST_TOKEN")"
+fast_issue_before="$(pc_sql "select count(*) from issues where company_id='$COMPANY_ID'::uuid;")"
+fast_run_before="$(pc_sql "select count(*) from heartbeat_runs where company_id='$COMPANY_ID'::uuid and agent_id='$AGENT_ID'::uuid and context_snapshot->>'wakeReason'='wandora_fast_read_v1';")"
+fast_tool_before="$(tool_invocation_count)"
+
+pc_signed_plugin_webhook "/api/plugins/$PLUGIN_ID/webhooks/employee-fast-read" "$FAST_BODY" >/dev/null
+FAST_READ_RUN_ID=""
+for _ in $(seq 1 30); do
+  FAST_READ_RUN_ID="$(latest_fast_read_run_id)"
+  if [ -n "$FAST_READ_RUN_ID" ]; then break; fi
+  sleep 1
+done
+test -n "$FAST_READ_RUN_ID"
+test "$(wait_terminal_fast_read "$FAST_READ_RUN_ID")" = "succeeded"
+
+# Replaying the exact Wandora correlation must return the Paperclip-owned receipt
+# and must not create a second run or tool call.
+pc_signed_plugin_webhook "/api/plugins/$PLUGIN_ID/webhooks/employee-fast-read" "$FAST_BODY" >/dev/null
+sleep 2
+
+fast_issue_after="$(pc_sql "select count(*) from issues where company_id='$COMPANY_ID'::uuid;")"
+fast_run_after="$(pc_sql "select count(*) from heartbeat_runs where company_id='$COMPANY_ID'::uuid and agent_id='$AGENT_ID'::uuid and context_snapshot->>'wakeReason'='wandora_fast_read_v1';")"
+fast_tool_after="$(tool_invocation_count)"
+test "$fast_issue_after" = "$fast_issue_before"
+test "$((fast_run_after-fast_run_before))" = "1"
+test "$((fast_tool_after-fast_tool_before))" = "1"
+test "$(pc_sql "select count(*) from tool_invocations where company_id='$COMPANY_ID'::uuid and run_id='$FAST_READ_RUN_ID'::uuid and status='completed' and risk_level='read';")" = "1"
+test -z "$(pc_sql "select coalesce(context_snapshot->>'issueId','') from heartbeat_runs where id='$FAST_READ_RUN_ID'::uuid;")"
+fast_usage="$(pc_sql "select coalesce((usage_json->>'inputTokens')::int,-1)||'|'||coalesce((usage_json->>'outputTokens')::int,-1)||'|'||coalesce((usage_json->>'cachedInputTokens')::int,-1)||'|'||coalesce((usage_json->>'totalTokens')::int,-1) from heartbeat_runs where id='$FAST_READ_RUN_ID'::uuid;")"
+test "$fast_usage" = "0|0|0|0"
+test "$(pc_sql "select coalesce(result_json->>'model','') from heartbeat_runs where id='$FAST_READ_RUN_ID'::uuid;")" = "wandora-deterministic-read-v1"
+fast_agentic_calls="$(docker exec "$CORE" node -e "fetch('http://127.0.0.1:8788/healthz').then(r=>r.json()).then(v=>process.stdout.write(String(v.agenticCalls))).catch(()=>process.exit(1))")"
+test "$fast_agentic_calls" = "0"
+
+# No retry/continuation successor after the scheduler floor.
+sleep 12
+test "$(pc_sql "select count(*) from heartbeat_runs where company_id='$COMPANY_ID'::uuid and agent_id='$AGENT_ID'::uuid and context_snapshot->>'wakeReason'='wandora_fast_read_v1';")" = "$fast_run_after"
+
+# Expired intent -> zero Tool Gateway calls.
+EXPIRED_CORRELATION='88888888-8888-4888-8888-888888888888'
+EXPIRED_TOKEN="$(make_fast_read_token "$EXPIRED_CORRELATION" 'business.products.price' 10000 5)"
+EXPIRED_BODY="$(make_fast_read_webhook_body "$EXPIRED_CORRELATION" "$EXPIRED_TOKEN")"
+expired_tool_before="$(tool_invocation_count)"
+pc_signed_plugin_webhook "/api/plugins/$PLUGIN_ID/webhooks/employee-fast-read" "$EXPIRED_BODY" >/dev/null
+EXPIRED_RUN_ID=""
+for _ in $(seq 1 30); do
+  EXPIRED_RUN_ID="$(latest_fast_read_run_id)"
+  if [ -n "$EXPIRED_RUN_ID" ] && [ "$EXPIRED_RUN_ID" != "$FAST_READ_RUN_ID" ]; then break; fi
+  sleep 1
+done
+test -n "$EXPIRED_RUN_ID"
+test "$(wait_terminal_fast_read "$EXPIRED_RUN_ID")" = "failed"
+expired_tool_after="$(tool_invocation_count)"
+test "$expired_tool_after" = "$expired_tool_before"
+
+# Invalid signature -> zero Tool Gateway calls.
+INVALID_CORRELATION='89898989-8989-4989-8989-898989898989'
+INVALID_TOKEN="$(make_fast_read_token "$INVALID_CORRELATION" 'business.products.price' 0 120)x"
+INVALID_BODY="$(make_fast_read_webhook_body "$INVALID_CORRELATION" "$INVALID_TOKEN")"
+invalid_tool_before="$(tool_invocation_count)"
+pc_signed_plugin_webhook "/api/plugins/$PLUGIN_ID/webhooks/employee-fast-read" "$INVALID_BODY" >/dev/null
+INVALID_RUN_ID=""
+for _ in $(seq 1 30); do
+  INVALID_RUN_ID="$(latest_fast_read_run_id)"
+  if [ -n "$INVALID_RUN_ID" ] && [ "$INVALID_RUN_ID" != "$EXPIRED_RUN_ID" ]; then break; fi
+  sleep 1
+done
+test -n "$INVALID_RUN_ID"
+test "$(wait_terminal_fast_read "$INVALID_RUN_ID")" = "failed"
+invalid_tool_after="$(tool_invocation_count)"
+test "$invalid_tool_after" = "$invalid_tool_before"
+
+# Capability absent from the currently authorized Tool Gateway set -> zero calls.
+UNAUTH_CORRELATION='99999999-9999-4999-8999-999999999999'
+UNAUTH_TOKEN="$(make_fast_read_token "$UNAUTH_CORRELATION" 'business.orders.search' 0 120)"
+UNAUTH_BODY="$(make_fast_read_webhook_body "$UNAUTH_CORRELATION" "$UNAUTH_TOKEN")"
+unauth_tool_before="$(tool_invocation_count)"
+pc_signed_plugin_webhook "/api/plugins/$PLUGIN_ID/webhooks/employee-fast-read" "$UNAUTH_BODY" >/dev/null
+UNAUTH_RUN_ID=""
+for _ in $(seq 1 30); do
+  UNAUTH_RUN_ID="$(latest_fast_read_run_id)"
+  if [ -n "$UNAUTH_RUN_ID" ] && [ "$UNAUTH_RUN_ID" != "$INVALID_RUN_ID" ]; then break; fi
+  sleep 1
+done
+test -n "$UNAUTH_RUN_ID"
+test "$(wait_terminal_fast_read "$UNAUTH_RUN_ID")" = "failed"
+unauth_tool_after="$(tool_invocation_count)"
+test "$unauth_tool_after" = "$unauth_tool_before"
+
+# Disposable-only duplicate catalog binding for the same concrete read tool.
+FAST_READ_CATALOG_ENTRY_ID="$(pc_sql "select id::text from tool_catalog_entries where company_id='$COMPANY_ID'::uuid and connection_id='$FAST_READ_CONNECTION_ID'::uuid and tool_name='kv_get' and status='active' order by created_at limit 1;")"
+FAST_READ_PROFILE_ID="$(pc_sql "select id::text from tool_profiles where company_id='$COMPANY_ID'::uuid and profile_key='paperclip.examples.safe-read-only-todo-kv.profile' and status='active' limit 1;")"
+test -n "$FAST_READ_CATALOG_ENTRY_ID"
+test -n "$FAST_READ_PROFILE_ID"
+DUP_CATALOG_ID="$(pc_sql "select gen_random_uuid()::text;")"
+pc_sql "insert into tool_catalog_entries(id,company_id,application_id,connection_id,entry_kind,name,tool_name,title,description,input_schema,annotations,risk_level,is_read_only,is_write,is_destructive,status,version_hash) select '$DUP_CATALOG_ID'::uuid,company_id,application_id,connection_id,entry_kind,name||'-duplicate',tool_name,title,description,input_schema,annotations,risk_level,is_read_only,is_write,is_destructive,status,version_hash||'-duplicate' from tool_catalog_entries where id='$FAST_READ_CATALOG_ENTRY_ID'::uuid;" >/dev/null
+pc_sql "insert into tool_profile_entries(company_id,profile_id,selector_type,effect,catalog_entry_id) values ('$COMPANY_ID'::uuid,'$FAST_READ_PROFILE_ID'::uuid,'catalog_entry','include','$DUP_CATALOG_ID'::uuid);" >/dev/null
+
+DUP_CORRELATION='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+DUP_TOKEN="$(make_fast_read_token "$DUP_CORRELATION" 'business.products.price' 0 120)"
+DUP_BODY="$(make_fast_read_webhook_body "$DUP_CORRELATION" "$DUP_TOKEN")"
+dup_tool_before="$(tool_invocation_count)"
+pc_signed_plugin_webhook "/api/plugins/$PLUGIN_ID/webhooks/employee-fast-read" "$DUP_BODY" >/dev/null
+DUP_RUN_ID=""
+for _ in $(seq 1 30); do
+  DUP_RUN_ID="$(latest_fast_read_run_id)"
+  if [ -n "$DUP_RUN_ID" ] && [ "$DUP_RUN_ID" != "$UNAUTH_RUN_ID" ]; then break; fi
+  sleep 1
+done
+test -n "$DUP_RUN_ID"
+test "$(wait_terminal_fast_read "$DUP_RUN_ID")" = "failed"
+dup_tool_after="$(tool_invocation_count)"
+test "$dup_tool_after" = "$dup_tool_before"
+
+printf '%s\n' "PAPERCLIP_WANDORA_FAST_READ_DISPOSABLE_ATTESTATION_V1_OK"
+printf '%s\n' "fast_read_issue_delta=$((fast_issue_after-fast_issue_before))"
+printf '%s\n' "fast_read_run_delta=$((fast_run_after-fast_run_before))"
+printf '%s\n' "fast_read_tool_delta=$((fast_tool_after-fast_tool_before))"
+printf '%s\n' "fast_read_usage=$fast_usage"
+printf '%s\n' "fast_read_agentic_calls=$fast_agentic_calls"
+printf '%s\n' "fast_read_duplicate_run_same=true"
+printf '%s\n' "fast_read_expired_tool_delta=$((expired_tool_after-expired_tool_before))"
+printf '%s\n' "fast_read_invalid_tool_delta=$((invalid_tool_after-invalid_tool_before))"
+printf '%s\n' "fast_read_unauthorized_tool_delta=$((unauth_tool_after-unauth_tool_before))"
+printf '%s\n' "fast_read_duplicate_capability_tool_delta=$((dup_tool_after-dup_tool_before))"
+
 # The existing proof above already covers the real Paperclip -> Wandora Core bridge.
 # For the focused lifecycle proof below, replace Core with a deterministic fake that
 # returns normalized usage without invoking any model. This isolates the adapter's
@@ -490,12 +822,6 @@ work_issue_body="$(node -e '
 ' "$AGENT_ID" "$WORK_ID")"
 work_issue_json="$(pc_api POST "/api/companies/$COMPANY_ID/issues" "$work_issue_body")"
 WORK_ISSUE_ID="$(printf '%s' "$work_issue_json" | json_field id)"
-
-pc_sql() {
-  local statement="$1"
-  docker exec -e PGPASSWORD="$PAPERCLIP_DB_PASSWORD" "$DB" \
-    psql -X -At -h 127.0.0.1 -U paperclip_attestation -d paperclip_attestation -c "$statement"
-}
 
 WORK_RUN_ID=""
 WORK_RUN_STATUS=""

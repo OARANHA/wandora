@@ -92,6 +92,41 @@ export class DeterministicReadExecutor {
     private readonly policy: SemanticRoutePolicy,
   ) {}
 
+  private async executeCapability(input: {
+    request: string;
+    capability: BusinessCapability;
+    bindings: readonly DeterministicReadBinding[];
+  }): Promise<DeterministicReadExecution> {
+    const request = nonEmptyText(input.request, 12_000);
+    const matches = input.bindings.filter((binding) => binding.capability === input.capability);
+    if (matches.length !== 1) {
+      return { kind: 'fallback', reason: 'capability-binding-unavailable', toolCalls: 0 };
+    }
+
+    const normalized = await matches[0]!.execute(request);
+    return {
+      kind: 'completed',
+      capability: input.capability,
+      model: 'wandora-deterministic-read-v1',
+      summary: render(normalized),
+      toolCalls: 1,
+      usage: {
+        inputTokens: 0,
+        outputTokens: 0,
+        cachedInputTokens: 0,
+        totalTokens: 0,
+      },
+    };
+  }
+
+  async executeAuthorizedIntent(input: {
+    request: string;
+    capability: BusinessCapability;
+    bindings: readonly DeterministicReadBinding[];
+  }): Promise<DeterministicReadExecution> {
+    return this.executeCapability(input);
+  }
+
   async execute(input: {
     request: string;
     decision: SemanticRouteDecision;
@@ -104,24 +139,10 @@ export class DeterministicReadExecutor {
       return { kind: 'fallback', reason: gate.reason, toolCalls: 0 };
     }
 
-    const matches = input.bindings.filter((binding) => binding.capability === gate.capability);
-    if (matches.length !== 1) {
-      return { kind: 'fallback', reason: 'capability-binding-unavailable', toolCalls: 0 };
-    }
-
-    const normalized = await matches[0]!.execute(request);
-    return {
-      kind: 'completed',
+    return this.executeCapability({
+      request,
       capability: gate.capability,
-      model: 'wandora-deterministic-read-v1',
-      summary: render(normalized),
-      toolCalls: 1,
-      usage: {
-        inputTokens: 0,
-        outputTokens: 0,
-        cachedInputTokens: 0,
-        totalTokens: 0,
-      },
-    };
+      bindings: input.bindings,
+    });
   }
 }

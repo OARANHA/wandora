@@ -83,6 +83,31 @@ export function parseWorkWebhook(input: {
   };
 }
 
+
+export function parseFastReadWebhook(input: {
+  endpointKey: string; parsedBody?: unknown; rawBody: string; headers: Record<string, HeaderValue>;
+}) {
+  if (input.endpointKey !== 'employee-fast-read') throw new Error('unknown_endpoint');
+  const body = input.parsedBody && typeof input.parsedBody === 'object' && !Array.isArray(input.parsedBody)
+    ? input.parsedBody as Record<string, unknown>
+    : {};
+  if (Object.keys(body).sort().join(',') !== 'catalogKey,companyId,correlationId,intentToken,request') {
+    throw new Error('invalid_wandora_request');
+  }
+  const companyId = nonEmpty(body.companyId);
+  const catalogKey = nonEmpty(body.catalogKey);
+  const correlationId = nonEmpty(body.correlationId);
+  const intentToken = nonEmpty(body.intentToken);
+  const request = nonEmpty(body.request);
+  const timestamp = nonEmpty(input.headers['x-wandora-timestamp']);
+  const signature = nonEmpty(input.headers['x-wandora-signature']);
+  if (!companyId || catalogKey !== CATALOG_KEY || !correlationId
+    || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(correlationId)
+    || !intentToken || intentToken.length > 8192 || !request || request.length > 12000
+    || !timestamp || !signature) throw new Error('invalid_wandora_request');
+  return { companyId, catalogKey: CATALOG_KEY, correlationId: correlationId.toLowerCase(), intentToken, request, timestamp, signature, rawBody: input.rawBody };
+}
+
 export function requireFreshTimestamp(timestamp: string, nowSeconds = Math.floor(Date.now() / 1000)): number {
   const numericTimestamp = Number(timestamp);
   if (!Number.isInteger(numericTimestamp) || Math.abs(nowSeconds - numericTimestamp) > MAX_SKEW_SECONDS) {

@@ -1,3 +1,24 @@
+## Reconciled checkpoint — ADR 0277 Semantic Fast Read Intent + Disposable Paperclip Attestation V1
+
+ADR 0277 is **CODE COMPLETE / CI QUALIFICATION PENDING / NO PRODUCTION EFFECT**.
+
+The selected boundary is now provider-neutral and authority-correct:
+
+- Wandora owns the stateless, short-lived HMAC Fast Read Intent and the `BusinessCapability` semantic gate;
+- the existing authenticated `wandora.organization-adapter-v1` webhook dispatches fast read through native Paperclip `agents.invoke`;
+- Paperclip `plugin.state` stores only an operational correlation receipt so duplicate dispatch does not create a second run;
+- the `wandora_mastra` adapter accepts the issue-less fast-read envelope only when it came from `plugin_invoke` by the Organization Adapter plugin;
+- Core independently verifies bridge HMAC, Paperclip run identity, organization/employee binding and the signed intent before opening Tool Gateway;
+- `BusinessCapability -> RuntimeReadTool` bindings are ephemeral and computed only from the currently Paperclip-authorized read tools;
+- exactly one binding is required; zero or duplicate bindings fail closed before tool execution;
+- the deterministic branch does not enter AgentTaskRuntime/Mastra and reports zero token usage.
+
+No migration, table, Wandora lifecycle, tool registry, provider/model call, customer work, outbound, deploy or production mutation is part of this slice.
+
+Local focused validation currently proves adapter contract 11/11 GREEN, Organization Adapter fast-read dispatch/idempotency 5/5 GREEN, `git diff --check` GREEN and disposable attestation shell syntax GREEN. A previous focused Core test was 6/6 GREEN before local dependencies were cleared; the broker later hit npm `ECONNRESET` and runs Node 18, below Core's required Node >=22.13. Final typecheck/build/tests and the full pinned Paperclip disposable attestation therefore remain gated on the canonical GitHub-hosted Ubuntu 24.04 workflows per ADR 0158.
+
+Do not merge until the exact PR head is CI GREEN. Production activation remains a separate future preflight/execution slice.
+
 ## Reconciled checkpoint — ADR 0276 Semantic Route + Deterministic Read Contract V1
 
 ADR 0276 is **CODE COMPLETE / NO PRODUCTION EFFECT / PROVIDER UNWIRED**.
