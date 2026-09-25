@@ -181,3 +181,25 @@ test('human review and generative decisions never enter deterministic execution'
   }
   assert.equal(calls, 0);
 });
+
+
+test('invalid Wandora route policy fails closed before any capability binding executes', async () => {
+  let calls = 0;
+  const executor = new DeterministicReadExecutor({
+    ...POLICY,
+    minimumConfidence: -1,
+  });
+  const result = await executor.execute({
+    request: 'Qual o preço do PREMIUM PLUS?',
+    decision: decision(),
+    bindings: [
+      binding('business.products.price', async () => {
+        calls += 1;
+        return { kind: 'not_found' as const, message: 'never' };
+      }),
+    ],
+  });
+
+  assert.deepEqual(result, { kind: 'fallback', reason: 'invalid-policy', toolCalls: 0 });
+  assert.equal(calls, 0);
+});
