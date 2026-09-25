@@ -1,4 +1,5 @@
 import { Pool } from 'pg';
+import { PostgresEmployeeDevelopmentProjection } from '../agent-runtime/employee-development.js';
 import { MastraDeterministicAgentRuntime } from '../agent-runtime/mastra-deterministic.js';
 import { MastraSupervisedModelAgentRuntime } from '../agent-runtime/mastra-supervised-model.js';
 import { PostgresOrganizationGroundingProjection } from '../agent-runtime/organization-grounding.js';
@@ -13,6 +14,7 @@ import { PaperclipExecutionService } from '../paperclip-execution/service.js';
 import { BrasilApiCompanyRegistryLookup } from '../supervision/company-registry-lookup.js';
 import { HumanCompanyProfileService } from '../supervision/human-company-profile.js';
 import { HumanDigitalEmployeeActivationService } from '../supervision/human-digital-employee-activation.js';
+import { HumanDigitalEmployeeDevelopmentService } from '../supervision/human-digital-employee-development.js';
 import { HumanDigitalEmployeesReadService } from '../supervision/human-digital-employees-read.js';
 import { HumanStarterWorkforceReadinessService } from '../supervision/human-starter-workforce-readiness.js';
 import { HumanGroundingService } from '../supervision/human-grounding.js';
@@ -85,6 +87,7 @@ const handlePaperclipExecution = pool
         pool,
         agentRuntime,
         new PostgresOrganizationGroundingProjection(pool),
+        new PostgresEmployeeDevelopmentProjection(pool),
         config.humanDigitalEmployeeWork ? organizationAdapterService : undefined,
         config.agentRuntime?.mode === 'mastra-supervised-model'
           ? createPaperclipToolGatewayReadBridge({
@@ -109,6 +112,10 @@ const humanReadService = pool && humanVerifier
 
 const humanGroundingService = pool && humanReadService
   ? new HumanGroundingService(pool, humanReadService)
+  : undefined;
+
+const humanDigitalEmployeeDevelopmentService = pool && humanReadService
+  ? new HumanDigitalEmployeeDevelopmentService(pool, humanReadService)
   : undefined;
 
 const humanCompanyProfileService = pool && humanVerifier && humanReadService && config.customerCompanyOnboarding
@@ -177,6 +184,7 @@ const handleHumanSupervision = humanReadService
       humanDigitalEmployeeActivationService,
       humanDigitalEmployeeWorkService,
       humanGroundingService,
+      humanDigitalEmployeeDevelopmentService,
       humanCompanyProfileService,
       companyRegistryLookup,
       humanStarterWorkforceReadinessService,
@@ -204,6 +212,7 @@ server.listen(config.port, '0.0.0.0', () => {
     humanDigitalEmployeeActivation: Boolean(humanDigitalEmployeeActivationService),
     humanDigitalEmployeeWork: Boolean(humanDigitalEmployeeWorkService),
     organizationGrounding: Boolean(humanGroundingService),
+    digitalEmployeeDevelopment: Boolean(humanDigitalEmployeeDevelopmentService),
     organizationAdapter: Boolean(organizationAdapterService),
     agentRuntime: config.agentRuntime?.mode ?? 'disabled',
   }));
