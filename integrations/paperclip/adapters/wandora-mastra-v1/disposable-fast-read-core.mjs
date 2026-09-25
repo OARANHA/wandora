@@ -36,13 +36,13 @@ const bindingResolver = new PaperclipExecutionService(
 );
 
 const readToolBridge = createPaperclipToolGatewayReadBridge({ agentMeUrl });
-const fastReadService = new PaperclipFastReadExecutionService({
+const fastReadServiceInner = new PaperclipFastReadExecutionService({
   intentSecret,
   bindingResolver,
   readToolBridge,
   capabilityAdapter: {
     capabilitiesFor(tool) {
-      return tool.name === 'kv_get' || tool.name.endsWith(':kv_get')
+      return tool.name === 'get_value' || tool.name.endsWith(':get_value')
         ? ['business.products.price']
         : [];
     },
@@ -57,6 +57,17 @@ const fastReadService = new PaperclipFastReadExecutionService({
     },
   },
 });
+
+const fastReadService = {
+  async execute(input) {
+    try {
+      return await fastReadServiceInner.execute(input);
+    } catch (error) {
+      console.error('FAST_READ_CORE_EXECUTION_ERROR', error instanceof Error ? error.stack ?? error.message : String(error));
+      throw error;
+    }
+  },
+};
 
 const normalService = {
   execute: async () => { agenticCalls += 1; throw new Error('normal_agentic_service_must_not_run'); },

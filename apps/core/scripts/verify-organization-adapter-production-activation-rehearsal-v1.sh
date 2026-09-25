@@ -61,10 +61,12 @@ assert_static_activation_contract() {
     echo 'organization_adapter_activation_path_must_not_touch_work' >&2
     exit 1
   fi
-  if grep -R -Fq 'agents.invoke' "$CANDIDATE_PLUGIN_ROOT/src"; then
-    echo 'organization_adapter_candidate_must_not_invoke_agent_directly' >&2
+  if grep -R -F 'agents.invoke' "$CANDIDATE_PLUGIN_ROOT/src" \
+      --exclude='fast-read.ts' | grep -q .; then
+    echo 'organization_adapter_non_fast_read_path_must_not_invoke_agent_directly' >&2
     exit 1
   fi
+  grep -Fq 'ctx.agents.invoke' "$CANDIDATE_PLUGIN_ROOT/src/fast-read.ts"
 
   test -f "$CORE/src/runtime/organization-adapter.ts"
   grep -Fq 'createPaperclipOrganizationAdapterFileSecretResolver' "$CORE/src/runtime/organization-adapter.ts"
