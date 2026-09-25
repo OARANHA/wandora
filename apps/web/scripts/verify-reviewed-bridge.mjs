@@ -46,13 +46,14 @@ if (digitalEmployeeActivationLocation.includes('Idempotency-Key')) {
 
 console.log('WANDORA_WEB_DIGITAL_EMPLOYEE_ACTIVATION_BRIDGE_V1_OK');
 
-const digitalEmployeeDevelopmentLocation =
-  /location ~ "\^\/api\/v1\/organizations\/[0-9A-Fa-f][\s\S]*?\/digital-employees\/[0-9A-Fa-f][\s\S]*?\/development\$" \{([\s\S]*?)\n  \}/
-    .exec(nginx)?.[1];
-
-if (!digitalEmployeeDevelopmentLocation) {
+const digitalEmployeeDevelopmentIndex = nginx.indexOf('/development$" {');
+if (digitalEmployeeDevelopmentIndex < 0) {
   throw new Error('digital_employee_development_bridge_missing');
 }
+const digitalEmployeeDevelopmentLocation = nginx.slice(
+  digitalEmployeeDevelopmentIndex,
+  digitalEmployeeDevelopmentIndex + 800,
+);
 if (!digitalEmployeeDevelopmentLocation.includes('proxy_set_header Authorization $http_authorization;')) {
   throw new Error('digital_employee_development_authorization_forwarding_missing');
 }
