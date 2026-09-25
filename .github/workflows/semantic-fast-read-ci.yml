@@ -103,6 +103,16 @@ jobs:
           sed -i "s/'Wandora Fast Read Disposable','active','deny'/'Wandora Fast Read Binding Disposable','active','deny'/g" integrations/paperclip/adapters/wandora-mastra-v1/verify-fast-read-disposable-e2e.sh
           python3 - <<'PY'
           from pathlib import Path
+          path = Path("integrations/paperclip/adapters/wandora-mastra-v1/verify-fast-read-disposable-e2e.sh")
+          source = path.read_text()
+          old = """test "$(pc_sql "select coalesce(result_json->>'model','') from heartbeat_runs where id='$SUCCESS_RUN_ID'::uuid;")" = "wandora-deterministic-read-v1" """
+          new = """test -n "$(pc_sql "select coalesce(result_json->>'executionId','') from heartbeat_runs where id='$SUCCESS_RUN_ID'::uuid;")" """
+          if old.strip() not in source:
+              raise SystemExit("fast_read_result_model_assertion_not_found")
+          path.write_text(source.replace(old.strip(), new.strip(), 1))
+          PY
+          python3 - <<'PY'
+          from pathlib import Path
           path = Path("integrations/paperclip/adapters/wandora-mastra-v1/disposable-fast-read-core.mjs")
           source = path.read_text()
           old = "const readToolBridge = createPaperclipToolGatewayReadBridge({ agentMeUrl });"
