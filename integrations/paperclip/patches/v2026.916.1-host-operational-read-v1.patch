@@ -1,57 +1,45 @@
 diff --git a/packages/plugins/sdk/src/host-client-factory.ts b/packages/plugins/sdk/src/host-client-factory.ts
-index f0c4db2de..0ce2f9faf 100644
+index f0c4db2de..0334aa196 100644
 --- a/packages/plugins/sdk/src/host-client-factory.ts
 +++ b/packages/plugins/sdk/src/host-client-factory.ts
-@@ -306,6 +306,13 @@ export interface HostServices {
-     revokeInvite(params: WorkerToHostMethods["access.invites.revoke"][0]): Promise<WorkerToHostMethods["access.invites.revoke"][1]>;
+@@ -117,6 +117,13 @@ export interface HostServices {
+     deleteFile(params: WorkerToHostMethods["localFolders.deleteFile"][0]): Promise<WorkerToHostMethods["localFolders.deleteFile"][1]>;
    };
  
-+  /** Provides the bounded Tool Access operational-read snapshot. */
-+  toolAccess?: {
++  /** Provides the bounded read-only Tool Access operational projection. */
++  toolAccess: {
 +    readOperationalSnapshot(
 +      params: WorkerToHostMethods["toolAccess.readOperationalSnapshot"][0],
 +    ): Promise<WorkerToHostMethods["toolAccess.readOperationalSnapshot"][1]>;
 +  };
 +
-   /** Provides authorization grant, policy, preview, and audit helpers. */
-   authorization: {
-     listGrants(params: WorkerToHostMethods["authorization.grants.list"][0]): Promise<WorkerToHostMethods["authorization.grants.list"][1]>;
-@@ -523,6 +530,7 @@ const METHOD_CAPABILITY_MAP: Record<WorkerToHostMethodName, PluginCapability | n
-   "authorization.policies.previewAssignment": "authorization.policies.read",
-   "authorization.policies.explainAssignment": "authorization.policies.read",
-   "authorization.audit.search": "authorization.audit.read",
-+  "toolAccess.readOperationalSnapshot": "tools.operational.read",
- };
+   /** Provides `state.get`, `state.set`, `state.delete`. */
+   state: {
+     get(params: WorkerToHostMethods["state.get"][0]): Promise<WorkerToHostMethods["state.get"][1]>;
+@@ -389,6 +396,9 @@ const METHOD_CAPABILITY_MAP: Record<WorkerToHostMethodName, PluginCapability | n
+   "localFolders.writeTextAtomic": "local.folders",
+   "localFolders.deleteFile": "local.folders",
  
- // ---------------------------------------------------------------------------
-@@ -1068,6 +1076,12 @@ export function createHostClientHandlers(
-     "authorization.audit.search": gated("authorization.audit.search", async (params) => {
-       return services.authorization.searchAudit(params);
++  // Tool Access operational read
++  "toolAccess.readOperationalSnapshot": "tools.operational.read",
++
+   // State
+   "state.get": "plugin.state.read",
+   "state.set": "plugin.state.write",
+@@ -761,6 +771,11 @@ export function createHostClientHandlers(
+       return services.entities.list(params);
      }),
+ 
++    // Tool Access operational read
 +    "toolAccess.readOperationalSnapshot": gated("toolAccess.readOperationalSnapshot", async (params) => {
-+      if (!services.toolAccess) {
-+        throw new Error("Tool Access operational read service is not configured");
-+      }
 +      return services.toolAccess.readOperationalSnapshot(params);
 +    }),
-   };
- }
- 
-diff --git a/packages/plugins/sdk/src/index.ts b/packages/plugins/sdk/src/index.ts
-index 1cf5adf0d..5977e466e 100644
---- a/packages/plugins/sdk/src/index.ts
-+++ b/packages/plugins/sdk/src/index.ts
-@@ -279,6 +279,8 @@ export type {
-   PluginAssignmentPreviewInput,
-   PluginAuthorizationDecisionResult,
-   PluginAuthorizationAuditEntry,
-+  PluginToolAccessClient,
-+  PluginToolAccessOperationalSnapshot,
-   PluginAgentSessionsClient,
-   AgentSession,
-   AgentSessionEvent,
++
+     // Events
+     "events.emit": gated("events.emit", async (params) => {
+       return services.events.emit(params);
 diff --git a/packages/plugins/sdk/src/protocol.ts b/packages/plugins/sdk/src/protocol.ts
-index a599a8fc7..9bdf71a06 100644
+index a599a8fc7..835a75aee 100644
 --- a/packages/plugins/sdk/src/protocol.ts
 +++ b/packages/plugins/sdk/src/protocol.ts
 @@ -74,6 +74,7 @@ import type {
@@ -62,287 +50,449 @@ index a599a8fc7..9bdf71a06 100644
  } from "./types.js";
  import type {
    PluginHealthDiagnostics,
-@@ -2262,6 +2263,11 @@ export interface WorkerToHostMethods {
-     },
-     result: PluginAuthorizationAuditEntry[],
+@@ -1630,6 +1631,12 @@ export interface WorkerToHostMethods {
+     }>,
    ];
-+
+ 
++  // Tool Access operational read projection
 +  "toolAccess.readOperationalSnapshot": [
-+    params: { companyId: string; agentId?: string | null },
++    params: { companyId: string; agentId: string },
 +    result: PluginToolAccessOperationalSnapshot,
 +  ];
- }
- 
- /** Union of all worker→host method names. */
++
+   // Events
+   "events.emit": [
+     params: { name: string; companyId: string; payload: unknown },
 diff --git a/packages/plugins/sdk/src/testing.ts b/packages/plugins/sdk/src/testing.ts
-index 799ec106c..c1552e6c9 100644
+index 799ec106c..06f7156bd 100644
 --- a/packages/plugins/sdk/src/testing.ts
 +++ b/packages/plugins/sdk/src/testing.ts
-@@ -2362,6 +2362,26 @@ export function createTestHarness(options: TestHarnessOptions): TestHarness {
-         },
+@@ -921,6 +921,13 @@ export function createTestHarness(options: TestHarnessOptions): TestHarness {
+         activity.push(entry);
        },
      },
 +    toolAccess: {
-+      async readOperationalSnapshot(companyId, options = {}) {
++      async readOperationalSnapshot(input) {
 +        requireCapability(manifest, capabilitySet, "tools.operational.read");
-+        const cid = requireCompanyId(companyId);
-+        return {
-+          companyId: cid,
-+          agentId: options.agentId ?? null,
-+          runtime: {
-+            status: "ok",
-+            generatedAt: new Date(0).toISOString(),
-+            activeConnections: 0,
-+            disabledConnections: 0,
-+            degradedConnections: 0,
-+            auditWriteFailuresLastHour: 0,
-+          },
-+          effectiveToolNames: options.agentId ? [] : null,
-+          connections: [],
-+        };
++        requireCompanyId(input.companyId);
++        return { runtimeHealth: "ok", connections: [] };
 +      },
 +    },
-     authorization: {
-       grants: {
-         async list(input) {
+     state: {
+       async get(input) {
+         requireCapability(manifest, capabilitySet, "plugin.state.read");
 diff --git a/packages/plugins/sdk/src/types.ts b/packages/plugins/sdk/src/types.ts
-index 56a561a29..fc4902435 100644
+index 56a561a29..c1260ebc3 100644
 --- a/packages/plugins/sdk/src/types.ts
 +++ b/packages/plugins/sdk/src/types.ts
-@@ -1910,6 +1910,51 @@ export interface PluginAuthorizationAuditEntry {
-   createdAt: Date | string;
+@@ -55,6 +55,10 @@ import type {
+   PrincipalPermissionGrant,
+   PrincipalType,
+   EnvSecretRefBinding,
++  ToolCatalogEntryStatus,
++  ToolConnectionHealthStatus,
++  ToolConnectionStatus,
++  ToolRiskLevel,
+ } from "@paperclipai/shared";
+ import type { PluginPerformActionContext } from "./protocol.js";
+ 
+@@ -1146,6 +1150,56 @@ export interface PluginCompaniesClient {
+   get(companyId: string): Promise<Company | null>;
  }
  
++/**
++ * Host-sanitized operational Tool Access projection for one agent in one
++ * company. This surface deliberately exposes no provider credentials, secret
++ * references, provider tenant metadata, Paperclip object IDs, raw profiles,
++ * raw grants, or mutable administration methods.
++ */
++export interface PluginToolAccessOperationalTool {
++  /** Provider/runtime tool identifier. It is implementation metadata, not product semantics. */
++  toolName: string;
++  status: ToolCatalogEntryStatus;
++  riskLevel: ToolRiskLevel;
++  isReadOnly: boolean;
++  isWrite: boolean;
++  isDestructive: boolean;
++  /** Whether the agent's current effective Tool Profile allows this exact catalog entry. */
++  allowedByEffectiveProfile: boolean;
++}
++
++export interface PluginToolAccessOperationalConnection {
++  /** Operator-facing provider connection label, safe for adapter-side mapping/display. */
++  displayName: string;
++  status: ToolConnectionStatus;
++  enabled: boolean;
++  healthStatus: ToolConnectionHealthStatus;
++  /** True only when an active organization-scoped Connection grant exists. */
++  organizationGrantActive: boolean;
++  /** True when this connection is installed for the requested agent. */
++  installedForAgent: boolean;
++  tools: PluginToolAccessOperationalTool[];
++}
++
 +export interface PluginToolAccessOperationalSnapshot {
-+  companyId: string;
-+  agentId: string | null;
-+  runtime: {
-+    status: "ok" | "degraded" | "critical";
-+    generatedAt: Date | string;
-+    activeConnections: number;
-+    disabledConnections: number;
-+    degradedConnections: number;
-+    auditWriteFailuresLastHour: number;
-+  };
-+  effectiveToolNames: string[] | null;
-+  connections: Array<{
-+    applicationKey: string | null;
-+    applicationName: string;
-+    connectionName: string;
-+    purpose: string;
-+    enabled: boolean;
-+    status: string | null;
-+    healthStatus: string;
-+    installedForCompany: boolean;
-+    installedForAgent: boolean | null;
-+    grants: Array<{
-+      kind: string;
-+      status: string;
-+      isDefault: boolean;
-+    }>;
-+    catalog: Array<{
-+      toolName: string;
-+      riskLevel: string;
-+      status: string;
-+      isReadOnly: boolean;
-+      isWrite: boolean;
-+      isDestructive: boolean;
-+    }>;
-+  }>;
++  runtimeHealth: "ok" | "degraded" | "critical";
++  connections: PluginToolAccessOperationalConnection[];
 +}
 +
++/**
++ * ctx.toolAccess — read a bounded Tool Access operational projection.
++ *
++ * Requires tools.operational.read. The call is host-invocation-company
++ * scoped and is read-only; runtime Tool Gateway authorization remains a
++ * separate authority checked when a tool is actually invoked.
++ */
 +export interface PluginToolAccessClient {
-+  readOperationalSnapshot(
-+    companyId: string,
-+    options?: { agentId?: string | null },
-+  ): Promise<PluginToolAccessOperationalSnapshot>;
++  readOperationalSnapshot(input: {
++    companyId: string;
++    agentId: string;
++  }): Promise<PluginToolAccessOperationalSnapshot>;
 +}
 +
- export interface PluginAuthorizationClient {
-   grants: {
-     list(input: { companyId: string; principalType?: PrincipalType; principalId?: string }): Promise<PrincipalPermissionGrant[]>;
-@@ -2192,6 +2237,9 @@ export interface PluginContext {
-   /** Read and manage authorization grants, policy summaries, previews, and audit entries. Requires `authorization.*` capabilities. */
-   authorization: PluginAuthorizationClient;
+ /**
+  * `ctx.issues.documents` — read and write issue documents.
+  *
+@@ -2174,6 +2228,9 @@ export interface PluginContext {
+   /** Read company metadata. Requires `companies.read`. */
+   companies: PluginCompaniesClient;
  
-+  /** Read bounded host-owned Tool Access operational state. Requires tools.operational.read. */
++  /** Read a sanitized Tool Access operational projection. Requires tools.operational.read. */
 +  toolAccess: PluginToolAccessClient;
 +
-   /** Register getData handlers for the plugin's UI components. */
-   data: PluginDataClient;
+   /** Read and write issues, comments, and documents. Requires issue capabilities. */
+   issues: PluginIssuesClient;
  
 diff --git a/packages/plugins/sdk/src/worker-rpc-host.ts b/packages/plugins/sdk/src/worker-rpc-host.ts
-index 5e56ef200..1f8272d6b 100644
+index 5e56ef200..433e3afb5 100644
 --- a/packages/plugins/sdk/src/worker-rpc-host.ts
 +++ b/packages/plugins/sdk/src/worker-rpc-host.ts
-@@ -1297,6 +1297,15 @@ export function startWorkerRpcHost(options: WorkerRpcHostOptions): WorkerRpcHost
+@@ -522,6 +522,12 @@ export function startWorkerRpcHost(options: WorkerRpcHostOptions): WorkerRpcHost
          },
        },
  
 +      toolAccess: {
-+        async readOperationalSnapshot(companyId: string, options = {}) {
-+          return callHost("toolAccess.readOperationalSnapshot", {
-+            companyId,
-+            agentId: options.agentId ?? null,
-+          });
++        async readOperationalSnapshot(input) {
++          return callHost("toolAccess.readOperationalSnapshot", input);
 +        },
 +      },
 +
-       authorization: {
-         grants: {
-           async list(input) {
+       events: {
+         on(
+           name: string,
 diff --git a/packages/plugins/sdk/tests/host-client-factory.test.ts b/packages/plugins/sdk/tests/host-client-factory.test.ts
-index 2c87650af..31adb4541 100644
+index 2c87650af..a6e555568 100644
 --- a/packages/plugins/sdk/tests/host-client-factory.test.ts
 +++ b/packages/plugins/sdk/tests/host-client-factory.test.ts
-@@ -418,3 +418,78 @@ describe("createHostClientHandlers capability gating for LOOA-641 methods", () =
-     expect(list).not.toHaveBeenCalled();
+@@ -123,6 +123,56 @@ describe("createHostClientHandlers invocation company scope", () => {
+     ).resolves.toEqual([{ id: "company-a", name: "Company A" }]);
    });
- });
+ 
++  it("gates Tool Access operational reads behind the explicit capability and host company scope", async () => {
++    const readOperationalSnapshot = vi.fn(async () => ({
++      runtimeHealth: "ok" as const,
++      connections: [],
++    }));
++    const services = {
++      toolAccess: { readOperationalSnapshot },
++    } as unknown as HostServices;
 +
-+
-+describe("toolAccess operational read capability", () => {
-+  const snapshot = {
-+    companyId: "company-a",
-+    agentId: null,
-+    runtime: {
-+      status: "ok" as const,
-+      generatedAt: "2026-09-25T00:00:00.000Z",
-+      activeConnections: 1,
-+      disabledConnections: 0,
-+      degradedConnections: 0,
-+      auditWriteFailuresLastHour: 0,
-+    },
-+    effectiveToolNames: null,
-+    connections: [],
-+  };
-+
-+  it("requires the explicit tools.operational.read capability", async () => {
-+    const readOperationalSnapshot = vi.fn(async () => snapshot);
-+    const handlers = createHostClientHandlers({
++    const denied = createHostClientHandlers({
 +      pluginId: "paperclip.test",
 +      capabilities: [],
-+      services: {
-+        toolAccess: { readOperationalSnapshot },
-+      } as unknown as HostServices,
++      services,
 +    });
++    const context = { invocationScope: { companyId: "company-a" } };
 +
 +    await expect(
-+      handlers["toolAccess.readOperationalSnapshot"](
-+        { companyId: "company-a" },
-+        { invocationScope: { companyId: "company-a" } },
++      denied["toolAccess.readOperationalSnapshot"](
++        { companyId: "company-a", agentId: "agent-a" },
++        context,
 +      ),
 +    ).rejects.toBeInstanceOf(CapabilityDeniedError);
 +    expect(readOperationalSnapshot).not.toHaveBeenCalled();
-+  });
 +
-+  it("rejects cross-company reads before the service is called", async () => {
-+    const readOperationalSnapshot = vi.fn(async () => snapshot);
-+    const handlers = createHostClientHandlers({
++    const allowed = createHostClientHandlers({
 +      pluginId: "paperclip.test",
 +      capabilities: ["tools.operational.read"],
-+      services: {
-+        toolAccess: { readOperationalSnapshot },
-+      } as unknown as HostServices,
++      services,
 +    });
 +
 +    await expect(
-+      handlers["toolAccess.readOperationalSnapshot"](
-+        { companyId: "company-b" },
-+        { invocationScope: { companyId: "company-a" } },
++      allowed["toolAccess.readOperationalSnapshot"](
++        { companyId: "company-b", agentId: "agent-b" },
++        context,
 +      ),
 +    ).rejects.toBeInstanceOf(InvocationScopeDeniedError);
 +    expect(readOperationalSnapshot).not.toHaveBeenCalled();
-+  });
-+
-+  it("allows the bounded read only inside the host-issued company scope", async () => {
-+    const readOperationalSnapshot = vi.fn(async () => snapshot);
-+    const handlers = createHostClientHandlers({
-+      pluginId: "paperclip.test",
-+      capabilities: ["tools.operational.read"],
-+      services: {
-+        toolAccess: { readOperationalSnapshot },
-+      } as unknown as HostServices,
-+    });
 +
 +    await expect(
-+      handlers["toolAccess.readOperationalSnapshot"](
-+        { companyId: "company-a" },
-+        { invocationScope: { companyId: "company-a" } },
++      allowed["toolAccess.readOperationalSnapshot"](
++        { companyId: "company-a", agentId: "agent-a" },
++        context,
 +      ),
-+    ).resolves.toEqual(snapshot);
-+    expect(readOperationalSnapshot).toHaveBeenCalledWith({ companyId: "company-a" });
++    ).resolves.toEqual({ runtimeHealth: "ok", connections: [] });
++    expect(readOperationalSnapshot).toHaveBeenCalledWith({
++      companyId: "company-a",
++      agentId: "agent-a",
++    });
 +  });
-+});
++
+   it("rejects company-scope store access for a different company", async () => {
+     const stateGet = vi.fn(async () => null);
+     const services = {
 diff --git a/packages/shared/src/constants.ts b/packages/shared/src/constants.ts
-index 28e18d3df..2d7269c17 100644
+index 28e18d3df..5d9d8734f 100644
 --- a/packages/shared/src/constants.ts
 +++ b/packages/shared/src/constants.ts
-@@ -1350,6 +1350,8 @@ export const PLUGIN_CAPABILITIES = [
-   "authorization.grants.read",
+@@ -1351,6 +1351,10 @@ export const PLUGIN_CAPABILITIES = [
    "authorization.policies.read",
    "authorization.audit.read",
-+  // Read a bounded host-derived snapshot of Tool Access operational state.
-+  "tools.operational.read",
    "database.namespace.read",
++  // Read a host-sanitized, company-scoped operational projection of Tool Access.
++  // This is intentionally narrower than Board/admin tool APIs and exposes no
++  // credentials, secret refs, connection/grant/profile IDs, or mutation surface.
++  "tools.operational.read",
    // Data Write
    "issues.create",
-diff --git a/server/src/__tests__/tool-access-service.test.ts b/server/src/__tests__/tool-access-service.test.ts
-index af6aea1e8..22142599a 100644
---- a/server/src/__tests__/tool-access-service.test.ts
-+++ b/server/src/__tests__/tool-access-service.test.ts
-@@ -17725,6 +17725,49 @@ describeEmbeddedPostgres("tool access service", () => {
-       ),
-     ).toBe(true);
-   });
+   "issues.update",
+diff --git a/server/src/__tests__/plugin-tool-access-operational-read.test.ts b/server/src/__tests__/plugin-tool-access-operational-read.test.ts
+new file mode 100644
+index 000000000..aa6dd63ed
+--- /dev/null
++++ b/server/src/__tests__/plugin-tool-access-operational-read.test.ts
+@@ -0,0 +1,229 @@
++import { randomUUID } from "node:crypto";
++import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
++import {
++  agents,
++  companies,
++  connectionGrants,
++  createDb,
++  toolApplications,
++  toolCatalogEntries,
++  toolConnectionInstalls,
++  toolConnections,
++  toolProfileBindings,
++  toolProfileEntries,
++  toolProfiles,
++} from "@paperclipai/db";
++import { buildHostServices } from "../services/plugin-host-services.js";
++import {
++  getEmbeddedPostgresTestSupport,
++  startEmbeddedPostgresTestDatabase,
++} from "./helpers/embedded-postgres.js";
 +
-+  it("listCatalogCached never refreshes a stale remote catalog", async () => {
-+    const company = await createCompany(db);
-+    let currentTime = new Date("2026-09-25T12:00:00.000Z");
-+    const fetchMock = vi
-+      .spyOn(globalThis, "fetch")
-+      .mockImplementation(async () =>
-+        mcpHttpResponse({
-+          jsonrpc: "2.0",
-+          id: "paperclip-catalog-refresh",
-+          result: {
-+            tools: [
-+              {
-+                name: "cached_only",
-+                annotations: { readOnlyHint: true },
-+              },
-+            ],
-+          },
-+        }),
-+      );
-+    const service = createTestToolAccessService(db, {
-+      now: () => currentTime,
-+      catalogCacheTtlMs: 60_000,
-+    });
-+    const connected = await service.connectGalleryApp(
-+      company.id,
-+      {
-+        link: "https://cached-read.example.test/mcp",
-+        name: "Cached operational read",
-+      },
-+      { actorType: "user", actorId: "board" },
-+    );
-+    const discoveryCallsAfterConnect = fetchMock.mock.calls.length;
++function createEventBusStub() {
++  return {
++    forPlugin() {
++      return {
++        emit: vi.fn(),
++        subscribe: vi.fn(),
++        clear: vi.fn(),
++      };
++    },
++  } as any;
++}
 +
-+    currentTime = new Date(currentTime.getTime() + 60_001);
-+    const cached = await service.listCatalogCached(
-+      connected.connectionId,
-+      company.id,
-+    );
++const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
++const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
 +
-+    expect(cached.map((entry) => entry.toolName)).toContain("cached_only");
-+    expect(fetchMock).toHaveBeenCalledTimes(discoveryCallsAfterConnect);
++async function seedCompany(db: ReturnType<typeof createDb>, prefix: string) {
++  return db
++    .insert(companies)
++    .values({
++      name: prefix,
++      issuePrefix: prefix.slice(0, 3).toUpperCase() + randomUUID().slice(0, 5).toUpperCase(),
++    })
++    .returning()
++    .then((rows) => rows[0]!);
++}
++
++async function seedAgent(db: ReturnType<typeof createDb>, companyId: string, name: string) {
++  return db
++    .insert(agents)
++    .values({
++      companyId,
++      name,
++      role: "operator",
++      adapterType: "process",
++      adapterConfig: {},
++      permissions: {},
++    })
++    .returning()
++    .then((rows) => rows[0]!);
++}
++
++async function seedOperationalTool(
++  db: ReturnType<typeof createDb>,
++  companyId: string,
++  agentId: string,
++  suffix: string,
++) {
++  const [application] = await db
++    .insert(toolApplications)
++    .values({
++      companyId,
++      applicationKey: `fixture-${suffix}`,
++      name: `Fixture App ${suffix}`,
++      type: "mcp_http",
++      status: "active",
++    })
++    .returning();
++  const [connection] = await db
++    .insert(toolConnections)
++    .values({
++      companyId,
++      applicationId: application!.id,
++      name: `Fixture Connection ${suffix}`,
++      uid: `fixture/${randomUUID()}`,
++      transport: "mcp_remote",
++      status: "active",
++      enabled: true,
++      config: { url: "https://fixture.example.test/mcp" },
++      transportConfig: { url: "https://fixture.example.test/mcp" },
++      healthStatus: "ok",
++      credentialPolicy: "shared",
++      lastCatalogRefreshAt: new Date(0),
++    })
++    .returning();
++  await db.insert(connectionGrants).values({
++    companyId,
++    connectionId: connection!.id,
++    kind: "organization",
++    credentialSecretRefs: [],
++    status: "active",
++    isDefault: true,
 +  });
- });
- 
- describe("classifyRisk", () => {
++  const [catalogEntry] = await db
++    .insert(toolCatalogEntries)
++    .values({
++      companyId,
++      applicationId: application!.id,
++      connectionId: connection!.id,
++      entryKind: "tool",
++      name: `lookup-${suffix}`,
++      toolName: `lookup_${suffix}`,
++      riskLevel: "read",
++      isReadOnly: true,
++      isWrite: false,
++      isDestructive: false,
++      status: "active",
++      versionHash: randomUUID(),
++      schemaHash: randomUUID(),
++    })
++    .returning();
++  await db.insert(toolConnectionInstalls).values({
++    companyId,
++    connectionId: connection!.id,
++    targetType: "agent",
++    targetId: agentId,
++  });
++  const [profile] = await db
++    .insert(toolProfiles)
++    .values({
++      companyId,
++      profileKey: `profile-${suffix}-${randomUUID()}`,
++      name: `Profile ${suffix}`,
++      defaultAction: "deny",
++    })
++    .returning();
++  await db.insert(toolProfileBindings).values({
++    companyId,
++    profileId: profile!.id,
++    targetType: "agent",
++    targetId: agentId,
++  });
++  await db.insert(toolProfileEntries).values({
++    companyId,
++    profileId: profile!.id,
++    selectorType: "connection",
++    effect: "include",
++    connectionId: connection!.id,
++  });
++  return { application: application!, connection: connection!, catalogEntry: catalogEntry! };
++}
++
++describeEmbeddedPostgres("plugin Tool Access operational read boundary", () => {
++  let db!: ReturnType<typeof createDb>;
++  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
++
++  beforeAll(async () => {
++    tempDb = await startEmbeddedPostgresTestDatabase("paperclip-plugin-tool-access-read-");
++    db = createDb(tempDb.connectionString);
++  }, 20_000);
++
++  afterAll(async () => {
++    await tempDb?.cleanup();
++  });
++
++  it("returns a bounded company+agent projection without IDs or credential material", async () => {
++    const companyA = await seedCompany(db, "Operational Read A");
++    const companyB = await seedCompany(db, "Operational Read B");
++    const agentA = await seedAgent(db, companyA.id, "Agent A");
++    const agentB = await seedAgent(db, companyB.id, "Agent B");
++    const a = await seedOperationalTool(db, companyA.id, agentA.id, "a");
++    await seedOperationalTool(db, companyB.id, agentB.id, "b");
++
++    const services = buildHostServices(
++      db,
++      "plugin-record-id",
++      "operational-read-test",
++      createEventBusStub(),
++    );
++    try {
++      const snapshot = await services.toolAccess.readOperationalSnapshot({
++        companyId: companyA.id,
++        agentId: agentA.id,
++      });
++
++      expect(snapshot.runtimeHealth).toMatch(/^(ok|degraded|critical)$/);
++      expect(snapshot.connections).toEqual([
++        expect.objectContaining({
++          displayName: "Fixture App a",
++          status: "active",
++          enabled: true,
++          healthStatus: "ok",
++          organizationGrantActive: true,
++          installedForAgent: true,
++          tools: [
++            expect.objectContaining({
++              toolName: "lookup_a",
++              status: "active",
++              riskLevel: "read",
++              isReadOnly: true,
++              isWrite: false,
++              isDestructive: false,
++              allowedByEffectiveProfile: true,
++            }),
++          ],
++        }),
++      ]);
++
++      const serialized = JSON.stringify(snapshot);
++      expect(serialized).not.toContain(companyA.id);
++      expect(serialized).not.toContain(companyB.id);
++      expect(serialized).not.toContain(agentA.id);
++      expect(serialized).not.toContain(agentB.id);
++      expect(serialized).not.toContain(a.application.id);
++      expect(serialized).not.toContain(a.connection.id);
++      expect(serialized).not.toContain(a.catalogEntry.id);
++      expect(serialized).not.toMatch(/credential|secretRef|grantId|profileId|catalogEntryId|connectionId/i);
++
++      await expect(
++        services.toolAccess.readOperationalSnapshot({
++          companyId: companyA.id,
++          agentId: agentB.id,
++        }),
++      ).rejects.toThrow("Agent not found");
++    } finally {
++      services.dispose();
++    }
++  });
++});
 diff --git a/server/src/services/plugin-host-services.ts b/server/src/services/plugin-host-services.ts
-index 185524fc9..46ba05b82 100644
+index 185524fc9..263be7d06 100644
 --- a/server/src/services/plugin-host-services.ts
 +++ b/server/src/services/plugin-host-services.ts
 @@ -77,6 +77,7 @@ import { logger } from "../middleware/logger.js";
@@ -361,7 +511,7 @@ index 185524fc9..46ba05b82 100644
    const budgets = budgetService(db);
    const issueApprovals = issueApprovalService(db);
    const approvalSvc = approvalService(db);
-@@ -3026,6 +3028,86 @@ export function buildHostServices(
+@@ -1511,6 +1513,79 @@ export function buildHostServices(
        },
      },
  
@@ -370,84 +520,77 @@ index 185524fc9..46ba05b82 100644
 +        const companyId = ensureCompanyId(params.companyId);
 +        await ensurePluginAvailableForCompany(companyId);
 +
-+        const [connections, applications, runtime, effective] = await Promise.all([
-+          toolAccess.listConnections(companyId),
-+          toolAccess.listApplications(companyId),
-+          toolAccess.getRuntimeHealth(companyId),
-+          params.agentId
-+            ? toolAccess.getEffectiveProfilesForAgent(companyId, params.agentId)
-+            : Promise.resolve(null),
-+        ]);
-+        const applicationsById = new Map(
-+          applications.map((application) => [application.id, application]),
++        requireInCompany(
++          "Agent",
++          await agents.getById(params.agentId),
++          companyId,
++        );
++
++        const [applications, connections, effective, runtimeHealth] =
++          await Promise.all([
++            toolAccess.listApplications(companyId),
++            toolAccess.listConnections(companyId),
++            toolAccess.getEffectiveProfilesForAgent(companyId, params.agentId),
++            toolAccess.getRuntimeHealth(companyId),
++          ]);
++
++        const applicationNames = new Map(
++          applications.map((application) => [application.id, application.name]),
++        );
++        const installedConnectionIds = new Set(
++          effective.installedConnections.map((connection) => connection.id),
++        );
++        const allowedCatalogIds = new Set(
++          effective.allowedTools.map((tool) => tool.id),
 +        );
 +
 +        const projectedConnections = await Promise.all(
-+          connections.map(async (connection) => {
-+            const [{ grants }, catalog] = await Promise.all([
-+              toolAccess.listConnectionGrants(connection.id, companyId),
-+              toolAccess.listCatalogCached(connection.id, companyId),
-+            ]);
-+            const installs = connection.installs ?? [];
-+            const application = applicationsById.get(connection.applicationId);
-+            return {
-+              applicationKey: application?.applicationKey ?? null,
-+              applicationName: application?.name ?? connection.name,
-+              connectionName: connection.name,
-+              purpose: connection.connectionPurpose,
-+              enabled: connection.enabled,
-+              status: connection.status ?? null,
-+              healthStatus: connection.healthStatus,
-+              installedForCompany: installs.some(
-+                (install) =>
-+                  install.targetType === "company" &&
-+                  install.targetId === companyId,
-+              ),
-+              installedForAgent: params.agentId
-+                ? installs.some(
-+                    (install) =>
-+                      install.targetType === "agent" &&
-+                      install.targetId === params.agentId,
-+                  )
-+                : null,
-+              grants: grants.map((grant) => ({
-+                kind: grant.kind,
-+                status: grant.status,
-+                isDefault: grant.isDefault,
-+              })),
-+              catalog: catalog.map((entry) => ({
-+                toolName: entry.toolName,
-+                riskLevel: entry.riskLevel,
-+                status: entry.status,
-+                isReadOnly: entry.isReadOnly,
-+                isWrite: entry.isWrite,
-+                isDestructive: entry.isDestructive,
-+              })),
-+            };
-+          }),
++          connections
++            .filter((connection) => connection.connectionPurpose === "tool")
++            .map(async (connection) => {
++              const [{ grants }, catalog] = await Promise.all([
++                toolAccess.listConnectionGrants(connection.id, companyId),
++                toolAccess.listCatalogCached(connection.id, companyId),
++              ]);
++
++              return {
++                displayName:
++                  applicationNames.get(connection.applicationId) ??
++                  connection.name,
++                status: connection.status ?? "draft",
++                enabled: connection.enabled,
++                healthStatus: connection.healthStatus,
++                organizationGrantActive: grants.some(
++                  (grant) =>
++                    grant.kind === "organization" &&
++                    grant.status === "active",
++                ),
++                installedForAgent: installedConnectionIds.has(connection.id),
++                tools: catalog
++                  .filter((entry) => entry.entryKind === "tool")
++                  .map((entry) => ({
++                    toolName: entry.toolName,
++                    status: entry.status,
++                    riskLevel: entry.riskLevel,
++                    isReadOnly: entry.isReadOnly,
++                    isWrite: entry.isWrite,
++                    isDestructive: entry.isDestructive,
++                    allowedByEffectiveProfile: allowedCatalogIds.has(entry.id),
++                  })),
++              };
++            }),
 +        );
 +
 +        return {
-+          companyId,
-+          agentId: params.agentId ?? null,
-+          runtime: {
-+            status: runtime.status,
-+            generatedAt: runtime.generatedAt,
-+            activeConnections: runtime.metrics.activeConnections,
-+            disabledConnections: runtime.metrics.disabledConnections,
-+            degradedConnections: runtime.metrics.degradedConnections,
-+            auditWriteFailuresLastHour:
-+              runtime.metrics.auditWriteFailuresLastHour,
-+          },
-+          effectiveToolNames: effective?.allowedToolNames ?? null,
++          runtimeHealth: runtimeHealth.status,
 +          connections: projectedConnections,
 +        };
 +      },
 +    },
 +
-     authorization: {
-       async listGrants(params) {
-         const companyId = ensureCompanyId(params.companyId);
+     state: {
+       async get(params) {
+         return stateStore.get(pluginId, params.scopeKind as any, params.stateKey, {
 diff --git a/server/src/services/tool-access.ts b/server/src/services/tool-access.ts
 index 4cac2ca49..4af864cb2 100644
 --- a/server/src/services/tool-access.ts
