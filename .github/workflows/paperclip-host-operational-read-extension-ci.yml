@@ -1,0 +1,75 @@
+name: Paperclip Host Operational Read Extension CI
+
+on:
+  pull_request:
+    paths:
+      - 'integrations/paperclip/patches/v2026.916.1-host-operational-read-v1.patch'
+      - '.github/workflows/paperclip-host-operational-read-extension-ci.yml'
+      - 'docs/decisions/0281-paperclip-host-operational-read-capability-extension-preflight-v1.md'
+  push:
+    branches: [main]
+    paths:
+      - 'integrations/paperclip/patches/v2026.916.1-host-operational-read-v1.patch'
+      - '.github/workflows/paperclip-host-operational-read-extension-ci.yml'
+      - 'docs/decisions/0281-paperclip-host-operational-read-capability-extension-preflight-v1.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: paperclip-host-operational-read-extension-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify-extension:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout Wandora
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Checkout exact Paperclip qualification source
+        uses: actions/checkout@v4
+        with:
+          repository: paperclipai/paperclip
+          ref: d554c4789ed3930f8a53ac9fdf6503b3187097da
+          path: .paperclip
+          persist-credentials: false
+
+      - name: Apply Wandora-qualified host extension
+        run: |
+          git -C .paperclip apply --check "$GITHUB_WORKSPACE/integrations/paperclip/patches/v2026.916.1-host-operational-read-v1.patch"
+          git -C .paperclip apply "$GITHUB_WORKSPACE/integrations/paperclip/patches/v2026.916.1-host-operational-read-v1.patch"
+          git -C .paperclip diff --check
+
+      - name: Set up Node 24.21.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.21.0
+
+      - name: Set up pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.4 --activate
+          pnpm --version
+
+      - name: Install exact Paperclip dependencies
+        working-directory: .paperclip
+        run: pnpm install --frozen-lockfile
+
+      - name: Plugin host capability and tenant-boundary tests
+        working-directory: .paperclip
+        run: pnpm exec vitest run packages/plugins/sdk/tests/host-client-factory.test.ts
+
+      - name: Cached catalog no-provider-I-O test
+        working-directory: .paperclip
+        run: pnpm exec vitest run server/src/__tests__/tool-access-service.test.ts -t "listCatalogCached never refreshes a stale remote catalog"
+
+      - name: Typecheck patched SDK and server
+        working-directory: .paperclip
+        run: |
+          pnpm --filter @paperclipai/plugin-sdk typecheck
+          pnpm --filter @paperclipai/server typecheck
