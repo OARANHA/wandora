@@ -121,6 +121,79 @@ jobs:
           from pathlib import Path
           path = Path("integrations/paperclip/adapters/wandora-mastra-v1/verify-fast-read-disposable-e2e.sh")
           source = path.read_text()
+          start = source.index("cat > \"$TMP/paperclip-loopback-proxy.mjs\" <<'PROXY'\n")
+          end = source.index("\nPROXY\nchmod 0644 \"$TMP/paperclip-loopback-proxy.mjs\"", start)
+          replacement = """cat > "$TMP/paperclip-loopback-proxy.mjs" <<'PROXY'
+          import http from 'node:http';
+          import os from 'node:os';
+          const address = Object.values(os.networkInterfaces()).flat()
+            .find((entry) => entry?.family === 'IPv4' && !entry.internal)?.address;
+          if (!address) throw new Error('paperclip_disposable_network_address_unavailable');
+
+          const routes = new Set([
+            'GET /api/agents/me',
+            'POST /api/tool-gateway/sessions',
+            'GET /api/tool-gateway/tools',
+            'POST /api/tool-gateway/tools/call',
+          ]);
+
+          http.createServer(async (request, response) => {
+            const route = `${request.method} ${request.url}`;
+            if (!routes.has(route)) {
+              response.writeHead(404, { 'content-type': 'application/json' });
+              response.end('{"error":"not_found"}');
+              return;
+            }
+
+            const authorization = request.headers.authorization ?? '';
+            const runId = request.headers['x-paperclip-run-id'] ?? '';
+            const gatewayToken = request.headers['x-paperclip-tool-gateway-token'] ?? '';
+            const needsRunAuth = route === 'GET /api/agents/me' || route === 'POST /api/tool-gateway/sessions';
+            const needsGatewayAuth = route === 'GET /api/tool-gateway/tools' || route === 'POST /api/tool-gateway/tools/call';
+            if (
+              (needsRunAuth && (!authorization.toLowerCase().startsWith('bearer ') || typeof runId !== 'string' || !runId))
+              || (needsGatewayAuth && (typeof gatewayToken !== 'string' || !gatewayToken))
+            ) {
+              response.writeHead(401, { 'content-type': 'application/json' });
+              response.end('{"error":"unauthorized"}');
+              return;
+            }
+
+            let body = '';
+            if (request.method === 'POST') {
+              for await (const chunk of request) body += chunk;
+            }
+
+            const headers = { accept: 'application/json' };
+            if (needsRunAuth) {
+              headers.authorization = authorization;
+              headers['x-paperclip-run-id'] = runId;
+            }
+            if (needsGatewayAuth) headers['x-paperclip-tool-gateway-token'] = gatewayToken;
+            if (request.method === 'POST') headers['content-type'] = 'application/json';
+
+            try {
+              const upstream = await fetch('http://127.0.0.1:3100' + request.url, {
+                method: request.method,
+                headers,
+                body: request.method === 'POST' ? body : undefined,
+              });
+              response.writeHead(upstream.status, {
+                'content-type': upstream.headers.get('content-type') ?? 'application/json',
+              });
+              response.end(await upstream.text());
+            } catch {
+              response.writeHead(502, { 'content-type': 'application/json' });
+              response.end('{"error":"upstream_unavailable"}');
+            }
+          }).listen(3100, address);
+          PROXY"""
+          path.write_text(source[:start] + replacement + source[end:])
+          PY
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("integrations/paperclip/adapters/wandora-mastra-v1/verify-fast-read-disposable-e2e.sh")
+          source = path.read_text()
           old = 'test "$(wait_terminal "$SUCCESS_RUN_ID")" = "succeeded"'
           diagnostic = r'''SUCCESS_RUN_STATUS="$(wait_terminal "$SUCCESS_RUN_ID")"
           if [ "$SUCCESS_RUN_STATUS" != "succeeded" ]; then
