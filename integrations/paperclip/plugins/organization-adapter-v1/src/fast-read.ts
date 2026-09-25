@@ -99,10 +99,6 @@ export async function ensureManagedCatalogEmployeeFastRead(
     throw new Error('fast_read_dispatch_uncertain');
   }
 
-  if (managed.agent.status !== 'idle') {
-    throw new Error('managed_employee_not_ready:' + managed.agent.status);
-  }
-
   const dispatching: FastReadDispatchReceipt = {
     schema: 'wandora.fast_read_dispatch_receipt.v1',
     correlationId,
