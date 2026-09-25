@@ -1,3 +1,17 @@
+## Reconciled checkpoint — ADR 0275 Semantic Fast Read + Integration Capability Plane preflight
+
+ADR 0275 is **PREFLIGHT GREEN / GO FOR CODE-ONLY CONTRACT + DISPOSABLE ATTESTATION / NO PRODUCTION EFFECT**.
+
+The current Paperclip semantic-decision plugin remains advisory and post-Issue because its worker loads an existing Paperclip Issue before classification. The legitimate pre-Issue boundary is instead a Wandora-owned provider-neutral semantic routing contract.
+
+Official Paperclip semantics prove an on-demand agent wakeup may create a normal run with payload + idempotency without an Issue, and Tool Gateway agent sessions are run-scoped; issueId is optional. Therefore a deterministic-read branch can preserve Paperclip run/connection/grant/tool operational authority without creating a parallel lifecycle.
+
+Production enablement remains NO-GO until a disposable proof demonstrates the current adapter/runtime can return a customer-safe typed result from an issue-less run while making exactly one authorized read tool call and zero generative Mastra/model calls.
+
+The future Integrations customer surface is classified as a Wandora-owned projection of provider-neutral business capability availability (for example VendaERP connected; Ana may consult products/prices/stock). Paperclip remains exclusive operational authority for Connections/grants/secrets/catalog/profiles/policies/Tool Gateway execution and audit. No new table, migration, service, provider call, model call, customer work, outbound or production mutation occurred.
+
+Next slice: code-only SemanticRouteDecision + explicit deterministic_read execution mode + deterministic renderer + disposable E2E attestation. No production effect.
+
 ## Reconciled checkpoint — ADR 0274 Team drawer + development progress production GREEN
 
 ADR 0274 records the production promotion of ADR 0272/0273 as a Web-only effect.
