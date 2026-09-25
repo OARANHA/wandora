@@ -1,3 +1,20 @@
+## 2026-09-24 — governed operator runtime reconciliation
+
+Fresh-session runtime reconciliation proves the Remote-Ops-MCP schema and read/qualification path are now operational:
+
+- governed `docker_exec` to `wandora-paperclip` + `paperclipai` is operational; `paperclipai --version` returns `0.3.1`;
+- `paperclip_task_drain_status` returns Task Drain OFF, quiescent, activeRuns=0, pendingWakes=0;
+- `paperclip_tool_policies_list` returns no current 28PRO policies;
+- `paperclip_tool_policy_test` for Ana + the active VendaERP connection/catalog entry + `vendaerp_search_products {"pageSize":5,"skip":0}` returns `allow / allow_profile` with no audit event.
+
+This removes the earlier stale-session/schema and read-only semantic capability gap.
+
+Production execution remains **NO-GO / NO EFFECT** for a narrower reason: this operator session exposes no governed mutation capability for Task Drain start/stop or Tool Policy create/delete, and the official `paperclipai 0.3.1` CLI exposes no public command for those mutations. Generic HTTP/container shell, protected auth-store reads, DB writes or Board-key bypass remain forbidden by this ADR.
+
+The independent canonical owner-session gate also remains unresolved: the customer-work POST still requires a normal authenticated human owner Bearer session. Temporary guards must not be installed while either gate is unresolved.
+
+No Task Drain mutation, policy mutation, provider/model call, rate-limit consumption, customer work or outbound occurred during this reconciliation.
+
 # ADR 0257 — 28PRO VendaERP Product Response Diagnostic V3 Production Execution V1
 
 Status: **SAFE STOP / NO EFFECT / PAPERCLIP BOARD AUTH VALIDATED / GOVERNED API GAP / OWNER SESSION REQUIRED / NO PROVIDER CALL**
