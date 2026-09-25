@@ -427,3 +427,14 @@ The Integration Capability Plane is a **projection**, not a registry:
 Do not persist or mirror Paperclip Connection state, health, grants, catalog entries, tool names or credentials merely to render customer capability availability. Do not turn `BusinessCapability` into a parallel tool catalog.
 
 JEV/TypeSafe may later implement semantic decision-provider logic, but it is not integration/connection authority. The Paperclip semantic-decision plugin remains post-Issue/advisory and is not the Integration Capability Plane.
+
+
+## Paperclip integration operational-read gap — ADR 0279
+
+Paperclip remains authority for Tool Applications, Connections, Connection grants, installs, Tool Catalog, Tool Profiles/policies, health/readiness and Tool Gateway authorization/audit.
+
+Pinned production Paperclip currently exposes complete integration-state reads through Board-authenticated routes, but its normal plugin SDK does not expose equivalent Tool Connection/catalog/health read clients. Generic plugin authorization grants are not Tool Connection grants, and plugin tools are registration-only.
+
+This gap does **not** transfer operational ownership to Wandora. Core must not receive Board/admin authority, and provider state must not be mirrored into Wandora tables or plugin.state merely for projection.
+
+The accepted next boundary is a narrow Paperclip-side read adapter or newer native SDK capability that returns only normalized provider-neutral operational facts to ADR 0278's Integration Capability Plane.
