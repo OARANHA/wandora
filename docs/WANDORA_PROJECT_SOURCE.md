@@ -1,3 +1,13 @@
+## Reconciled checkpoint — ADR 0265 employee development durable contract preflight
+
+ADR 0265 proves the minimum durable contract gap for employee-specific development after exhausting reuse options.
+
+Existing `wandora.digital_employees` cannot represent multi-valued responsibilities/approved practices with provenance/history. Organization grounding remains company-wide fact/rule authority and must not be overloaded with employee scope. Paperclip Skills/Decision Training and Mastra memory remain delegated operational capabilities.
+
+Accepted minimum future semantics are employee-scoped `responsibility | behavior | practice` entries with provenance `owner_statement | approved_learning | approved_correction`, source evidence, active/retired lifecycle and correction history. Candidate-learning suggestions remain non-authoritative and receive no persistence contract in this slice.
+
+No migration/table/API/runtime/Web/provider/production effect was executed. Next slice: Digital Employee Development Durable Contract Implementation V1 — CODE ONLY / NO PRODUCTION EFFECT.
+
 ## Reconciled checkpoint — ADR 0264 employee development / accumulated learning authority
 
 The next product capability is now architecturally classified before implementation.
