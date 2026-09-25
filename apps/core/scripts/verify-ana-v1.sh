@@ -128,6 +128,7 @@ docker run --rm --network "$NET" -v "$CORE:/app" -w /app \
       ! -name "customer-hire-tenant-eligibility.integration.test.ts" \
       ! -name "human-grounding.integration.test.ts" \
       ! -name "organization-grounding-runtime-projection.integration.test.ts" \
+      ! -name "employee-development-runtime-projection.integration.test.ts" \
       ! -name "paperclip-execution-service.integration.test.ts" \
       -print | sort | tr "\n" " ")"
     test -n "$BASE_TESTS"
