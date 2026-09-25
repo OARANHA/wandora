@@ -188,7 +188,7 @@ jobs:
             }
           }).listen(3100, address);
           PROXY"""
-          path.write_text(source[:start] + replacement + source[end:])
+          path.write_text(source[:start] + replacement + source[end + len("\nPROXY"):])
           PY
           python3 - <<'PY'
           from pathlib import Path
