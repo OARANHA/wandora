@@ -74,7 +74,7 @@ assert.match(types, /interface PluginToolAccessOperationalSnapshot/);
 assert.match(types, /interface PluginToolAccessClient/);
 const snapshotStart = types.indexOf("export interface PluginToolAccessOperationalTool");
 const snapshotEnd = types.indexOf(
-  "export interface PluginAuthorizationClient",
+  "/**\n * `ctx.issues.documents`",
   snapshotStart,
 );
 assert.ok(
