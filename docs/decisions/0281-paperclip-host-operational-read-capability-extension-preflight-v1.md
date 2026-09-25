@@ -1,250 +1,228 @@
 # ADR 0281 — Paperclip Host Operational Read Capability Extension Preflight V1
 
-Status: **CODE COMPLETE / HOST EXTENSION QUALIFIED FOR CI / NO PRODUCTION EFFECT**  
+Status: CODE COMPLETE / FOCUSED CI REQUIRED / NO PRODUCTION EFFECT
 Date: 2026-09-25
 
 ## Context
 
-ADR 0280 proved that Paperclip v2026.916.1 does not expose a stable plugin SDK read surface for the organization-level operational facts required by the Wandora Integration Capability Plane. Board credentials in Core, direct Paperclip database reads, provider-state mirrors, plugin.state snapshots and a Wandora integration registry remain prohibited.
+ADR 0280 proved that Paperclip v2026.916.1 has useful run-scoped Connection Intents but still lacks a normal-plugin SDK surface for the organization operational facts required by the Wandora Integration Capability Plane.
+
+The missing facts remain Paperclip-owned:
+
+- Tool Connections;
+- Connection grants/install availability;
+- Tool Catalog;
+- effective Tool Profile availability for one agent;
+- Tool runtime health.
+
+Core Board credentials, direct provider-DB reads, Wandora mirrors, and plugin.state shadow state were already rejected.
 
 Permanent guardrail:
 
-> Portabilidade = desacoplamento do contrato, não duplicação da implementação. Provider replacement não implica internalização.
-
-This slice qualifies the smallest Paperclip host-owned, read-only, capability-gated extension that closes the provider-side read gap without granting Board/admin authority to a plugin.
+Portabilidade = desacoplamento do contrato, não duplicação da implementação.
+Provider replacement não implica internalização.
 
 ## REAL NOW
 
 Before implementation:
 
-- Wandora main = `d19aeaa96780a0846a34b73e3faf7c7383fe6b5e`;
-- open PR #365 = no longer open / previously merged;
-- production Paperclip = `wandora/paperclip:v2026.916.0`, healthy;
-- Core, Web, JEV, Messaging Gateway and Remote-Ops-MCP = healthy;
-- Paperclip Task Drain = OFF;
-- `activeRuns=0`;
-- `pendingWakes=0`;
-- `quiescent=true`;
-- production remained unchanged throughout this slice.
+- Wandora main = d19aeaa96780a0846a34b73e3faf7c7383fe6b5e;
+- production Paperclip remained wandora/paperclip:v2026.916.0;
+- Core/Web/Paperclip/JEV/Remote-Ops were healthy;
+- Task Drain was OFF with activeRuns=0, pendingWakes=0, quiescent=true;
+- no provider/model/customer/outbound effect was authorized or performed.
 
-The extension qualification source is exactly:
+The implementation laboratory used the exact accepted Paperclip candidate:
 
-`paperclipai/paperclip@d554c4789ed3930f8a53ac9fdf6503b3187097da`  
-tag: `v2026.916.1`
+- release v2026.916.1;
+- commit d554c4789ed3930f8a53ac9fdf6503b3187097da.
 
-## Proven host primitives
+## Proven host seam
 
-The existing Paperclip plugin architecture already contains the security boundary required for this extension:
+Paperclip already has the correct enforcement machinery:
 
-1. worker -> host JSON-RPC over the existing plugin protocol;
-2. manifest-declared `PluginCapability`;
-3. host-side method-to-capability enforcement;
-4. host-issued invocation company scope;
-5. rejection of cross-company nested worker calls before service dispatch;
-6. existing `toolAccessService` as operational authority for Connections, grants, catalog, profiles and runtime health.
+1. plugin manifests declare PluginCapability values;
+2. worker-to-host methods use typed JSON-RPC over the existing stdio bridge;
+3. createHostClientHandlers() gates each method by manifest capability;
+4. nested worker-to-host calls carry only a host-issued invocation id;
+5. the host reconstructs the invocation company scope and rejects cross-company reads;
+6. buildHostServices() is the existing service-adapter boundary for plugin SDK reads.
 
-Therefore no new service, database, lifecycle or administrative API is required.
-
-## Critical read-only finding
-
-The existing `listCatalog()` API is not safe for this snapshot because a stale remote-MCP catalog may trigger `refreshCatalog()`, causing provider I/O and possible operational mutation.
-
-The extension therefore adds a separate `listCatalogCached()` host-internal read that:
-
-- reads only the currently persisted Paperclip catalog;
-- performs no discovery;
-- performs no refresh;
-- resolves no provider credential;
-- performs no health check;
-- performs no provider/network call.
-
-This distinction is required for the host capability to remain truly read-only.
+No second API server, Board impersonation mechanism, or plugin-owned operational store is required.
 
 ## Decision
 
-Add one Paperclip plugin capability:
+Add one Paperclip host-owned read capability:
 
-`tools.operational.read`
+tools.operational.read
 
-Add one worker->host RPC:
+and one narrow plugin SDK surface:
 
-`toolAccess.readOperationalSnapshot`
+ctx.toolAccess.readOperationalSnapshot({ companyId, agentId })
 
-Expose it in the SDK as:
+The implementation is retained as a patch over the exact Paperclip candidate at:
 
-`ctx.toolAccess.readOperationalSnapshot(companyId, { agentId? })`
+integrations/paperclip/patches/v2026.916.1-host-operational-read-v1.patch
 
-The name is provider implementation detail and not a Wandora public contract.
+Patch SHA-256:
 
-## Snapshot boundary
+fc0ce000b2fa5051f10fb71cfece71df17e9b4953779486d951b3f2990cd8bfb
+
+## Output boundary
 
 The host returns only a bounded operational projection:
 
-- runtime status and aggregate connection/audit-health counters;
-- active connection name/application key/display evidence;
-- enabled/status/health state;
-- organization/agent install presence;
-- grant kind/status/default flag;
-- cached catalog tool name, risk and read/write/destructive/status flags;
-- optional agent effective tool names.
+- runtime health category;
+- connection display label;
+- connection status/enabled/health;
+- whether an active organization grant exists;
+- whether the connection is installed for the requested agent;
+- catalog tool name plus risk/status/read/write/destructive flags;
+- whether the exact catalog entry is admitted by the agent's effective Tool Profile.
 
-The snapshot deliberately excludes:
+It does not return:
 
-- Board/admin credentials;
+- Board/admin token;
 - provider credentials;
 - secret refs;
-- raw grant IDs;
-- raw catalog IDs;
-- Connection IDs/UIDs;
-- profile IDs;
-- database rows;
-- provider payloads;
-- provider health messages;
-- mutation handles.
+- Connection IDs;
+- grant IDs;
+- catalog entry IDs;
+- Tool Profile IDs;
+- mutable admin methods.
 
-Tool names and application keys are visible only inside the replaceable Paperclip-side adapter implementation so it can map provider operations to the finite Wandora `BusinessCapability` vocabulary. They are not Wandora semantics and must not become customer/API contract.
+The provider/runtime toolName is implementation metadata available only inside the replaceable Paperclip-side adapter so it can map to Wandora BusinessCapability. It must not become a Wandora public/customer semantic.
 
-## Authority split
+## Strict read-only correction
 
-### Semantic authority — Wandora
+The first candidate used Paperclip listCatalog(...).
+
+Adversarial review found that listCatalog(...) may refresh a stale mcp_remote catalog and therefore can perform provider I/O and writes.
+
+That candidate was rejected.
+
+The accepted patch adds listCatalogCached(...), which reads only Paperclip's current persisted Tool Catalog rows and performs no refresh, provider call, remote HTTP, single-flight refresh, or catalog mutation.
+
+This distinction is mandatory. A stale or empty provider cache may make the projection conservative or unknown; the read boundary must never turn observation into refresh.
+
+## Company and agent isolation
+
+The existing host invocation-scope enforcement applies automatically to toolAccess.readOperationalSnapshot.
+
+Additionally, the host service proves the requested agentId belongs to the requested company before reading effective profiles.
+
+Therefore:
+
+- no capability means fail before service call;
+- invocation company A requesting company B fails;
+- company A requesting agent B fails;
+- same-company authorized read is admitted.
+
+## Capability Authority / Reuse Gate
+
+### Semantic authority
 
 Wandora continues to own:
 
-- `BusinessCapability`;
-- Integration Capability Plane product meaning;
-- provider-neutral availability projection;
-- semantic route/Fast Read decisions.
+- BusinessCapability;
+- customer-facing integration semantics;
+- capability projection rules;
+- semantic route/Fast Read policy.
 
 ### Durable product state
 
-No new Wandora durable state is introduced.
+No new Wandora state is introduced.
 
-### Operational authority — Paperclip
+### Operational authority
 
-Paperclip remains authority for:
-
-- Connections;
-- grants/installations;
-- catalog;
-- Tool Profiles;
-- runtime health;
-- Tool Gateway run authorization.
+Paperclip remains owner of Connections, grants, catalog, Tool Profiles, runtime health, Tool Gateway execution and audit.
 
 ### Provider implementation
 
-This extension remains inside Paperclip and reuses Paperclip service-layer reads.
+This patch is a Paperclip provider-side extension. It is not a Wandora operational subsystem.
 
 ### Replacement boundary
 
-If Paperclip is replaced, this patch/client disappears with the Paperclip adapter. Wandora product contracts remain unchanged.
+If Paperclip is replaced, this host read extension and Paperclip-owned state disappear behind the adapter. Wandora BusinessCapability, Fast Read intent and customer integration semantics remain stable.
 
 ## Second adversarial review
 
-### Excessive SDK surface
+The implementation was challenged against the required risks.
 
-Rejected broad Connection/catalog CRUD clients. The accepted surface is one bounded snapshot method behind one explicit capability.
+### SDK surface expansion
 
-### Plugin privilege escalation
+Accepted only because the surface is one read method under one explicit capability. No CRUD/admin client was introduced.
 
-A plugin must declare `tools.operational.read`. The host capability gate runs before the service. No Board token or Board-equivalent mutation is exposed.
+### Privilege escalation
+
+Rejected by manifest gating plus host-issued company invocation scope plus exact-agent company verification. No Board authority is minted or forwarded.
 
 ### Cross-company reads
 
-The existing host invocation-scope enforcement classifies the RPC as company-scoped from its `companyId` parameter. A requested company different from the host-issued invocation company fails before service execution.
-
-When `agentId` is supplied, the existing effective-profile service also verifies that the agent belongs to the requested company.
+Negative coverage exists in the host-client test and real host-service test.
 
 ### Credential leakage
 
-The projection does not return `credentialSecretRefs`, `credentialRefs`, provider token material, grant providerTenant metadata or health messages.
-
-### Accidental provider I/O
-
-The snapshot does not use normal `listCatalog()`; it uses the new cached-only read. It does not call `checkHealth`, `refreshCatalog`, secret resolution or provider discovery.
+The returned type has no credential/secret-ref fields or Paperclip object IDs. Static CI rejects forbidden fields in the bounded snapshot contract.
 
 ### Board-equivalent authority
 
-No admin route/token is introduced. The plugin receives only the bounded result of host-side service reads.
+No Board token or Board route is used. The host calls current internal services directly inside Paperclip, which is already the operational authority.
 
 ### Internal schema coupling
 
-The plugin never reads Paperclip DB tables. Schema/service coupling remains inside Paperclip itself, where it belongs. The patch consumes the existing service boundary.
+The plugin does not read Paperclip tables. The host extension uses current Paperclip services. listCatalogCached is added to the Tool Access service itself so persistence details stay behind that service.
 
-### Organization Adapter becoming an admin plugin
+### Organization Adapter becoming admin plugin
 
-Rejected. The adapter gains a narrow operational read capability only. It receives no mutation method or general Tool Access client.
+The capability only reads an operational projection. It exposes no mutations.
+
+### Difficult provider replacement
+
+The patch is pinned, isolated, digest-verified and documented as a replaceable provider delta. It does not change Wandora semantics.
 
 ### Snapshot becoming state
 
-No persistence path is added. The snapshot is recomputed on each host call and returned to the caller.
+No persistence API is introduced. Wandora/plugin.state mirrors remain prohibited.
 
-### Tool names leaking into BusinessCapability
+### Tool names becoming BusinessCapability
 
-Explicitly prohibited. Tool names are provider-adapter mapping evidence only. The Wandora projection remains `BusinessCapability[]`.
+Explicitly prohibited. Tool names are adapter-internal mapping evidence only.
 
-## Code artifact
+## Focused validation
 
-The Wandora repository retains the provider-side extension as:
+The dedicated CI workflow Paperclip Host Operational Read Extension CI must:
 
-`integrations/paperclip/patches/v2026.916.1-host-operational-read-v1.patch`
+1. checkout exact Paperclip d554c4789ed3930f8a53ac9fdf6503b3187097da;
+2. apply the retained patch;
+3. run the static boundary verifier;
+4. use Node 24 plus pinned pnpm;
+5. typecheck the patched plugin SDK;
+6. typecheck the patched Paperclip server;
+7. run focused SDK capability/company-scope tests;
+8. run the embedded-Postgres host-service tenant/leak test.
 
-The patch is anchored to exact upstream commit `d554c4789ed3930f8a53ac9fdf6503b3187097da`.
-
-This is intentionally preferable to silently internalizing Paperclip or maintaining an unqualified permanent fork.
-
-## Focused tests included in the patch
-
-The patch includes tests proving:
-
-1. `tools.operational.read` is mandatory;
-2. cross-company reads fail before the Tool Access service is called;
-3. a same-company host-issued invocation can read the bounded snapshot;
-4. `listCatalogCached()` returns persisted catalog after TTL expiry without provider/network refresh.
-
-## CI qualification
-
-`.github/workflows/paperclip-host-operational-read-extension-ci.yml`:
-
-1. checks out exact Paperclip commit `d554c478...`;
-2. applies the retained patch with `git apply --check`;
-3. runs `git diff --check`;
-4. uses Node 24.21.0 and pnpm 9.15.4;
-5. runs the plugin host capability/tenant-boundary tests;
-6. runs the cached-catalog no-provider-I/O test;
-7. typechecks the patched plugin SDK and Paperclip server.
-
-Normal CI runs on GitHub-hosted `ubuntu-24.04` under ADR 0158.
-
-## Production boundary
-
-This slice does **not** authorize installation or deployment of the patched Paperclip host.
-
-Production Paperclip remains v2026.916.0 until a separate upgrade/activation preflight proves the exact candidate artifact and rollback path.
-
-No Organization Adapter manifest in production is changed in this slice.
+No production credential, Docker control plane, customer data or live provider is required.
 
 ## Effect boundary
 
-```text
-production Paperclip patch      = 0
-production Paperclip upgrade    = 0
-production restart              = 0
-Core change                     = 0
-migration/table                 = 0
-Board credential in Core        = 0
-provider-state mirror           = 0
-plugin.state snapshot           = 0
-provider/customer call          = 0
-model/JEV call                  = 0
-customer work                   = 0
-outbound                        = 0
-production effect               = 0
-```
+Paperclip production patch/upgrade = 0
+Paperclip restart = 0
+Core/Web/Gateway change = 0
+migration/table = 0
+Board credential in Core/plugin = 0
+direct Paperclip DB contract = 0
+Wandora registry/mirror = 0
+plugin.state shadow snapshot = 0
+provider/model/customer call = 0
+customer work = 0
+outbound = 0
+production effect = 0
 
 ## Next gate
 
-After exact PR-head CI is GREEN, the next slice may implement the disposable ADR 0279 integration-capability attestation using this host capability in an isolated Paperclip candidate/lab only.
+After the exact final PR head is GREEN, this preflight may be marked complete and merged.
 
-Production activation remains a separate decision.
+Only then may a later slice implement the Paperclip-side adapter consumption and the ADR 0279 disposable Integration Capability Projection attestation. Production Paperclip promotion remains a separate effect-authorizing preflight/execution.
 
-ADR 0281 is **CODE COMPLETE / CI REQUIRED / NO PRODUCTION EFFECT**.
+ADR 0281 is currently CODE COMPLETE / FOCUSED CI REQUIRED / NO PRODUCTION EFFECT.
