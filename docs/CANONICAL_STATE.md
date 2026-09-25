@@ -1,28 +1,36 @@
 ## Reconciled checkpoint — ADR 0281 Paperclip host operational read capability extension preflight
 
-ADR 0281 is CODE COMPLETE / FOCUSED CI REQUIRED / NO PRODUCTION EFFECT.
+ADR 0281 is **PREFLIGHT GREEN / HOST EXTENSION QUALIFIED / NO PRODUCTION EFFECT**.
 
-A provider-side Paperclip patch is retained against exact v2026.916.1 at d554c4789ed3930f8a53ac9fdf6503b3187097da.
-It adds one manifest capability, tools.operational.read, and one narrow
-ctx.toolAccess.readOperationalSnapshot({ companyId, agentId }) surface through the existing host-worker JSON-RPC bridge.
+The qualified provider-side Paperclip patch is retained against exact
+`v2026.916.1@d554c4789ed3930f8a53ac9fdf6503b3187097da`.
+
+It adds one manifest capability, `tools.operational.read`, and one narrow
+`ctx.toolAccess.readOperationalSnapshot({ companyId, agentId })` surface through the
+existing host-worker JSON-RPC bridge.
 
 The host reuses Paperclip services, preserves host-issued invocation company scope,
 verifies the requested agent belongs to the company, exposes no Board credential,
 provider credential, secret ref or Paperclip object IDs, and has no mutation methods.
 
-The adversarial review rejected listCatalog(...) because it can refresh stale remote
-catalogs. The accepted implementation adds and uses listCatalogCached(...), so an
+The adversarial review rejected normal `listCatalog(...)` because it can refresh stale
+remote catalogs. The accepted implementation uses `listCatalogCached(...)`, so an
 operational read cannot trigger provider I/O or catalog mutation.
 
-No Wandora table/registry/mirror, plugin.state snapshot, production Paperclip change,
-provider/model call, customer work or outbound effect occurred.
+Exact implementation head `e4060656cab70ffcf408eb4aa3fbabd127c855d1` completed **9/9 workflows GREEN**.
+Dedicated Paperclip Host Operational Read Extension CI run `36175260177` passed exact
+patch apply, static authority/leak verification, SDK typecheck, server typecheck and
+focused capability/tenant/cache-only tests under GitHub-hosted ubuntu-24.04 / Node 24.
 
 Patch SHA-256:
-fc0ce000b2fa5051f10fb71cfece71df17e9b4953779486d951b3f2990cd8bfb.
+`fc0ce000b2fa5051f10fb71cfece71df17e9b4953779486d951b3f2990cd8bfb`.
 
-Next gate: exact final PR head must pass the dedicated GitHub-hosted Node 24
-Paperclip Host Operational Read Extension CI, including SDK/server typecheck and focused
-capability/tenant tests.
+No Wandora table/registry/mirror, `plugin.state` snapshot, production Paperclip change,
+provider/model call, customer work or outbound effect occurred.
+
+Next: use this qualified host capability only in a disposable Paperclip-side adapter +
+ADR 0279 Integration Capability Projection attestation. Production Paperclip promotion
+remains a separate future effect-authorizing preflight/execution.
 
 ## Reconciled checkpoint — ADR 0277 Semantic Fast Read Intent + Disposable Paperclip Attestation V1
 
