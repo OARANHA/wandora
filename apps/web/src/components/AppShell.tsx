@@ -14,6 +14,7 @@ import {
   UsersRound,
 } from 'lucide-react';
 import { useAuth } from '../AuthProvider';
+import { WorkCompletionNotifier } from './WorkCompletionNotifier';
 
 const nav = [
   { to: '/', label: 'Início', icon: Home },
@@ -302,6 +303,7 @@ export function AppShell() {
           <Outlet />
         </main>
       </div>
+      <WorkCompletionNotifier />
       <MobileNav />
     </div>
   );
