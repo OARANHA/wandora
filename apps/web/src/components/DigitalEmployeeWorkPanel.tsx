@@ -128,7 +128,7 @@ export function DigitalEmployeeWorkPanel({
         workOperationRef.current = null;
       }
       if (response.status === 400) {
-        throw new WorkRequestError('Revise o título e a descrição antes de atribuir este trabalho.');
+        throw new WorkRequestError('Revise o pedido antes de atribuir este trabalho.');
       }
       if (response.status === 403) {
         throw new WorkRequestError('Seu acesso não permite atribuir trabalho nesta empresa.');
@@ -177,10 +177,13 @@ export function DigitalEmployeeWorkPanel({
   });
 
   const submit = () => {
-    const normalizedTitle = title.trim();
-    const normalizedDescription = description.trim();
-    if (!normalizedTitle || !normalizedDescription) return;
-    mutation.mutate({ title: normalizedTitle, description: normalizedDescription });
+    const normalizedRequest = title.trim();
+    const normalizedDetails = description.trim();
+    if (!normalizedRequest) return;
+    const canonicalDescription = normalizedDetails
+      ? `${normalizedRequest}\n\nDetalhes adicionais:\n${normalizedDetails}`
+      : normalizedRequest;
+    mutation.mutate({ title: normalizedRequest, description: canonicalDescription });
   };
 
   const retrySame = () => {
@@ -232,7 +235,7 @@ export function DigitalEmployeeWorkPanel({
           onChange={(event) => setTitle(event.target.value)}
           disabled={Boolean(uncertainRequest) || mutation.isPending}
           maxLength={200}
-          placeholder="Ex.: Preparar resumo das oportunidades desta semana"
+          placeholder="O que você quer que Ana faça? Ex.: Qual o valor do Desenvolvimento Web?"
           className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-indigo-300 disabled:bg-slate-50"
         />
         <textarea
@@ -241,7 +244,7 @@ export function DigitalEmployeeWorkPanel({
           disabled={Boolean(uncertainRequest) || mutation.isPending}
           maxLength={4000}
           rows={4}
-          placeholder="Descreva o resultado interno que você quer receber. Não peça envio externo neste primeiro fluxo."
+          placeholder="Detalhes adicionais (opcional). Ex.: informe também código, preço e estoque."
           className="w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm leading-6 outline-none transition focus:border-indigo-300 disabled:bg-slate-50"
         />
         {mutation.isError ? (
@@ -263,7 +266,7 @@ export function DigitalEmployeeWorkPanel({
           <button
             type="button"
             onClick={submit}
-            disabled={mutation.isPending || !title.trim() || !description.trim()}
+            disabled={mutation.isPending || !title.trim()}
             className="inline-flex h-9 items-center gap-2 rounded-xl bg-indigo-600 px-3 text-xs font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {mutation.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <Bot className="size-4" />}
