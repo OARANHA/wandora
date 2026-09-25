@@ -1,3 +1,7 @@
+## Reconciled checkpoint — ADR 0259 VendaERP GetAll routing PROMOTED / NO PROVIDER CALL
+
+ADR 0258 is live. Production MCP server SHA-256 is `25c740fd94ae3fb052b7177eae0a34be25e04deab9a0392a70e9de2696e9cb26` with source marker `aa82d08b2ef1399e5c2fda8751bf769bc806444c`. The live source routes pagination-only product reads to `Produtos/GetAll` and filtered reads to `Produtos/Pesquisar`. Promotion used Paperclip Task Drain, caused no provider/model/outbound call, and final Task Drain is OFF/quiescent with Paperclip/Core healthy.
+
 ## Reconciled checkpoint — ADR 0258 VendaERP GetAll routing + real wire casing CODE COMPLETE / NO PROVIDER CALL
 
 ADR 0257 proved the pagination-only `vendaerp_search_products({"pageSize":5,"skip":0})` path failed because `Produtos/Pesquisar` returned JSON `null`.
