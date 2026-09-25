@@ -1,3 +1,17 @@
+## Reconciled checkpoint — ADR 0274 Team drawer + development progress production GREEN
+
+ADR 0274 records the production promotion of ADR 0272/0273 as a Web-only effect.
+
+Production Web now runs `wandora/web:candidate-5108f7ce8de3`, revision `5108f7ce8de3546750ea921fe5b7d1da46751586`, healthy. The exact qualified artifact is GitHub Actions artifact 10859763138, GitHub digest `sha256:bd9435e331e5b90daaba580b6b53c6f45e2eec2cd3828106a8860a45f2e9c985`, archive SHA-256 `d41460f3ceaabb635d276653edca4065b8c2faffde39f2e6248619555cdaaa35`, and loaded image id `sha256:faa77b3471a5320dfdb84a6f17df6fb020e545a2cb6ef51de9df73e738f40e2c`.
+
+Disposable qualification passed on the `wandora-core` network with 200 for /healthz, /team, /work and /login. The production local-Traefik HTTPS path also returns 200 for the same routes. The live bundle contains the work drawer, recent-work pagination and evidence-backed development progress markers.
+
+Team now exposes `Dar trabalho para Ana` from the employee card, opens the right-side drawer with `Novo trabalho` / `Trabalhos recentes`, paginates recent work at five items per page, and keeps full result detail in the canonical Work surface. `Desenvolvimento na empresa` remains derived from exactly four transparent Wandora-owned milestones and does not represent intelligence, performance, trust or autonomy.
+
+Only `wandora-web` was recreated. Core, Paperclip and Messaging Gateway remained on their previous containers/images and healthy. No migration, provider/model call, customer work or outbound effect occurred.
+
+Rollback selector: `wandora/web:candidate-d9d4d6babf97`; backup: `/opt/wandora/stacks/web/.env.adr0272-0273.before`.
+
 ## Reconciled checkpoint — ADR 0261 owner work flow MERGED / CI GREEN / NO PRODUCTION EFFECT
 
 ADR 0261 is merged at `main@30a4854c175a0a20b1c788e9873f58411412480f`. PR #341 passed Web, Core, Platform Admin and Messaging Gateway CI before merge; the post-merge push workflows also completed GREEN.
