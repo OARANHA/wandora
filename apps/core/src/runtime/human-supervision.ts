@@ -16,6 +16,10 @@ import {
 } from '../organization-adapter/contracts.js';
 import type { OrganizationAdapterService } from '../organization-adapter/service.js';
 import type { HumanDigitalEmployeeActivationService } from '../supervision/human-digital-employee-activation.js';
+import {
+  HumanDigitalEmployeeGuidanceConflictError,
+  type HumanDigitalEmployeeGuidanceService,
+} from '../supervision/human-digital-employee-guidance.js';
 import type { HumanDigitalEmployeesReadService } from '../supervision/human-digital-employees-read.js';
 import type { HumanStarterWorkforceReadinessService } from '../supervision/human-starter-workforce-readiness.js';
 import {
@@ -41,6 +45,9 @@ const DIGITAL_EMPLOYEES_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/digital-e
 const STARTER_WORKFORCE_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/starter-workforce$/;
 const DIGITAL_EMPLOYEE_ACTIVATE_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/digital-employees\/([^/]+)\/activate$/;
 const DIGITAL_EMPLOYEE_WORK_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/digital-employees\/([^/]+)\/work$/;
+const DIGITAL_EMPLOYEE_DEVELOPMENT_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/digital-employees\/([^/]+)\/development$/;
+const DIGITAL_EMPLOYEE_DEVELOPMENT_RETIRE_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/digital-employees\/([^/]+)\/development\/([^/]+)\/retire$/;
+const DIGITAL_EMPLOYEE_DEVELOPMENT_CORRECT_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/digital-employees\/([^/]+)\/development\/([^/]+)\/correct$/;
 const CONVERSATIONS_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/conversations$/;
 const CONVERSATION_DETAIL_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/conversations\/([^/]+)$/;
 const GROUNDING_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/grounding$/;
@@ -100,6 +107,23 @@ export function isHumanDigitalEmployeeActivationPath(pathname: string): boolean 
 export function isHumanDigitalEmployeeWorkPath(pathname: string): boolean {
   const match = DIGITAL_EMPLOYEE_WORK_PATH_RE.exec(pathname);
   return Boolean(match?.[1] && match?.[2] && UUID_RE.test(match[1]) && UUID_RE.test(match[2]));
+}
+
+export function isHumanDigitalEmployeeGuidanceMutationPath(pathname: string): boolean {
+  const base = DIGITAL_EMPLOYEE_DEVELOPMENT_PATH_RE.exec(pathname);
+  if (base?.[1] && base?.[2] && UUID_RE.test(base[1]) && UUID_RE.test(base[2])) return true;
+
+  const correction = DIGITAL_EMPLOYEE_DEVELOPMENT_CORRECT_PATH_RE.exec(pathname);
+  if (
+    correction?.[1] && correction?.[2] && correction?.[3]
+    && UUID_RE.test(correction[1]) && UUID_RE.test(correction[2]) && UUID_RE.test(correction[3])
+  ) return true;
+
+  const retire = DIGITAL_EMPLOYEE_DEVELOPMENT_RETIRE_PATH_RE.exec(pathname);
+  return Boolean(
+    retire?.[1] && retire?.[2] && retire?.[3]
+    && UUID_RE.test(retire[1]) && UUID_RE.test(retire[2]) && UUID_RE.test(retire[3])
+  );
 }
 
 export function isHumanCompanyProfileMutationPath(pathname: string, method: string | undefined): boolean {
@@ -258,6 +282,67 @@ function parseGroundingCorrectionRequest(rawBody: string | undefined): {
   }
 }
 
+function parseEmployeeGuidanceCreateRequest(rawBody: string | undefined): {
+  entryType: 'responsibility' | 'behavior' | 'practice';
+  content: string;
+  provenanceType: 'owner_statement' | 'approved_evidence';
+  sourceRef: string | null;
+  sourceLabel: string | null;
+} | undefined {
+  if (!rawBody || rawBody.length > 8_192) return undefined;
+  try {
+    const parsed = JSON.parse(rawBody) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return undefined;
+    const record = parsed as Record<string, unknown>;
+    const allowed = new Set(['entryType', 'content', 'provenanceType', 'sourceRef', 'sourceLabel']);
+    if (Object.keys(record).some((key) => !allowed.has(key))) return undefined;
+    if (!['responsibility', 'behavior', 'practice'].includes(String(record.entryType))) return undefined;
+    if (record.provenanceType !== 'owner_statement' && record.provenanceType !== 'approved_evidence') return undefined;
+    if (typeof record.content !== 'string') return undefined;
+    const content = record.content.trim();
+    if (!content || content.length > 4000) return undefined;
+    const sourceRef = record.sourceRef == null ? null : typeof record.sourceRef === 'string' ? record.sourceRef.trim() : undefined;
+    const sourceLabel = record.sourceLabel == null ? null : typeof record.sourceLabel === 'string' ? record.sourceLabel.trim() : undefined;
+    if (sourceRef === undefined || sourceLabel === undefined) return undefined;
+    if (sourceRef !== null && (!sourceRef || sourceRef.length > 1024)) return undefined;
+    if (sourceLabel !== null && (!sourceLabel || sourceLabel.length > 255)) return undefined;
+    if (record.provenanceType === 'approved_evidence' && sourceRef === null) return undefined;
+    return {
+      entryType: record.entryType as 'responsibility' | 'behavior' | 'practice',
+      content,
+      provenanceType: record.provenanceType,
+      sourceRef,
+      sourceLabel,
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+function parseEmployeeGuidanceCorrectionRequest(rawBody: string | undefined): {
+  content: string;
+  sourceRef: string;
+  sourceLabel: string | null;
+} | undefined {
+  if (!rawBody || rawBody.length > 8_192) return undefined;
+  try {
+    const parsed = JSON.parse(rawBody) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return undefined;
+    const record = parsed as Record<string, unknown>;
+    const allowed = new Set(['content', 'sourceRef', 'sourceLabel']);
+    if (Object.keys(record).some((key) => !allowed.has(key))) return undefined;
+    if (typeof record.content !== 'string' || typeof record.sourceRef !== 'string') return undefined;
+    const content = record.content.trim();
+    const sourceRef = record.sourceRef.trim();
+    const sourceLabel = record.sourceLabel == null ? null : typeof record.sourceLabel === 'string' ? record.sourceLabel.trim() : undefined;
+    if (!content || content.length > 4000 || !sourceRef || sourceRef.length > 1024) return undefined;
+    if (sourceLabel === undefined || (sourceLabel !== null && (!sourceLabel || sourceLabel.length > 255))) return undefined;
+    return { content, sourceRef, sourceLabel };
+  } catch {
+    return undefined;
+  }
+}
+
 function parseConfirmationVersion(rawBody: string | undefined): string | undefined {
   if (!rawBody || rawBody.length > 1_024) return undefined;
   try {
@@ -282,6 +367,7 @@ export function createHumanSupervisionHandler(
   companyProfileService?: HumanCompanyProfileService,
   companyRegistryLookup?: CompanyRegistryLookupService,
   starterWorkforceReadinessService?: HumanStarterWorkforceReadinessService,
+  digitalEmployeeGuidanceService?: HumanDigitalEmployeeGuidanceService,
 ) {
   return async (request: HumanSupervisionRequest): Promise<HumanSupervisionResponse> => {
     try {
@@ -441,6 +527,92 @@ export function createHumanSupervisionHandler(
         }
         const entry = await groundingService.create({
           organizationId,
+          authorization: request.authorization,
+          idempotencyKey,
+          ...creation,
+        });
+        return { status: 200, body: { entry } };
+      }
+
+      const developmentRetireMatch = DIGITAL_EMPLOYEE_DEVELOPMENT_RETIRE_PATH_RE.exec(request.pathname);
+      if (developmentRetireMatch) {
+        const organizationId = developmentRetireMatch[1];
+        const employeeId = developmentRetireMatch[2];
+        const entryId = developmentRetireMatch[3];
+        if (
+          !organizationId || !employeeId || !entryId
+          || !UUID_RE.test(organizationId) || !UUID_RE.test(employeeId) || !UUID_RE.test(entryId)
+        ) return { status: 404, body: { error: 'not-found' } };
+        if (!digitalEmployeeGuidanceService) return { status: 404, body: { error: 'not-found' } };
+        if (request.method !== 'POST') return { status: 405, body: { error: 'method-not-allowed' } };
+        if (request.rawBody?.trim()) return { status: 400, body: { error: 'invalid-employee-development-request' } };
+        const idempotencyKey = request.idempotencyKey?.trim();
+        if (!idempotencyKey || idempotencyKey.length > 255) {
+          return { status: 400, body: { error: 'invalid-employee-development-request' } };
+        }
+        const entry = await digitalEmployeeGuidanceService.retire({
+          organizationId,
+          employeeId,
+          entryId,
+          authorization: request.authorization,
+          idempotencyKey,
+        });
+        return { status: 200, body: { entry } };
+      }
+
+      const developmentCorrectMatch = DIGITAL_EMPLOYEE_DEVELOPMENT_CORRECT_PATH_RE.exec(request.pathname);
+      if (developmentCorrectMatch) {
+        const organizationId = developmentCorrectMatch[1];
+        const employeeId = developmentCorrectMatch[2];
+        const entryId = developmentCorrectMatch[3];
+        if (
+          !organizationId || !employeeId || !entryId
+          || !UUID_RE.test(organizationId) || !UUID_RE.test(employeeId) || !UUID_RE.test(entryId)
+        ) return { status: 404, body: { error: 'not-found' } };
+        if (!digitalEmployeeGuidanceService) return { status: 404, body: { error: 'not-found' } };
+        if (request.method !== 'POST') return { status: 405, body: { error: 'method-not-allowed' } };
+        const idempotencyKey = request.idempotencyKey?.trim();
+        const correction = parseEmployeeGuidanceCorrectionRequest(request.rawBody);
+        if (!idempotencyKey || idempotencyKey.length > 255 || !correction) {
+          return { status: 400, body: { error: 'invalid-employee-development-request' } };
+        }
+        const entry = await digitalEmployeeGuidanceService.correct({
+          organizationId,
+          employeeId,
+          entryId,
+          authorization: request.authorization,
+          idempotencyKey,
+          ...correction,
+        });
+        return { status: 200, body: { entry } };
+      }
+
+      const developmentMatch = DIGITAL_EMPLOYEE_DEVELOPMENT_PATH_RE.exec(request.pathname);
+      if (developmentMatch) {
+        const organizationId = developmentMatch[1];
+        const employeeId = developmentMatch[2];
+        if (
+          !organizationId || !employeeId
+          || !UUID_RE.test(organizationId) || !UUID_RE.test(employeeId)
+        ) return { status: 404, body: { error: 'not-found' } };
+        if (!digitalEmployeeGuidanceService) return { status: 404, body: { error: 'not-found' } };
+        if (request.method === 'GET') {
+          const items = await digitalEmployeeGuidanceService.list(
+            request.authorization,
+            organizationId,
+            employeeId,
+          );
+          return { status: 200, body: { items } };
+        }
+        if (request.method !== 'POST') return { status: 405, body: { error: 'method-not-allowed' } };
+        const idempotencyKey = request.idempotencyKey?.trim();
+        const creation = parseEmployeeGuidanceCreateRequest(request.rawBody);
+        if (!idempotencyKey || idempotencyKey.length > 255 || !creation) {
+          return { status: 400, body: { error: 'invalid-employee-development-request' } };
+        }
+        const entry = await digitalEmployeeGuidanceService.create({
+          organizationId,
+          employeeId,
           authorization: request.authorization,
           idempotencyKey,
           ...creation,
@@ -654,6 +826,9 @@ export function createHumanSupervisionHandler(
         return { status: 404, body: { error: 'not-found' } };
       }
       if (error instanceof HumanGroundingConflictError) {
+        return { status: 409, body: { error: error.code } };
+      }
+      if (error instanceof HumanDigitalEmployeeGuidanceConflictError) {
         return { status: 409, body: { error: error.code } };
       }
       if (error instanceof DigitalEmployeeActivationError) {
