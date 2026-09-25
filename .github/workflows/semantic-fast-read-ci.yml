@@ -101,6 +101,24 @@ jobs:
           sed -i "s/:get_value/:get-value/g" integrations/paperclip/adapters/wandora-mastra-v1/disposable-fast-read-core.mjs
           python3 - <<'PY'
           from pathlib import Path
+          path = Path("integrations/paperclip/adapters/wandora-mastra-v1/disposable-fast-read-core.mjs")
+          source = path.read_text()
+          old = "const readToolBridge = createPaperclipToolGatewayReadBridge({ agentMeUrl });"
+          replacement = """const diagnosticFetch = async (...args) => {
+            const response = await fetch(...args);
+            if (!response.ok) {
+              const body = await response.clone().text();
+              console.error('FAST_READ_GATEWAY_HTTP_FAILURE', response.status, body.slice(0, 2000));
+            }
+            return response;
+          };
+          const readToolBridge = createPaperclipToolGatewayReadBridge({ agentMeUrl, fetchImpl: diagnosticFetch });"""
+          if old not in source:
+              raise SystemExit("fast_read_bridge_factory_not_found")
+          path.write_text(source.replace(old, replacement, 1))
+          PY
+          python3 - <<'PY'
+          from pathlib import Path
           path = Path("integrations/paperclip/adapters/wandora-mastra-v1/verify-fast-read-disposable-e2e.sh")
           source = path.read_text()
           old = 'test "$(wait_terminal "$SUCCESS_RUN_ID")" = "succeeded"'
