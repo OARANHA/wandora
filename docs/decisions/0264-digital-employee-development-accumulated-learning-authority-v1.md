@@ -194,6 +194,37 @@ Examples:
 
 This semantic layer is not a generic memory transcript.
 
+## Learning classification gate
+
+Before an owner action is called “teaching Ana”, the product must classify what is actually being taught.
+
+| Customer intent | Canonical authority |
+| --- | --- |
+| “Our return policy is 30 days.” | organization official fact / grounding |
+| “Never promise stock without checking the ERP.” | company Regras da Casa |
+| “Ana is responsible for pre-sales qualification.” | employee responsibility |
+| “Ana should speak casually with this audience.” | employee behavior |
+| “When listing products, show name, code, price and stock in this order.” | employee approved practice |
+| “Ana should know how to operate a browser/spreadsheet/specialized workflow.” | Paperclip-governed Skill/capability, behind a Wandora product contract if customer-visible |
+| “Ana should be able to read VendaERP stock.” | governed Connection/Tool capability, not learned memory |
+| “Ana remembers what happened in previous interactions.” | Mastra/runtime memory mechanics |
+| “This product currently costs R$ X and has Y units.” | business-system/tool data, not durable employee learning |
+
+This classification prevents “learning” from becoming a catch-all storage bucket.
+
+### Guidance is not automatically a Paperclip Skill
+
+A responsibility, behavior or approved practice is **semantic guidance**, not necessarily an executable Skill package.
+
+Examples:
+
+- “Use a friendly, concise tone” is guidance;
+- “Present stock before price” is guidance;
+- “Run a specialized browser workflow” may be a Paperclip Skill;
+- “Query ERP stock” is a governed tool capability.
+
+Do not materialize every guidance statement into a Paperclip Skill or managed instruction bundle merely because Paperclip can store them. Provider primitives are chosen according to operational need, while the Wandora semantic contract remains stable.
+
 ## Semantic classes
 
 The first provider-neutral product vocabulary is:
@@ -427,7 +458,7 @@ It must:
 1. inspect all existing Wandora employee/configuration state before adding persistence;
 2. prove whether approved `responsibility | behavior | practice` requires new durable state;
 3. define exact provenance/lifecycle/correction semantics if persistence is required;
-4. define mapping/materialization to Paperclip skills/instructions without making Paperclip IDs public product identity;
+4. define when approved guidance is passed directly through the Wandora Agent Runtime contract versus when a distinct operational capability should reuse Paperclip Skills/Connections; never map every guidance statement to a Skill by default;
 5. define runtime projection as `employeeGuidance[]` without creating a memory engine;
 6. keep organization grounding authoritative for company-wide facts/rules;
 7. keep Mastra memory/retrieval/context mechanics delegated;
