@@ -7,7 +7,7 @@ type QueryResult = {
   rows: Array<Record<string, unknown>>;
 };
 
-function fakePool(options: { bridgeFails?: boolean; groundingFails?: boolean } = {}): {
+function fakePool(options: { bridgeFails?: boolean; groundingFails?: boolean; guidanceFails?: boolean } = {}): {
   pool: Pool;
   queries: string[];
 } {
@@ -26,6 +26,10 @@ function fakePool(options: { bridgeFails?: boolean; groundingFails?: boolean } =
         if (options.groundingFails) throw new Error('grounding unavailable');
         return { rows: [] };
       }
+      if (sql.includes('digital_employee_guidance_entries')) {
+        if (options.guidanceFails) throw new Error('employee guidance unavailable');
+        return { rows: [] };
+      }
       return { rows: [] };
     },
   } as unknown as Pool;
@@ -38,9 +42,10 @@ test('Paperclip bridge readiness does not probe bridge/grounding migrations whil
   assert.deepEqual(await checkReady(), { ready: true });
   assert.equal(queries.some((sql) => sql.includes('resolve_paperclip_execution_organization')), false);
   assert.equal(queries.some((sql) => sql.includes('organization_grounding_entries')), false);
+  assert.equal(queries.some((sql) => sql.includes('digital_employee_guidance_entries')), false);
 });
 
-test('Paperclip bridge readiness proves bridge resolver and grounding projection boundaries are callable', async () => {
+test('Paperclip bridge readiness proves bridge, organization grounding and employee guidance boundaries are callable', async () => {
   const { pool, queries } = fakePool();
   const checkReady = createRuntimeReadinessChecker(pool, {
     paperclipExecutionBridgeEnabled: true,
@@ -48,6 +53,7 @@ test('Paperclip bridge readiness proves bridge resolver and grounding projection
   assert.deepEqual(await checkReady(), { ready: true });
   assert.equal(queries.some((sql) => sql.includes('resolve_paperclip_execution_organization')), true);
   assert.equal(queries.some((sql) => sql.includes('organization_grounding_entries')), true);
+  assert.equal(queries.some((sql) => sql.includes('digital_employee_guidance_entries')), true);
 });
 
 test('Paperclip bridge readiness fails closed when the migration 014 resolver is unavailable', async () => {
@@ -70,5 +76,17 @@ test('Paperclip bridge readiness fails closed when migration 017 grounding read 
   assert.deepEqual(await checkReady(), {
     ready: false,
     reason: 'organization-grounding-runtime-boundary-unavailable',
+  });
+});
+
+
+test('Paperclip bridge readiness fails closed when migration 020 employee guidance read boundary is unavailable', async () => {
+  const { pool } = fakePool({ guidanceFails: true });
+  const checkReady = createRuntimeReadinessChecker(pool, {
+    paperclipExecutionBridgeEnabled: true,
+  });
+  assert.deepEqual(await checkReady(), {
+    ready: false,
+    reason: 'digital-employee-guidance-runtime-boundary-unavailable',
   });
 });
