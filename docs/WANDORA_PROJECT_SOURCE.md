@@ -1,3 +1,17 @@
+## Reconciled checkpoint — ADR 0269 single-prompt supervised work
+
+ADR 0269 fixes a live UX leak in Team: a natural-language request is now sufficient to create supervised work.
+
+The main request field is required; the second field is optional details only. If optional details are empty, the Web deterministically sends the normalized request as both Core title and description, preserving the existing Core contract without backend/schema/provider changes.
+
+Example now intended to submit directly:
+
+```text
+Qual o valor do Desenvolvimento Web?
+```
+
+Idempotency remains based on the exact payload sent to Core; uncertain retry semantics are unchanged. Local TypeScript and owner-work-flow verifier are GREEN. No production effect yet.
+
 ## Reconciled checkpoint — ADR 0268 Work 70/30 + Employee Development Web V1
 
 ADR 0268 implements a Web-only customer UX over the production employee-development contract.
