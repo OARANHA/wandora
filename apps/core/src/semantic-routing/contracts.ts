@@ -58,6 +58,7 @@ export type SemanticRoutePolicy = {
 };
 
 export type SemanticRouteGateReason =
+  | 'invalid-policy'
   | 'not-deterministic-read'
   | 'missing-capability'
   | 'capability-not-advertised'
@@ -82,11 +83,21 @@ export function validateSemanticRouteDecision(decision: SemanticRouteDecision): 
     && probability(decision.needsHumanReview);
 }
 
+export function validateSemanticRoutePolicy(policy: SemanticRoutePolicy): boolean {
+  return probability(policy.minimumConfidence)
+    && probability(policy.maximumNeedsMoreContext)
+    && probability(policy.maximumNeedsHumanReview)
+    && probability(policy.minimumNeedsDataOrToolLookup);
+}
+
 export function gateDeterministicRead(
   decision: SemanticRouteDecision,
   availableCapabilities: readonly BusinessCapability[],
   policy: SemanticRoutePolicy,
 ): SemanticRouteGate {
+  if (!validateSemanticRoutePolicy(policy)) {
+    return { allowed: false, reason: 'invalid-policy' };
+  }
   if (!validateSemanticRouteDecision(decision)) {
     return { allowed: false, reason: 'low-confidence' };
   }
