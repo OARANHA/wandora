@@ -95,7 +95,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          chmod +x integrations/paperclip/plugins/organization-adapter-v1/attestation/verify.sh\n          integrations/paperclip/plugins/organization-adapter-v1/attestation/verify.sh "$GITHUB_WORKSPACE/.paperclip"
+          chmod +x integrations/paperclip/plugins/organization-adapter-v1/attestation/verify.sh
+          integrations/paperclip/plugins/organization-adapter-v1/attestation/verify.sh "$GITHUB_WORKSPACE/.paperclip"
 
       - name: Verify adapter-local semantic map is a subset of Wandora authority
         shell: bash
