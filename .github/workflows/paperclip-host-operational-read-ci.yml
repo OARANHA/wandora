@@ -1,0 +1,91 @@
+name: Paperclip Host Operational Read CI
+
+on:
+  pull_request:
+    paths:
+      - 'integrations/paperclip/host-operational-read-v1/**'
+      - '.github/workflows/paperclip-host-operational-read-ci.yml'
+      - 'docs/decisions/0281-paperclip-host-operational-read-capability-extension-preflight-v1.md'
+      - 'docs/CAPABILITY_AUTHORITY.md'
+      - 'docs/architecture.md'
+      - 'docs/CANONICAL_STATE.md'
+      - 'docs/WANDORA_PROJECT_SOURCE.md'
+  push:
+    branches: [main]
+    paths:
+      - 'integrations/paperclip/host-operational-read-v1/**'
+      - '.github/workflows/paperclip-host-operational-read-ci.yml'
+      - 'docs/decisions/0281-paperclip-host-operational-read-capability-extension-preflight-v1.md'
+      - 'docs/CAPABILITY_AUTHORITY.md'
+      - 'docs/architecture.md'
+      - 'docs/CANONICAL_STATE.md'
+      - 'docs/WANDORA_PROJECT_SOURCE.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: paperclip-host-operational-read-\${{ github.workflow }}-\${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - name: Checkout Wandora
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Checkout exact Paperclip v2026.916.1 source
+        uses: actions/checkout@v4
+        with:
+          repository: paperclipai/paperclip
+          ref: d554c4789ed3930f8a53ac9fdf6503b3187097da
+          path: .paperclip
+          persist-credentials: false
+
+      - name: Apply retained host operational-read patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C .paperclip rev-parse HEAD)" = "d554c4789ed3930f8a53ac9fdf6503b3187097da"
+          patch_file="$GITHUB_WORKSPACE/integrations/paperclip/host-operational-read-v1/paperclip-v2026.916.1-host-operational-read-v1.patch"
+          git -C .paperclip apply --check "$patch_file"
+          git -C .paperclip apply "$patch_file"
+          git -C .paperclip diff --check
+
+      - name: Set up Node 24.21.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.21.0
+
+      - name: Static authority and leak verifier
+        run: node integrations/paperclip/host-operational-read-v1/verify.mjs .paperclip
+
+      - name: Set up pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.4 --activate
+          pnpm --version
+
+      - name: Install pinned Paperclip dependencies
+        working-directory: .paperclip
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck patched plugin SDK
+        working-directory: .paperclip
+        run: pnpm --filter @paperclipai/plugin-sdk typecheck
+
+      - name: Typecheck patched Paperclip server
+        working-directory: .paperclip
+        run: pnpm --filter @paperclipai/server typecheck
+
+      - name: Focused capability and tenant-boundary tests
+        working-directory: .paperclip
+        run: |
+          pnpm exec vitest run \
+            packages/plugins/sdk/tests/host-client-factory.test.ts \
+            server/src/__tests__/plugin-tool-access-operational-read.test.ts
