@@ -1,3 +1,17 @@
+## Reconciled checkpoint — ADR 0267 employee development production activation GREEN
+
+ADR 0267 activates Digital Employee Development V1 in production.
+
+Production migration 020 is applied and `wandora.digital_employee_development_entries` is present. Exact Core candidate `wandora/core:organization-adapter-candidate-f3225586d082` was loaded from qualified artifact 10853827684 and promoted with the existing twelve-file Compose project after Paperclip Task Drain entered a quiescent state.
+
+Final Core: revision `f3225586d0825334d2c9c697a1720512a65d47f8`, image id `sha256:639649b4ed99547e708f17ee2dda71beb04da728af113073705f928ddf55c4b9`, healthy, restart 0, healthz 200, readyz 200. Startup reports `digitalEmployeeDevelopment=true`.
+
+Paperclip stayed on the same container/image, healthy/restart 0. Web and Messaging Gateway were not recreated. No provider/model call, customer work or outbound effect occurred.
+
+Task Drain was explicitly ended after protected validation and final state is `draining=false / activeRuns=0 / pendingWakes=0 / quiescent=true`.
+
+Customer-facing employee-development Web UX and candidate-learning generation remain separate future slices.
+
 ## Reconciled checkpoint — ADR 0266 employee development durable contract implementation
 
 ADR 0266 implements the minimum provider-neutral employee-development contract in repository code only.
