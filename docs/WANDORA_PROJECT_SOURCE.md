@@ -1,3 +1,29 @@
+## Reconciled checkpoint — ADR 0281 Paperclip host operational read capability extension preflight
+
+ADR 0281 is CODE COMPLETE / FOCUSED CI REQUIRED / NO PRODUCTION EFFECT.
+
+A provider-side Paperclip patch is retained against exact v2026.916.1 at d554c4789ed3930f8a53ac9fdf6503b3187097da.
+It adds one manifest capability, tools.operational.read, and one narrow
+ctx.toolAccess.readOperationalSnapshot({ companyId, agentId }) surface through the existing host-worker JSON-RPC bridge.
+
+The host reuses Paperclip services, preserves host-issued invocation company scope,
+verifies the requested agent belongs to the company, exposes no Board credential,
+provider credential, secret ref or Paperclip object IDs, and has no mutation methods.
+
+The adversarial review rejected listCatalog(...) because it can refresh stale remote
+catalogs. The accepted implementation adds and uses listCatalogCached(...), so an
+operational read cannot trigger provider I/O or catalog mutation.
+
+No Wandora table/registry/mirror, plugin.state snapshot, production Paperclip change,
+provider/model call, customer work or outbound effect occurred.
+
+Patch SHA-256:
+fc0ce000b2fa5051f10fb71cfece71df17e9b4953779486d951b3f2990cd8bfb.
+
+Next gate: exact final PR head must pass the dedicated GitHub-hosted Node 24
+Paperclip Host Operational Read Extension CI, including SDK/server typecheck and focused
+capability/tenant tests.
+
 ## Reconciled checkpoint — ADR 0277 Semantic Fast Read Intent + Disposable Paperclip Attestation V1
 
 ADR 0277 is **CODE COMPLETE / IMPLEMENTATION CI GREEN / NO PRODUCTION EFFECT**.
