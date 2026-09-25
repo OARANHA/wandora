@@ -46,6 +46,25 @@ if (digitalEmployeeActivationLocation.includes('Idempotency-Key')) {
 
 console.log('WANDORA_WEB_DIGITAL_EMPLOYEE_ACTIVATION_BRIDGE_V1_OK');
 
+const digitalEmployeeDevelopmentLocation =
+  /location ~ "\^\/api\/v1\/organizations\/[0-9A-Fa-f][\s\S]*?\/digital-employees\/[0-9A-Fa-f][\s\S]*?\/development\$" \{([\s\S]*?)\n  \}/
+    .exec(nginx)?.[1];
+
+if (!digitalEmployeeDevelopmentLocation) {
+  throw new Error('digital_employee_development_bridge_missing');
+}
+if (!digitalEmployeeDevelopmentLocation.includes('proxy_set_header Authorization $http_authorization;')) {
+  throw new Error('digital_employee_development_authorization_forwarding_missing');
+}
+if (!digitalEmployeeDevelopmentLocation.includes('proxy_set_header Idempotency-Key $http_idempotency_key;')) {
+  throw new Error('digital_employee_development_idempotency_forwarding_missing');
+}
+if (!digitalEmployeeDevelopmentLocation.includes('proxy_set_header Cookie "";')) {
+  throw new Error('digital_employee_development_cookie_stripping_missing');
+}
+
+console.log('WANDORA_WEB_DIGITAL_EMPLOYEE_DEVELOPMENT_BRIDGE_V1_OK');
+
 
 const [startPage, teamPage] = await Promise.all([
   readFile(new URL('../src/pages/StartPage.tsx', import.meta.url), 'utf8'),
