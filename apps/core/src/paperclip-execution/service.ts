@@ -30,7 +30,6 @@ export class PaperclipExecutionService {
     private readonly pool: Pool,
     private readonly runtime: AgentTaskRuntime,
     private readonly groundingProjection: OrganizationGroundingProjection,
-    private readonly employeeDevelopmentProjection: EmployeeDevelopmentProjection,
     private readonly workProjection?: Pick<
       OrganizationAdapterService,
       | 'prepareCatalogEmployeeWorkExecution'
@@ -41,6 +40,7 @@ export class PaperclipExecutionService {
       runToken: string;
       paperclipRunId: string;
     }) => Promise<RuntimeReadTool[]>,
+    private readonly employeeDevelopmentProjection?: EmployeeDevelopmentProjection,
   ) {}
 
   private async resolveOrganization(providerCompanyRef: string): Promise<string> {
@@ -109,7 +109,9 @@ export class PaperclipExecutionService {
 
     const [organizationGrounding, employeeGuidance] = await Promise.all([
       this.groundingProjection.project(organizationId, input.task),
-      this.employeeDevelopmentProjection.project(organizationId, employee.employee_id),
+      this.employeeDevelopmentProjection
+        ? this.employeeDevelopmentProjection.project(organizationId, employee.employee_id)
+        : Promise.resolve([]),
     ]);
     const grounding = {
       ...organizationGrounding,
