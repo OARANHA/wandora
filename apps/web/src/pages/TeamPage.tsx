@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import {
   AlertTriangle,
   ArrowRight,
   Bot,
+  BriefcaseBusiness,
   Check,
   LoaderCircle,
   Plus,
@@ -12,7 +14,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../AuthProvider';
 import { DigitalEmployeeDevelopmentPanel } from '../components/DigitalEmployeeDevelopmentPanel';
-import { DigitalEmployeeWorkPanel } from '../components/DigitalEmployeeWorkPanel';
+import { DigitalEmployeeDevelopmentProgress } from '../components/DigitalEmployeeDevelopmentProgress';
+import { DigitalEmployeeWorkDrawer } from '../components/DigitalEmployeeWorkDrawer';
 
 type DigitalEmployee = {
   id: string;
@@ -255,6 +258,7 @@ function EmployeeProfile({
   onActivate: () => void;
 }) {
   const active = employee.status === 'active';
+  const [workDrawerOpen, setWorkDrawerOpen] = useState(false);
 
   return (
     <article className="space-y-6">
@@ -289,6 +293,22 @@ function EmployeeProfile({
               {employee.activation.state === 'active' ? 'ativação concluída' : employee.activation.state === 'available' ? 'ativação disponível' : 'ativação indisponível'}
             </span>
           </div>
+
+          <DigitalEmployeeDevelopmentProgress employeeId={employee.id} />
+
+          {employee.work.available ? (
+            <button
+              type="button"
+              onClick={() => setWorkDrawerOpen(true)}
+              className="mt-5 inline-flex w-full items-center justify-between gap-3 rounded-2xl border-[2.5px] border-[#09090b] bg-[#d2e823] px-4 py-3.5 text-sm font-black wandora-pop-sm wandora-press"
+            >
+              <span className="inline-flex items-center gap-2">
+                <BriefcaseBusiness className="size-4" />
+                Dar trabalho para {employee.name}
+              </span>
+              <ArrowRight className="size-4" />
+            </button>
+          ) : null}
 
           {canManage && employee.status === 'paused' && employee.activation.available ? (
             <div className="mt-6 rounded-2xl border-[2.5px] border-[#09090b] bg-[#fdd030] p-4">
@@ -340,20 +360,21 @@ function EmployeeProfile({
         </section>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(22rem,0.7fr)] xl:items-start">
-        <DigitalEmployeeDevelopmentPanel
+      <DigitalEmployeeDevelopmentPanel
+        employeeId={employee.id}
+        employeeName={employee.name}
+        autonomy={employee.autonomy}
+        canManage={canManage}
+      />
+
+      {employee.work.available ? (
+        <DigitalEmployeeWorkDrawer
+          open={workDrawerOpen}
           employeeId={employee.id}
           employeeName={employee.name}
-          autonomy={employee.autonomy}
-          canManage={canManage}
+          onClose={() => setWorkDrawerOpen(false)}
         />
-
-        {employee.work.available ? (
-          <section className="rounded-3xl border-[2.5px] border-[#09090b] bg-white p-4 wandora-pop sm:p-5 xl:sticky xl:top-6 xl:max-h-[calc(100vh-3rem)] xl:overflow-y-auto">
-            <DigitalEmployeeWorkPanel employeeId={employee.id} employeeName={employee.name} compact />
-          </section>
-        ) : null}
-      </div>
+      ) : null}
     </article>
   );
 }

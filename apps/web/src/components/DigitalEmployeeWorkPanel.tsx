@@ -1,9 +1,17 @@
-import { useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { ArrowRight, Bot, CheckCircle2, LoaderCircle, RotateCcw } from 'lucide-react';
+import {
+  ArrowRight,
+  Bot,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  History,
+  LoaderCircle,
+  RotateCcw,
+} from 'lucide-react';
 import { useAuth } from '../AuthProvider';
-import { WorkResultContent } from './WorkResultContent';
 import {
   WorkOperationError,
   clearWorkOperation,
@@ -22,6 +30,8 @@ type WorkItem = {
   updatedAt: string;
 };
 
+type WorkTab = 'new' | 'recent';
+
 class WorkRequestError extends Error {
   constructor(message: string, readonly retrySameRequest = false) {
     super(message);
@@ -38,16 +48,18 @@ const stateLabel: Record<WorkItem['state'], string> = {
   'execution-uncertain': 'Execução em verificação',
 };
 
+const PAGE_SIZE = 5;
+
 export function DigitalEmployeeWorkPanel({
   employeeId,
   employeeName,
-  compact = false,
 }: {
   employeeId: string;
   employeeName: string;
-  compact?: boolean;
 }) {
   const { activeOrganization, authFetch } = useAuth();
+  const [tab, setTab] = useState<WorkTab>('new');
+  const [page, setPage] = useState(1);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [submittedWork, setSubmittedWork] = useState<WorkItem | null>(null);
@@ -78,6 +90,7 @@ export function DigitalEmployeeWorkPanel({
   const mutation = useMutation({
     mutationFn: async (input: { title: string; description: string }) => {
       if (!activeOrganization) throw new WorkRequestError('Escolha uma empresa antes de atribuir trabalho.');
+
       let operation: WorkOperationRef;
       try {
         operation = await resolveWorkOperation(
@@ -93,8 +106,13 @@ export function DigitalEmployeeWorkPanel({
         }
         throw error;
       }
+
       workOperationRef.current = operation;
-      setPendingRequest({ key: operation.idempotencyKey, title: input.title, description: input.description });
+      setPendingRequest({
+        key: operation.idempotencyKey,
+        title: input.title,
+        description: input.description,
+      });
 
       let response: Response;
       try {
@@ -125,6 +143,7 @@ export function DigitalEmployeeWorkPanel({
         workOperationRef.current = null;
         return { work: body.work };
       }
+
       if (response.status === 400 || response.status === 403 || response.status === 404) {
         clearWorkOperation(operation);
         workOperationRef.current = null;
@@ -156,19 +175,17 @@ export function DigitalEmployeeWorkPanel({
           true,
         );
       }
-      if (!response.ok) {
-        throw new WorkRequestError(
-          'A resposta ficou inconclusiva. Repita exatamente a mesma solicitação; a Wandora reutilizará a identidade original.',
-          true,
-        );
-      }
-      throw new WorkRequestError('Não foi possível atribuir este trabalho agora.');
+      throw new WorkRequestError(
+        'A resposta ficou inconclusiva. Repita exatamente a mesma solicitação; a Wandora reutilizará a identidade original.',
+        true,
+      );
     },
     onSuccess: async ({ work }) => {
       setSubmittedWork(work);
       setPendingRequest(null);
       setTitle('');
       setDescription('');
+      setPage(1);
       await query.refetch();
     },
     onError: (error) => {
@@ -178,21 +195,40 @@ export function DigitalEmployeeWorkPanel({
     },
   });
 
+  const items = query.data?.items ?? [];
+  const pageCount = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+
+  useEffect(() => {
+    if (page > pageCount) setPage(pageCount);
+  }, [page, pageCount]);
+
+  const visibleItems = useMemo(
+    () => items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [items, page],
+  );
+
   const submit = () => {
     const normalizedRequest = title.trim();
     const normalizedDetails = description.trim();
     if (!normalizedRequest) return;
+
     const canonicalDescription = normalizedDetails
       ? `${normalizedRequest}\n\nDetalhes adicionais:\n${normalizedDetails}`
       : normalizedRequest;
-    mutation.mutate({ title: normalizedRequest, description: canonicalDescription });
+
+    mutation.mutate({
+      title: normalizedRequest,
+      description: canonicalDescription,
+    });
   };
 
   const retrySame = () => {
-    if (pendingRequest) mutation.mutate({
-      title: pendingRequest.title,
-      description: pendingRequest.description,
-    });
+    if (pendingRequest) {
+      mutation.mutate({
+        title: pendingRequest.title,
+        description: pendingRequest.description,
+      });
+    }
   };
 
   const uncertainRequest = mutation.error instanceof WorkRequestError
@@ -201,125 +237,251 @@ export function DigitalEmployeeWorkPanel({
     : null;
 
   return (
-    <section className={`${compact ? '' : 'mt-5 '}rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4`}>
-      <div className="flex items-start gap-3">
-        <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white text-indigo-600 shadow-sm">
-          <Bot className="size-4" />
-        </span>
-        <div>
-          <h4 className="m-0 text-sm font-semibold text-slate-900">Dar trabalho para {employeeName}</h4>
-          <p className="m-0 mt-1 text-xs leading-5 text-slate-500">
-            O resultado fica interno para sua revisão. Este fluxo não envia WhatsApp, e-mail nem executa outra ação externa.
-          </p>
-        </div>
+    <div>
+      <div className="grid grid-cols-2 gap-2 rounded-2xl border-2 border-[#09090b] bg-[#f8f4e8] p-1.5">
+        <WorkTabButton
+          active={tab === 'new'}
+          onClick={() => setTab('new')}
+          icon={<Bot className="size-4" />}
+        >
+          Novo trabalho
+        </WorkTabButton>
+        <WorkTabButton
+          active={tab === 'recent'}
+          onClick={() => setTab('recent')}
+          icon={<History className="size-4" />}
+        >
+          Trabalhos recentes
+        </WorkTabButton>
       </div>
 
-      {submittedWork ? (
-        <div role="status" aria-live="polite" className="mt-4 rounded-2xl border-2 border-[#09090b] bg-[#d2e823] p-4 text-[#09090b]">
-          <div className="flex items-start gap-3">
-            <CheckCircle2 className="mt-0.5 size-5 shrink-0" />
-            <div className="min-w-0">
-              <p className="m-0 text-sm font-black">Trabalho enviado para {employeeName}</p>
-              <p className="m-0 mt-1 text-xs leading-5 text-[#09090b]/65">
-                Acompanhe o status e abra o resultado em Trabalho. Conversas continua reservada ao histórico real de clientes e canais.
-              </p>
-              <Link to="/work" className="mt-3 inline-flex items-center gap-2 text-xs font-black underline decoration-2 underline-offset-4">
-                Acompanhar trabalho <ArrowRight className="size-4" />
-              </Link>
-            </div>
+      {tab === 'new' ? (
+        <section className="mt-5">
+          <div>
+            <h4 className="m-0 text-lg font-black">O que você quer que {employeeName} faça?</h4>
+            <p className="m-0 mt-1 text-xs leading-5 text-[#09090b]/50">
+              O resultado fica interno para sua revisão. Nada é enviado para cliente, WhatsApp ou e-mail neste fluxo.
+            </p>
           </div>
-        </div>
-      ) : null}
 
-      <div className="mt-4 space-y-3">
-        <input
-          value={uncertainRequest ? uncertainRequest.title : title}
-          onChange={(event) => setTitle(event.target.value)}
-          disabled={Boolean(uncertainRequest) || mutation.isPending}
-          maxLength={200}
-          placeholder="O que você quer que Ana faça? Ex.: Qual o valor do Desenvolvimento Web?"
-          className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-indigo-300 disabled:bg-slate-50"
-        />
-        <textarea
-          value={uncertainRequest ? uncertainRequest.description : description}
-          onChange={(event) => setDescription(event.target.value)}
-          disabled={Boolean(uncertainRequest) || mutation.isPending}
-          maxLength={4000}
-          rows={4}
-          placeholder="Detalhes adicionais (opcional). Ex.: informe também código, preço e estoque."
-          className="w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm leading-6 outline-none transition focus:border-indigo-300 disabled:bg-slate-50"
-        />
-        {mutation.isError ? (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
-            {mutation.error instanceof Error ? mutation.error.message : 'Não foi possível atribuir o trabalho.'}
-          </div>
-        ) : null}
-        {uncertainRequest ? (
-          <button
-            type="button"
-            onClick={retrySame}
-            disabled={mutation.isPending}
-            className="inline-flex h-9 items-center gap-2 rounded-xl bg-amber-700 px-3 text-xs font-semibold text-white disabled:opacity-60"
-          >
-            {mutation.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <RotateCcw className="size-4" />}
-            Repetir a mesma solicitação
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={submit}
-            disabled={mutation.isPending || !title.trim()}
-            className="inline-flex h-9 items-center gap-2 rounded-xl bg-indigo-600 px-3 text-xs font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {mutation.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <Bot className="size-4" />}
-            {mutation.isPending ? 'Atribuindo…' : 'Atribuir trabalho supervisionado'}
-          </button>
-        )}
-      </div>
-
-      <div className="mt-5 border-t border-indigo-100 pt-4">
-        <h5 className="m-0 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Trabalhos recentes</h5>
-        {query.isLoading ? (
-          <p className="mt-3 text-xs text-slate-500">Carregando…</p>
-        ) : query.isError ? (
-          <p className="mt-3 text-xs text-rose-700">Não foi possível carregar os trabalhos recentes.</p>
-        ) : !query.data?.items.length ? (
-          <p className="mt-3 text-xs text-slate-500">Nenhum trabalho atribuído por este contrato ainda.</p>
-        ) : (
-          <div className="mt-3 space-y-3">
-            {query.data.items.slice(0, 5).map((item) => (
-              <div key={item.id} className="rounded-xl border border-slate-200 bg-white p-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="m-0 text-sm font-semibold text-slate-800">{item.title}</p>
-                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
-                    {stateLabel[item.state]}
-                  </span>
-                </div>
-                {compact ? (
-                  <div className="mt-2 flex items-center justify-between gap-3">
-                    <p className="m-0 line-clamp-2 text-xs leading-5 text-slate-500">
-                      {item.description}
-                    </p>
+          {submittedWork ? (
+            <div role="status" aria-live="polite" className="mt-4 rounded-2xl border-2 border-[#09090b] bg-[#d2e823] p-4">
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="mt-0.5 size-5 shrink-0" />
+                <div>
+                  <p className="m-0 text-sm font-black">Trabalho enviado para {employeeName}</p>
+                  <p className="m-0 mt-1 text-xs leading-5 text-[#09090b]/65">
+                    Acompanhe o status e abra o resultado em Trabalho. Conversas continua reservada ao histórico real de clientes e canais.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-3">
                     <Link
                       to="/work"
-                      className="shrink-0 text-xs font-black text-slate-800 underline decoration-2 underline-offset-4"
+                      className="inline-flex items-center gap-2 text-xs font-black underline decoration-2 underline-offset-4"
                     >
-                      {item.result ? 'Abrir resultado' : 'Ver trabalho'}
+                      Acompanhar trabalho <ArrowRight className="size-4" />
                     </Link>
+                    <button
+                      type="button"
+                      onClick={() => setTab('recent')}
+                      className="text-xs font-black underline decoration-2 underline-offset-4"
+                    >
+                      Ver recentes
+                    </button>
                   </div>
-                ) : item.result ? (
-                  <div className="mt-3 rounded-xl border-2 border-[#09090b]/15 bg-[#f8f4e8] p-4">
-                    <div className="mb-3 text-[10px] font-black uppercase tracking-[0.12em] text-[#09090b]/40">
-                      Resultado interno
-                    </div>
-                    <WorkResultContent value={item.result.summary} />
-                  </div>
-                ) : null}
+                </div>
               </div>
-            ))}
+            </div>
+          ) : null}
+
+          <div className="mt-4 space-y-3">
+            <input
+              value={uncertainRequest ? uncertainRequest.title : title}
+              onChange={(event) => setTitle(event.target.value)}
+              disabled={Boolean(uncertainRequest) || mutation.isPending}
+              maxLength={200}
+              placeholder={`Ex.: Qual o valor do Desenvolvimento Web?`}
+              className="h-11 w-full rounded-xl border-2 border-[#09090b]/15 bg-white px-3 text-sm outline-none transition focus:border-[#09090b] disabled:bg-[#f8f4e8]"
+            />
+            <textarea
+              value={uncertainRequest ? uncertainRequest.description : description}
+              onChange={(event) => setDescription(event.target.value)}
+              disabled={Boolean(uncertainRequest) || mutation.isPending}
+              maxLength={4000}
+              rows={5}
+              placeholder="Detalhes adicionais (opcional). Ex.: informe também código, preço e estoque."
+              className="w-full resize-none rounded-xl border-2 border-[#09090b]/15 bg-white px-3 py-2 text-sm leading-6 outline-none transition focus:border-[#09090b] disabled:bg-[#f8f4e8]"
+            />
+
+            {mutation.isError ? (
+              <div className="rounded-xl border-2 border-[#09090b] bg-[#fdd030] p-3 text-xs leading-5">
+                {mutation.error instanceof Error ? mutation.error.message : 'Não foi possível atribuir o trabalho.'}
+              </div>
+            ) : null}
+
+            {uncertainRequest ? (
+              <button
+                type="button"
+                onClick={retrySame}
+                disabled={mutation.isPending}
+                className="inline-flex h-10 items-center gap-2 rounded-xl border-2 border-[#09090b] bg-[#fdd030] px-4 text-xs font-black disabled:opacity-60"
+              >
+                {mutation.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <RotateCcw className="size-4" />}
+                Repetir a mesma solicitação
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={submit}
+                disabled={mutation.isPending || !title.trim()}
+                className="inline-flex h-10 items-center gap-2 rounded-xl border-2 border-[#09090b] bg-[#09090b] px-4 text-xs font-black text-white transition disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {mutation.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <Bot className="size-4" />}
+                {mutation.isPending ? 'Atribuindo…' : `Dar trabalho para ${employeeName}`}
+              </button>
+            )}
           </div>
-        )}
+        </section>
+      ) : (
+        <section className="mt-5">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <h4 className="m-0 text-lg font-black">Trabalhos recentes</h4>
+              <p className="m-0 mt-1 text-xs leading-5 text-[#09090b]/50">
+                Até 5 por página. O resultado completo continua na área Trabalho.
+              </p>
+            </div>
+            {!query.isLoading && !query.isError ? (
+              <span className="text-[10px] font-black uppercase tracking-[0.08em] text-[#09090b]/40">
+                {items.length} recentes
+              </span>
+            ) : null}
+          </div>
+
+          {query.isLoading ? (
+            <div className="mt-5 flex min-h-32 items-center justify-center text-xs font-bold text-[#09090b]/45">
+              <LoaderCircle className="mr-2 size-4 animate-spin" /> Carregando…
+            </div>
+          ) : query.isError ? (
+            <div className="mt-5 rounded-xl border-2 border-[#09090b] bg-[#fdd030] p-3 text-xs">
+              Não foi possível carregar os trabalhos recentes.
+            </div>
+          ) : !items.length ? (
+            <div className="mt-5 rounded-2xl border-2 border-dashed border-[#09090b]/15 p-5 text-center text-xs text-[#09090b]/50">
+              Nenhum trabalho atribuído por este contrato ainda.
+            </div>
+          ) : (
+            <>
+              <div className="mt-4 space-y-2.5">
+                {visibleItems.map((item) => (
+                  <article key={item.id} className="rounded-2xl border-2 border-[#09090b]/15 bg-white p-3.5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="m-0 truncate text-sm font-black text-[#09090b]">{item.title}</p>
+                        <p className="m-0 mt-1 line-clamp-2 text-xs leading-5 text-[#09090b]/45">
+                          {item.description}
+                        </p>
+                      </div>
+                      <span className="shrink-0 rounded-full border border-[#09090b]/20 bg-[#f8f4e8] px-2 py-1 text-[9px] font-black uppercase">
+                        {stateLabel[item.state]}
+                      </span>
+                    </div>
+                    <div className="mt-2.5 flex items-center justify-between gap-3">
+                      <span className="text-[10px] font-bold text-[#09090b]/35">
+                        {new Date(item.updatedAt).toLocaleDateString('pt-BR')}
+                      </span>
+                      <Link
+                        to="/work"
+                        className="text-xs font-black underline decoration-2 underline-offset-4"
+                      >
+                        {item.result ? 'Abrir resultado' : 'Ver trabalho'}
+                      </Link>
+                    </div>
+                  </article>
+                ))}
+              </div>
+
+              <Pagination
+                page={page}
+                pageCount={pageCount}
+                onPageChange={setPage}
+              />
+            </>
+          )}
+        </section>
+      )}
+    </div>
+  );
+}
+
+function WorkTabButton({
+  active,
+  onClick,
+  icon,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  children: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-black transition ${active ? 'bg-[#09090b] text-white' : 'bg-transparent text-[#09090b]/55'}`}
+    >
+      {icon}
+      {children}
+    </button>
+  );
+}
+
+function Pagination({
+  page,
+  pageCount,
+  onPageChange,
+}: {
+  page: number;
+  pageCount: number;
+  onPageChange: (page: number) => void;
+}) {
+  if (pageCount <= 1) return null;
+
+  return (
+    <nav aria-label="Paginação dos trabalhos recentes" className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t-2 border-[#09090b]/10 pt-4">
+      <button
+        type="button"
+        disabled={page === 1}
+        onClick={() => onPageChange(Math.max(1, page - 1))}
+        className="inline-flex items-center gap-1 rounded-lg border-2 border-[#09090b] bg-white px-2.5 py-2 text-[10px] font-black disabled:opacity-30"
+      >
+        <ChevronLeft className="size-3.5" /> Anterior
+      </button>
+
+      <div className="flex flex-wrap justify-center gap-1">
+        {Array.from({ length: pageCount }, (_, index) => index + 1).map((value) => (
+          <button
+            key={value}
+            type="button"
+            aria-current={value === page ? 'page' : undefined}
+            onClick={() => onPageChange(value)}
+            className={`grid size-8 place-items-center rounded-lg border-2 border-[#09090b] text-[10px] font-black ${value === page ? 'bg-[#d2e823]' : 'bg-white'}`}
+          >
+            {value}
+          </button>
+        ))}
       </div>
-    </section>
+
+      <button
+        type="button"
+        disabled={page === pageCount}
+        onClick={() => onPageChange(Math.min(pageCount, page + 1))}
+        className="inline-flex items-center gap-1 rounded-lg border-2 border-[#09090b] bg-white px-2.5 py-2 text-[10px] font-black disabled:opacity-30"
+      >
+        Próximo <ChevronRight className="size-3.5" />
+      </button>
+    </nav>
   );
 }

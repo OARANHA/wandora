@@ -1,3 +1,18 @@
+## Reconciled checkpoint — ADR 0272/0273 development progress + Team work drawer V1
+
+The next Team UX slice is implemented in repository code only.
+
+ADR 0272 defines an evidence-backed `Desenvolvimento na empresa` projection over four transparent existing milestones: at least one active responsibility, at least one active behavior, at least one active practice, and at least one supervised work item with a recorded result. The UI shows 0/4..4/4 and a four-segment progress bar. The percentage is only a visual projection of those milestones; it is explicitly not intelligence, performance, trust or autonomy. No score is persisted and no Paperclip/Mastra learning subsystem is duplicated.
+
+ADR 0273 removes the fixed Team work column. The employee card now exposes `Dar trabalho para Ana`, opening a right-side drawer with `Novo trabalho` and `Trabalhos recentes`. Recent work is presentation-paginated at 5 items per page over the existing bounded Core list, with no new API/cursor/archive state. Full result detail remains delegated to the canonical Work surface.
+
+Local operational validation is GREEN:
+- TypeScript;
+- WANDORA_WEB_EMPLOYEE_DEVELOPMENT_SURFACE_V1_OK;
+- WANDORA_WEB_OWNER_WORK_FLOW_V1_OK.
+
+No production effect yet. Next gate: PR + normal GitHub-hosted CI, then separate Web-only production promotion of the exact qualified artifact.
+
 ## Reconciled checkpoint — ADR 0271 Team workbench production GREEN
 
 ADR 0271 is live in production as a Web-only promotion.
