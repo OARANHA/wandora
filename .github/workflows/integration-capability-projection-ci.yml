@@ -105,12 +105,13 @@ jobs:
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
           const core = fs.readFileSync('apps/core/src/semantic-routing/contracts.ts', 'utf8');
-          const adapter = fs.readFileSync(
-            'integrations/paperclip/plugins/organization-adapter-v1/attestation/integration-capability.ts',
-            'utf8',
+          const { ADAPTER_MAPPED_BUSINESS_CAPABILITIES } = await import(
+            './integrations/paperclip/plugins/organization-adapter-v1/.attestation-build/integration-capability.mjs'
           );
-          const coreCaps = new Set([...core.matchAll(/'business\\.[a-z0-9_.]+'/g)].map((m) => m[0].slice(1, -1)));
-          const mappedCaps = new Set([...adapter.matchAll(/'business\\.[a-z0-9_.]+'/g)].map((m) => m[0].slice(1, -1)));
+          const coreCaps = new Set(
+            [...core.matchAll(/'business\.[a-z0-9_.]+'/g)].map((m) => m[0].slice(1, -1)),
+          );
+          const mappedCaps = new Set(ADAPTER_MAPPED_BUSINESS_CAPABILITIES);
           for (const capability of mappedCaps) {
             if (!coreCaps.has(capability)) throw new Error('adapter_semantic_capability_not_authorized:' + capability);
           }
