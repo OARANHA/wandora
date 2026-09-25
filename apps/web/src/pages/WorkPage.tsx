@@ -1,14 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangle,
+  ArrowRight,
   CheckCircle2,
   Clock3,
+  Copy,
   LoaderCircle,
   MessageCircleMore,
+  Search,
   Send,
   ShieldAlert,
   Sparkles,
+  X,
 } from 'lucide-react';
 import { useAuth } from '../AuthProvider';
 import { WorkResultContent } from '../components/WorkResultContent';
@@ -80,6 +85,8 @@ type SupervisedWorkItem = {
   updatedAt: string;
 };
 
+type WorkFilter = 'all' | 'running' | 'review-ready' | 'uncertain';
+
 const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
   day: '2-digit',
   month: '2-digit',
@@ -105,9 +112,19 @@ const supervisedStateTone: Record<SupervisedWorkItem['state'], string> = {
   'execution-uncertain': 'bg-[#fdd030]',
 };
 
+function matchesFilter(item: SupervisedWorkItem, filter: WorkFilter) {
+  if (filter === 'all') return true;
+  if (filter === 'review-ready') return item.state === 'review-ready';
+  if (filter === 'running') return ['submitting', 'submitted', 'executing'].includes(item.state);
+  return ['uncertain', 'execution-uncertain'].includes(item.state);
+}
+
 export function WorkPage() {
   const { activeOrganization, context, authFetch } = useAuth();
   const [sendSuccess, setSendSuccess] = useState(false);
+  const [filter, setFilter] = useState<WorkFilter>('all');
+  const [search, setSearch] = useState('');
+  const [selectedWorkId, setSelectedWorkId] = useState<string | null>(null);
 
   const supervisedQuery = useQuery({
     queryKey: ['customer-supervised-work-overview', activeOrganization?.id],
@@ -154,6 +171,9 @@ export function WorkPage() {
 
   useEffect(() => {
     setSendSuccess(false);
+    setFilter('all');
+    setSearch('');
+    setSelectedWorkId(null);
   }, [activeOrganization?.id]);
 
   const groups = useMemo(() => {
@@ -165,6 +185,26 @@ export function WorkPage() {
       recent: items,
     };
   }, [supervisedQuery.data]);
+
+  const filteredWork = useMemo(() => {
+    const needle = search.trim().toLocaleLowerCase('pt-BR');
+    return groups.recent.filter((item) => {
+      if (!matchesFilter(item, filter)) return false;
+      if (!needle) return true;
+      const haystack = [
+        item.title,
+        item.description,
+        item.employeeName,
+        item.result?.summary ?? '',
+      ].join(' ').toLocaleLowerCase('pt-BR');
+      return haystack.includes(needle);
+    });
+  }, [filter, groups.recent, search]);
+
+  const selectedWork = useMemo(
+    () => groups.recent.find((item) => item.id === selectedWorkId) ?? null,
+    [groups.recent, selectedWorkId],
+  );
 
   if (!activeOrganization) {
     const hasMultiple = (context?.organizations.length ?? 0) > 1;
@@ -205,9 +245,27 @@ export function WorkPage() {
       ) : null}
 
       <section className="grid gap-4 md:grid-cols-3">
-        <SummaryCard label="Em andamento" value={groups.running.length} copy="Trabalhos que sua equipe está executando agora." />
-        <SummaryCard label="Prontos para revisão" value={groups.reviewReady.length} copy="Resultados internos disponíveis para você abrir." />
-        <SummaryCard label="Em verificação" value={groups.uncertain.length} copy="Casos em que a Wandora preservou segurança antes de concluir." />
+        <SummaryCard
+          label="Em andamento"
+          value={groups.running.length}
+          copy="Trabalhos que sua equipe está executando agora."
+          active={filter === 'running'}
+          onClick={() => setFilter(filter === 'running' ? 'all' : 'running')}
+        />
+        <SummaryCard
+          label="Prontos para revisão"
+          value={groups.reviewReady.length}
+          copy="Resultados internos disponíveis para você abrir."
+          active={filter === 'review-ready'}
+          onClick={() => setFilter(filter === 'review-ready' ? 'all' : 'review-ready')}
+        />
+        <SummaryCard
+          label="Em verificação"
+          value={groups.uncertain.length}
+          copy="Casos em que a Wandora preservou segurança antes de concluir."
+          active={filter === 'uncertain'}
+          onClick={() => setFilter(filter === 'uncertain' ? 'all' : 'uncertain')}
+        />
       </section>
 
       {supervisedQuery.isLoading ? (
@@ -228,16 +286,79 @@ export function WorkPage() {
         </section>
       ) : (
         <section className="rounded-3xl border-[2.5px] border-[#09090b] bg-white p-5 wandora-pop sm:p-6">
-          <div className="flex flex-wrap items-end justify-between gap-3">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <div className="wandora-mono text-[9px] font-black text-[#09090b]/40">trabalho supervisionado</div>
               <h2 className="wandora-display m-0 mt-2 text-3xl">ACOMPANHE DO PEDIDO AO RESULTADO.</h2>
+              <p className="m-0 mt-2 text-sm leading-6 text-[#09090b]/55">
+                A lista fica compacta. Abra um trabalho para ver o resultado completo no painel lateral.
+              </p>
             </div>
-            <span className="text-xs font-bold text-[#09090b]/45">Atualização automática nesta página</span>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <label className="flex min-w-0 items-center gap-2 rounded-xl border-2 border-[#09090b] bg-[#f8f4e8] px-3 py-2.5 sm:min-w-72">
+                <Search className="size-4 shrink-0 text-[#09090b]/45" />
+                <input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Buscar trabalho, pessoa ou resultado"
+                  className="min-w-0 flex-1 bg-transparent text-sm font-bold outline-none placeholder:text-[#09090b]/35"
+                  aria-label="Buscar trabalhos"
+                />
+              </label>
+              {(filter !== 'all' || search) ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilter('all');
+                    setSearch('');
+                  }}
+                  className="rounded-xl border-2 border-[#09090b] bg-white px-3 py-2.5 text-xs font-black"
+                >
+                  Limpar filtros
+                </button>
+              ) : null}
+            </div>
           </div>
-          <div className="mt-5 space-y-4">
-            {groups.recent.slice(0, 20).map((item) => <SupervisedWorkCard key={item.id} item={item} />)}
+
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => setFilter('all')}
+              className={`rounded-full border-2 border-[#09090b] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.06em] ${filter === 'all' ? 'bg-[#09090b] text-white' : 'bg-white'}`}
+            >
+              Todos · {groups.recent.length}
+            </button>
+            <span className="text-xs font-bold text-[#09090b]/45">
+              {filteredWork.length} {filteredWork.length === 1 ? 'trabalho visível' : 'trabalhos visíveis'}
+            </span>
           </div>
+
+          {filteredWork.length ? (
+            <div className="mt-4 max-h-[34rem] divide-y-2 divide-[#09090b]/10 overflow-y-auto rounded-2xl border-2 border-[#09090b]/15 bg-[#f8f4e8]">
+              {filteredWork.slice(0, 50).map((item) => (
+                <SupervisedWorkRow
+                  key={item.id}
+                  item={item}
+                  onOpen={() => setSelectedWorkId(item.id)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="mt-4 rounded-2xl border-2 border-dashed border-[#09090b]/20 p-7 text-center">
+              <Search className="mx-auto size-5 text-[#09090b]/35" />
+              <p className="m-0 mt-3 text-sm font-black">Nenhum trabalho corresponde a este filtro.</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setFilter('all');
+                  setSearch('');
+                }}
+                className="mt-3 rounded-xl border-2 border-[#09090b] bg-[#d2e823] px-3 py-2 text-xs font-black"
+              >
+                Mostrar todos
+              </button>
+            </div>
+          )}
         </section>
       )}
 
@@ -279,6 +400,13 @@ export function WorkPage() {
           )}
         </div>
       </section>
+
+      {selectedWork ? (
+        <WorkDetailDrawer
+          item={selectedWork}
+          onClose={() => setSelectedWorkId(null)}
+        />
+      ) : null}
     </div>
   );
 }
@@ -299,13 +427,33 @@ function PageHeader() {
   );
 }
 
-function SummaryCard({ label, value, copy }: { label: string; value: number; copy: string }) {
+function SummaryCard({
+  label,
+  value,
+  copy,
+  active,
+  onClick,
+}: {
+  label: string;
+  value: number;
+  copy: string;
+  active: boolean;
+  onClick: () => void;
+}) {
   return (
-    <div className="rounded-2xl border-[2.5px] border-[#09090b] bg-white p-4 wandora-pop-sm">
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`rounded-2xl border-[2.5px] border-[#09090b] p-4 text-left wandora-pop-sm wandora-press ${active ? 'bg-[#d2e823]' : 'bg-white'}`}
+    >
       <div className="wandora-mono text-[9px] font-black text-[#09090b]/40">{label}</div>
       <div className="wandora-display mt-2 text-4xl">{value}</div>
       <p className="m-0 mt-1 text-xs leading-5 text-[#09090b]/50">{copy}</p>
-    </div>
+      <div className="mt-3 flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.06em]">
+        {active ? 'Filtro ativo' : 'Filtrar lista'} <ArrowRight className="size-3.5" />
+      </div>
+    </button>
   );
 }
 
@@ -327,30 +475,163 @@ function ErrorCard({ title, message, onRetry }: { title: string; message: string
   );
 }
 
-function SupervisedWorkCard({ item }: { item: SupervisedWorkItem }) {
+function SupervisedWorkRow({
+  item,
+  onOpen,
+}: {
+  item: SupervisedWorkItem;
+  onOpen: () => void;
+}) {
   return (
-    <article className="rounded-2xl border-2 border-[#09090b]/15 bg-[#f8f4e8] p-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="m-0 text-sm font-black text-[#09090b]">{item.title}</h3>
-          <p className="m-0 mt-1 text-xs text-[#09090b]/45">
-            {item.employeeName} · atualizado em {dateFormatter.format(new Date(item.updatedAt))}
-          </p>
+    <button
+      type="button"
+      onClick={onOpen}
+      className="grid w-full gap-3 p-4 text-left transition hover:bg-white focus-visible:bg-white focus-visible:outline-none sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+    >
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 className="m-0 truncate text-sm font-black text-[#09090b]">{item.title}</h3>
+          <span className={`rounded-full border-2 border-[#09090b] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.05em] ${supervisedStateTone[item.state]}`}>
+            {supervisedStateLabel[item.state]}
+          </span>
         </div>
-        <span className={`rounded-full border-2 border-[#09090b] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.06em] ${supervisedStateTone[item.state]}`}>
-          {supervisedStateLabel[item.state]}
-        </span>
+        <p className="m-0 mt-1 text-xs text-[#09090b]/45">
+          {item.employeeName} · atualizado em {dateFormatter.format(new Date(item.updatedAt))}
+        </p>
+        <p className="m-0 mt-2 line-clamp-2 text-sm leading-5 text-[#09090b]/60">{item.description}</p>
       </div>
-      <p className="m-0 mt-3 text-sm leading-6 text-[#09090b]/60">{item.description}</p>
-      {item.result ? (
-        <div className="mt-4 rounded-2xl border-[2.5px] border-[#09090b] bg-white p-4">
-          <div className="wandora-mono text-[9px] font-black text-[#09090b]/40">resultado interno · revise antes de qualquer efeito externo</div>
-          <div className="mt-3">
-            <WorkResultContent value={item.result.summary} />
+      <span className="inline-flex items-center gap-2 justify-self-start rounded-xl border-2 border-[#09090b] bg-white px-3 py-2 text-xs font-black sm:justify-self-end">
+        {item.result ? 'Abrir resultado' : 'Ver trabalho'} <ArrowRight className="size-4" />
+      </span>
+    </button>
+  );
+}
+
+function WorkDetailDrawer({
+  item,
+  onClose,
+}: {
+  item: SupervisedWorkItem;
+  onClose: () => void;
+}) {
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle');
+
+  useEffect(() => {
+    setCopyState('idle');
+  }, [item.id]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
+
+  const copyResult = async () => {
+    if (!item.result) return;
+    try {
+      await navigator.clipboard.writeText(item.result.summary);
+      setCopyState('copied');
+    } catch {
+      setCopyState('error');
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-[#09090b]/45" role="presentation" onMouseDown={onClose}>
+      <aside
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={`work-detail-${item.id}`}
+        onMouseDown={(event) => event.stopPropagation()}
+        className="absolute inset-y-0 right-0 flex w-full flex-col border-l-[2.5px] border-[#09090b] bg-[#f8f4e8] shadow-[-10px_0_0_rgba(9,9,11,0.12)] sm:max-w-2xl"
+      >
+        <div className="flex items-start justify-between gap-4 border-b-2 border-[#09090b] bg-white p-5 sm:p-6">
+          <div className="min-w-0">
+            <div className="wandora-mono text-[9px] font-black text-[#09090b]/40">detalhe do trabalho</div>
+            <h2 id={`work-detail-${item.id}`} className="m-0 mt-2 text-xl font-black leading-tight text-[#09090b] sm:text-2xl">
+              {item.title}
+            </h2>
+            <p className="m-0 mt-2 text-xs text-[#09090b]/45">
+              {item.employeeName} · atualizado em {dateFormatter.format(new Date(item.updatedAt))}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Fechar detalhes do trabalho"
+            className="grid size-10 shrink-0 place-items-center rounded-xl border-2 border-[#09090b] bg-white"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+
+        <div className="flex-1 space-y-4 overflow-y-auto p-5 sm:p-6">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={`rounded-full border-2 border-[#09090b] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.06em] ${supervisedStateTone[item.state]}`}>
+              {supervisedStateLabel[item.state]}
+            </span>
+            <span className="text-xs font-bold text-[#09090b]/45">
+              criado em {dateFormatter.format(new Date(item.createdAt))}
+            </span>
+          </div>
+
+          <section className="rounded-2xl border-2 border-[#09090b]/15 bg-white p-4">
+            <div className="wandora-mono text-[9px] font-black text-[#09090b]/40">pedido original</div>
+            <p className="m-0 mt-3 whitespace-pre-wrap text-sm leading-6 text-[#09090b]/75">{item.description}</p>
+          </section>
+
+          <section className="rounded-2xl border-[2.5px] border-[#09090b] bg-white p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="wandora-mono text-[9px] font-black text-[#09090b]/40">
+                resultado interno · revise antes de qualquer efeito externo
+              </div>
+              {item.result ? (
+                <button
+                  type="button"
+                  onClick={() => void copyResult()}
+                  className="inline-flex items-center gap-2 rounded-xl border-2 border-[#09090b] bg-[#f8f4e8] px-3 py-2 text-xs font-black"
+                >
+                  <Copy className="size-4" />
+                  {copyState === 'copied' ? 'Copiado' : 'Copiar resultado'}
+                </button>
+              ) : null}
+            </div>
+
+            {item.result ? (
+              <div className="mt-4">
+                <WorkResultContent value={item.result.summary} />
+              </div>
+            ) : (
+              <div className="mt-4 rounded-xl bg-[#f8f4e8] p-4 text-sm leading-6 text-[#09090b]/55">
+                Este trabalho ainda não possui um resultado disponível para revisão.
+              </div>
+            )}
+
+            {copyState === 'error' ? (
+              <p className="m-0 mt-3 text-xs font-bold text-[#09090b]/55">
+                Não foi possível copiar automaticamente neste navegador.
+              </p>
+            ) : null}
+          </section>
+        </div>
+
+        <div className="border-t-2 border-[#09090b] bg-white p-4 sm:p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="m-0 text-xs leading-5 text-[#09090b]/45">
+              Um novo pedido é criado pela Equipe; esta tela não inventa vínculo persistente entre trabalhos.
+            </p>
+            <Link
+              to="/team"
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border-2 border-[#09090b] bg-[#d2e823] px-4 py-2.5 text-sm font-black"
+            >
+              Dar novo trabalho para {item.employeeName} <ArrowRight className="size-4" />
+            </Link>
           </div>
         </div>
-      ) : null}
-    </article>
+      </aside>
+    </div>
   );
 }
 
