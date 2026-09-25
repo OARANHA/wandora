@@ -194,6 +194,48 @@ jobs:
           from pathlib import Path
           path = Path("integrations/paperclip/adapters/wandora-mastra-v1/verify-fast-read-disposable-e2e.sh")
           source = path.read_text()
+
+          template_block = r'''
+          FAST_READ_TEMPLATE_ID="wandora.fast-read.synthetic-v1"
+          fast_read_template_body="$(node -e 'process.stdout.write(JSON.stringify({
+            templateId: process.argv[1],
+            name: "Wandora Fast Read Disposable",
+            description: "Disposable read-only MCP fixture for ADR0277 attestation.",
+            command: "/usr/local/bin/node",
+            args: ["/proof/wandora-adapter/disposable-fast-read-mcp-server.mjs"],
+            envKeys: [],
+            tools: [{
+              name: "get_value",
+              description: "Read one deterministic synthetic value.",
+              inputSchema: {
+                type: "object",
+                properties: { key: { type: "string" } },
+                required: ["key"],
+                additionalProperties: false
+              },
+              annotations: { readOnlyHint: true }
+            }]
+          }))' "$FAST_READ_TEMPLATE_ID")"
+          pc_api POST "/api/companies/$COMPANY_ID/tools/stdio-templates" "$fast_read_template_body" >/dev/null
+
+          '''
+          example_marker = 'example_json="$(pc_api POST "/api/companies/$COMPANY_ID/tools/examples/safe-read-only-todo-kv/install" \'{}\')"'
+          if example_marker not in source:
+              raise SystemExit("fast_read_example_install_marker_not_found")
+          source = source.replace(example_marker, template_block + example_marker, 1)
+
+          connection_marker = 'test -n "$FAST_READ_CONNECTION_ID"'
+          connection_patch = r'''test -n "$FAST_READ_CONNECTION_ID"
+          pc_sql "update tool_connections set config=jsonb_set(coalesce(config,'{}'::jsonb), '{templateId}', to_jsonb('$FAST_READ_TEMPLATE_ID'::text), true), updated_at=now() where id='$FAST_READ_CONNECTION_ID'::uuid;" >/dev/null'''
+          if connection_marker not in source:
+              raise SystemExit("fast_read_connection_marker_not_found")
+          source = source.replace(connection_marker, connection_patch, 1)
+          path.write_text(source)
+          PY
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("integrations/paperclip/adapters/wandora-mastra-v1/verify-fast-read-disposable-e2e.sh")
+          source = path.read_text()
           old = 'test "$(wait_terminal "$SUCCESS_RUN_ID")" = "succeeded"'
           diagnostic = r'''SUCCESS_RUN_STATUS="$(wait_terminal "$SUCCESS_RUN_ID")"
           if [ "$SUCCESS_RUN_STATUS" != "succeeded" ]; then
