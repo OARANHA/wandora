@@ -275,12 +275,12 @@ index 28e18d3df..2d7269c17 100644
    // Data Write
    "issues.create",
 diff --git a/server/src/__tests__/tool-access-service.test.ts b/server/src/__tests__/tool-access-service.test.ts
-index af6aea1e8..fcfd89635 100644
+index af6aea1e8..fac7910e9 100644
 --- a/server/src/__tests__/tool-access-service.test.ts
 +++ b/server/src/__tests__/tool-access-service.test.ts
-@@ -17987,4 +17987,47 @@ describe("normalizeConnectionMethodConfig", () => {
-       },
-     });
+@@ -17834,6 +17834,49 @@ describe("classifyRisk", () => {
+     );
+     expect(classifyRisk({ name: "create_cart" }, "shopify")).toBe("write");
    });
 +
 +  it("listCatalogCached never refreshes a stale remote catalog", async () => {
@@ -325,6 +325,15 @@ index af6aea1e8..fcfd89635 100644
 +    expect(cached.map((entry) => entry.toolName)).toContain("cached_only");
 +    expect(fetchMock).toHaveBeenCalledTimes(discoveryCallsAfterConnect);
 +  });
+ });
+ 
+ describe("normalizeConnectionMethodConfig", () => {
+@@ -17987,4 +18030,6 @@ describe("normalizeConnectionMethodConfig", () => {
+       },
+     });
+   });
++
++
  });
 diff --git a/server/src/services/plugin-host-services.ts b/server/src/services/plugin-host-services.ts
 index 185524fc9..46ba05b82 100644
