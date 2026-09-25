@@ -5300,3 +5300,16 @@ Rejected:
 - a new Wandora integration/tool registry.
 
 Next gate: qualify a safe Paperclip-side operational read boundary, preferably by reusing a newer native SDK/API capability if available.
+
+
+## Reconciled checkpoint — ADR 0280 Safe Paperclip Integration Operational Read Boundary V1
+
+ADR 0280 is **BOUNDARY QUALIFIED / NATIVE CURRENT-STABLE INSUFFICIENT / ADAPTER IMPLEMENTATION DEFERRED / NO PRODUCTION EFFECT**.
+
+Exact-tag qualification of Paperclip `v2026.916.1@d554c4789ed3930f8a53ac9fdf6503b3187097da` proves that run-scoped Connection Intents (`connections_search` / `connection_request`) exist, but they do not expose the full organization operational evidence required by ADR 0278. Connections, Connection grants, catalog, effective Tool Profiles and runtime health remain Board-authenticated, while the stable PluginContext still exposes no equivalent read client.
+
+The second adversarial review rejects Core Board credentials, direct Paperclip DB reads, provider-state mirroring and `plugin.state` shadow state. The acceptable replacement boundary is a Paperclip host-owned, read-only, capability-gated operational projection exposed to a provider-side adapter without Board authority leaving Paperclip. Implementing that host/plugin extension requires its own code-only preflight before the disposable capability attestation.
+
+No production upgrade/patch, Core change, migration, provider/model call, customer work, outbound or production mutation occurred.
+
+Next: **Paperclip Host Operational Read Capability Extension Preflight V1 — CODE ONLY / NO PRODUCTION EFFECT**.
