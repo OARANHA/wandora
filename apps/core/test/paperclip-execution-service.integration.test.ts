@@ -27,6 +27,12 @@ const emptyGroundingProjection = {
   },
 };
 
+const emptyEmployeeGuidanceProjection = {
+  async project(_organizationId: string, _employeeId: string) {
+    return [];
+  },
+};
+
 after(async () => {
   await Promise.all([runtimePool.end(), fixturePool.end()]);
 });
@@ -72,7 +78,7 @@ test('private execution requires the canonical Wandora employee to be active', a
       runtimeCalls += 1;
       return { model: 'test', summary: 'should-not-run', usage: { inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, totalTokens: 0 } };
     },
-  }, emptyGroundingProjection);
+  }, emptyGroundingProjection, emptyEmployeeGuidanceProjection);
 
   await assert.rejects(
     service.execute({
@@ -94,7 +100,7 @@ test('active exact binding reaches AgentTaskRuntime without provider identifiers
       received = input;
       return { model: 'wandora-supervised-v1', summary: 'Proposta supervisionada', usage: { inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, totalTokens: 0 } };
     },
-  }, emptyGroundingProjection);
+  }, emptyGroundingProjection, emptyEmployeeGuidanceProjection);
 
   const result = await service.execute({
     identity: { paperclipAgentId: AGENT, paperclipCompanyId: COMPANY, catalogKey: 'ana-commercial-v1' },
@@ -120,6 +126,7 @@ test('active exact binding reaches AgentTaskRuntime without provider identifiers
     grounding: {
       officialFacts: [],
       houseRules: [],
+      employeeGuidance: [],
       workContext: { title: 'Qualificar', description: 'Entender necessidade' },
     },
   });
@@ -128,6 +135,61 @@ test('active exact binding reaches AgentTaskRuntime without provider identifiers
   assert.equal(JSON.stringify(received).includes(RUN), false);
 });
 
+
+
+test('employee guidance projection receives only canonical Wandora employee identity', async () => {
+  await resetFixture('active');
+  let guidanceInput: { organizationId: string; employeeId: string } | undefined;
+  let received: AssignedTaskInput | undefined;
+  const service = new PaperclipExecutionService(
+    runtimePool,
+    {
+      executeAssignedTask: async (input) => {
+        received = input;
+        return {
+          model: 'wandora-supervised-v1',
+          summary: 'Resultado com orientação aprovada',
+          usage: { inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, totalTokens: 0 },
+        };
+      },
+    },
+    emptyGroundingProjection,
+    {
+      async project(organizationId: string, employeeId: string) {
+        guidanceInput = { organizationId, employeeId };
+        return [{
+          type: 'behavior' as const,
+          content: 'Fale de forma objetiva.',
+          provenance: {
+            type: 'owner_statement' as const,
+            sourceLabel: null,
+          },
+        }];
+      },
+    },
+  );
+
+  await service.execute({
+    identity: { paperclipAgentId: AGENT, paperclipCompanyId: COMPANY, catalogKey: 'ana-commercial-v1' },
+    runToken: 'synthetic-run-token',
+    paperclipRunId: RUN,
+    task: { title: 'Atender', description: 'Responder internamente.' },
+  });
+
+  assert.deepEqual(guidanceInput, { organizationId: ORG, employeeId: EMPLOYEE });
+  assert.deepEqual(received?.grounding.employeeGuidance, [{
+    type: 'behavior',
+    content: 'Fale de forma objetiva.',
+    provenance: {
+      type: 'owner_statement',
+      sourceLabel: null,
+    },
+  }]);
+  const serialized = JSON.stringify(received);
+  assert.equal(serialized.includes(COMPANY), false);
+  assert.equal(serialized.includes(AGENT), false);
+  assert.equal(serialized.includes(RUN), false);
+});
 
 test('Wandora work correlation is verified and result is committed without entering AgentTaskRuntime input', async () => {
   await resetFixture('active');
@@ -144,6 +206,7 @@ test('Wandora work correlation is verified and result is committed without enter
       },
     },
     emptyGroundingProjection,
+    emptyEmployeeGuidanceProjection,
     {
       async prepareCatalogEmployeeWorkExecution(input) {
         preparation.push(input);
@@ -205,6 +268,7 @@ test('cached exact work result prevents a duplicate AgentTaskRuntime execution',
       },
     },
     emptyGroundingProjection,
+    emptyEmployeeGuidanceProjection,
     {
       async prepareCatalogEmployeeWorkExecution() {
         return {
@@ -259,6 +323,7 @@ test('runtime failure marks exact work execution uncertain and never retries ins
       },
     },
     emptyGroundingProjection,
+    emptyEmployeeGuidanceProjection,
     {
       async prepareCatalogEmployeeWorkExecution() {
         return { kind: 'execute' as const };
@@ -314,6 +379,7 @@ test('execution service keeps Paperclip credentials outside runtime input while 
       },
     },
     emptyGroundingProjection,
+    emptyEmployeeGuidanceProjection,
     undefined,
     async (input) => {
       bridgeInput = input;
@@ -369,6 +435,7 @@ test('Tool Gateway failure after work preparation marks execution uncertain befo
       },
     },
     emptyGroundingProjection,
+    emptyEmployeeGuidanceProjection,
     {
       async prepareCatalogEmployeeWorkExecution() {
         return { kind: 'execute' as const };
@@ -421,6 +488,7 @@ test('read-tool failure after work preparation marks execution uncertain and nev
       },
     },
     emptyGroundingProjection,
+    emptyEmployeeGuidanceProjection,
     {
       async prepareCatalogEmployeeWorkExecution() {
         return { kind: 'execute' as const };
