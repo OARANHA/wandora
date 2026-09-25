@@ -71,7 +71,10 @@ The executor may proceed only when all conditions hold:
 - missing-context probability remains below policy;
 - human-review probability remains below policy;
 - data/tool lookup probability meets policy;
-- ambiguity = `none`.
+- ambiguity = `none`;
+- the Wandora route policy itself contains only finite probabilities in the closed interval 0..1.
+
+Invalid policy fails closed before any capability binding executes.
 
 Otherwise it returns a fallback reason before any binding/tool call.
 
@@ -146,7 +149,8 @@ The new tests prove:
 5. missing capability executes zero bindings;
 6. duplicate capability bindings fail closed;
 7. bounded clarification renders deterministically;
-8. human-review/generative/unknown modes execute zero bindings.
+8. human-review/generative/unknown modes execute zero bindings;
+9. malformed Wandora route policy fails closed before any binding executes.
 
 No network or provider is used in these tests.
 
