@@ -1,6 +1,6 @@
 # ADR 0263 — Work Operator List + Detail Drawer V1
 
-Status: **CODE COMPLETE / NO PRODUCTION EFFECT**  
+Status: **EXECUTED / GREEN / WEB ONLY**  
 Date: 2026-09-25
 
 ## Context
@@ -179,4 +179,54 @@ outbound = 0
 migration = 0
 ```
 
-A separate exact-artifact production promotion is required after merge and GREEN CI.
+Production promotion completed successfully.
+
+Verified artifact:
+
+```text
+artifact id = 10850564498
+artifact digest = sha256:a64cd31bc7401a9274eebaa41db9c5dbe5553a242143b1bf7dc93372286344fb
+source_sha = 72ce1b29158e55cba1161132bc1c25e7c045cf0e
+source_tree_sha = a24c7ee4de89bedaa0d748bfee73fde7302911c5
+image = wandora/web:candidate-72ce1b29158e
+host image id = sha256:d323407fb2fa6148a436218021a9557d92e85c0861b378a8cd92c633ca6efb19
+```
+
+Disposable preflight and post-promotion local-Traefik validation both returned 200 for `/healthz`, `/`, `/team`, `/work`, `/conversations`, `/approvals`, `/company`, and `/login`; unauthenticated `/api/v1/me` remained 401.
+
+Live bundle marker validation passed for:
+- work search;
+- compact-row result action;
+- detail drawer;
+- original request section;
+- copy-result action;
+- clickable filtering;
+- attention-required boundary.
+
+Production runtime after promotion:
+
+```text
+wandora-web = wandora/web:candidate-72ce1b29158e
+status = running
+health = healthy
+restart = 0
+Core = unchanged / healthy
+Paperclip = unchanged / healthy
+Messaging Gateway = unchanged / healthy
+```
+
+Effect boundary:
+
+```text
+Web recreate = 1
+Core recreate = 0
+Paperclip recreate = 0
+Messaging Gateway recreate = 0
+customer work = 0
+provider/model call = 0
+outbound = 0
+migration = 0
+credential exposure = 0
+```
+
+ADR 0263 is now EXECUTED / GREEN / WEB ONLY.

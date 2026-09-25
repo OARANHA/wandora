@@ -1,3 +1,15 @@
+## Reconciled checkpoint — ADR 0263 Work operator drawer EXECUTED / GREEN / WEB ONLY
+
+The compact Work operational surface is now live in production. PR #344 merged at `main@ef74657ba80f818db3c0377d337cb06d087f7ec5` after Web, Core, Platform Admin and Messaging Gateway CI all passed.
+
+Exact artifact `10850564498` passed GitHub digest and internal SHA256SUMS verification. The qualified source is synthetic PR merge `72ce1b29158e55cba1161132bc1c25e7c045cf0e`, tree `a24c7ee4de89bedaa0d748bfee73fde7302911c5`, image `wandora/web:candidate-72ce1b29158e`.
+
+Production Web is now `wandora/web:candidate-72ce1b29158e`, host image id `sha256:d323407fb2fa6148a436218021a9557d92e85c0861b378a8cd92c633ca6efb19`, healthy, restart 0.
+
+Disposable candidate and live local-Traefik validation both passed: all primary routes return 200, unauthenticated `/api/v1/me` remains 401, and the live bundle contains the Work search, clickable filters, compact result rows, right-side detail drawer, original-request section, copy-result action, and preserved attention-required boundary.
+
+Only Web was recreated. Core, Paperclip and Messaging Gateway remained unchanged and healthy. No customer work, provider/model call, outbound, migration or credential exposure occurred.
+
 ## Reconciled checkpoint — ADR 0262 owner-work Web promotion EXECUTED / GREEN / WEB ONLY
 
 ADR 0261 owner-work UX is now live in production. Exact qualified artifact `10848923851` passed GitHub digest and internal SHA256SUMS verification; its synthetic PR merge source `13034613000d053e4c262cec16dbba855b17a189` is proven to have ADR 0261 head `18aec627eb50db1b3f5617345c5dc98f58d09ed8` as a parent.
