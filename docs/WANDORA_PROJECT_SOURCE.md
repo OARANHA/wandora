@@ -1,3 +1,21 @@
+## Reconciled checkpoint — ADR 0269 single-prompt work production GREEN
+
+ADR 0269 is live in production as a Web-only promotion.
+
+Production Web now runs `wandora/web:candidate-7edf5895f3e3`, revision `7edf5895f3e34fd17416d4f0e402d57a662e3492`, healthy, restart 0. The exact Web CI artifact 10856915032 was qualified and its synthetic merge tree exactly matched merged `main`.
+
+The Team work form now requires only the main natural-language request. The second field is optional details. A request such as `Qual o valor do Desenvolvimento Web?` can be submitted without filling a second mandatory field. When details are absent, the Web deterministically uses the same normalized request as the existing Core description; no model enrichment or inferred intent is introduced.
+
+Live local-Traefik validation returned 200 for /healthz, /, /team, /work and /login. Bundle markers for the new request-first UX were present.
+
+Core, Paperclip and Messaging Gateway remained unchanged and healthy. No migration, provider/model call, customer work or outbound effect occurred during promotion.
+
+Rollback selector: `wandora/web:candidate-08e01651eb6d`; backup: `/opt/wandora/stacks/web/.env.adr0269.before`.
+
+## Reconciled checkpoint — ADR 0268 Web production GREEN
+
+ADR 0268 is live in production as a Web-only promotion. Production Web was promoted from `wandora/web:candidate-72ce1b29158e` to `wandora/web:candidate-08e01651eb6d` using exact qualified artifact 10854889675, with live Work 70/30 and employee-development UX validation. That image is now the ADR 0269 rollback target.
+
 ## Reconciled checkpoint — ADR 0269 single-prompt supervised work
 
 ADR 0269 fixes a live UX leak in Team: a natural-language request is now sufficient to create supervised work.

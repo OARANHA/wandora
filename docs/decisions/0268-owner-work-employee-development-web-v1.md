@@ -1,6 +1,6 @@
 # ADR 0268 — Owner Work 70/30 + Digital Employee Development Web V1
 
-Status: **IMPLEMENTED IN CODE / WEB ONLY / NO PRODUCTION EFFECT**  
+Status: **EXECUTED / GREEN / WEB ONLY**  
 Date: 2026-09-25
 
 ## Objective
@@ -270,3 +270,100 @@ outbound = 0
 Open PR and require normal CI GREEN.
 
 Production Web promotion, if qualified, is a separate Web-only effect using the exact CI candidate artifact.
+
+
+## Production promotion
+
+Production promotion completed successfully as a Web-only effect after PR #351 merged and all normal workflows were GREEN.
+
+Canonical source:
+
+```text
+main = 87165b070ebf5c152d04511d2d0c1b248b8b7313
+main tree = 9510a018fc6a94490b78b0ffc6083cef17f421fb
+artifact synthetic merge = 08e01651eb6df1e2a3b5592827123064d0ec8486
+artifact tree = 9510a018fc6a94490b78b0ffc6083cef17f421fb
+tree equality = true
+```
+
+Qualified Web artifact:
+
+```text
+artifact id = 10854889675
+artifact name = web-candidate-08e01651eb6df1e2a3b5592827123064d0ec8486
+GitHub digest = sha256:7f3781bc3b171eda7522f07210e333ab15b38a2bcc4041040c73f2682ded485e
+image tag = wandora/web:candidate-08e01651eb6d
+archive sha256 = a79b0b14022c2c125ea119997a9ab9fd60248230b0d89775e74df7cff9259e67
+loaded image id = sha256:c9b0695c7755b552004b0fb7c87fcae66d68b947a65016c464e94d43a388981e
+revision = 08e01651eb6df1e2a3b5592827123064d0ec8486
+candidate = wandora-web-reviewed-bridge-v1
+```
+
+Rollback baseline captured before effect:
+
+```text
+WANDORA_WEB_IMAGE=wandora/web:candidate-72ce1b29158e
+backup = /opt/wandora/stacks/web/.env.adr0268.before
+old Web health = healthy
+old Web restart = 0
+```
+
+Only the Web service was recreated.
+
+Post-promotion runtime:
+
+```text
+Web image = wandora/web:candidate-08e01651eb6d
+Web revision = 08e01651eb6df1e2a3b5592827123064d0ec8486
+Web health = healthy
+Web restart = 0
+
+Core = unchanged / healthy / restart 0
+Paperclip = unchanged / healthy / restart 0
+Messaging Gateway = unchanged / healthy / restart 0
+```
+
+Live local-Traefik validation:
+
+```text
+/healthz        = 200
+/               = 200
+/team           = 200
+/work           = 200
+/conversations  = 200
+/approvals      = 200
+/company        = 200
+/login          = 200
+/api/v1/me      = 401 unauthenticated
+```
+
+Live bundle:
+
+```text
+/assets/index-DZeet7lm.js
+```
+
+Verified live bundle markers:
+
+- Responsabilidades
+- Aprendizados
+- Autonomia
+- Ensinar à Ana
+- O resultado deste trabalho não vira aprendizado automaticamente.
+- COMO ...
+- SÓ INTERROMPE VOCÊ QUANDO PRECISA.
+
+Final production effect:
+
+```text
+Web recreate = 1
+Core recreate = 0
+Paperclip recreate = 0
+Messaging Gateway recreate = 0
+migration = 0
+provider/model call = 0
+customer work = 0
+outbound = 0
+```
+
+ADR 0268 is now **EXECUTED / GREEN / WEB ONLY**.
