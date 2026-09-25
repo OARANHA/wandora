@@ -1,3 +1,7 @@
+## Reconciled checkpoint — ADR 0260 Ana VendaERP product read SUCCESS
+
+Ana successfully completed a real owner-originated 28PRO customer work through `Wandora -> Paperclip -> Ana/Mastra -> Tool Gateway -> VendaERP`. Run `dd8fcd32-278e-446f-8fb5-de2a1a0d67b1` made exactly one product tool call, completed successfully with no retry/outbound, and returned five real products. Temporary one-shot guard policies were removed; final Tool Policies=[] and Task Drain OFF/quiescent.
+
 ## Reconciled checkpoint — ADR 0259 VendaERP GetAll routing PROMOTED / NO PROVIDER CALL
 
 ADR 0258 is live. Production MCP server SHA-256 is `25c740fd94ae3fb052b7177eae0a34be25e04deab9a0392a70e9de2696e9cb26` with source marker `aa82d08b2ef1399e5c2fda8751bf769bc806444c`. The live source routes pagination-only product reads to `Produtos/GetAll` and filtered reads to `Produtos/Pesquisar`. Promotion used Paperclip Task Drain, caused no provider/model/outbound call, and final Task Drain is OFF/quiescent with Paperclip/Core healthy.
