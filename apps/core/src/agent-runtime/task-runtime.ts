@@ -22,11 +22,14 @@ export type RuntimeEmployeeGuidanceStatement = {
   };
 };
 
-export type RuntimeGroundingProjection = {
+export type RuntimeOrganizationGroundingProjection = {
   officialFacts: RuntimeGroundingStatement[];
   houseRules: RuntimeGroundingStatement[];
-  employeeGuidance: RuntimeEmployeeGuidanceStatement[];
   workContext: AssignedTask;
+};
+
+export type RuntimeGroundingProjection = RuntimeOrganizationGroundingProjection & {
+  employeeGuidance: RuntimeEmployeeGuidanceStatement[];
 };
 
 export type RuntimeReadTool = {
