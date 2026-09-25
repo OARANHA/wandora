@@ -1,7 +1,7 @@
 import type { Pool, PoolClient } from 'pg';
 import type {
   AssignedTask,
-  RuntimeGroundingProjection,
+  RuntimeOrganizationGroundingProjection,
   RuntimeGroundingStatement,
 } from './task-runtime.js';
 
@@ -25,7 +25,7 @@ export interface OrganizationGroundingProjection {
   project(
     organizationId: string,
     workContext: AssignedTask,
-  ): Promise<RuntimeGroundingProjection>;
+  ): Promise<RuntimeOrganizationGroundingProjection>;
 }
 const statement = (row: GroundingRow): RuntimeGroundingStatement => ({
   content: row.content,
@@ -64,7 +64,7 @@ implements OrganizationGroundingProjection {
   async project(
     organizationId: string,
     workContext: AssignedTask,
-  ): Promise<RuntimeGroundingProjection> {
+  ): Promise<RuntimeOrganizationGroundingProjection> {
     const rows = await this.scoped(organizationId, async (client) => {
       const result = await client.query<GroundingRow>(
         `SELECT entry_type, content, provenance_type, source_label
