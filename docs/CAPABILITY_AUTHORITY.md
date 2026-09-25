@@ -399,3 +399,15 @@ ADR 0209's authority split remains valid, but its proposed direct native connect
 For VendaERP read V1, the approved code-only provider implementation is a stateless MCP adapter behind Paperclip `local_stdio`. Paperclip remains authority for ToolConnection, installs/grants, secret custody, approved stdio template, catalog, gateway policy and audit. The adapter may translate only the eight ADR 0202 reads and must not accept arbitrary URL/method input or persist credentials.
 
 Generic `rest_api` Tool Gateway execution remains quarantined under ADR 0208. This local_stdio adapter does not create a generic Wandora tool engine and does not move connection/secret authority into Core or Mastra.
+
+
+## Semantic fast read + Integration Capability Plane — ADR 0275
+
+Bounded commercial reads may use a pre-Issue Wandora semantic routing contract only when the request is confidently classified as deterministic read. JEV/TypeSafe is a replaceable decision provider, not product identity.
+
+Paperclip remains operational authority for on-demand run lifecycle, run-scoped Tool Gateway sessions, Connections/grants/secrets/catalog/profiles/policies and tool audit. A Paperclip Issue is not required by Tool Gateway authorization, but issue-less customer result return must be separately attested before production adoption.
+
+The deterministic branch must not invoke open-ended Mastra/model reasoning. Unknown, low-confidence, multi-match, missing-context, write/destructive or human-review cases fall out of the fast path.
+
+The Wandora Integrations product surface is a provider-neutral capability projection (connected system + customer-meaningful capabilities + Wandora policy), not a copy of Paperclip operational connection state. V1 requires no new durable table when the projection can be derived from existing provider state and Wandora-owned policy/bindings.
+
