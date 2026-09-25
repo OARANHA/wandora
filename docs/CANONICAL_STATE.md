@@ -1,23 +1,40 @@
 ## Reconciled checkpoint — ADR 0277 Semantic Fast Read Intent + Disposable Paperclip Attestation V1
 
-ADR 0277 is **CODE COMPLETE / CI QUALIFICATION PENDING / NO PRODUCTION EFFECT**.
+ADR 0277 is **CODE COMPLETE / IMPLEMENTATION CI GREEN / NO PRODUCTION EFFECT**.
 
-The selected boundary is now provider-neutral and authority-correct:
+The authority boundary is now proven end-to-end without duplicating provider lifecycle:
 
-- Wandora owns the stateless, short-lived HMAC Fast Read Intent and the `BusinessCapability` semantic gate;
-- the existing authenticated `wandora.organization-adapter-v1` webhook dispatches fast read through native Paperclip `agents.invoke`;
-- Paperclip `plugin.state` stores only an operational correlation receipt so duplicate dispatch does not create a second run;
-- the `wandora_mastra` adapter accepts the issue-less fast-read envelope only when it came from `plugin_invoke` by the Organization Adapter plugin;
+- Wandora owns the stateless, short-lived HMAC Fast Read Intent and the provider-neutral `BusinessCapability` semantic gate;
+- the authenticated `wandora.organization-adapter-v1` webhook uses Paperclip `plugin.state` only as an operational idempotency receipt and dispatches new work through native `ctx.agents.invoke`;
+- exact duplicate correlation/input returns the existing run before any new invoke;
+- the adapter does not impose its own `agent.status === idle` rule: Paperclip `agents.invoke` remains the operational lifecycle-admission authority;
+- the `wandora_mastra` adapter accepts the issue-less fast-read envelope only when it originated from `plugin_invoke` by the Organization Adapter plugin;
 - Core independently verifies bridge HMAC, Paperclip run identity, organization/employee binding and the signed intent before opening Tool Gateway;
 - `BusinessCapability -> RuntimeReadTool` bindings are ephemeral and computed only from the currently Paperclip-authorized read tools;
 - exactly one binding is required; zero or duplicate bindings fail closed before tool execution;
-- the deterministic branch does not enter AgentTaskRuntime/Mastra and reports zero token usage.
+- the deterministic branch never enters AgentTaskRuntime/Mastra and reports zero model-token usage.
 
-No migration, table, Wandora lifecycle, tool registry, provider/model call, customer work, outbound, deploy or production mutation is part of this slice.
+Implementation qualification head `ae40de47de5fa4dc21b4aa7e1f6990f1ec364cbb` completed **10/10 GitHub-hosted workflows GREEN** under ADR 0158. Semantic Fast Read CI run `36158799595` proved:
 
-Local focused validation currently proves adapter contract 11/11 GREEN, Organization Adapter fast-read dispatch/idempotency 5/5 GREEN, `git diff --check` GREEN and disposable attestation shell syntax GREEN. A previous focused Core test was 6/6 GREEN before local dependencies were cleared; the broker later hit npm `ECONNRESET` and runs Node 18, below Core's required Node >=22.13. Final typecheck/build/tests and the full pinned Paperclip disposable attestation therefore remain gated on the canonical GitHub-hosted Ubuntu 24.04 workflows per ADR 0158.
+```text
+PAPERCLIP_WANDORA_FAST_READ_DISPOSABLE_ATTESTATION_V1_OK
+paperclip_issue_delta=0
+paperclip_run_delta=1
+read_tool_call_delta=1
+model_usage=0|0|0
+agentic_calls=0
+expired_tool_delta=0
+unauthorized_tool_delta=0
+duplicate_capability_tool_delta=0
+```
 
-Do not merge until the exact PR head is CI GREEN. Production activation remains a separate future preflight/execution slice.
+Core CI run `36158799448`, Paperclip Mastra Adapter CI run `36158799566`, Organization Adapter Plugin CI run `36158799454` and the remaining six workflows were also GREEN. The normal customer-work E2E and Organization Adapter production-activation rehearsal remain unchanged and GREEN.
+
+The second adversarial review after removing the duplicate adapter-side lifecycle gate also passed: JEV 1.13.0 returned `proceed_fast` (0.77), consistent with ADR 0168 — semantic authority stays Wandora-owned while run/lifecycle/tool operational authority stays Paperclip-owned.
+
+No migration, table, Wandora lifecycle, tool registry, provider/model production call, customer work, outbound, deploy, Core promotion, VendaERP call or production mutation occurred.
+
+The implementation is qualified, but **the exact final PR head containing this documentation checkpoint must also be CI GREEN before merge**. Production activation remains a separate future preflight/execution slice.
 
 ## Reconciled checkpoint — ADR 0276 Semantic Route + Deterministic Read Contract V1
 
