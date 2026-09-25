@@ -193,7 +193,7 @@ SELECT wandora.correct_digital_employee_development_entry(
   '2026-09-25T08:04:00Z'
 );
 
-DO $$
+DO $
 DECLARE
   old_status text;
   new_status text;
@@ -218,15 +218,8 @@ BEGIN
   THEN
     RAISE EXCEPTION 'employee_development_correction_history_failed';
   END IF;
-
-  PERFORM set_config('wandora.organization_id','e1000000-0000-4000-8000-000000000002',true);
-  SELECT count(*)::integer INTO old_status
-    FROM wandora.digital_employee_development_entries;
-EXCEPTION WHEN datatype_mismatch THEN
-  -- The count assignment above is intentionally not used as a cross-tenant assertion.
-  NULL;
 END
-$$;
+$;
 
 SELECT set_config('wandora.organization_id','e1000000-0000-4000-8000-000000000001',true);
 
