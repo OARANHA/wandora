@@ -438,3 +438,21 @@ Pinned production Paperclip currently exposes complete integration-state reads t
 This gap does **not** transfer operational ownership to Wandora. Core must not receive Board/admin authority, and provider state must not be mirrored into Wandora tables or plugin.state merely for projection.
 
 The accepted next boundary is a narrow Paperclip-side read adapter or newer native SDK capability that returns only normalized provider-neutral operational facts to ADR 0278's Integration Capability Plane.
+
+
+## Safe Paperclip operational read boundary — ADR 0280
+
+Run-scoped Paperclip Connection Intents are **not** organization integration-state authority. They may help an active run discover/request a service connection, but must not be used as a substitute for Connection/catalog/grant/profile/health projection.
+
+For ADR 0278 organization capability projection:
+
+- Paperclip remains operational authority for Connections, Connection grants, installs, catalog, Tool Profiles/policies and runtime health/readiness;
+- Wandora Core must not hold Paperclip Board/admin credentials;
+- Wandora must not read Paperclip DB schema directly as a product contract;
+- provider operational state must not be mirrored into Wandora tables or `plugin.state`;
+- the accepted future boundary is a Paperclip host-owned, read-only, capability-gated projection exposed to a replaceable provider-side adapter;
+- provider tool names may exist only inside that adapter's mapping and never become Wandora customer semantics;
+- `BusinessCapability` remains a finite semantic vocabulary, not a tool registry;
+- run Tool Gateway authorization remains the final independent narrowing gate.
+
+Current stable `v2026.916.1` does not yet expose the required full read surface to normal plugins, so adapter implementation is quarantined pending a dedicated host/plugin capability-extension preflight.

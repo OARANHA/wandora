@@ -3786,3 +3786,12 @@ The Organization Adapter therefore cannot safely derive the full organization In
 No code implementation was started. The next safe slice is to qualify a narrow Paperclip-side read adapter or a newer SDK/release that exposes the required read-only facts without Board authority leaking into Core.
 
 No migration, registry, provider call, model call, customer work, outbound, deploy or production mutation occurred.
+
+
+## 2026-09-25 — ADR 0280 safe Paperclip operational-read boundary qualification
+
+Paperclip current stable `v2026.916.1` was qualified against the ADR 0279 gap. Native run-scoped Connection Intents are useful for agent connection discovery/request but are not an organization Integration Capability Plane snapshot. Complete Connection/catalog/grant/profile/runtime-health reads remain Board-authenticated and the stable plugin SDK still has no equivalent read client.
+
+Architecture remains fail-closed: no Board credential in Core, no direct Paperclip DB coupling, no Connection/catalog/grant/health mirror, no `plugin.state` shadow database. A future solution must be a narrowly capability-gated Paperclip host/plugin read extension returning only bounded provider-neutral facts to ADR 0278.
+
+Next canonical slice: **Paperclip Host Operational Read Capability Extension Preflight V1 — CODE ONLY / NO PRODUCTION EFFECT**.
