@@ -5,7 +5,7 @@ on:
     paths:
       - 'integrations/paperclip/host-operational-read-v1/**'
       - 'integrations/paperclip/patches/v2026.916.1-host-operational-read-v1.patch'
-      - '.github/workflows/paperclip-host-operational-read-ci.yml'
+      - '.github/workflows/paperclip-host-operational-read-extension-ci.yml'
       - 'docs/decisions/0281-paperclip-host-operational-read-capability-extension-preflight-v1.md'
       - 'docs/CAPABILITY_AUTHORITY.md'
       - 'docs/architecture.md'
@@ -15,7 +15,7 @@ on:
     branches: [main]
     paths:
       - 'integrations/paperclip/host-operational-read-v1/**'
-      - '.github/workflows/paperclip-host-operational-read-ci.yml'
+      - '.github/workflows/paperclip-host-operational-read-extension-ci.yml'
       - 'docs/decisions/0281-paperclip-host-operational-read-capability-extension-preflight-v1.md'
       - 'docs/CAPABILITY_AUTHORITY.md'
       - 'docs/architecture.md'
