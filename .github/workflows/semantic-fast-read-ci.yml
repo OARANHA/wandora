@@ -94,6 +94,11 @@ jobs:
           WANDORA_SOURCE_SHA: ${{ github.sha }}
         run: bash scripts/verify-package.sh "${{ github.workspace }}/.paperclip"
 
+      - name: Align pinned Paperclip example contract
+        shell: bash
+        run: |
+          sed -i "s/tool_name='kv_get'/tool_name='get_value'/g" integrations/paperclip/adapters/wandora-mastra-v1/verify-fast-read-disposable-e2e.sh
+
       - name: Dedicated disposable Semantic Fast Read E2E
         env:
           PAPERCLIP_SOURCE_ROOT: ${{ github.workspace }}/.paperclip
