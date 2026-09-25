@@ -1,3 +1,15 @@
+## Reconciled checkpoint — ADR 0262 owner-work Web promotion EXECUTED / GREEN / WEB ONLY
+
+ADR 0261 owner-work UX is now live in production. Exact qualified artifact `10848923851` passed GitHub digest and internal SHA256SUMS verification; its synthetic PR merge source `13034613000d053e4c262cec16dbba855b17a189` is proven to have ADR 0261 head `18aec627eb50db1b3f5617345c5dc98f58d09ed8` as a parent.
+
+Production Web is now `wandora/web:candidate-13034613000d`, host image id `sha256:9de4dc71c85456fe267dc1dd79c6ac7eb9e20dfd732d7901010baa2f8e8157d9`, healthy, restart 0. Only `wandora-web` was recreated. Core, Paperclip and Messaging Gateway remained unchanged and healthy.
+
+Disposable preflight and live local-Traefik validation both returned 200 for `/healthz`, `/`, `/team`, `/work`, `/conversations`, `/approvals`, `/company`, and `/login`; unauthenticated `/api/v1/me` remains 401. The live bundle contains the new owner-work lifecycle, completion notice, follow-up CTA and truthful approvals markers.
+
+The ADR 0192 artifact helper is now also available at the governed operational path `/opt/wandora/ops-workspace/bin/wandora-github-artifact` as `root:wandora-ops 0750`, without changing token custody or weakening `/home`.
+
+No customer work, provider/model call, outbound action, migration or credential exposure occurred during this promotion.
+
 ## Reconciled checkpoint — ADR 0262 Web promotion preflight BLOCKED / SAFE STOP / NO PRODUCTION EFFECT
 
 ADR 0261 is merged and CI-green. Production Web remains unchanged on `wandora/web:candidate-0a7f36833188` and healthy.
