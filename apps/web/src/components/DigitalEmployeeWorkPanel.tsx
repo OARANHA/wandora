@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
+import { Link } from '@tanstack/react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Bot, LoaderCircle, RotateCcw } from 'lucide-react';
+import { ArrowRight, Bot, CheckCircle2, LoaderCircle, RotateCcw } from 'lucide-react';
 import { useAuth } from '../AuthProvider';
 import { WorkResultContent } from './WorkResultContent';
 import {
@@ -47,6 +48,7 @@ export function DigitalEmployeeWorkPanel({
   const { activeOrganization, authFetch } = useAuth();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [submittedWork, setSubmittedWork] = useState<WorkItem | null>(null);
   const [pendingRequest, setPendingRequest] = useState<{
     key: string;
     title: string;
@@ -61,6 +63,8 @@ export function DigitalEmployeeWorkPanel({
   const query = useQuery({
     queryKey: ['digital-employee-work', activeOrganization?.id, employeeId],
     enabled: Boolean(activeOrganization),
+    refetchInterval: 12_000,
+    refetchIntervalInBackground: false,
     queryFn: async () => {
       const response = await authFetch(path);
       if (response.status === 403) throw new Error('Seu acesso não permite acompanhar este trabalho.');
@@ -158,7 +162,8 @@ export function DigitalEmployeeWorkPanel({
       }
       throw new WorkRequestError('Não foi possível atribuir este trabalho agora.');
     },
-    onSuccess: async () => {
+    onSuccess: async ({ work }) => {
+      setSubmittedWork(work);
       setPendingRequest(null);
       setTitle('');
       setDescription('');
@@ -203,6 +208,23 @@ export function DigitalEmployeeWorkPanel({
           </p>
         </div>
       </div>
+
+      {submittedWork ? (
+        <div role="status" aria-live="polite" className="mt-4 rounded-2xl border-2 border-[#09090b] bg-[#d2e823] p-4 text-[#09090b]">
+          <div className="flex items-start gap-3">
+            <CheckCircle2 className="mt-0.5 size-5 shrink-0" />
+            <div className="min-w-0">
+              <p className="m-0 text-sm font-black">Trabalho enviado para {employeeName}</p>
+              <p className="m-0 mt-1 text-xs leading-5 text-[#09090b]/65">
+                Acompanhe o status e abra o resultado em Trabalho. Conversas continua reservada ao histórico real de clientes e canais.
+              </p>
+              <Link to="/work" className="mt-3 inline-flex items-center gap-2 text-xs font-black underline decoration-2 underline-offset-4">
+                Acompanhar trabalho <ArrowRight className="size-4" />
+              </Link>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <div className="mt-4 space-y-3">
         <input
