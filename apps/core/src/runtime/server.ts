@@ -39,7 +39,8 @@ export type RuntimeReadiness =
         | 'customer-hire-eligibility-database-boundary-unavailable'
         | 'customer-work-database-boundary-unavailable'
         | 'paperclip-execution-bridge-database-boundary-unavailable'
-        | 'organization-grounding-runtime-boundary-unavailable';
+        | 'organization-grounding-runtime-boundary-unavailable'
+        | 'digital-employee-development-runtime-boundary-unavailable';
     };
 
 export type RuntimeServerDeps = {
