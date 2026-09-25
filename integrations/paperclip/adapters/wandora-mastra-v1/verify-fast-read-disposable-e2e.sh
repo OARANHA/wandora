@@ -316,7 +316,7 @@ FAST_READ_CONNECTION_ID="$(printf '%s' "$example_json" | node -e '
 test -n "$FAST_READ_CONNECTION_ID"
 FAST_READ_CATALOG_ENTRY_ID=""
 for _ in $(seq 1 30); do
-  FAST_READ_CATALOG_ENTRY_ID="$(pc_sql "select id::text from tool_catalog_entries where company_id='$COMPANY_ID'::uuid and connection_id='$FAST_READ_CONNECTION_ID'::uuid and tool_name='kv_get' and status='active' order by created_at desc limit 1;")"
+  FAST_READ_CATALOG_ENTRY_ID="$(pc_sql "select id::text from tool_catalog_entries where company_id='$COMPANY_ID'::uuid and connection_id='$FAST_READ_CONNECTION_ID'::uuid and tool_name='get_value' and status='active' order by created_at desc limit 1;")"
   [ -n "$FAST_READ_CATALOG_ENTRY_ID" ] && break
   sleep 1
 done
