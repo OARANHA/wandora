@@ -1,3 +1,22 @@
+## Reconciled checkpoint — ADR 0268 Web production GREEN
+
+ADR 0268 is live in production as a Web-only promotion.
+
+Production Web now runs `wandora/web:candidate-08e01651eb6d`, revision `08e01651eb6df1e2a3b5592827123064d0ec8486`, healthy, restart 0. The exact Web CI artifact 10854889675 was qualified and its synthetic merge tree exactly matched merged `main`.
+
+Live UX now includes:
+- desktop Work 70/30 layout with supervised history/results left and exceptional attention queue right;
+- Team employee-development tabs: Responsabilidades, Aprendizados, Autonomia;
+- owner/admin “Ensinar à Ana” from a reviewed work result;
+- explicit human-authored learning text with work provenance;
+- no automatic result-to-learning promotion.
+
+Live local-Traefik validation returned 200 for /healthz, /, /team, /work, /conversations, /approvals, /company and /login; unauthenticated /api/v1/me remained 401. Bundle markers for the new UX were present.
+
+Core, Paperclip and Messaging Gateway remained unchanged and healthy. No migration, provider/model call, customer work or outbound effect occurred in this Web promotion.
+
+Rollback selector: `wandora/web:candidate-72ce1b29158e`; backup: `/opt/wandora/stacks/web/.env.adr0268.before`.
+
 ## Reconciled checkpoint — ADR 0268 Work 70/30 + Employee Development Web V1
 
 ADR 0268 implements a Web-only customer UX over the production employee-development contract.
