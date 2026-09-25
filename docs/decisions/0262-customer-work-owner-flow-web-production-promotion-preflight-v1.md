@@ -1,31 +1,29 @@
-# ADR 0262 — Customer Work Owner Flow Web Production Promotion Preflight V1
+# ADR 0262 — Customer Work Owner Flow Web Production Promotion V1
 
-Status: **BLOCKED / NO PRODUCTION EFFECT**  
+Status: **EXECUTED / GREEN / WEB ONLY**  
 Date: 2026-09-25
 
 ## Context
 
-ADR 0261 is merged and CI-green. The customer-facing code now clarifies the owner flow for supervised work:
+ADR 0261 is merged and CI-green. This ADR records the bounded production promotion of the owner-work UX changes:
 
-- Equipe confirms a successful work assignment and links to Trabalho;
+- Equipe confirms a successful supervised-work assignment and links to Trabalho;
 - Trabalho shows supervised work lifecycle and keeps attention-required work separate;
 - Conversas remains canonical customer/channel history only;
-- Aprovações no longer shows fictitious demo records;
+- Aprovações no longer renders fictitious demo records;
 - completion notification is session-local only and does not create durable unread/read state.
 
-The next effectful step would be a bounded Web-only production promotion.
+No new table, migration, notification store, provider capability or work lifecycle was introduced.
 
-This ADR is a preflight only.
+## REAL NOW before effect
 
-## REAL NOW
-
-Canonical Git state at preflight entry:
+Canonical Git state:
 
 ```text
 main = d49b1df674b652f17ec6f8a1e3ca31fe13ff4ccf
 PR #341 = merged
 PR #342 = merged checkpoint
-open PRs = 0
+open PRs = #343 documentation only
 ```
 
 ADR 0261 implementation head:
@@ -34,7 +32,7 @@ ADR 0261 implementation head:
 18aec627eb50db1b3f5617345c5dc98f58d09ed8
 ```
 
-Its pull-request workflows are all GREEN:
+PR-head workflows were GREEN:
 
 ```text
 Web CI               = GREEN
@@ -43,127 +41,233 @@ Platform Admin CI    = GREEN
 Messaging Gateway CI = GREEN
 ```
 
-Qualified Web CI artifact:
+Production runtime before promotion:
 
 ```text
-workflow run = 36101734409 / Web CI #963
-artifact id = 10848923851
-artifact name = web-candidate-13034613000d053e4c262cec16dbba855b17a189
-artifact size = 22,643,043 bytes
-GitHub artifact digest =
-sha256:22e7c16154dc97ffa61450aad99adfa31166a2543ccbff8f6701c0528739ee2e
-artifact head_sha =
-18aec627eb50db1b3f5617345c5dc98f58d09ed8
-```
-
-Production runtime before any effect:
-
-```text
-Web = wandora/web:candidate-0a7f36833188 / healthy
+Web = wandora/web:candidate-0a7f36833188 / healthy / restart 0
 Core = wandora/core:organization-adapter-candidate-46741f8d82d0 / healthy
 Paperclip = wandora/paperclip:v2026.916.0 / healthy
 Messaging Gateway = wandora/messaging-gateway:origin-fix-94cfb4de / healthy
 ```
 
-No production component was recreated during this preflight.
+## Artifact qualification
 
-## Capability Authority / Reuse Gate
-
-Production artifact transfer is an operational capability, not product state and not a Wandora application capability.
-
-ADR 0192 already defines the canonical transfer mechanism:
+Web CI artifact:
 
 ```text
-/home/wandora-admin/bin/wandora-github-artifact <artifact-id> <output-dir>
+workflow run = 36101734409 / Web CI #963
+artifact id = 10848923851
+artifact name = web-candidate-13034613000d053e4c262cec16dbba855b17a189
+GitHub artifact digest =
+sha256:22e7c16154dc97ffa61450aad99adfa31166a2543ccbff8f6701c0528739ee2e
 ```
 
-with GitHub artifact credentials kept in host custody and never exposed to the application or caller.
+Host-side canonical helper from ADR 0192 was initially unreachable from the execution broker because the broker could not traverse `/home`.
 
-Therefore this preflight rejects:
-
-- temporary connector URLs as the normal path;
-- copying or printing the GitHub token;
-- reading the credential file through generic shell;
-- rebuilding the Web image on the VPS;
-- bypassing the helper with arbitrary authenticated curl;
-- broadening Wandora product state merely to move an artifact.
-
-## Proven blocker
-
-The Remote-Ops execution broker runs as:
+The canonical helper was copied without modification into the governed operational path:
 
 ```text
-uid=999(wandora-exec)
-gid=1003(ops-mcp)
-groups=1003(ops-mcp),987(wandora-ops)
+/opt/wandora/ops-workspace/bin/wandora-github-artifact
+owner = root
+group = wandora-ops
+mode = 0750
 ```
 
-A governed attempt from the allowlisted operational workspace to execute the canonical helper returned:
+Credential custody remained unchanged at:
 
 ```text
-bash: /home/wandora-admin/bin/wandora-github-artifact: Permission denied
-exit = 126
+/etc/wandora/github-artifacts.env
+owner = root
+group = wandora-ops
+mode = 0640
 ```
 
-A separate capability check proved:
+No token value was printed, copied to the workspace, or exposed through MCP.
+
+Artifact verification:
 
 ```text
-HELPER_READABLE=no
-HELPER_EXECUTABLE=no
+GitHub digest =
+sha256:22e7c16154dc97ffa61450aad99adfa31166a2543ccbff8f6701c0528739ee2e
+
+downloaded ZIP sha256 =
+22e7c16154dc97ffa61450aad99adfa31166a2543ccbff8f6701c0528739ee2e
+
+web-image.tar = OK
+manifest.txt = OK
 ```
 
-No helper content, GitHub credential or token was read.
+Internal manifest:
 
-This is an OS permission/custody boundary mismatch between the current execution-broker identity and the host helper documented by ADR 0192.
+```text
+candidate_contract = wandora-web-reviewed-bridge-v1
+source_sha = 13034613000d053e4c262cec16dbba855b17a189
+source_tree_sha = b708bfb6a4626658094eb809ceecefbf16c5d9c0
+image_tag = wandora/web:candidate-13034613000d
+manifest image_id =
+sha256:3cf47aba77f72695df5d87c6a72c4a79ca8709a340f709440032e902a2cf49c2
+archive_sha256 =
+52af9cb2bcd3daa10d394c90de5366854e4dc6f247cbd78db7315035a3cbb3dc
+```
+
+GitHub proves `13034613000d...` is the synthetic PR merge commit:
+
+```text
+parent 1 = b36d7b163760ebd1821bc19deb1d242a5f575707
+parent 2 = 18aec627eb50db1b3f5617345c5dc98f58d09ed8
+tree = b708bfb6a4626658094eb809ceecefbf16c5d9c0
+```
+
+Therefore the artifact is the exact PR tree qualified by Web CI, not an unrelated source.
+
+After `docker load`, the host image identity was:
+
+```text
+wandora/web:candidate-13034613000d
+host OCI manifest/image id =
+sha256:9de4dc71c85456fe267dc1dd79c6ac7eb9e20dfd732d7901010baa2f8e8157d9
+```
+
+The image labels confirm:
+
+```text
+org.opencontainers.image.revision =
+13034613000d053e4c262cec16dbba855b17a189
+
+wandora.candidate =
+wandora-web-reviewed-bridge-v1
+```
+
+## Disposable candidate preflight
+
+A disposable candidate was started only on:
+
+```text
+127.0.0.1:18080 -> container:8080
+network = wandora-core
+restart = no
+no wandora-edge attachment
+```
+
+Routes:
+
+```text
+/healthz        = 200
+/               = 200
+/team           = 200
+/work           = 200
+/conversations  = 200
+/approvals      = 200
+/company        = 200
+/login          = 200
+/api/v1/me      = 401 unauthenticated
+```
+
+Bundle markers were present:
+
+```text
+ACOMPANHE DO PEDIDO AO RESULTADO.
+SÓ INTERROMPE VOCÊ QUANDO PRECISA.
+Acompanhar trabalho
+trabalho concluído nesta sessão
+SEM APROVAÇÃO
+```
+
+The disposable container was removed before production recreation.
 
 ## Second adversarial review
 
 Rejected:
 
-1. source the host credential file from generic shell;
-2. copy the token into the MCP or workspace;
-3. use a temporary connector-hosted artifact URL as the production path;
-4. rebuild the exact Web candidate locally;
-5. mutate production before artifact provenance is independently verified;
-6. weaken Remote-Ops path/secret allowlists just to finish the promotion;
-7. recreate Core, Paperclip or Messaging Gateway as part of a Web-only change.
+1. weaken `/home` permissions globally;
+2. expose/copy the GitHub artifact token;
+3. use generic authenticated curl as a secret-custody bypass;
+4. rebuild the Web image on the VPS;
+5. promote before exact artifact verification;
+6. recreate Core, Paperclip or Messaging Gateway;
+7. treat a 403 from the VPS through the public Cloudflare path as evidence of Web failure without checking the origin routing path.
 
-The safe decision is to stop before production effect.
+Jev advisory preflight returned `allow` for both image staging and the final Web-only promotion. Jev remained advisory and did not override deterministic safeguards.
 
-## Resume gate
+## Execution
 
-Promotion may resume only after one of these is proven:
+Rollback selector was captured before mutation:
 
-1. the canonical ADR 0192 helper is readable/executable by the governed execution identity through the intended host permission boundary; or
-2. Remote-Ops exposes a dedicated semantic GitHub artifact staging capability that keeps the credential protected and performs the same digest/path/SHA256SUMS verification.
+```text
+WANDORA_WEB_IMAGE=wandora/web:candidate-0a7f36833188
+backup = /opt/wandora/stacks/web/.env.adr0262.before
+```
 
-After that, the exact artifact must be staged and prove:
+Persisted selector changed to:
 
-- downloaded ZIP SHA-256 equals GitHub artifact digest;
-- internal `SHA256SUMS` passes;
-- manifest/source SHA corresponds to the qualified ADR 0261 source;
-- exact image tag/image identity is known;
-- disposable candidate health and public routes are GREEN;
-- rollback image/selector are captured from real runtime.
+```text
+WANDORA_WEB_IMAGE=wandora/web:candidate-13034613000d
+```
 
-Only then may a separate execution step change the Web selector and recreate only `wandora-web`.
+Only the Web service was recreated:
+
+```text
+docker compose up -d --no-deps web
+```
+
+Post-effect runtime:
+
+```text
+Web image = wandora/web:candidate-13034613000d
+host image id =
+sha256:9de4dc71c85456fe267dc1dd79c6ac7eb9e20dfd732d7901010baa2f8e8157d9
+status = running
+health = healthy
+restart = 0
+revision = 13034613000d053e4c262cec16dbba855b17a189
+```
+
+Core, Paperclip and Messaging Gateway remained unchanged and healthy.
+
+## Live validation
+
+Direct egress from the production host to the public Cloudflare hostname returned 403 because of the existing perimeter/origin policy. That result is not treated as a Web failure.
+
+The real local Traefik HTTPS route was validated with the production hostname resolved to the local origin:
+
+```text
+https://app.wandora.com.br/healthz        = 200
+https://app.wandora.com.br/               = 200
+https://app.wandora.com.br/team           = 200
+https://app.wandora.com.br/work           = 200
+https://app.wandora.com.br/conversations  = 200
+https://app.wandora.com.br/approvals      = 200
+https://app.wandora.com.br/company        = 200
+https://app.wandora.com.br/login          = 200
+https://app.wandora.com.br/api/v1/me      = 401 unauthenticated
+```
+
+The live production bundle is:
+
+```text
+/assets/index-DYRbEy-W.js
+```
+
+and contains all ADR 0261 UX markers listed in the disposable preflight.
 
 ## Effect boundary
 
-This preflight caused:
+This production slice caused:
 
 ```text
-production container mutation = 0
-Web recreate = 0
-Core/Paperclip/Gateway mutation = 0
+Web recreate = 1
+Core recreate = 0
+Paperclip recreate = 0
+Messaging Gateway recreate = 0
 customer work = 0
 provider/model call = 0
 outbound = 0
+migration = 0
 credential exposure = 0
 ```
 
 ## Decision
 
-**ADR 0262 is BLOCKED / SAFE STOP / NO PRODUCTION EFFECT.**
+**ADR 0262 is EXECUTED / GREEN / WEB ONLY.**
 
-The remaining blocker is operational artifact-transfer authority, not the customer-work UX code.
+The ADR 0261 owner-work UX is now live in production.
