@@ -94,7 +94,7 @@ test('mastra supervised model runtime keeps inbound deterministic and model work
           content: 'Quando não souber, declarar desconhecido.',
           provenance: { type: 'owner_statement', sourceLabel: null },
         }],
-      employeeGuidance: [],
+        employeeGuidance: [],
         workContext: {
           title: 'Preparar resumo comercial',
           description: 'Organize os próximos passos para revisão do owner.',
@@ -223,8 +223,7 @@ test('mastra supervised runtime exposes only supplied read tools without leaking
       grounding: {
         officialFacts: [],
         houseRules: [],
-        employeeGuidance: [],
-      employeeGuidance: [],
+          employeeGuidance: [],
         workContext: { title: 'Consultar catálogo', description: 'Use leitura se necessário.' },
       },
       readTools: [{
