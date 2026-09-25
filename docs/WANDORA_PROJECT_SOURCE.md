@@ -3758,7 +3758,7 @@ Next safe slice: **Paperclip Business-System Connection Container + REST Tool Ga
 
 ## Reconciled checkpoint — ADR 0278 Integration Capability Plane V1
 
-ADR 0278 is **CODE COMPLETE / CI PENDING / NO PRODUCTION EFFECT**.
+ADR 0278 is **CODE COMPLETE / IMPLEMENTATION CI GREEN / NO PRODUCTION EFFECT**.
 
 The preflight proved that Paperclip already owns Applications, Connections, grants, secrets, installs, Tool Catalog, Tool Profiles/policies, health/readiness evidence, run-scoped Tool Gateway authorization and tool audit. Wandora therefore does not add an integration registry, copied Connection state, copied health/grants/catalog or a parallel tool registry.
 
