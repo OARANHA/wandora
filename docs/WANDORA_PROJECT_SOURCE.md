@@ -1,3 +1,15 @@
+## Reconciled checkpoint — ADR 0276 Semantic Route + Deterministic Read Contract V1
+
+ADR 0276 is **CODE COMPLETE / NO PRODUCTION EFFECT / PROVIDER UNWIRED**.
+
+Core now contains a provider-neutral semantic routing contract, stable business-capability vocabulary and a bounded deterministic-read executor. The executor can only enter the fast path under explicit policy thresholds with no ambiguity/human-review requirement, selects exactly one ephemeral authorized capability binding, makes no retry/model call and renders only bounded facts/clarification/not-found output with zero token usage.
+
+The slice deliberately does not wire Core directly to the live OAuth-protected `wandora-jev-mcp`, does not call TypeSafe directly, and does not add `deterministic_read` to the existing Paperclip execution request. Semantic routing is Wandora-owned authority; a provider-supplied mode must not become authoritative without a Wandora-origin authenticated intent.
+
+No migration, table, provider call, model call, Paperclip mutation, customer work, outbound or production effect occurred.
+
+Next: Semantic Fast Read Intent + Disposable Paperclip Attestation V1 — code only / no production effect.
+
 ## Reconciled checkpoint — ADR 0275 Semantic Fast Read + Integration Capability Plane preflight
 
 ADR 0275 is **PREFLIGHT GREEN / GO FOR CODE-ONLY CONTRACT + DISPOSABLE ATTESTATION / NO PRODUCTION EFFECT**.
