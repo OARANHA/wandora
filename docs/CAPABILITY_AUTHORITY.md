@@ -411,3 +411,19 @@ The deterministic branch must not invoke open-ended Mastra/model reasoning. Unkn
 
 The Wandora Integrations product surface is a provider-neutral capability projection (connected system + customer-meaningful capabilities + Wandora policy), not a copy of Paperclip operational connection state. V1 requires no new durable table when the projection can be derived from existing provider state and Wandora-owned policy/bindings.
 
+
+## Integration Capability Plane — ADR 0278
+
+Wandora owns the provider-neutral business meaning of an integration and the finite `BusinessCapability` semantic vocabulary.
+
+Paperclip remains operational authority for Applications, Connections, grants, secrets, installs, Tool Catalog, Tool Profiles/policies, health/readiness evidence, run-scoped Tool Gateway authorization and tool-call audit. VendaERP/MCP remains provider implementation.
+
+The Integration Capability Plane is a **projection**, not a registry:
+
+1. provider/adapter evidence declares which Wandora `BusinessCapability` values an integration implementation can support;
+2. Paperclip operational state determines which of those are currently available to the organization;
+3. a run-scoped Tool Gateway authorization can only narrow that set for Fast Read execution.
+
+Do not persist or mirror Paperclip Connection state, health, grants, catalog entries, tool names or credentials merely to render customer capability availability. Do not turn `BusinessCapability` into a parallel tool catalog.
+
+JEV/TypeSafe may later implement semantic decision-provider logic, but it is not integration/connection authority. The Paperclip semantic-decision plugin remains post-Issue/advisory and is not the Integration Capability Plane.
