@@ -1,6 +1,6 @@
 # ADR 0278 — Integration Capability Plane V1
 
-Status: **CODE COMPLETE / CI PENDING / NO PRODUCTION EFFECT**  
+Status: **CODE COMPLETE / IMPLEMENTATION CI GREEN / NO PRODUCTION EFFECT**  
 Date: 2026-09-25
 
 ## Context
