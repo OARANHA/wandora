@@ -314,4 +314,4 @@ After exact-head CI is GREEN and this ADR is merged:
 
 That slice should derive the V1 evidence from native Paperclip Application/Connection/catalog/grant/profile state, prove the run-scoped intersection through Tool Gateway, and keep provider/customer IDs behind the adapter boundary.
 
-ADR 0278 is **CODE COMPLETE / CI PENDING / NO PRODUCTION EFFECT**.
+ADR 0278 is **CODE COMPLETE / IMPLEMENTATION CI GREEN / NO PRODUCTION EFFECT**.
