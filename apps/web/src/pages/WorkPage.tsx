@@ -16,6 +16,7 @@ import {
   X,
 } from 'lucide-react';
 import { useAuth } from '../AuthProvider';
+import { TeachEmployeeFromWork } from '../components/TeachEmployeeFromWork';
 import { WorkResultContent } from '../components/WorkResultContent';
 
 type HumanSendConfirmation = {
@@ -268,6 +269,7 @@ export function WorkPage() {
         />
       </section>
 
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,2.15fr)_minmax(20rem,0.85fr)] xl:items-start">
       {supervisedQuery.isLoading ? (
         <LoadingCard label="Carregando os trabalhos reais da equipe…" />
       ) : supervisedQuery.isError ? (
@@ -362,7 +364,7 @@ export function WorkPage() {
         </section>
       )}
 
-      <section className="rounded-3xl border-[2.5px] border-[#09090b] bg-[#09090b] p-5 text-white wandora-pop sm:p-6">
+      <section className="rounded-3xl border-[2.5px] border-[#09090b] bg-[#09090b] p-5 text-white wandora-pop sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-3rem)] xl:overflow-y-auto">
         <div className="wandora-mono text-[9px] font-black text-white/45">atenção humana</div>
         <h2 className="wandora-display m-0 mt-2 text-3xl text-white">SÓ INTERROMPE VOCÊ QUANDO PRECISA.</h2>
         <p className="m-0 mt-3 max-w-2xl text-sm leading-6 text-white/60">
@@ -400,10 +402,13 @@ export function WorkPage() {
           )}
         </div>
       </section>
+      </div>
 
       {selectedWork ? (
         <WorkDetailDrawer
           item={selectedWork}
+          organizationId={activeOrganization.id}
+          canManage={activeOrganization.role === 'owner' || activeOrganization.role === 'admin'}
           onClose={() => setSelectedWorkId(null)}
         />
       ) : null}
@@ -509,9 +514,13 @@ function SupervisedWorkRow({
 
 function WorkDetailDrawer({
   item,
+  organizationId,
+  canManage,
   onClose,
 }: {
   item: SupervisedWorkItem;
+  organizationId: string;
+  canManage: boolean;
   onClose: () => void;
 }) {
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle');
@@ -615,6 +624,17 @@ function WorkDetailDrawer({
               </p>
             ) : null}
           </section>
+
+          {item.result ? (
+            <TeachEmployeeFromWork
+              organizationId={organizationId}
+              employeeId={item.employeeId}
+              employeeName={item.employeeName}
+              workId={item.id}
+              workTitle={item.title}
+              canManage={canManage}
+            />
+          ) : null}
         </div>
 
         <div className="border-t-2 border-[#09090b] bg-white p-4 sm:p-5">

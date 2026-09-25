@@ -1,3 +1,19 @@
+## Reconciled checkpoint — ADR 0268 Work 70/30 + Employee Development Web V1
+
+ADR 0268 implements a Web-only customer UX over the production employee-development contract.
+
+Work now uses a desktop 70/30 grid: supervised history/results on the left and the real attention-required queue on the right; mobile remains stacked and the desktop attention radar is bounded/sticky.
+
+Team now surfaces real employee development for each digital employee through Responsabilidades, Aprendizados and Autonomia. Owner/admin may create direct employee-specific responsibilities/behavior/practice using the existing Core development API. Reviewed work results expose an owner/admin-only “Ensinar à Ana” flow where the human types the exact learning; the work becomes provenance (`approved_learning`) but its result is never auto-promoted.
+
+The Web Nginx allowlist now exposes only the exact employee development GET/POST base endpoint required by this UX, forwards Authorization + Idempotency-Key and strips Cookie.
+
+No new table/migration/Core/provider state, no candidate-learning queue, no autonomy state machine and no production effect were introduced in this code slice.
+
+Local validation passed TypeScript plus all relevant Web contract verifiers; final Vite bundling is not executable on the VPS host Node 18 because current Vite requires a newer Node, so canonical GitHub-hosted Web CI / Node 22 Docker build remains the build gate.
+
+Next gate: PR + normal CI GREEN, then separate Web-only production promotion.
+
 ## Reconciled checkpoint — ADR 0267 employee development production activation GREEN
 
 ADR 0267 activates Digital Employee Development V1 in production.

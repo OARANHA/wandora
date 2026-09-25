@@ -46,6 +46,26 @@ if (digitalEmployeeActivationLocation.includes('Idempotency-Key')) {
 
 console.log('WANDORA_WEB_DIGITAL_EMPLOYEE_ACTIVATION_BRIDGE_V1_OK');
 
+const digitalEmployeeDevelopmentIndex = nginx.indexOf('/development$" {');
+if (digitalEmployeeDevelopmentIndex < 0) {
+  throw new Error('digital_employee_development_bridge_missing');
+}
+const digitalEmployeeDevelopmentLocation = nginx.slice(
+  digitalEmployeeDevelopmentIndex,
+  digitalEmployeeDevelopmentIndex + 800,
+);
+if (!digitalEmployeeDevelopmentLocation.includes('proxy_set_header Authorization $http_authorization;')) {
+  throw new Error('digital_employee_development_authorization_forwarding_missing');
+}
+if (!digitalEmployeeDevelopmentLocation.includes('proxy_set_header Idempotency-Key $http_idempotency_key;')) {
+  throw new Error('digital_employee_development_idempotency_forwarding_missing');
+}
+if (!digitalEmployeeDevelopmentLocation.includes('proxy_set_header Cookie "";')) {
+  throw new Error('digital_employee_development_cookie_stripping_missing');
+}
+
+console.log('WANDORA_WEB_DIGITAL_EMPLOYEE_DEVELOPMENT_BRIDGE_V1_OK');
+
 
 const [startPage, teamPage] = await Promise.all([
   readFile(new URL('../src/pages/StartPage.tsx', import.meta.url), 'utf8'),

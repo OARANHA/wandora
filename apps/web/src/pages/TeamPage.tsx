@@ -11,6 +11,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../AuthProvider';
+import { DigitalEmployeeDevelopmentPanel } from '../components/DigitalEmployeeDevelopmentPanel';
 import { DigitalEmployeeWorkPanel } from '../components/DigitalEmployeeWorkPanel';
 
 type DigitalEmployee = {
@@ -338,6 +339,13 @@ function EmployeeProfile({
           </Link>
         </section>
       </div>
+
+      <DigitalEmployeeDevelopmentPanel
+        employeeId={employee.id}
+        employeeName={employee.name}
+        autonomy={employee.autonomy}
+        canManage={canManage}
+      />
 
       {employee.work.available ? (
         <section className="rounded-3xl border-[2.5px] border-[#09090b] bg-white p-5 wandora-pop sm:p-6">
