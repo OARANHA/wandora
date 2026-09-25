@@ -37,6 +37,19 @@ index f0c4db2de..0ce2f9faf 100644
    };
  }
  
+diff --git a/packages/plugins/sdk/src/index.ts b/packages/plugins/sdk/src/index.ts
+index 1cf5adf0d..5977e466e 100644
+--- a/packages/plugins/sdk/src/index.ts
++++ b/packages/plugins/sdk/src/index.ts
+@@ -279,6 +279,8 @@ export type {
+   PluginAssignmentPreviewInput,
+   PluginAuthorizationDecisionResult,
+   PluginAuthorizationAuditEntry,
++  PluginToolAccessClient,
++  PluginToolAccessOperationalSnapshot,
+   PluginAgentSessionsClient,
+   AgentSession,
+   AgentSessionEvent,
 diff --git a/packages/plugins/sdk/src/protocol.ts b/packages/plugins/sdk/src/protocol.ts
 index a599a8fc7..9bdf71a06 100644
 --- a/packages/plugins/sdk/src/protocol.ts
@@ -275,7 +288,7 @@ index 28e18d3df..2d7269c17 100644
    // Data Write
    "issues.create",
 diff --git a/server/src/__tests__/tool-access-service.test.ts b/server/src/__tests__/tool-access-service.test.ts
-index af6aea1e8..07b07720c 100644
+index af6aea1e8..22142599a 100644
 --- a/server/src/__tests__/tool-access-service.test.ts
 +++ b/server/src/__tests__/tool-access-service.test.ts
 @@ -17725,6 +17725,49 @@ describeEmbeddedPostgres("tool access service", () => {
@@ -328,22 +341,6 @@ index af6aea1e8..07b07720c 100644
  });
  
  describe("classifyRisk", () => {
-@@ -17834,6 +17877,8 @@ describe("classifyRisk", () => {
-     );
-     expect(classifyRisk({ name: "create_cart" }, "shopify")).toBe("write");
-   });
-+
-+
- });
- 
- describe("normalizeConnectionMethodConfig", () => {
-@@ -17987,4 +18032,6 @@ describe("normalizeConnectionMethodConfig", () => {
-       },
-     });
-   });
-+
-+
- });
 diff --git a/server/src/services/plugin-host-services.ts b/server/src/services/plugin-host-services.ts
 index 185524fc9..46ba05b82 100644
 --- a/server/src/services/plugin-host-services.ts
