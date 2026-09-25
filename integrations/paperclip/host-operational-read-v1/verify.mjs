@@ -10,7 +10,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const wandoraRoot = resolve(here, "../../..");
 const patchPath = resolve(
   here,
-  "paperclip-v2026.916.1-host-operational-read-v1.patch",
+  "../patches/v2026.916.1-host-operational-read-v1.patch",
 );
 
 const expectedUpstream = "d554c4789ed3930f8a53ac9fdf6503b3187097da";
