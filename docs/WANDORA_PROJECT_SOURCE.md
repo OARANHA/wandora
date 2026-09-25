@@ -1,3 +1,13 @@
+## Reconciled checkpoint — ADR 0258 VendaERP GetAll routing + real wire casing CODE COMPLETE / NO PROVIDER CALL
+
+ADR 0257 proved the pagination-only `vendaerp_search_products({"pageSize":5,"skip":0})` path failed because `Produtos/Pesquisar` returned JSON `null`.
+
+Owner-provided direct VendaERP Swagger execution then proved `GET /api/request/Produtos/GetAll?pageSize=100&skip=0` returns the real 28PRO product catalog as an HTTP 200 array, with PascalCase wire fields such as `ID`, `Codigo`, `Nome`, `PrecoVenda` and `EstoqueSaldo`.
+
+ADR 0258 keeps the existing Wandora/Paperclip tool contract and changes only the replaceable VendaERP MCP adapter: pagination-only product reads use `Produtos/GetAll`; filtered reads remain on `Produtos/Pesquisar`; product projection accepts only explicit proven camelCase/PascalCase aliases. One GET per invocation, no retry, no new tool/catalog/state, and `null` remains fail-closed.
+
+Synthetic validation: 14/14 tests GREEN plus `WANDORA_VENDAERP_READONLY_MCP_V1_OK`. No provider/model/outbound call and no production mutation occurred in this slice.
+
 ## Reconciled checkpoint — ADR 0257 diagnostic V3 EXECUTED / exact shape=null / hard one-call budget honored
 
 ADR 0257 executed one genuine owner-originated 28PRO customer work through the normal path `Wandora -> Paperclip -> Ana/Mastra -> Tool Gateway -> VendaERP`. Paperclip logs prove one Tool Gateway POST for run `d6ec458f-31ce-43f6-a2ae-60da58ac1c32`, no second Tool Gateway call/retry, and Core failed closed with `wandora_execution_failed_422`.

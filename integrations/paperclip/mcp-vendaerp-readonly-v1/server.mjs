@@ -391,14 +391,24 @@ export function createVendaErpClient({
     },
 
     async searchProducts(input = {}) {
-      const payload = await getJson('/api/request/Produtos/Pesquisar', {
-        codigo: input.code,
-        nome: input.name,
-        categoria: input.category,
-        marca: input.brand,
-        ean: input.barcode,
-        ...page(input),
-      });
+      const pagination = page(input);
+      const hasFilter = [
+        input.code,
+        input.name,
+        input.category,
+        input.brand,
+        input.barcode,
+      ].some((value) => text(value) !== undefined);
+      const payload = hasFilter
+        ? await getJson('/api/request/Produtos/Pesquisar', {
+          codigo: input.code,
+          nome: input.name,
+          categoria: input.category,
+          marca: input.brand,
+          ean: input.barcode,
+          ...pagination,
+        })
+        : await getJson('/api/request/Produtos/GetAll', pagination);
       const rows = records(payload);
       if (!rows) {
         throw new VendaErpAdapterError(
@@ -411,7 +421,7 @@ export function createVendaErpClient({
         );
       }
       return rows.map((row) => {
-        const name = text(row.nome);
+        const name = text(row.nome) ?? text(row.Nome);
         if (!name) {
           throw new VendaErpAdapterError(
             'invalid-provider-response',
@@ -421,18 +431,24 @@ export function createVendaErpClient({
         }
         return {
           name,
-          ...optional(text(row.id), 'externalRef'),
-          ...optional(text(row.codigo), 'code'),
-          ...optional(text(row.ean), 'barcode'),
-          ...optional(text(row.categoria), 'category'),
-          ...optional(text(row.marca), 'brand'),
+          ...optional(text(row.id) ?? text(row.ID), 'externalRef'),
+          ...optional(text(row.codigo) ?? text(row.Codigo), 'code'),
+          ...optional(text(row.ean) ?? text(row.Ean) ?? text(row.EAN), 'barcode'),
+          ...optional(text(row.categoria) ?? text(row.Categoria), 'category'),
+          ...optional(text(row.marca) ?? text(row.Marca), 'brand'),
           ...optional(
-            text(row.estoqueUnidade) ?? text(row.unidadeComercial),
+            text(row.estoqueUnidade)
+              ?? text(row.EstoqueUnidade)
+              ?? text(row.unidadeComercial)
+              ?? text(row.UnidadeComercial),
             'unit',
           ),
-          ...optional(number(row.precoVenda), 'salePrice'),
-          ...optional(number(row.precoMinimoVenda), 'minimumSalePrice'),
-          ...optional(number(row.estoqueSaldo), 'stockBalance'),
+          ...optional(number(row.precoVenda) ?? number(row.PrecoVenda), 'salePrice'),
+          ...optional(
+            number(row.precoMinimoVenda) ?? number(row.PrecoMinimoVenda),
+            'minimumSalePrice',
+          ),
+          ...optional(number(row.estoqueSaldo) ?? number(row.EstoqueSaldo), 'stockBalance'),
         };
       });
     },

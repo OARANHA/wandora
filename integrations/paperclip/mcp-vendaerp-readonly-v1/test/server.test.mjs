@@ -98,6 +98,32 @@ test('uses only the template-bound VendaERP origin, GET and exact credential hea
   assert.equal(call.init.headers['user-agent'], 'Wandora-VendaERP-ReadOnly-MCP/1.0');
 });
 
+test('uses Produtos/GetAll for unfiltered product listing and keeps Pesquisar for filtered search', async () => {
+  const calls = [];
+  const client = createVendaErpClient({
+    tenant,
+    credentials,
+    fetchImpl: async (url) => {
+      calls.push(new URL(url));
+      return jsonResponse([]);
+    },
+  });
+
+  await client.searchProducts({ pageSize: 5, skip: 0 });
+  await client.searchProducts({ name: 'PREMIUM PLUS', pageSize: 5, skip: 0 });
+
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].pathname, '/api/request/Produtos/GetAll');
+  assert.equal(calls[0].searchParams.get('pageSize'), '5');
+  assert.equal(calls[0].searchParams.get('skip'), '0');
+  assert.equal(calls[0].searchParams.has('nome'), false);
+
+  assert.equal(calls[1].pathname, '/api/request/Produtos/Pesquisar');
+  assert.equal(calls[1].searchParams.get('nome'), 'PREMIUM PLUS');
+  assert.equal(calls[1].searchParams.get('pageSize'), '5');
+  assert.equal(calls[1].searchParams.get('skip'), '0');
+});
+
 test('projects products into the provider-neutral contract', async () => {
   const client = createVendaErpClient({
     tenant,
@@ -131,13 +157,14 @@ test('projects products into the provider-neutral contract', async () => {
   }]);
 });
 
-test('direct PascalCase product arrays pass the top-level list gate and expose only the separate casing gap', async () => {
+test('projects real VendaERP PascalCase product arrays into the provider-neutral contract', async () => {
   const client = createVendaErpClient({
     tenant,
     credentials,
     fetchImpl: async () => jsonResponse([{
       ID: 'p1',
       Codigo: 'PREMIUM-PLUS',
+      Ean: '789123',
       Nome: 'PREMIUM PLUS',
       Categoria: 'Servicos',
       Marca: 'VendaERP',
@@ -151,15 +178,20 @@ test('direct PascalCase product arrays pass the top-level list gate and expose o
     }]),
   });
 
-  await assert.rejects(
-    client.searchProducts({ pageSize: 5, skip: 0 }),
-    (error) => {
-      assert.equal(error instanceof VendaErpAdapterError, true);
-      assert.equal(error.code, 'invalid-provider-response');
-      assert.equal(error.reason, 'product-name-missing');
-      assert.equal(error.shape, undefined);
-      return true;
-    },
+  assert.deepEqual(
+    await client.searchProducts({ pageSize: 5, skip: 0 }),
+    [{
+      externalRef: 'p1',
+      code: 'PREMIUM-PLUS',
+      barcode: '789123',
+      name: 'PREMIUM PLUS',
+      category: 'Servicos',
+      brand: 'VendaERP',
+      unit: 'UN',
+      salePrice: 199.9,
+      minimumSalePrice: 149.9,
+      stockBalance: 7,
+    }],
   );
 });
 
@@ -244,7 +276,7 @@ test('maps all eight tools to the frozen read-only endpoint allowlist', async ()
   const bodies = new Map([
     ['/api/request/Public/ping', { ok: true }],
     ['/api/request/Empresas/GetTodasEmpresas', []],
-    ['/api/request/Produtos/Pesquisar', []],
+    ['/api/request/Produtos/GetAll', []],
     ['/api/request/Produtos/GetSaldo', []],
     ['/api/request/TabelasPreco/Pesquisar', []],
     ['/api/request/TabelasPreco/Produtos', []],
