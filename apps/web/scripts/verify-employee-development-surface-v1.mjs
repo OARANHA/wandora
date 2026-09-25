@@ -4,6 +4,7 @@ const workPage = readFileSync(new URL('../src/pages/WorkPage.tsx', import.meta.u
 const teamPage = readFileSync(new URL('../src/pages/TeamPage.tsx', import.meta.url), 'utf8');
 const developmentPanel = readFileSync(new URL('../src/components/DigitalEmployeeDevelopmentPanel.tsx', import.meta.url), 'utf8');
 const teachFromWork = readFileSync(new URL('../src/components/TeachEmployeeFromWork.tsx', import.meta.url), 'utf8');
+const workPanel = readFileSync(new URL('../src/components/DigitalEmployeeWorkPanel.tsx', import.meta.url), 'utf8');
 
 const requireText = (source, text, label) => {
   if (!source.includes(text)) throw new Error(`Missing ${label}: ${text}`);
@@ -13,6 +14,13 @@ requireText(workPage, 'xl:grid-cols-[minmax(0,2.15fr)_minmax(20rem,0.85fr)]', 'd
 requireText(workPage, 'xl:sticky xl:top-6', 'desktop attention radar');
 requireText(workPage, '<TeachEmployeeFromWork', 'work result to learning bridge');
 requireText(teamPage, '<DigitalEmployeeDevelopmentPanel', 'Team employee development surface');
+requireText(teamPage, 'xl:grid-cols-[minmax(0,1.3fr)_minmax(22rem,0.7fr)]', 'Team desktop development/work two-column layout');
+requireText(teamPage, '<DigitalEmployeeWorkPanel employeeId={employee.id} employeeName={employee.name} compact />', 'Team compact work panel');
+
+
+requireText(workPanel, 'compact?: boolean;', 'compact Team work-panel contract');
+requireText(workPanel, "{item.result ? 'Abrir resultado' : 'Ver trabalho'}", 'compact work navigation');
+requireText(workPanel, 'line-clamp-2', 'bounded recent-work preview');
 
 for (const tab of ['Responsabilidades', 'Aprendizados', 'Autonomia']) {
   requireText(developmentPanel, tab, `employee development tab ${tab}`);
