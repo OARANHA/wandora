@@ -68,6 +68,10 @@ jobs:
         working-directory: .paperclip
         run: pnpm install --frozen-lockfile
 
+      - name: Build pinned Paperclip plugin SDK
+        working-directory: .paperclip
+        run: pnpm --filter @paperclipai/plugin-sdk build
+
       - name: Install Core dependencies
         working-directory: apps/core
         run: npm ci
