@@ -184,10 +184,10 @@ const handleHumanSupervision = humanReadService
       humanDigitalEmployeeActivationService,
       humanDigitalEmployeeWorkService,
       humanGroundingService,
-      humanDigitalEmployeeDevelopmentService,
       humanCompanyProfileService,
       companyRegistryLookup,
       humanStarterWorkforceReadinessService,
+      humanDigitalEmployeeDevelopmentService,
     )
   : undefined;
 
