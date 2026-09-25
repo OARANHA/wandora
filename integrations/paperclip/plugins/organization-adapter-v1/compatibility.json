@@ -1,8 +1,6 @@
 {
-  "paperclipImage": "wandora/paperclip:v2026.916.1-host-operational-read-v1",
-  "paperclipSourceCommit": "d554c4789ed3930f8a53ac9fdf6503b3187097da",
-  "requiredHostPatch": "../../../patches/v2026.916.1-host-operational-read-v1.patch",
-  "requiredHostPatchSha256": "fc0ce000b2fa5051f10fb71cfece71df17e9b4953779486d951b3f2990cd8bfb",
+  "paperclipImage": "wandora/paperclip:v2026.916.0",
+  "paperclipSourceCommit": "dffc2b3ca1b9e88fa21cb17493083e682dffd1ca",
   "pluginApiVersion": 1,
   "pluginSdkVersion": "1.0.0",
   "nodeEngine": ">=24.11.0"
