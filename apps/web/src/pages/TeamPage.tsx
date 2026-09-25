@@ -340,18 +340,20 @@ function EmployeeProfile({
         </section>
       </div>
 
-      <DigitalEmployeeDevelopmentPanel
-        employeeId={employee.id}
-        employeeName={employee.name}
-        autonomy={employee.autonomy}
-        canManage={canManage}
-      />
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(22rem,0.7fr)] xl:items-start">
+        <DigitalEmployeeDevelopmentPanel
+          employeeId={employee.id}
+          employeeName={employee.name}
+          autonomy={employee.autonomy}
+          canManage={canManage}
+        />
 
-      {employee.work.available ? (
-        <section className="rounded-3xl border-[2.5px] border-[#09090b] bg-white p-5 wandora-pop sm:p-6">
-          <DigitalEmployeeWorkPanel employeeId={employee.id} employeeName={employee.name} />
-        </section>
-      ) : null}
+        {employee.work.available ? (
+          <section className="rounded-3xl border-[2.5px] border-[#09090b] bg-white p-4 wandora-pop sm:p-5 xl:sticky xl:top-6 xl:max-h-[calc(100vh-3rem)] xl:overflow-y-auto">
+            <DigitalEmployeeWorkPanel employeeId={employee.id} employeeName={employee.name} compact />
+          </section>
+        ) : null}
+      </div>
     </article>
   );
 }
