@@ -1,3 +1,56 @@
+## Reconciled checkpoint — ADR 0257 diagnostic V3 EXECUTED / exact shape=null / hard one-call budget honored
+
+ADR 0257 executed one genuine owner-originated 28PRO customer work through the normal path `Wandora -> Paperclip -> Ana/Mastra -> Tool Gateway -> VendaERP`. Paperclip logs prove one Tool Gateway POST for run `d6ec458f-31ce-43f6-a2ae-60da58ac1c32`, no second Tool Gateway call/retry, and Core failed closed with `wandora_execution_failed_422`.
+
+Official Paperclip activity for Ana proves the completed invocation used Connection `8e2c23f4-73f5-444a-8647-71428819ea91`, Catalog Entry `165fcdca-8021-41dd-90e5-f0f143adeac3`, and exactly `{"pageSize":5,"skip":0}`. Its persisted resultSummary classifies the live provider response as `invalid-provider-response / product-list-shape / shape=null`. This is the exact structural evidence ADR 0256 could not recover retroactively.
+
+The safe Remote-Ops activity readback also found the same run after using Paperclip's persisted namespaced tool name `mcp.wandora-vendaerp-readonly-v1-8e2c23f4:vendaerp-search-products`: one `policy_decision allow/allow_profile` and one `call_completed success/tool_completed`. Persisted `rateLimitState` is null on both events, so no numeric counter value is claimed from those records. The earlier zero-count readback was a filter-name mismatch, not absence of the call.
+
+Remote-Ops-MCP governance support is live from merged PR #23; PR #24 aligned the safe activity window with Paperclip's canonical max 100 and passed CI. A duplicate PR #25 created after chat interruption was closed unmerged after reconciliation.
+
+Final production reconciliation: Task Drain OFF/quiescent, activeRuns=0, pendingWakes=0, Tool Policies=[], Paperclip healthy, Core healthy. No additional provider call was made during evidence recovery or documentation. Temporary guards are removed and outbound remains untouched.
+
+ADR 0257 is **COMPLETE / EXACT SAFE DIAGNOSTIC = invalid-provider-response / product-list-shape / shape=null / ONE PROVIDER CALL / ZERO RETRY / ZERO OUTBOUND**.
+
+Next slice must decide parser compatibility from this proven `shape=null` evidence. Do not broaden the replaceable VendaERP parser by guesswork; apply Capability Authority / Reuse Gate and a second adversarial review before any parser change or new provider call.
+
+## 2026-09-24 — governed operator runtime reconciliation
+
+Fresh-session runtime reconciliation proves the Remote-Ops-MCP schema and read/qualification path are now operational:
+
+- governed `docker_exec` to `wandora-paperclip` + `paperclipai` is operational; `paperclipai --version` returns `0.3.1`;
+- `paperclip_task_drain_status` returns Task Drain OFF, quiescent, activeRuns=0, pendingWakes=0;
+- `paperclip_tool_policies_list` returns no current 28PRO policies;
+- `paperclip_tool_policy_test` for Ana + the active VendaERP connection/catalog entry + `vendaerp_search_products {"pageSize":5,"skip":0}` returns `allow / allow_profile` with no audit event.
+
+This removes the earlier stale-session/schema and read-only semantic capability gap.
+
+Production execution remains **NO-GO / NO EFFECT** for a narrower reason: this operator session exposes no governed mutation capability for Task Drain start/stop or Tool Policy create/delete, and the official `paperclipai 0.3.1` CLI exposes no public command for those mutations. Generic HTTP/container shell, protected auth-store reads, DB writes or Board-key bypass remain forbidden by this ADR.
+
+The independent canonical owner-session gate also remains unresolved: the customer-work POST still requires a normal authenticated human owner Bearer session. Temporary guards must not be installed while either gate is unresolved.
+
+No Task Drain mutation, policy mutation, provider/model call, rate-limit consumption, customer work or outbound occurred during this reconciliation.
+
+## Reconciled checkpoint — ADR 0257 Paperclip operator auth VALIDATED / GOVERNED API GAP / NO EFFECT
+
+The official Paperclip CLI now executes through the governed `wandora-agent` Docker-exec boundary restricted to `wandora-paperclip` + `paperclipai`. Fresh `paperclipai auth whoami --api-base http://127.0.0.1:3100 --json` proved `source=board_key`, `isInstanceAdmin=true`, active `owner` membership in 28PRO company `5d7ec217-118c-4292-8136-0a9ab16926ea`, and safe `keyId=97334a78-a4cc-480e-8b6b-62763b4ab3bb`. The protected auth store/token was not read, copied, exported or printed.
+
+Pinned Paperclip CLI/source inspection proves v0.3.1 exposes no public command for Tool Policy list/test, Task Drain, or generic authenticated API requests. The three required server routes remain official Paperclip APIs, but the current governed operator boundary cannot invoke them without adding a narrow non-secret capability. Direct `auth.json` reads, arbitrary `curl`/`node`/shell, DB access, new Board keys or parallel auth remain forbidden.
+
+Production effects remain zero: no Task Drain mutation, no policy mutation, no rate-limit consumption, no provider/model call, no outbound, no parser change. Cloud Control remains a separate gap and is not provisioned. The later canonical 28PRO owner-session gate remains independent from Paperclip operator auth.
+
+Additional ADR 0257 boundary reconciliation: the selected next implementation is three explicit semantic Paperclip operator capabilities in `remote-ops-mcp` (Task Drain status read, Tool Policy list read, and Tool Policy test with `consumeRateLimit=false` + `writeAuditEvent=false` enforced by the capability). Generic HTTP/container shell and Paperclip core patching are rejected. `remote-ops-mcp` source is reconciled at `65fc66d781090308d4d4a8dddc305f0bf4dc4474`, but this VPS target currently lacks authenticated GitHub write access to `OARANHA/remote-ops-mcp`; a push dry-run failed before mutation. No unversioned production hotfix is authorized.
+
+## Reconciled checkpoint — ADR 0257 Diagnostic V3 production execution SAFE STOP / NO EFFECT / OWNER SESSION REQUIRED
+
+Remote Git readback through the authorized `wandora-agent` deploy-key path proves `main@bbca752b5d2f2b952e88b63b73322cba52678702`. Paperclip/Core/Web/Gateway are running and healthy. Fresh Core source review proves the canonical customer-work POST requires a valid human `Authorization: Bearer ...` session and uses the verified human session user as `actorUserId`.
+
+The execution broker has no authorized 28PRO owner browser Bearer session. No bypass, service-role impersonation, direct DB insertion, plugin-internal work creation or secret extraction is permitted. Therefore ADR 0257 stopped **before** starting Task Drain or creating temporary policies. No VendaERP/provider call, model call, outbound, work mutation or parser change occurred.
+
+The hard budget remains frozen: Task Drain for guard installation -> block the seven non-product tools -> product `rate_limit=1` -> dry-run with `consumeRateLimit=false` -> prove remaining=1 -> Task Drain OFF -> exactly one canonical owner customer work -> capture only allowlisted `code/reason/shape` -> prove counter 1->0 / exactly one provider GET / no retry or other tool -> remove only temporary policies -> final OFF/quiescent -> STOP.
+
+Next continuation must first establish/confirm a normal authenticated 28PRO owner browser session. Do not submit the work before the protected guards are installed.
+
 ## Reconciled checkpoint — ADR 0256 VendaERP response-path reconciliation + Diagnostic V3 preflight GREEN / NO PROVIDER CALL
 
 GitHub/runtime reconciliation confirms `main@d0075258b14d9a9b901c8b23ffb448b1787774b7` remains the latest merged checkpoint at entry and PR #335 remains clean/mergeable. The owner-provided evidence describes a direct top-level Produto array using PascalCase fields; the attachment is evidence about the interface/export, not proof that those exact bytes were the raw ADR 0252 HTTP response.
