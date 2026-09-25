@@ -340,3 +340,203 @@ test('mastra supervised runtime cannot turn a read-tool failure into textual suc
     server.close();
   }
 });
+
+
+test('mastra supervised runtime rejects false pending-authorization claims after authorized read execution', async () => {
+  let requests = 0;
+  let toolCalls = 0;
+  const { server, baseUrl } = await listen(async (req, res) => {
+    let raw = '';
+    for await (const chunk of req) raw += chunk;
+    requests += 1;
+
+    res.writeHead(200, { 'content-type': 'application/json' });
+    if (requests === 1) {
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      const serialized = JSON.stringify(parsed);
+      assert.equal(
+        serialized.includes('Nunca diga que precisa aguardar, solicitar ou obter nova autorização'),
+        true,
+      );
+      assert.equal(
+        serialized.includes('nenhum registro correspondente foi encontrado'),
+        true,
+      );
+
+      res.end(JSON.stringify({
+        id: 'chatcmpl-empty-product-search',
+        object: 'chat.completion',
+        created: 1,
+        model: 'mistral-small-2603',
+        choices: [{
+          index: 0,
+          message: {
+            role: 'assistant',
+            content: null,
+            tool_calls: [{
+              id: 'call-product-empty',
+              type: 'function',
+              function: {
+                name: 'vendaerp_search_products',
+                arguments: '{"name":"Desenvolvimento Web","pageSize":10}',
+              },
+            }],
+          },
+          finish_reason: 'tool_calls',
+        }],
+        usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
+      }));
+      return;
+    }
+
+    res.end(JSON.stringify({
+      id: 'chatcmpl-false-authorization',
+      object: 'chat.completion',
+      created: 2,
+      model: 'mistral-small-2603',
+      choices: [{
+        index: 0,
+        message: {
+          role: 'assistant',
+          content: '{"summary":"Próximos passos: aguardar autorização para executar a busca no ERP."}',
+        },
+        finish_reason: 'stop',
+      }],
+      usage: { prompt_tokens: 14, completion_tokens: 8, total_tokens: 22 },
+    }));
+  });
+
+  try {
+    const runtime = new MastraSupervisedModelAgentRuntime(config(baseUrl));
+    await assert.rejects(
+      runtime.executeAssignedTask({
+        organizationId: ORG,
+        employee: plannerInput().employee,
+        task: {
+          title: 'Qual o valor do Desenvolvimento Web?',
+          description: 'Qual o valor do Desenvolvimento Web?',
+        },
+        grounding: {
+          officialFacts: [],
+          houseRules: [],
+          employeeGuidance: [],
+          workContext: {
+            title: 'Qual o valor do Desenvolvimento Web?',
+            description: 'Qual o valor do Desenvolvimento Web?',
+          },
+        },
+        readTools: [{
+          name: 'vendaerp_search_products',
+          title: 'VendaERP Search Products',
+          description: 'Consulta produtos sem alterar o ERP.',
+          inputSchema: {
+            type: 'object',
+            properties: { name: { type: 'string' }, pageSize: { type: 'integer' } },
+            additionalProperties: false,
+          },
+          execute: async () => {
+            toolCalls += 1;
+            return [];
+          },
+        }],
+      }),
+      /claimed read authorization was pending/,
+    );
+
+    assert.equal(toolCalls, 1);
+    assert.equal(requests, 2);
+  } finally {
+    server.close();
+  }
+});
+
+test('mastra supervised runtime allows truthful no-match closure after an authorized read', async () => {
+  let requests = 0;
+  let toolCalls = 0;
+  const { server, baseUrl } = await listen(async (_req, res) => {
+    requests += 1;
+    res.writeHead(200, { 'content-type': 'application/json' });
+    if (requests === 1) {
+      res.end(JSON.stringify({
+        id: 'chatcmpl-empty-product-search-2',
+        object: 'chat.completion',
+        created: 1,
+        model: 'mistral-small-2603',
+        choices: [{
+          index: 0,
+          message: {
+            role: 'assistant',
+            content: null,
+            tool_calls: [{
+              id: 'call-product-empty-2',
+              type: 'function',
+              function: {
+                name: 'vendaerp_search_products',
+                arguments: '{"name":"Desenvolvimento Web","pageSize":10}',
+              },
+            }],
+          },
+          finish_reason: 'tool_calls',
+        }],
+        usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
+      }));
+      return;
+    }
+
+    res.end(JSON.stringify({
+      id: 'chatcmpl-truthful-empty',
+      object: 'chat.completion',
+      created: 2,
+      model: 'mistral-small-2603',
+      choices: [{
+        index: 0,
+        message: {
+          role: 'assistant',
+          content: '{"summary":"Consultei o ERP, mas nenhum produto correspondente foi encontrado com os critérios usados."}',
+        },
+        finish_reason: 'stop',
+      }],
+      usage: { prompt_tokens: 14, completion_tokens: 8, total_tokens: 22 },
+    }));
+  });
+
+  try {
+    const runtime = new MastraSupervisedModelAgentRuntime(config(baseUrl));
+    const result = await runtime.executeAssignedTask({
+      organizationId: ORG,
+      employee: plannerInput().employee,
+      task: {
+        title: 'Qual o valor do Desenvolvimento Web?',
+        description: 'Qual o valor do Desenvolvimento Web?',
+      },
+      grounding: {
+        officialFacts: [],
+        houseRules: [],
+        employeeGuidance: [],
+        workContext: {
+          title: 'Qual o valor do Desenvolvimento Web?',
+          description: 'Qual o valor do Desenvolvimento Web?',
+        },
+      },
+      readTools: [{
+        name: 'vendaerp_search_products',
+        title: 'VendaERP Search Products',
+        description: 'Consulta produtos sem alterar o ERP.',
+        inputSchema: {
+          type: 'object',
+          properties: { name: { type: 'string' }, pageSize: { type: 'integer' } },
+          additionalProperties: false,
+        },
+        execute: async () => {
+          toolCalls += 1;
+          return [];
+        },
+      }],
+    });
+
+    assert.equal(toolCalls, 1);
+    assert.match(result.summary, /nenhum produto correspondente foi encontrado/);
+  } finally {
+    server.close();
+  }
+});
