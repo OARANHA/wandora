@@ -49,6 +49,7 @@ Wandora owns its product vocabulary, stable public identifiers, authorization, p
 Specialist components lend capabilities through Wandora-owned adapters:
 
 - **Paperclip / Organization Adapter** — digital-employee organization/control-plane capability, subject to the adapter contract and failure/reconciliation proof;
+  ADR 0281 additionally qualifies a provider-side tools.operational.read host capability for bounded Connection/catalog/profile/health projection to plugins. It is read-only, invocation-company scoped, cache-only for catalog reads, exposes no Board credential/secret refs/object IDs, and does not replace Tool Gateway run authorization.
 - **Mastra / Agent Runtime Adapter** — agent/workflow/tool execution;
 - **Evolution / Messaging Gateway** — WhatsApp transport;
 - **Supabase** — identity/session and PostgreSQL/data infrastructure for Wandora-owned durable facts, mappings, projections, policy and audit state;

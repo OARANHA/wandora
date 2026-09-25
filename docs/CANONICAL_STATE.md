@@ -1,3 +1,37 @@
+## Reconciled checkpoint — ADR 0281 Paperclip host operational read capability extension preflight
+
+ADR 0281 is **PREFLIGHT GREEN / HOST EXTENSION QUALIFIED / NO PRODUCTION EFFECT**.
+
+The qualified provider-side Paperclip patch is retained against exact
+`v2026.916.1@d554c4789ed3930f8a53ac9fdf6503b3187097da`.
+
+It adds one manifest capability, `tools.operational.read`, and one narrow
+`ctx.toolAccess.readOperationalSnapshot({ companyId, agentId })` surface through the
+existing host-worker JSON-RPC bridge.
+
+The host reuses Paperclip services, preserves host-issued invocation company scope,
+verifies the requested agent belongs to the company, exposes no Board credential,
+provider credential, secret ref or Paperclip object IDs, and has no mutation methods.
+
+The adversarial review rejected normal `listCatalog(...)` because it can refresh stale
+remote catalogs. The accepted implementation uses `listCatalogCached(...)`, so an
+operational read cannot trigger provider I/O or catalog mutation.
+
+Exact implementation head `e4060656cab70ffcf408eb4aa3fbabd127c855d1` completed **9/9 workflows GREEN**.
+Dedicated Paperclip Host Operational Read Extension CI run `36175260177` passed exact
+patch apply, static authority/leak verification, SDK typecheck, server typecheck and
+focused capability/tenant/cache-only tests under GitHub-hosted ubuntu-24.04 / Node 24.
+
+Patch SHA-256:
+`fc0ce000b2fa5051f10fb71cfece71df17e9b4953779486d951b3f2990cd8bfb`.
+
+No Wandora table/registry/mirror, `plugin.state` snapshot, production Paperclip change,
+provider/model call, customer work or outbound effect occurred.
+
+Next: use this qualified host capability only in a disposable Paperclip-side adapter +
+ADR 0279 Integration Capability Projection attestation. Production Paperclip promotion
+remains a separate future effect-authorizing preflight/execution.
+
 ## Reconciled checkpoint — ADR 0277 Semantic Fast Read Intent + Disposable Paperclip Attestation V1
 
 ADR 0277 is **CODE COMPLETE / IMPLEMENTATION CI GREEN / NO PRODUCTION EFFECT**.
@@ -5313,3 +5347,20 @@ The second adversarial review rejects Core Board credentials, direct Paperclip D
 No production upgrade/patch, Core change, migration, provider/model call, customer work, outbound or production mutation occurred.
 
 Next: **Paperclip Host Operational Read Capability Extension Preflight V1 — CODE ONLY / NO PRODUCTION EFFECT**.
+
+
+## 2026-09-25 — ADR 0281 Paperclip host operational-read capability extension preflight
+
+ADR 0281 is **CODE COMPLETE / CI REQUIRED / NO PRODUCTION EFFECT**.
+
+Exact Wandora base: `main@d19aeaa96780a0846a34b73e3faf7c7383fe6b5e`. Exact Paperclip qualification source: `v2026.916.1@d554c4789ed3930f8a53ac9fdf6503b3187097da`.
+
+The smallest safe provider-side extension reuses Paperclip's existing worker↔host JSON-RPC, manifest capability enforcement, host-issued invocation company scope and `toolAccessService`. It adds one capability (`tools.operational.read`), one bounded SDK client (`ctx.toolAccess.readOperationalSnapshot`) and a cached-only catalog read. The normal Paperclip `listCatalog()` was explicitly rejected because a stale remote catalog may trigger provider I/O; the new `listCatalogCached()` never refreshes or resolves credentials.
+
+The snapshot omits Board/admin credentials, provider credentials, secret refs, grant/catalog/profile IDs, Connection IDs/UIDs and raw database state. Provider tool names/application keys remain implementation evidence inside the replaceable adapter only and must not become Wandora `BusinessCapability` semantics.
+
+The retained provider patch is `integrations/paperclip/patches/v2026.916.1-host-operational-read-v1.patch`. GitHub-hosted CI applies it to the exact upstream commit, runs capability/cross-tenant tests, proves stale cached-catalog reads cause zero provider refresh, and typechecks the patched SDK/server under Node 24.21.0 + pnpm 9.15.4.
+
+Production remains unchanged: Paperclip `v2026.916.0` healthy; Task Drain OFF; activeRuns=0; pendingWakes=0; quiescent=true; zero provider/model/customer/outbound effect.
+
+Next only after exact PR-head CI GREEN: disposable ADR 0279 Integration Capability Plane attestation against an isolated Paperclip candidate/lab. Production activation remains a separate slice.
