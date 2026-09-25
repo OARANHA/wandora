@@ -99,6 +99,7 @@ jobs:
         run: |
           sed -i "s/tool_name='kv_get'/tool_name='get_value'/g" integrations/paperclip/adapters/wandora-mastra-v1/verify-fast-read-disposable-e2e.sh
           sed -i "s/:get_value/:get-value/g" integrations/paperclip/adapters/wandora-mastra-v1/disposable-fast-read-core.mjs
+          sed -i "s/'Wandora Fast Read Disposable','active','deny'/'Wandora Fast Read Binding Disposable','active','deny'/g" integrations/paperclip/adapters/wandora-mastra-v1/verify-fast-read-disposable-e2e.sh
           python3 - <<'PY'
           from pathlib import Path
           path = Path("integrations/paperclip/adapters/wandora-mastra-v1/disposable-fast-read-core.mjs")
