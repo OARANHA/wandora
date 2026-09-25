@@ -14,6 +14,7 @@ import { PaperclipExecutionService } from '../paperclip-execution/service.js';
 import { BrasilApiCompanyRegistryLookup } from '../supervision/company-registry-lookup.js';
 import { HumanCompanyProfileService } from '../supervision/human-company-profile.js';
 import { HumanDigitalEmployeeActivationService } from '../supervision/human-digital-employee-activation.js';
+import { HumanDigitalEmployeeGuidanceService } from '../supervision/human-digital-employee-guidance.js';
 import { HumanDigitalEmployeesReadService } from '../supervision/human-digital-employees-read.js';
 import { HumanStarterWorkforceReadinessService } from '../supervision/human-starter-workforce-readiness.js';
 import { HumanGroundingService } from '../supervision/human-grounding.js';
@@ -113,6 +114,10 @@ const humanGroundingService = pool && humanReadService
   ? new HumanGroundingService(pool, humanReadService)
   : undefined;
 
+const humanDigitalEmployeeGuidanceService = pool && humanReadService
+  ? new HumanDigitalEmployeeGuidanceService(pool, humanReadService)
+  : undefined;
+
 const humanCompanyProfileService = pool && humanVerifier && humanReadService && config.customerCompanyOnboarding
   ? new HumanCompanyProfileService(pool, humanVerifier, humanReadService)
   : undefined;
@@ -182,6 +187,7 @@ const handleHumanSupervision = humanReadService
       humanCompanyProfileService,
       companyRegistryLookup,
       humanStarterWorkforceReadinessService,
+      humanDigitalEmployeeGuidanceService,
     )
   : undefined;
 
@@ -206,6 +212,7 @@ server.listen(config.port, '0.0.0.0', () => {
     humanDigitalEmployeeActivation: Boolean(humanDigitalEmployeeActivationService),
     humanDigitalEmployeeWork: Boolean(humanDigitalEmployeeWorkService),
     organizationGrounding: Boolean(humanGroundingService),
+    digitalEmployeeDevelopment: Boolean(humanDigitalEmployeeGuidanceService),
     organizationAdapter: Boolean(organizationAdapterService),
     agentRuntime: config.agentRuntime?.mode ?? 'disabled',
   }));
