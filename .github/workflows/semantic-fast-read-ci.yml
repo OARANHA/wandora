@@ -99,6 +99,22 @@ jobs:
         run: |
           sed -i "s/tool_name='kv_get'/tool_name='get_value'/g" integrations/paperclip/adapters/wandora-mastra-v1/verify-fast-read-disposable-e2e.sh
           sed -i "s/:get_value/:get-value/g" integrations/paperclip/adapters/wandora-mastra-v1/disposable-fast-read-core.mjs
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("integrations/paperclip/adapters/wandora-mastra-v1/verify-fast-read-disposable-e2e.sh")
+          source = path.read_text()
+          old = 'test "$(wait_terminal "$SUCCESS_RUN_ID")" = "succeeded"'
+          diagnostic = r'''SUCCESS_RUN_STATUS="$(wait_terminal "$SUCCESS_RUN_ID")"
+          if [ "$SUCCESS_RUN_STATUS" != "succeeded" ]; then
+            printf 'FAST_READ_SUCCESS_RUN_FAILED run=%s status=%s\n' "$SUCCESS_RUN_ID" "$SUCCESS_RUN_STATUS" >&2
+            pc_sql "select status::text,coalesce(error,''),coalesce(error_code,''),coalesce(result_json::text,'') from heartbeat_runs where id='$SUCCESS_RUN_ID'::uuid;" >&2 || true
+            pc_sql "select tool_name,outcome,coalesce(error_code,'') from tool_invocations where company_id='$COMPANY_ID'::uuid order by created_at desc limit 10;" >&2 || true
+            exit 1
+          fi'''
+          if old not in source:
+              raise SystemExit("fast_read_success_assertion_not_found")
+          path.write_text(source.replace(old, diagnostic, 1))
+          PY
 
       - name: Dedicated disposable Semantic Fast Read E2E
         env:
