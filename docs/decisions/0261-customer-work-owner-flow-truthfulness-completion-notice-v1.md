@@ -1,6 +1,6 @@
 # ADR 0261 — Customer Work Owner Flow Truthfulness + Completion Notice V1
 
-Status: **IMPLEMENTED IN BRANCH / NO PRODUCTION EFFECT**  
+Status: **MERGED / CI GREEN / NO PRODUCTION EFFECT**  
 Date: 2026-09-25
 
 ## Context
