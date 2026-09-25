@@ -364,7 +364,7 @@ export function WorkPage() {
         </section>
       )}
 
-      <section className="rounded-3xl border-[2.5px] border-[#09090b] bg-[#09090b] p-5 text-white wandora-pop sm:p-6 xl:sticky xl:top-6">
+      <section className="rounded-3xl border-[2.5px] border-[#09090b] bg-[#09090b] p-5 text-white wandora-pop sm:p-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-3rem)] xl:overflow-y-auto">
         <div className="wandora-mono text-[9px] font-black text-white/45">atenção humana</div>
         <h2 className="wandora-display m-0 mt-2 text-3xl text-white">SÓ INTERROMPE VOCÊ QUANDO PRECISA.</h2>
         <p className="m-0 mt-3 max-w-2xl text-sm leading-6 text-white/60">
