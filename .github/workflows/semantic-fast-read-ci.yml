@@ -108,7 +108,9 @@ jobs:
           if [ "$SUCCESS_RUN_STATUS" != "succeeded" ]; then
             printf 'FAST_READ_SUCCESS_RUN_FAILED run=%s status=%s\n' "$SUCCESS_RUN_ID" "$SUCCESS_RUN_STATUS" >&2
             pc_sql "select status::text,coalesce(error,''),coalesce(error_code,''),coalesce(result_json::text,'') from heartbeat_runs where id='$SUCCESS_RUN_ID'::uuid;" >&2 || true
-            pc_sql "select tool_name,outcome,coalesce(error_code,'') from tool_invocations where company_id='$COMPANY_ID'::uuid order by created_at desc limit 10;" >&2 || true
+            pc_sql "select tool_name,status,coalesce(error_code,'') from tool_invocations where company_id='$COMPANY_ID'::uuid order by created_at desc limit 10;" >&2 || true
+            printf '%s\n' '--- disposable Core diagnostic ---' >&2
+            docker logs "$CORE" >&2 || true
             exit 1
           fi'''
           if old not in source:
