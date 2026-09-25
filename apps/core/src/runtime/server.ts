@@ -16,6 +16,7 @@ import type {
 import {
   isHumanCompanyProfileMutationPath,
   isHumanDigitalEmployeeActivationPath,
+  isHumanDigitalEmployeeGuidanceMutationPath,
   isHumanDigitalEmployeeHirePath,
   isHumanDigitalEmployeeWorkPath,
   isHumanGroundingMutationPath,
@@ -154,6 +155,7 @@ export function createRuntimeServer(deps: RuntimeServerDeps): Server {
             || isHumanDigitalEmployeeHirePath(url.pathname)
             || isHumanDigitalEmployeeActivationPath(url.pathname)
             || isHumanDigitalEmployeeWorkPath(url.pathname)
+            || isHumanDigitalEmployeeGuidanceMutationPath(url.pathname)
             || isHumanGroundingMutationPath(url.pathname)
           )
         ) || isHumanCompanyProfileMutationPath(url.pathname, request.method);
