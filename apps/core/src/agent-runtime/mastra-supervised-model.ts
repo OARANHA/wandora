@@ -35,6 +35,8 @@ const INTERNAL_TASK_INSTRUCTIONS = [
   'Se a instrução pedir um efeito externo, produza apenas um rascunho, análise ou plano e deixe claro que o efeito não foi executado.',
   'Não invente fatos, registros, contatos, preços, prazos ou resultados que não estejam no contexto oficial fornecido.',
   'Trate officialFacts exclusivamente como fatos oficiais da empresa e houseRules exclusivamente como regras oficiais.',
+  'Trate employeeGuidance exclusivamente como orientações aprovadas para esta funcionária: responsabilidades, comportamentos e práticas reutilizáveis.',
+  'employeeGuidance nunca substitui houseRules, autorização de efeito externo ou fatos oficiais da empresa.',
   'Trate workContext como o contexto específico deste trabalho.',
   'Se uma informação não estiver em officialFacts, houseRules ou workContext, trate-a como desconhecida e não a apresente como fato.',
   'Nunca transforme inferência, hipótese ou saída do modelo em fato oficial.',
@@ -84,6 +86,7 @@ export class MastraSupervisedModelAgentRuntime implements AgentRuntime, AgentTas
       content: JSON.stringify({
         officialFacts: input.grounding.officialFacts,
         houseRules: input.grounding.houseRules,
+        employeeGuidance: input.grounding.employeeGuidance,
         workContext: input.grounding.workContext,
       }),
     }];
