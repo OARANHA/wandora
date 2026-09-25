@@ -17,6 +17,10 @@ const panelSource = await readFile(
   new URL('../src/components/DigitalEmployeeWorkPanel.tsx', import.meta.url),
   'utf8',
 );
+const workPageSource = await readFile(
+  new URL('../src/pages/WorkPage.tsx', import.meta.url),
+  'utf8',
+);
 const dashboardSource = await readFile(
   new URL('../src/pages/DashboardPage.tsx', import.meta.url),
   'utf8',
@@ -79,8 +83,12 @@ assert(
   'work_result_renderer_must_remain_inert',
 );
 assert(
-  panelSource.includes('<WorkResultContent value={item.result.summary} />'),
-  'work_result_panel_safe_renderer_missing',
+  workPageSource.includes('<WorkResultContent value={item.result.summary} />'),
+  'work_result_detail_safe_renderer_missing',
+);
+assert(
+  !panelSource.includes('item.result.summary'),
+  'work_result_team_panel_must_not_render_full_result',
 );
 assert(
   dashboardSource.includes('workResultPlainText(latestWork.result.summary'),
