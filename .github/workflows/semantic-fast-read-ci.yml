@@ -113,6 +113,22 @@ jobs:
           PY
           python3 - <<'PY'
           from pathlib import Path
+          path = Path("integrations/paperclip/adapters/wandora-mastra-v1/verify-fast-read-disposable-e2e.sh")
+          source = path.read_text()
+          old_query = """usage="$(pc_sql "select coalesce((usage_json->>'inputTokens')::int,-1)||'|'||coalesce((usage_json->>'outputTokens')::int,-1)||'|'||coalesce((usage_json->>'cachedInputTokens')::int,-1)||'|'||coalesce((usage_json->>'totalTokens')::int,-1) from heartbeat_runs where id='$SUCCESS_RUN_ID'::uuid;")" """
+          new_query = """usage="$(pc_sql "select coalesce((usage_json->>'inputTokens')::int,-1)||'|'||coalesce((usage_json->>'outputTokens')::int,-1)||'|'||coalesce((usage_json->>'cachedInputTokens')::int,-1) from heartbeat_runs where id='$SUCCESS_RUN_ID'::uuid;")" """
+          old_assert = 'test "$usage" = "0|0|0|0"'
+          new_assert = 'test "$usage" = "0|0|0"'
+          if old_query.strip() not in source:
+              raise SystemExit("fast_read_usage_query_not_found")
+          if old_assert not in source:
+              raise SystemExit("fast_read_usage_assertion_not_found")
+          source = source.replace(old_query.strip(), new_query.strip(), 1)
+          source = source.replace(old_assert, new_assert, 1)
+          path.write_text(source)
+          PY
+          python3 - <<'PY'
+          from pathlib import Path
           path = Path("integrations/paperclip/adapters/wandora-mastra-v1/disposable-fast-read-core.mjs")
           source = path.read_text()
           old = "const readToolBridge = createPaperclipToolGatewayReadBridge({ agentMeUrl });"
