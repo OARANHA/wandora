@@ -411,7 +411,7 @@ export function createVendaErpClient({
         );
       }
       return rows.map((row) => {
-        const name = text(row.nome);
+        const name = text(row.nome) ?? text(row.Nome);
         if (!name) {
           throw new VendaErpAdapterError(
             'invalid-provider-response',
@@ -421,18 +421,24 @@ export function createVendaErpClient({
         }
         return {
           name,
-          ...optional(text(row.id), 'externalRef'),
-          ...optional(text(row.codigo), 'code'),
-          ...optional(text(row.ean), 'barcode'),
-          ...optional(text(row.categoria), 'category'),
-          ...optional(text(row.marca), 'brand'),
+          ...optional(text(row.id) ?? text(row.ID), 'externalRef'),
+          ...optional(text(row.codigo) ?? text(row.Codigo), 'code'),
+          ...optional(text(row.ean) ?? text(row.Ean), 'barcode'),
+          ...optional(text(row.categoria) ?? text(row.Categoria), 'category'),
+          ...optional(text(row.marca) ?? text(row.Marca), 'brand'),
           ...optional(
-            text(row.estoqueUnidade) ?? text(row.unidadeComercial),
+            text(row.estoqueUnidade)
+              ?? text(row.EstoqueUnidade)
+              ?? text(row.unidadeComercial)
+              ?? text(row.UnidadeComercial),
             'unit',
           ),
-          ...optional(number(row.precoVenda), 'salePrice'),
-          ...optional(number(row.precoMinimoVenda), 'minimumSalePrice'),
-          ...optional(number(row.estoqueSaldo), 'stockBalance'),
+          ...optional(number(row.precoVenda) ?? number(row.PrecoVenda), 'salePrice'),
+          ...optional(
+            number(row.precoMinimoVenda) ?? number(row.PrecoMinimoVenda),
+            'minimumSalePrice',
+          ),
+          ...optional(number(row.estoqueSaldo) ?? number(row.EstoqueSaldo), 'stockBalance'),
         };
       });
     },
