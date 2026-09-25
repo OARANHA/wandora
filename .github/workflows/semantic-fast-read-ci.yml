@@ -98,6 +98,7 @@ jobs:
         shell: bash
         run: |
           sed -i "s/tool_name='kv_get'/tool_name='get_value'/g" integrations/paperclip/adapters/wandora-mastra-v1/verify-fast-read-disposable-e2e.sh
+          sed -i "s/:get_value/:get-value/g" integrations/paperclip/adapters/wandora-mastra-v1/disposable-fast-read-core.mjs
 
       - name: Dedicated disposable Semantic Fast Read E2E
         env:
