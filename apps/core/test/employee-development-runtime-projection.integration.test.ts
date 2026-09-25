@@ -91,14 +91,6 @@ test('runtime projection returns only active guidance for the exact employee wit
 
 test('runtime projection fails closed above the 100-entry bound', async () => {
   await resetFixture();
-  const values: string[] = [];
-  const params: unknown[] = [ORG, EMPLOYEE, OWNER];
-  for (let i = 0; i < 101; i += 1) {
-    const base = 4 + i * 2;
-    values.push(`(gen_random_uuid(),$1,$2,'practice',$${base},'owner_statement','active',$3)`);
-    params.push(`Guidance ${i}`,);
-  }
-  // Simpler bounded fixture insert avoids dynamic parameter-index ambiguity.
   for (let i = 0; i < 101; i += 1) {
     await fixturePool.query(
       `INSERT INTO wandora.digital_employee_development_entries
