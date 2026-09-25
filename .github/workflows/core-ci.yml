@@ -46,6 +46,10 @@ jobs:
         shell: bash
         run: bash apps/core/scripts/verify-organization-grounding-v1.sh
 
+      - name: Run Digital Employee Guidance V1 verifier
+        shell: bash
+        run: bash apps/core/scripts/verify-digital-employee-guidance-v1.sh
+
       - name: Run Organization Adapter Production Activation Rehearsal verifier
         shell: bash
         run: bash apps/core/scripts/verify-organization-adapter-production-activation-rehearsal-v1.sh
