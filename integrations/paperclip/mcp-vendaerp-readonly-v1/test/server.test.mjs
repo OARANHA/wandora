@@ -131,7 +131,7 @@ test('projects products into the provider-neutral contract', async () => {
   }]);
 });
 
-test('direct PascalCase product arrays pass the top-level list gate and expose only the separate casing gap', async () => {
+test('projects official PascalCase product arrays into the provider-neutral contract', async () => {
   const client = createVendaErpClient({
     tenant,
     credentials,
@@ -139,27 +139,33 @@ test('direct PascalCase product arrays pass the top-level list gate and expose o
       ID: 'p1',
       Codigo: 'PREMIUM-PLUS',
       Nome: 'PREMIUM PLUS',
+      Ean: '789123',
       Categoria: 'Servicos',
       Marca: 'VendaERP',
       PrecoVenda: 199.9,
       PrecoMinimoVenda: 149.9,
       EstoqueSaldo: 7,
       EstoqueUnidade: 'UN',
-      UnidadeComercial: 'UN',
+      UnidadeComercial: 'CX',
       PrecosTabelas: [],
       Categorias: [],
     }]),
   });
 
-  await assert.rejects(
-    client.searchProducts({ pageSize: 5, skip: 0 }),
-    (error) => {
-      assert.equal(error instanceof VendaErpAdapterError, true);
-      assert.equal(error.code, 'invalid-provider-response');
-      assert.equal(error.reason, 'product-name-missing');
-      assert.equal(error.shape, undefined);
-      return true;
-    },
+  assert.deepEqual(
+    await client.searchProducts({ pageSize: 5, skip: 0 }),
+    [{
+      externalRef: 'p1',
+      code: 'PREMIUM-PLUS',
+      name: 'PREMIUM PLUS',
+      barcode: '789123',
+      category: 'Servicos',
+      brand: 'VendaERP',
+      unit: 'UN',
+      salePrice: 199.9,
+      minimumSalePrice: 149.9,
+      stockBalance: 7,
+    }],
   );
 });
 
