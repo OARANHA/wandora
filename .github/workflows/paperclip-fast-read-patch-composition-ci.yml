@@ -1,0 +1,50 @@
+name: Paperclip Fast Read Patch Composition CI
+
+on:
+  pull_request:
+    paths:
+      - 'integrations/paperclip/patches/v2026.916.1-host-operational-read-v1.patch'
+      - 'integrations/paperclip/patches/v2026.916.1-fast-read-run-result-read-v1.patch'
+      - 'integrations/paperclip/patches/v2026.916.1-synchronous-webhook-response-v1.patch'
+      - '.github/workflows/paperclip-fast-read-patch-composition-ci.yml'
+      - 'integrations/paperclip/plugins/organization-adapter-v1/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: paperclip-fast-read-patch-composition-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout Wandora
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Checkout exact Paperclip v2026.916.1 source
+        uses: actions/checkout@v4
+        with:
+          repository: paperclipai/paperclip
+          ref: d554c4789ed3930f8a53ac9fdf6503b3187097da
+          path: .paperclip
+          persist-credentials: false
+
+      - name: Compose qualified provider deltas
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C .paperclip rev-parse HEAD)" = "d554c4789ed3930f8a53ac9fdf6503b3187097da"
+          for patch in             integrations/paperclip/patches/v2026.916.1-host-operational-read-v1.patch             integrations/paperclip/patches/v2026.916.1-fast-read-run-result-read-v1.patch             integrations/paperclip/patches/v2026.916.1-synchronous-webhook-response-v1.patch
+          do
+            echo "=== APPLY $patch ==="
+            git -C .paperclip apply --check "$GITHUB_WORKSPACE/$patch"
+            git -C .paperclip apply "$GITHUB_WORKSPACE/$patch"
+          done
+          git -C .paperclip diff --check
+          echo "PAPERCLIP_FAST_READ_PATCH_COMPOSITION_V1_OK"
