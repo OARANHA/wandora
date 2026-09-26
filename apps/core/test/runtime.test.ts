@@ -207,6 +207,84 @@ test('WANDORA CORE PRIVATE RUNTIME V1', async (t) => {
     }
   });
 
+  await t.test('Semantic Fast Read is disabled by default and reuses file-backed TypeSafe custody plus existing Fast Read boundaries', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'wandora-core-semantic-fast-read-'));
+    const dbSecret = join(dir, 'db-password');
+    const gatewaySecret = join(dir, 'gateway-secret');
+    const bridgeSecret = join(dir, 'paperclip-bridge-secret');
+    const fastReadSecret = join(dir, 'fast-read-secret');
+    const typesafeKey = join(dir, 'typesafe-jev-api-key');
+    try {
+      await writeFile(dbSecret, 'synthetic-test-password\n', { mode: 0o600 });
+      await writeFile(gatewaySecret, 'gateway-test-secret-0123456789abcdef0123456789abcdef\n', { mode: 0o600 });
+      await writeFile(bridgeSecret, 'paperclip-bridge-secret-0123456789abcdef0123456789abcdef\n', { mode: 0o600 });
+      await writeFile(fastReadSecret, 'fast-read-intent-secret-0123456789abcdef0123456789abcdef\n', { mode: 0o600 });
+      await writeFile(typesafeKey, 'typesafe-test-key-0123456789abcdef0123456789abcdef\n', { mode: 0o600 });
+
+      await assert.rejects(
+        loadRuntimeConfig({
+          WANDORA_CORE_MODE: 'standby',
+          WANDORA_SEMANTIC_FAST_READ_ENABLED: 'true',
+        }),
+        /Semantic Fast Read cannot be enabled while Wandora Core is in standby/,
+      );
+
+      await assert.rejects(
+        loadRuntimeConfig({
+          WANDORA_CORE_MODE: 'database',
+          WANDORA_CORE_DB_PASSWORD_FILE: dbSecret,
+          WANDORA_SEMANTIC_FAST_READ_ENABLED: 'true',
+          WANDORA_TYPESAFE_JEV_API_KEY_FILE: typesafeKey,
+        }),
+        /Semantic Fast Read requires the Human API/,
+      );
+
+      const enabledEnv = {
+        WANDORA_CORE_MODE: 'database',
+        WANDORA_CORE_DB_PASSWORD_FILE: dbSecret,
+        WANDORA_GATEWAY_INGRESS_ENABLED: 'true',
+        WANDORA_GATEWAY_INGRESS_SECRET_FILE: gatewaySecret,
+        WANDORA_AGENT_RUNTIME_MODE: 'mastra-deterministic',
+        WANDORA_PAPERCLIP_EXECUTION_BRIDGE_ENABLED: 'true',
+        WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE: bridgeSecret,
+        WANDORA_FAST_READ_EXECUTION_ENABLED: 'true',
+        WANDORA_FAST_READ_INTENT_SECRET_FILE: fastReadSecret,
+        WANDORA_HUMAN_API_ENABLED: 'true',
+        WANDORA_AUTH_JWKS_URL: 'https://auth.test.example/.well-known/jwks.json',
+        WANDORA_AUTH_ISSUER: 'https://auth.test.example',
+        WANDORA_AUTH_AUDIENCE: 'authenticated',
+        WANDORA_ORGANIZATION_ADAPTER_ENABLED: 'true',
+        WANDORA_ORGANIZATION_ADAPTER_SECRET_DIRECTORY: dir,
+        WANDORA_ORGANIZATION_ADAPTER_WEBHOOK_URL:
+          'http://wandora-paperclip:3100/api/plugins/wandora.organization-adapter-v1/webhooks/employee-reconcile',
+        WANDORA_SEMANTIC_FAST_READ_ENABLED: 'true',
+        WANDORA_TYPESAFE_JEV_API_KEY_FILE: typesafeKey,
+      };
+
+      const config = await loadRuntimeConfig(enabledEnv);
+      assert.equal(config.semanticFastRead?.provider, 'typesafe-jev');
+      assert.equal(config.semanticFastRead?.apiKey.startsWith('typesafe-test-key-'), true);
+      assert.equal(config.semanticFastRead?.timeoutMs, 3_000);
+      assert.deepEqual(config.semanticFastRead?.policy, {
+        minimumConfidence: 0.9,
+        maximumNeedsMoreContext: 0.1,
+        maximumNeedsHumanReview: 0.1,
+        minimumNeedsDataOrToolLookup: 0.9,
+      });
+
+      await assert.rejects(
+        loadRuntimeConfig({
+          ...enabledEnv,
+          WANDORA_TYPESAFE_JEV_TIMEOUT_MS: '100',
+        }),
+        /WANDORA_TYPESAFE_JEV_TIMEOUT_MS must be an integer between 250 and 10000/,
+      );
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+
   await t.test('health stays healthy while standby readiness stays closed', async () => {
     await withServer(async () => ({ ready: false, reason: 'standby' }), async (baseUrl) => {
       const health = await fetch(`${baseUrl}/healthz`);
