@@ -1,0 +1,102 @@
+name: Paperclip 916.1 OpenAPI Candidate CI
+
+on:
+  pull_request:
+    paths:
+      - 'integrations/paperclip/openapi-compatibility-v1/**'
+      - '.github/workflows/paperclip-9161-openapi-candidate-ci.yml'
+      - 'integrations/paperclip/plugins/organization-adapter-v1/compatibility.json'
+      - '.github/workflows/organization-adapter-plugin-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: paperclip-9161-openapi-candidate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Checkout Wandora
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Checkout exact Paperclip v2026.916.1 source
+        uses: actions/checkout@v4
+        with:
+          repository: paperclipai/paperclip
+          ref: d554c4789ed3930f8a53ac9fdf6503b3187097da
+          path: .paperclip
+          persist-credentials: false
+
+      - name: Set up Node 24.21.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.21.0
+
+      - name: Set up pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.4 --activate
+          pnpm --version
+
+      - name: Install frozen Paperclip dependencies
+        working-directory: .paperclip
+        run: pnpm install --frozen-lockfile
+
+      - name: Export exact 916.1 OpenAPI candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          loader="$GITHUB_WORKSPACE/.paperclip/server/node_modules/tsx/dist/loader.mjs"
+          test -f "$loader"
+          node --import "$loader"             integrations/paperclip/openapi-compatibility-v1/scripts/export-candidate-9161.mjs             "$GITHUB_WORKSPACE/.paperclip"             "$RUNNER_TEMP/paperclip-v2026.916.1.openapi.json"
+
+      - name: Prove candidate bytes and reviewed source evidence unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          candidate="$RUNNER_TEMP/paperclip-v2026.916.1.openapi.json"
+          test "$(sha256sum "$candidate" | awk '{print $1}')" = "55383e4b9aceee52544a5e8a93b7c04526f10cb13ce91082185df0691bd7e740"
+          test "$(node -e 'const d=require(process.argv[1]);process.stdout.write(String(Object.keys(d.paths).length))' "$candidate")" = "685"
+          node <<'NODE'
+          const { createHash } = require('node:crypto');
+          const { readFileSync } = require('node:fs');
+          const path = require('node:path');
+          const supplement = JSON.parse(readFileSync(
+            'integrations/paperclip/openapi-compatibility-v1/fixtures/source-supplement-v2026.916.0.json',
+            'utf8',
+          ));
+          const provenance = JSON.parse(readFileSync(
+            'integrations/paperclip/openapi-compatibility-v1/fixtures/provenance.json',
+            'utf8',
+          ));
+          const root = path.resolve('.paperclip');
+          const digest = (file) => createHash('sha256').update(readFileSync(file)).digest('hex');
+          for (const [file, expected] of Object.entries(supplement.sourceFiles)) {
+            const actual = digest(path.join(root, file));
+            if (actual !== expected) {
+              throw new Error('candidate source evidence changed: ' + file + ' expected=' + expected + ' actual=' + actual);
+            }
+          }
+          for (const [file, expected] of Object.entries(provenance.generatorInputs)) {
+            const actual = digest(path.join(root, file));
+            if (actual !== expected) {
+              throw new Error('candidate generator input changed: ' + file + ' expected=' + expected + ' actual=' + actual);
+            }
+          }
+          console.log('PAPERCLIP_9161_OPENAPI_SOURCE_EVIDENCE_IDENTICAL');
+          NODE
+
+      - name: Upload candidate export for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: paperclip-v2026.916.1-openapi-candidate-${{ github.sha }}
+          path: ${{ runner.temp }}/paperclip-v2026.916.1.openapi.json
+          if-no-files-found: error
+          retention-days: 7
