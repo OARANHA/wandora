@@ -53,3 +53,18 @@ The plugin resolves the existing managed employee and uses Paperclip-native `age
 The intent itself remains Wandora-owned and stateless. Core independently verifies that intent after Paperclip run identity resolution and before opening the Tool Gateway. Paperclip remains authority for run lifecycle, Connections/grants/secrets/policies, Tool Gateway authorization and tool-call audit.
 
 This source change does **not** install or promote 0.4.0 in production.
+
+## Capability projection + bounded terminal Fast Read — 0.5.0
+
+Version 0.5.0 adds the signed `employee-capabilities` projection and completes the bounded synchronous `employee-fast-read` response path qualified by ADRs 0281–0286.
+
+`employee-capabilities` projects only Wandora `BusinessCapability` semantics from current Paperclip-owned operational evidence. It does not persist a Wandora integration registry or mirror Connection/catalog/grant/health state.
+
+`employee-fast-read` still invokes at most once for a new Wandora correlation id. It then observes only the exact Paperclip-owned run through the qualified bounded run-result read boundary. The returned webhook payload is limited to run correlation plus deterministic model/summary/usage evidence; Core's Paperclip adapter validates that correlation and removes provider run identity before returning the Wandora-owned `{ model, summary, usage }` result.
+
+Paperclip remains operational authority for run lifecycle, connection/grant/secret/catalog state, Tool Gateway authorization/audit and terminal run state. Timeout, malformed result, non-success terminal state or uncertain provider transport fails closed.
+
+The Core runtime adapter reuses the existing company-scoped HMAC secret custody and derives the two sibling webhook routes from the canonical Organization Adapter route; 0.5.0 adds no second credential/configuration subsystem.
+
+This source/candidate qualification does **not** install or promote 0.5.0 or Paperclip v2026.916.1 in production.
+
