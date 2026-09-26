@@ -119,3 +119,55 @@ no customer Organization Adapter route
 ```
 
 After any future production database activation, the operator proof additionally requires `/readyz = 200` through the real `wandora_core_runtime` credential while PostgreSQL remains non-public.
+
+## Semantic Fast Read production convergence contract
+
+ADR 0294 requires compatibility convergence to remain inert before any live
+attestation. The repository therefore separates the environment contract from future
+secret custody.
+
+`compose.semantic-fast-read.yaml` is the **gates-OFF convergence overlay**. It fixes:
+
+```text
+WANDORA_FAST_READ_EXECUTION_ENABLED=false
+WANDORA_SEMANTIC_FAST_READ_ENABLED=false
+WANDORA_SEMANTIC_SELECTOR_ENABLED=false
+WANDORA_HUMAN_SEND_PROPOSAL_ENABLED=false
+```
+
+and records only the container-side file references/timeouts required by a future
+attestation. Because all three Fast Read/semantic gates are false, Core does not open
+the TypeSafe/System One API-key file or the Fast Read intent-HMAC file. This overlay
+must render and start without either new host secret.
+
+The separate `compose.semantic-fast-read-custody.yaml` is only a **future custody
+contract**. When deliberately selected by a separately authorized execution, it
+requires two operator-controlled host files and mounts them read-only:
+
+- `WANDORA_TYPESAFE_JEV_API_KEY_FILE_HOST` →
+  `/run/secrets/wandora/typesafe-jev.api-key`;
+- `WANDORA_FAST_READ_INTENT_SECRET_FILE_HOST` →
+  `/run/secrets/wandora/fast-read-intent.hmac`.
+
+The TypeSafe/System One credential purpose and custody must be proven before that
+mount is used. Do not assume a JEV MCP credential is the production System One
+credential.
+
+The Fast Read intent HMAC is Wandora-owned signing material for `wfri1` and must
+remain distinct from Gateway ingress, Core outbound, Paperclip execution-bridge and
+Organization Adapter HMACs. This repository contract does not create its value and
+does not introduce a secret manager.
+
+The semantic product selector does **not** get a new credential or mount. It continues
+to reuse the existing Wandora platform Mistral credential from
+`compose.agent-runtime-model.yaml` through
+`WANDORA_MODEL_API_KEY_FILE=/run/secrets/wandora/model-provider.api-key`.
+
+Neither convergence overlay enables Messaging Gateway outbound or connects WhatsApp
+to Fast Read. Before any future production mutation, the operator must separately
+reconcile that Gateway outbound remains OFF, capture a fresh rollback set and prove
+Task Drain/quiescence.
+
+Health/readiness must remain provider-effect free: selecting the gates-OFF overlay
+does not call TypeSafe/System One, Mistral, VendaERP or any customer system.
+
