@@ -1,0 +1,533 @@
+diff --git a/packages/plugins/sdk/src/define-plugin.ts b/packages/plugins/sdk/src/define-plugin.ts
+--- a/packages/plugins/sdk/src/define-plugin.ts
++++ b/packages/plugins/sdk/src/define-plugin.ts
+@@ -156,6 +156,20 @@ export interface PluginWebhookInput {
+   requestId: string;
+ }
+ 
++/** Maximum serialized UTF-8 size for an optional synchronous webhook response. */
++export const PLUGIN_WEBHOOK_RESPONSE_MAX_BYTES = 16 * 1024;
++
++export type PluginWebhookJsonValue =
++  | null
++  | boolean
++  | number
++  | string
++  | PluginWebhookJsonValue[]
++  | { [key: string]: PluginWebhookJsonValue };
++
++/** Optional bounded JSON object returned synchronously by a webhook handler. */
++export type PluginWebhookResponse = { [key: string]: PluginWebhookJsonValue };
++
+ export interface PluginApiRequestInput {
+   routeKey: string;
+   method: string;
+@@ -315,10 +328,13 @@ export interface PluginDefinition {
+    * If not implemented but webhooks are declared in the manifest, the host
+    * returns HTTP 501 for webhook deliveries.
+    *
++   * Returning `undefined` preserves the legacy delivery acknowledgement.
++   * Returning a JSON object emits that bounded object synchronously as HTTP 200.
++   *
+    * @param input - Webhook delivery metadata and payload
+    * @see PLUGIN_SPEC.md §13.7 — `handleWebhook`
+    */
+-  onWebhook?(input: PluginWebhookInput): Promise<void>;
++  onWebhook?(input: PluginWebhookInput): Promise<PluginWebhookResponse | void>;
+ 
+   /**
+    * Called for manifest-declared scoped JSON API routes under
+diff --git a/packages/plugins/sdk/src/index.ts b/packages/plugins/sdk/src/index.ts
+--- a/packages/plugins/sdk/src/index.ts
++++ b/packages/plugins/sdk/src/index.ts
+@@ -49,7 +49,10 @@
+ // Main factory
+ // ---------------------------------------------------------------------------
+ 
+-export { definePlugin } from "./define-plugin.js";
++export {
++  definePlugin,
++  PLUGIN_WEBHOOK_RESPONSE_MAX_BYTES,
++} from "./define-plugin.js";
+ export { createTestHarness, createEnvironmentTestHarness, createFakeEnvironmentDriver, filterEnvironmentEvents, assertEnvironmentEventOrder, assertLeaseLifecycle, assertWorkspaceRealizationLifecycle, assertExecutionLifecycle, assertEnvironmentError } from "./testing.js";
+ export { createPluginBundlerPresets } from "./bundlers.js";
+ export { startPluginDevServer, getUiBuildSnapshot } from "./dev-server.js";
+@@ -103,6 +106,8 @@ export type {
+   PluginConfigChangeContext,
+   PluginConfigValidationResult,
+   PluginWebhookInput,
++  PluginWebhookJsonValue,
++  PluginWebhookResponse,
+   PluginApiRequestInput,
+   PluginApiResponse,
+ } from "./define-plugin.js";
+diff --git a/packages/plugins/sdk/src/protocol.ts b/packages/plugins/sdk/src/protocol.ts
+--- a/packages/plugins/sdk/src/protocol.ts
++++ b/packages/plugins/sdk/src/protocol.ts
+@@ -81,6 +81,7 @@ import type {
+   PluginApiResponse,
+   PluginConfigValidationResult,
+   PluginWebhookInput,
++  PluginWebhookResponse,
+ } from "./define-plugin.js";
+ 
+ // ---------------------------------------------------------------------------
+@@ -1334,7 +1335,7 @@ export interface HostToWorkerMethods {
+   /** @see PLUGIN_SPEC.md §13.6 */
+   runJob: [params: RunJobParams, result: void];
+   /** @see PLUGIN_SPEC.md §13.7 */
+-  handleWebhook: [params: PluginWebhookInput, result: void];
++  handleWebhook: [params: PluginWebhookInput, result: PluginWebhookResponse | null];
+   /** Scoped plugin API route dispatch. */
+   handleApiRequest: [params: PluginApiRequestInput, result: PluginApiResponse];
+   /** @see PLUGIN_SPEC.md §13.8 */
+diff --git a/packages/plugins/sdk/src/worker-rpc-host.ts b/packages/plugins/sdk/src/worker-rpc-host.ts
+--- a/packages/plugins/sdk/src/worker-rpc-host.ts
++++ b/packages/plugins/sdk/src/worker-rpc-host.ts
+@@ -48,12 +48,16 @@ import type {
+   SuggestTasksInteraction,
+ } from "@paperclipai/shared";
+ 
+-import type { PaperclipPlugin } from "./define-plugin.js";
++import {
++  PLUGIN_WEBHOOK_RESPONSE_MAX_BYTES,
++  type PaperclipPlugin,
++} from "./define-plugin.js";
+ import type {
+   PluginApiRequestInput,
+   PluginHealthDiagnostics,
+   PluginConfigValidationResult,
+   PluginWebhookInput,
++  PluginWebhookResponse,
+ } from "./define-plugin.js";
+ import type {
+   PluginContext,
+@@ -1886,7 +1889,36 @@ export function startWorkerRpcHost(options: WorkerRpcHostOptions): WorkerRpcHost
+     await handler(params.job);
+   }
+ 
+-  async function handleWebhook(params: PluginWebhookInput): Promise<void> {
++  function assertPluginWebhookResponse(value: unknown): asserts value is PluginWebhookResponse {
++    if (value === null || typeof value !== "object" || Array.isArray(value)) {
++      throw new Error("Plugin webhook response must be a JSON object");
++    }
++
++    let serialized: string;
++    try {
++      serialized = JSON.stringify(value, (_key, candidate) => {
++        const type = typeof candidate;
++        if (
++          type === "undefined"
++          || type === "function"
++          || type === "symbol"
++          || type === "bigint"
++          || (type === "number" && !Number.isFinite(candidate))
++        ) {
++          throw new Error("non-json-value");
++        }
++        return candidate;
++      });
++    } catch {
++      throw new Error("Plugin webhook response must contain JSON values only");
++    }
++
++    if (Buffer.byteLength(serialized, "utf8") > PLUGIN_WEBHOOK_RESPONSE_MAX_BYTES) {
++      throw new Error("Plugin webhook response is too large");
++    }
++  }
++
++  async function handleWebhook(params: PluginWebhookInput): Promise<PluginWebhookResponse | null> {
+     if (!plugin.definition.onWebhook) {
+       throw Object.assign(
+         new Error("handleWebhook is not implemented by this plugin"),
+@@ -1893,7 +1925,11 @@ export function startWorkerRpcHost(options: WorkerRpcHostOptions): WorkerRpcHost
+         { code: PLUGIN_RPC_ERROR_CODES.METHOD_NOT_IMPLEMENTED },
+       );
+     }
+-    await plugin.definition.onWebhook(params);
++    const response = await plugin.definition.onWebhook(params);
++    if (response === undefined) return null;
++
++    assertPluginWebhookResponse(response);
++    return response;
+   }
+ 
+   async function handleApiRequest(params: PluginApiRequestInput): Promise<unknown> {
+diff --git a/packages/plugins/sdk/tests/worker-rpc-host-webhook.test.ts b/packages/plugins/sdk/tests/worker-rpc-host-webhook.test.ts
+new file mode 100644
+--- /dev/null
++++ b/packages/plugins/sdk/tests/worker-rpc-host-webhook.test.ts
+@@ -0,0 +1,157 @@
++import { createInterface } from "node:readline";
++import { PassThrough } from "node:stream";
++
++import { describe, expect, it } from "vitest";
++
++import {
++  definePlugin,
++  PLUGIN_WEBHOOK_RESPONSE_MAX_BYTES,
++  type PaperclipPlugin,
++} from "../src/index.js";
++import {
++  createRequest,
++  isJsonRpcResponse,
++  parseMessage,
++  serializeMessage,
++  type JsonRpcResponse,
++} from "../src/protocol.js";
++import { startWorkerRpcHost } from "../src/worker-rpc-host.js";
++
++const webhookInput = {
++  endpointKey: "sync",
++  headers: { "content-type": "application/json" },
++  rawBody: "{}",
++  parsedBody: {},
++  requestId: "request-1",
++};
++
++function startClient(plugin: PaperclipPlugin) {
++  const hostToWorker = new PassThrough();
++  const workerToHost = new PassThrough();
++  const hostReadline = createInterface({ input: workerToHost });
++  const pending = new Map<string, (response: JsonRpcResponse) => void>();
++  let nextRequestId = 1;
++  const worker = startWorkerRpcHost({
++    plugin,
++    stdin: hostToWorker,
++    stdout: workerToHost,
++  });
++
++  function callWorker(method: string, params: unknown) {
++    const id = `host-${nextRequestId++}`;
++    const result = new Promise<unknown>((resolve, reject) => {
++      pending.set(id, (response) => {
++        if ("error" in response && response.error) {
++          reject(new Error(response.error.message));
++          return;
++        }
++        resolve((response as { result?: unknown }).result);
++      });
++    });
++    hostToWorker.write(serializeMessage(createRequest(method, params, id)));
++    return result;
++  }
++
++  hostReadline.on("line", (line) => {
++    const message = parseMessage(line);
++    if (!isJsonRpcResponse(message)) return;
++    pending.get(String(message.id))?.(message);
++    pending.delete(String(message.id));
++  });
++
++  return {
++    callWorker,
++    close() {
++      worker.stop();
++      hostReadline.close();
++      hostToWorker.destroy();
++      workerToHost.destroy();
++    },
++  };
++}
++
++async function initialize(callWorker: (method: string, params: unknown) => Promise<unknown>) {
++  await expect(callWorker("initialize", {
++    manifest: {
++      id: "paperclip.test-webhook-response",
++      apiVersion: 1,
++      version: "1.0.0",
++      displayName: "Webhook Response Test",
++      description: "Test plugin",
++      author: "Paperclip",
++      categories: ["automation"],
++      capabilities: ["webhooks.receive"],
++      entrypoints: {},
++    },
++    config: {},
++    databaseNamespace: null,
++  })).resolves.toMatchObject({ ok: true });
++}
++
++describe("worker webhook response contract", () => {
++  it("preserves legacy void handlers as a null wire result", async () => {
++    const client = startClient(definePlugin({
++      async setup() {},
++      async onWebhook() {},
++    }));
++    try {
++      await initialize(client.callWorker);
++      await expect(client.callWorker("handleWebhook", webhookInput)).resolves.toBeNull();
++    } finally {
++      client.close();
++    }
++  });
++
++  it("propagates a bounded JSON object synchronously", async () => {
++    const client = startClient(definePlugin({
++      async setup() {},
++      async onWebhook() {
++        return {
++          runId: "run-1",
++          evidence: { accepted: true },
++        };
++      },
++    }));
++    try {
++      await initialize(client.callWorker);
++      await expect(client.callWorker("handleWebhook", webhookInput)).resolves.toEqual({
++        runId: "run-1",
++        evidence: { accepted: true },
++      });
++    } finally {
++      client.close();
++    }
++  });
++
++  it("fails closed for non-JSON values", async () => {
++    const client = startClient(definePlugin({
++      async setup() {},
++      async onWebhook() {
++        return { value: Number.NaN };
++      },
++    }));
++    try {
++      await initialize(client.callWorker);
++      await expect(client.callWorker("handleWebhook", webhookInput))
++        .rejects.toThrow("JSON values only");
++    } finally {
++      client.close();
++    }
++  });
++
++  it("fails closed for oversized responses", async () => {
++    const client = startClient(definePlugin({
++      async setup() {},
++      async onWebhook() {
++        return { payload: "x".repeat(PLUGIN_WEBHOOK_RESPONSE_MAX_BYTES + 1) };
++      },
++    }));
++    try {
++      await initialize(client.callWorker);
++      await expect(client.callWorker("handleWebhook", webhookInput))
++        .rejects.toThrow("too large");
++    } finally {
++      client.close();
++    }
++  });
++});
+diff --git a/server/src/routes/plugins.ts b/server/src/routes/plugins.ts
+--- a/server/src/routes/plugins.ts
++++ b/server/src/routes/plugins.ts
+@@ -63,7 +63,11 @@ import type { PluginStreamBus } from "../services/plugin-stream-bus.js";
+ import type { PluginToolDispatcher } from "../services/plugin-tool-dispatcher.js";
+ import { ToolGatewayHttpError, type ToolGatewayService } from "../services/tool-gateway.js";
+ import type { PluginPerformActionActorContext, ToolRunContext } from "@paperclipai/plugin-sdk";
+-import { JsonRpcCallError, PLUGIN_RPC_ERROR_CODES } from "@paperclipai/plugin-sdk";
++import {
++  JsonRpcCallError,
++  PLUGIN_RPC_ERROR_CODES,
++  PLUGIN_WEBHOOK_RESPONSE_MAX_BYTES,
++} from "@paperclipai/plugin-sdk";
+ import {
+   assertAuthenticated,
+   assertBoard,
+@@ -2683,7 +2687,8 @@ export function pluginRoutes(
+    * endpoints must be publicly accessible for external callers. Signature
+    * verification is the plugin's responsibility.
+    *
+-   * Response: `{ deliveryId: string, status: string }`
++   * Response: optional bounded plugin JSON object, otherwise the legacy
++   * `{ deliveryId: string, status: string }` acknowledgement.
+    * Errors:
+    * - 404 if plugin not found or endpointKey not declared
+    * - 400 if plugin is not in ready state or lacks webhooks.receive capability
+@@ -2774,14 +2779,23 @@ export function pluginRoutes(
+ 
+     // Step 7: Dispatch to the worker via handleWebhook RPC
+     try {
+-      await webhookDeps.workerManager.call(plugin.id, "handleWebhook", {
++      const webhookResponse = await webhookDeps.workerManager.call(plugin.id, "handleWebhook", {
+         endpointKey,
+         headers: req.headers as Record<string, string | string[]>,
+         rawBody,
+         parsedBody,
+         requestId,
+       });
+ 
++      if (webhookResponse !== null && webhookResponse !== undefined) {
++        if (typeof webhookResponse !== "object" || Array.isArray(webhookResponse)) {
++          throw new Error("Plugin webhook response must be a JSON object");
++        }
++        if (Buffer.byteLength(JSON.stringify(webhookResponse), "utf8") > PLUGIN_WEBHOOK_RESPONSE_MAX_BYTES) {
++          throw new Error("Plugin webhook response is too large");
++        }
++      }
++
+       // Step 8: Update delivery record to success
+       const finishedAt = new Date();
+       const durationMs = finishedAt.getTime() - startedAt.getTime();
+@@ -2794,6 +2808,11 @@ export function pluginRoutes(
+         })
+         .where(eq(pluginWebhookDeliveries.id, delivery.id));
+ 
++      if (webhookResponse !== null && webhookResponse !== undefined) {
++        res.status(200).json(webhookResponse);
++        return;
++      }
++
+       res.status(200).json({
+         deliveryId: delivery.id,
+         status: "success",
+diff --git a/server/src/__tests__/plugin-webhook-response-routes.test.ts b/server/src/__tests__/plugin-webhook-response-routes.test.ts
+new file mode 100644
+--- /dev/null
++++ b/server/src/__tests__/plugin-webhook-response-routes.test.ts
+@@ -0,0 +1,148 @@
++import express from "express";
++import request from "supertest";
++import { beforeEach, describe, expect, it, vi } from "vitest";
++import { PLUGIN_WEBHOOK_RESPONSE_MAX_BYTES } from "@paperclipai/plugin-sdk";
++
++const mockRegistry = vi.hoisted(() => ({
++  getById: vi.fn(),
++  getByKey: vi.fn(),
++}));
++
++vi.mock("../services/plugin-registry.js", () => ({
++  pluginRegistryService: () => mockRegistry,
++}));
++
++vi.mock("../services/plugin-lifecycle.js", () => ({
++  pluginLifecycleManager: () => ({}),
++}));
++
++vi.mock("../services/activity-log.js", () => ({
++  logActivity: vi.fn(),
++}));
++
++vi.mock("../services/live-events.js", () => ({
++  publishGlobalLiveEvent: vi.fn(),
++}));
++
++const pluginId = "11111111-1111-4111-8111-111111111111";
++const deliveryId = "22222222-2222-4222-8222-222222222222";
++
++function createFakeDb(updates: Array<Record<string, unknown>>) {
++  return {
++    insert: vi.fn(() => ({
++      values: vi.fn(() => ({
++        returning: vi.fn(async () => [{ id: deliveryId }]),
++      })),
++    })),
++    update: vi.fn(() => ({
++      set: vi.fn((value: Record<string, unknown>) => {
++        updates.push(value);
++        return {
++          where: vi.fn(async () => []),
++        };
++      }),
++    })),
++  };
++}
++
++async function createApp(workerResult: unknown) {
++  const { pluginRoutes } = await import("../routes/plugins.js");
++  const updates: Array<Record<string, unknown>> = [];
++  const db = createFakeDb(updates);
++  const workerManager = {
++    call: vi.fn().mockResolvedValue(workerResult),
++  };
++  const app = express();
++  app.use(express.json({
++    verify(req, _res, buffer) {
++      (req as typeof req & { rawBody?: Buffer }).rawBody = Buffer.from(buffer);
++    },
++  }));
++  app.use("/api", pluginRoutes(
++    db as never,
++    {} as never,
++    undefined,
++    { workerManager } as never,
++  ));
++
++  return { app, workerManager, updates };
++}
++
++describe.sequential("plugin webhook synchronous responses", () => {
++  beforeEach(() => {
++    vi.clearAllMocks();
++    mockRegistry.getById.mockResolvedValue({
++      id: pluginId,
++      pluginKey: "paperclip.test-webhook",
++      version: "1.0.0",
++      status: "ready",
++      manifestJson: {
++        capabilities: ["webhooks.receive"],
++        webhooks: [{ endpointKey: "sync" }],
++      },
++    });
++  });
++
++  it("preserves the legacy acknowledgement for void handlers", async () => {
++    const { app, updates } = await createApp(null);
++    const response = await request(app)
++      .post(`/api/plugins/${pluginId}/webhooks/sync`)
++      .send({ hello: "world" });
++
++    expect(response.status).toBe(200);
++    expect(response.body).toEqual({
++      deliveryId,
++      status: "success",
++    });
++    expect(updates).toEqual([
++      expect.objectContaining({ status: "success" }),
++    ]);
++  });
++
++  it("returns a bounded worker JSON object synchronously", async () => {
++    const workerResult = {
++      runId: "run-1",
++      evidence: { accepted: true },
++    };
++    const { app, workerManager, updates } = await createApp(workerResult);
++    const response = await request(app)
++      .post(`/api/plugins/${pluginId}/webhooks/sync`)
++      .send({ hello: "world" });
++
++    expect(response.status).toBe(200);
++    expect(response.body).toEqual(workerResult);
++    expect(workerManager.call).toHaveBeenCalledWith(
++      pluginId,
++      "handleWebhook",
++      expect.objectContaining({
++        endpointKey: "sync",
++        rawBody: JSON.stringify({ hello: "world" }),
++      }),
++    );
++    expect(updates).toEqual([
++      expect.objectContaining({ status: "success" }),
++    ]);
++  });
++
++  it("fails closed if a worker bypasses the SDK response bound", async () => {
++    const { app, updates } = await createApp({
++      payload: "x".repeat(PLUGIN_WEBHOOK_RESPONSE_MAX_BYTES + 1),
++    });
++    const response = await request(app)
++      .post(`/api/plugins/${pluginId}/webhooks/sync`)
++      .send({ hello: "world" });
++
++    expect(response.status).toBe(502);
++    expect(response.body).toEqual(expect.objectContaining({
++      deliveryId,
++      status: "failed",
++      error: expect.stringContaining("too large"),
++    }));
++    expect(updates).toEqual([
++      expect.objectContaining({
++        status: "failed",
++        error: expect.stringContaining("too large"),
++      }),
++    ]);
++  });
++});

@@ -457,7 +457,11 @@ export function createServerAdapter() {
         model: result.model,
         summary: result.summary,
         ...(result.usage ? { usage: result.usage, usageBasis: 'per_run' } : {}),
-        resultJson: { executionId: result.executionId },
+        resultJson: {
+          executionId: result.executionId,
+          ...(result.model ? { model: result.model } : {}),
+          summary: result.summary,
+        },
       };
     },
   };

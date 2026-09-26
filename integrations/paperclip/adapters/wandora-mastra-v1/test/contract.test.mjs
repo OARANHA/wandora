@@ -114,7 +114,11 @@ test('wandora_mastra reports normalized usage and finalizes exact customer-work 
     const result = await adapter.execute(executionContext());
 
     assert.equal(result.exitCode, 0);
-    assert.equal(result.resultJson.executionId, 'exec_test_1');
+    assert.deepEqual(result.resultJson, {
+      executionId: 'exec_test_1',
+      model: 'wandora-supervised-v1',
+      summary: 'accepted',
+    });
     assert.deepEqual(result.usage, { inputTokens: 11, outputTokens: 7, cachedInputTokens: 2 });
     assert.equal(result.usageBasis, 'per_run');
     assert.equal(requests.length, 2);
@@ -398,6 +402,11 @@ test('issue-less plugin invoke fast-read wake is transported to Core without Pap
     const result = await createServerAdapter().execute(context);
     assert.equal(result.exitCode, 0);
     assert.equal(result.model, 'wandora-deterministic-read-v1');
+    assert.deepEqual(result.resultJson, {
+      executionId: 'fast_disposable_1',
+      model: 'wandora-deterministic-read-v1',
+      summary: 'PREMIUM PLUS\nPreço: R$ 129,90',
+    });
     assert.deepEqual(result.usage, { inputTokens: 0, outputTokens: 0, cachedInputTokens: 0 });
     assert.equal(requests.length, 1);
 

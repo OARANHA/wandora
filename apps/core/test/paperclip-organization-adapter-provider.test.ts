@@ -236,3 +236,90 @@ test('work provider rejects invalid work correlation before network', async () =
   }
   assert.equal(networkCalls, 0);
 });
+
+
+test('Fast Read bridge projects canonical capabilities and hides provider run identity', async () => {
+  const capabilitiesUrl = 'http://paperclip.internal/api/plugins/plugin-id/webhooks/employee-capabilities';
+  const fastReadUrl = 'http://paperclip.internal/api/plugins/plugin-id/webhooks/employee-fast-read';
+  const provider = createPaperclipOrganizationAdapterProvider({
+    webhookUrl: WEBHOOK_URL,
+    capabilitiesWebhookUrl: capabilitiesUrl,
+    fastReadWebhookUrl: fastReadUrl,
+    resolveHmacSecret: async () => 'fixture-fast-read-key',
+    fetchImpl: (async (input: string | URL | Request) => String(input) === capabilitiesUrl
+      ? new Response(JSON.stringify({
+          integrations: [{
+            integrationKind: 'business_system',
+            displayName: 'VendaERP 28PRO',
+            connection: { health: 'healthy', readiness: 'ready' },
+            supportedCapabilities: ['business.products.search', 'business.products.price'],
+            organizationEnabledCapabilities: ['business.products.search'],
+          }],
+        }), { status: 200, headers: { 'content-type': 'application/json' } })
+      : new Response(JSON.stringify({
+          runId: 'paperclip-run-id-hidden-at-boundary',
+          model: 'wandora-deterministic-read-v1',
+          summary: 'Produtos disponíveis.',
+          usage: { inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, totalTokens: 0 },
+        }), { status: 200, headers: { 'content-type': 'application/json' } })) as typeof fetch,
+    now: () => NOW_MS,
+  });
+
+  assert.deepEqual(await provider.getCatalogEmployeeAvailableCapabilities!({
+    providerCompanyRef: 'paperclip-company-a',
+    catalogKey: 'ana-commercial-v1',
+  }), ['business.products.search']);
+  const result = await provider.dispatchCatalogEmployeeFastRead!({
+    providerCompanyRef: 'paperclip-company-a',
+    catalogKey: 'ana-commercial-v1',
+    correlationId: '11111111-1111-4111-8111-111111111111',
+    intentToken: 'wfri1.synthetic',
+    request: 'Liste produtos.',
+  });
+  assert.deepEqual(result, {
+    model: 'wandora-deterministic-read-v1',
+    summary: 'Produtos disponíveis.',
+    usage: { inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, totalTokens: 0 },
+  });
+  assert.equal(JSON.stringify(result).includes('runId'), false);
+  assert.equal(JSON.stringify(result).toLowerCase().includes('paperclip'), false);
+});
+
+test('Fast Read bridge fails closed on malformed provider payload and transport uncertainty', async () => {
+  const make = (fetchImpl: typeof fetch) => createPaperclipOrganizationAdapterProvider({
+    webhookUrl: WEBHOOK_URL,
+    capabilitiesWebhookUrl: 'http://paperclip.internal/capabilities',
+    fastReadWebhookUrl: 'http://paperclip.internal/fast-read',
+    resolveHmacSecret: async () => 'fixture-fast-read-key',
+    fetchImpl,
+    timeoutMs: 1,
+  });
+  const base = { providerCompanyRef: 'paperclip-company-a', catalogKey: 'ana-commercial-v1' };
+  await assert.rejects(
+    make((async () => new Response(JSON.stringify({
+      integrations: [{ organizationEnabledCapabilities: ['paperclip.agentRuns.read'] }],
+    }), { status: 200, headers: { 'content-type': 'application/json' } })) as typeof fetch)
+      .getCatalogEmployeeAvailableCapabilities!(base),
+    PaperclipOrganizationAdapterUncertainError,
+  );
+  await assert.rejects(
+    make((async () => new Response(JSON.stringify({
+      runId: 'run',
+      model: 'wandora-deterministic-read-v1',
+      summary: 'ok',
+      usage: { inputTokens: 0 },
+    }), { status: 200, headers: { 'content-type': 'application/json' } })) as typeof fetch)
+      .dispatchCatalogEmployeeFastRead!({
+        ...base,
+        correlationId: '11111111-1111-4111-8111-111111111111',
+        intentToken: 'wfri1.synthetic',
+        request: 'Liste produtos.',
+      }),
+    PaperclipOrganizationAdapterUncertainError,
+  );
+  await assert.rejects(
+    make((async () => { throw new Error('timeout'); }) as typeof fetch)
+      .getCatalogEmployeeAvailableCapabilities!(base),
+    PaperclipOrganizationAdapterUncertainError,
+  );
+});

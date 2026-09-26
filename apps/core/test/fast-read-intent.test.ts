@@ -17,6 +17,7 @@ const REQUEST = 'Qual o preço do PREMIUM PLUS?';
 const DECISION = {
   mode: 'deterministic_read' as const,
   capability: 'business.products.price' as const,
+  selector: { kind: 'product' as const, by: 'name' as const, value: 'PREMIUM PLUS' },
   confidence: 0.99,
   needsDataOrToolLookup: 1,
   needsMoreContext: 0,
@@ -83,6 +84,11 @@ test('intent is stateless, authenticated, expiring, request-bound and correlatio
     nowMs: NOW + 10_000,
   });
   assert.equal(claims.capability, 'business.products.price');
+  assert.deepEqual(claims.selector, {
+    kind: 'product',
+    by: 'name',
+    value: 'PREMIUM PLUS',
+  });
 
   assert.throws(() => verifyFastReadIntent({
     secret: SECRET,
@@ -129,6 +135,50 @@ test('tampering with the capability is rejected', () => {
     expectedCorrelationId: CORRELATION,
     nowMs: NOW,
   }), (error: unknown) => error instanceof FastReadIntentError && error.code === 'invalid');
+});
+
+test('tampering with the signed selector is rejected', () => {
+  const parts = token().split('.');
+  const payload = JSON.parse(Buffer.from(parts[1]!, 'base64url').toString('utf8'));
+  payload.sel.value = 'OUTRO PRODUTO';
+  const tampered = parts[0] + '.' + Buffer.from(JSON.stringify(payload)).toString('base64url') + '.' + parts[2];
+  assert.throws(() => verifyFastReadIntent({
+    secret: SECRET,
+    token: tampered,
+    request: REQUEST,
+    expectedOrganizationId: ORG,
+    expectedEmployeeId: EMPLOYEE,
+    expectedCorrelationId: CORRELATION,
+    nowMs: NOW,
+  }), (error: unknown) => error instanceof FastReadIntentError && error.code === 'invalid');
+});
+
+test('legacy search intent remains valid without a selector claim', () => {
+  const intent = issueFastReadIntent({
+    secret: SECRET,
+    organizationId: ORG,
+    employeeId: EMPLOYEE,
+    correlationId: CORRELATION,
+    request: 'Liste os primeiros produtos.',
+    decision: {
+      ...DECISION,
+      capability: 'business.products.search',
+      selector: null,
+    },
+    availableCapabilities: ['business.products.search'],
+    policy: POLICY,
+    nowMs: NOW,
+  });
+  const claims = verifyFastReadIntent({
+    secret: SECRET,
+    token: intent,
+    request: 'Liste os primeiros produtos.',
+    expectedOrganizationId: ORG,
+    expectedEmployeeId: EMPLOYEE,
+    expectedCorrelationId: CORRELATION,
+    nowMs: NOW,
+  });
+  assert.equal(claims.selector, null);
 });
 
 test('expired intent opens no Tool Gateway session', async () => {
@@ -181,7 +231,12 @@ test('service executes exactly one already-authorized read tool with zero model 
       capabilitiesFor: (tool) => tool.name === 'synthetic_product_price'
         ? ['business.products.price']
         : [],
-      execute: async ({ tool }) => {
+      execute: async ({ tool, selector }) => {
+        assert.deepEqual(selector, {
+          kind: 'product',
+          by: 'name',
+          value: 'PREMIUM PLUS',
+        });
         const value = await tool.execute({});
         assert.deepEqual(value, { name: 'PREMIUM PLUS', price: 'R$ 129,90' });
         return {

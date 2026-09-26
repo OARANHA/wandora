@@ -1,8 +1,10 @@
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import {
   BUSINESS_CAPABILITIES,
+  canonicalSemanticSelector,
   gateDeterministicRead,
   type BusinessCapability,
+  type SemanticSelector,
   type SemanticRouteDecision,
   type SemanticRoutePolicy,
 } from './contracts.js';
@@ -17,6 +19,7 @@ export type FastReadIntentClaims = {
   organizationId: string;
   employeeId: string;
   capability: BusinessCapability;
+  selector: SemanticSelector | null;
   correlationId: string;
   requestDigest: string;
   issuedAt: number;
@@ -53,7 +56,7 @@ function secretBuffer(secret: string): Buffer {
 }
 
 function encode(claims: FastReadIntentClaims): string {
-  return Buffer.from(JSON.stringify({
+  const payload: Record<string, unknown> = {
     v: 1,
     org: claims.organizationId,
     emp: claims.employeeId,
@@ -62,7 +65,9 @@ function encode(claims: FastReadIntentClaims): string {
     req: claims.requestDigest,
     iat: claims.issuedAt,
     exp: claims.expiresAt,
-  }), 'utf8').toString('base64url');
+  };
+  if (claims.selector) payload.sel = claims.selector;
+  return Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
 }
 
 function signature(secret: string, payload: string): string {
@@ -85,12 +90,14 @@ function decode(payload: string): FastReadIntentClaims {
     && (BUSINESS_CAPABILITIES as readonly string[]).includes(value.cap)
     ? value.cap as BusinessCapability
     : null;
+  const selector = value.sel === undefined ? null : canonicalSemanticSelector(value.sel);
   if (
     value.v !== 1
     || typeof value.org !== 'string'
     || typeof value.emp !== 'string'
     || typeof value.cid !== 'string'
     || !capability
+    || (value.sel !== undefined && !selector)
     || typeof value.req !== 'string'
     || !DIGEST_RE.test(value.req)
     || !Number.isSafeInteger(value.iat)
@@ -102,6 +109,7 @@ function decode(payload: string): FastReadIntentClaims {
     organizationId: canonicalUuid(value.org),
     employeeId: canonicalUuid(value.emp),
     capability,
+    selector,
     correlationId: canonicalUuid(value.cid),
     requestDigest: value.req,
     issuedAt: value.iat as number,
@@ -134,6 +142,7 @@ export function issueFastReadIntent(input: {
     organizationId: canonicalUuid(input.organizationId),
     employeeId: canonicalUuid(input.employeeId),
     capability: gate.capability,
+    selector: gate.selector,
     correlationId: canonicalUuid(input.correlationId),
     requestDigest: requestDigest(input.request),
     issuedAt,

@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "kind": "organization_adapter_candidate",
+  "pluginVersion": "0.5.0",
+  "providerVersion": "v2026.916.1",
+  "paperclipSourceCommit": "d554c4789ed3930f8a53ac9fdf6503b3187097da",
+  "openApi": {
+    "pathCount": 685,
+    "sha256": "55383e4b9aceee52544a5e8a93b7c04526f10cb13ce91082185df0691bd7e740",
+    "sourceEvidenceIdenticalTo": "v2026.916.0",
+    "workflow": "Paperclip 916.1 OpenAPI Candidate CI"
+  },
+  "providerDeltas": [
+    {
+      "path": "integrations/paperclip/patches/v2026.916.1-host-operational-read-v1.patch",
+      "qualificationWorkflow": "Paperclip Host Operational Read Extension CI"
+    },
+    {
+      "path": "integrations/paperclip/patches/v2026.916.1-fast-read-run-result-read-v1.patch",
+      "sha256": "8972f5d500012f706ccce82dee8aef055aa99f8b97a1d34f89856a3e1d311c6f",
+      "qualificationWorkflow": "Paperclip Fast Read Run Result Read CI"
+    },
+    {
+      "path": "integrations/paperclip/patches/v2026.916.1-synchronous-webhook-response-v1.patch",
+      "qualificationWorkflow": "Paperclip Synchronous Webhook Response CI"
+    }
+  ],
+  "compositionWorkflow": "Paperclip Fast Read Patch Composition CI",
+  "productionEffect": false,
+  "productionPromotionAuthorized": false
+}

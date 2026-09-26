@@ -1,9 +1,11 @@
 import { createHash, randomUUID } from 'node:crypto';
 import type { Pool, PoolClient } from 'pg';
+import type { BusinessCapability } from '../semantic-routing/contracts.js';
 import { HumanAccessError, HumanNotFoundError } from '../supervision/human-read.js';
 import { paperclipManagedAgentRef } from './paperclip-provider.js';
 import {
   DigitalEmployeeActivationError,
+  DigitalEmployeeFastReadError,
   DigitalEmployeeWorkError,
   OrganizationAdapterConflictError,
   OrganizationAdapterUnavailableError,
@@ -11,6 +13,7 @@ import {
   type CatalogEmployeeDefinition,
   type CatalogEmployeeResult,
   type DigitalEmployeeWorkResult,
+  type OrganizationAdapterFastReadResult,
   type OrganizationAdapterProvider,
   type PreparedDigitalEmployeeWorkExecution,
 } from './contracts.js';
@@ -896,6 +899,83 @@ export class OrganizationAdapterService {
       );
     }
     return row;
+  }
+
+  private async requireFastReadEmployeeContext(args: {
+    organizationId: string;
+    actorUserId: string;
+    employeeId: string;
+  }): Promise<WorkEmployeeContext> {
+    return this.scopedWrite(args.organizationId, async (client) => {
+      await this.requireOwnerOrAdmin(client, args.organizationId, args.actorUserId);
+      try {
+        return await this.requireWorkEmployeeContext(client, args.organizationId, args.employeeId);
+      } catch (error) {
+        if (error instanceof DigitalEmployeeWorkError) {
+          throw new DigitalEmployeeFastReadError(
+            'employee-fast-read-unavailable',
+            'Digital employee is not available for Fast Read.',
+          );
+        }
+        throw error;
+      }
+    });
+  }
+
+  async getAvailableCapabilities(args: {
+    organizationId: string;
+    actorUserId: string;
+    employeeId: string;
+  }): Promise<BusinessCapability[]> {
+    if (!this.provider.getCatalogEmployeeAvailableCapabilities) {
+      throw new DigitalEmployeeFastReadError(
+        'provider-fast-read-unavailable',
+        'Provider capability projection is unavailable.',
+      );
+    }
+    const context = await this.requireFastReadEmployeeContext(args);
+    try {
+      return await this.provider.getCatalogEmployeeAvailableCapabilities({
+        providerCompanyRef: context.provider_company_ref,
+        catalogKey: context.catalog_key,
+      });
+    } catch {
+      throw new DigitalEmployeeFastReadError(
+        'provider-fast-read-uncertain',
+        'Provider capability projection could not be proven.',
+      );
+    }
+  }
+
+  async dispatchFastRead(args: {
+    organizationId: string;
+    actorUserId: string;
+    employeeId: string;
+    correlationId: string;
+    intentToken: string;
+    request: string;
+  }): Promise<OrganizationAdapterFastReadResult> {
+    if (!this.provider.dispatchCatalogEmployeeFastRead) {
+      throw new DigitalEmployeeFastReadError(
+        'provider-fast-read-unavailable',
+        'Provider Fast Read dispatch is unavailable.',
+      );
+    }
+    const context = await this.requireFastReadEmployeeContext(args);
+    try {
+      return await this.provider.dispatchCatalogEmployeeFastRead({
+        providerCompanyRef: context.provider_company_ref,
+        catalogKey: context.catalog_key,
+        correlationId: args.correlationId,
+        intentToken: args.intentToken,
+        request: args.request,
+      });
+    } catch {
+      throw new DigitalEmployeeFastReadError(
+        'provider-fast-read-uncertain',
+        'Provider Fast Read dispatch/result is uncertain.',
+      );
+    }
   }
 
   private async reserveCatalogEmployeeWork(args: {

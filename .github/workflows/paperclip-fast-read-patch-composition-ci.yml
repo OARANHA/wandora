@@ -1,0 +1,77 @@
+name: Paperclip Fast Read Patch Composition CI
+
+on:
+  pull_request:
+    paths:
+      - 'integrations/paperclip/fast-read-convergence-v1/**'
+      - 'integrations/paperclip/patches/v2026.916.1-host-operational-read-v1.patch'
+      - 'integrations/paperclip/patches/v2026.916.1-fast-read-run-result-read-v1.patch'
+      - 'integrations/paperclip/patches/v2026.916.1-synchronous-webhook-response-v1.patch'
+      - '.github/workflows/paperclip-fast-read-patch-composition-ci.yml'
+      - 'integrations/paperclip/plugins/organization-adapter-v1/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: paperclip-fast-read-patch-composition-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - name: Checkout Wandora
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Checkout exact Paperclip v2026.916.1 source
+        uses: actions/checkout@v4
+        with:
+          repository: paperclipai/paperclip
+          ref: d554c4789ed3930f8a53ac9fdf6503b3187097da
+          path: .paperclip
+          persist-credentials: false
+
+      - name: Compose qualified provider deltas
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x integrations/paperclip/fast-read-convergence-v1/compose-qualified-patches.sh
+          integrations/paperclip/fast-read-convergence-v1/compose-qualified-patches.sh "$GITHUB_WORKSPACE/.paperclip"
+
+      - name: Set up Node 24.21.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.21.0
+
+      - name: Set up pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.4 --activate
+          pnpm --version
+
+      - name: Install pinned Paperclip dependencies
+        working-directory: .paperclip
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck composed plugin SDK
+        working-directory: .paperclip
+        run: pnpm --filter @paperclipai/plugin-sdk typecheck
+
+      - name: Typecheck composed Paperclip server
+        working-directory: .paperclip
+        run: pnpm --filter @paperclipai/server typecheck
+
+      - name: Focused composed provider tests
+        working-directory: .paperclip
+        run: |
+          pnpm exec vitest run \
+            packages/plugins/sdk/tests/host-client-factory.test.ts \
+            packages/plugins/sdk/tests/worker-rpc-host-webhook.test.ts \
+            server/src/__tests__/plugin-tool-access-operational-read.test.ts \
+            server/src/__tests__/plugin-agent-run-read.test.ts \
+            server/src/__tests__/plugin-webhook-response-routes.test.ts

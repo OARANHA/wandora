@@ -5,16 +5,22 @@ import { MastraSupervisedModelAgentRuntime } from '../agent-runtime/mastra-super
 import { PostgresOrganizationGroundingProjection } from '../agent-runtime/organization-grounding.js';
 import { PostgresAnaRepository } from '../ana/postgres-repository.js';
 import { AnaSupervisedIngressService } from '../ana/supervised-ingress.js';
+import { createVendaErpFastReadCapabilityAdapter } from '../business-system/vendaerp-fast-read.js';
 import { Es256JwksHumanTokenVerifier } from '../human-auth/es256-jwks.js';
+import { createConsoleFastReadLatencyRecorder } from '../latency.js';
 import { createPrivateGatewayClient } from '../messaging/private-gateway.js';
+import { PaperclipFastReadExecutionService } from '../paperclip-execution/fast-read.js';
 import { createPaperclipExecutionHandler } from '../paperclip-execution/handler.js';
 import { createPaperclipRunIdentityClient } from '../paperclip-execution/paperclip-run-identity.js';
 import { createPaperclipToolGatewayReadBridge } from '../paperclip-execution/tool-gateway-read-bridge.js';
 import { PaperclipExecutionService } from '../paperclip-execution/service.js';
+import { MastraMistralSemanticSelectorProvider } from '../semantic-routing/mastra-mistral-selector-provider.js';
+import { TypeSafeJevSemanticDecisionProvider } from '../semantic-routing/typesafe-jev-provider.js';
 import { BrasilApiCompanyRegistryLookup } from '../supervision/company-registry-lookup.js';
 import { HumanCompanyProfileService } from '../supervision/human-company-profile.js';
 import { HumanDigitalEmployeeActivationService } from '../supervision/human-digital-employee-activation.js';
 import { HumanDigitalEmployeeDevelopmentService } from '../supervision/human-digital-employee-development.js';
+import { HumanDigitalEmployeeFastReadService } from '../supervision/human-digital-employee-fast-read.js';
 import { HumanDigitalEmployeesReadService } from '../supervision/human-digital-employees-read.js';
 import { HumanStarterWorkforceReadinessService } from '../supervision/human-starter-workforce-readiness.js';
 import { HumanGroundingService } from '../supervision/human-grounding.js';
@@ -28,6 +34,7 @@ import { createRuntimeReadinessChecker } from './readiness.js';
 import { createRuntimeServer } from './server.js';
 
 const config = await loadRuntimeConfig();
+const fastReadLatencyRecorder = createConsoleFastReadLatencyRecorder();
 
 const pool = config.mode === 'database' && config.database
   ? new Pool({
@@ -75,26 +82,48 @@ const handleGatewayInbound = pool && config.gatewayIngress
     })
   : undefined;
 
-const handlePaperclipExecution = pool
+const paperclipReadToolBridge = config.paperclipExecutionBridge
+  ? createPaperclipToolGatewayReadBridge({
+      agentMeUrl: config.paperclipExecutionBridge.agentMeUrl,
+    })
+  : undefined;
+
+const paperclipExecutionService = pool
   && agentRuntime
+  && config.paperclipExecutionBridge
+  ? new PaperclipExecutionService(
+      pool,
+      agentRuntime,
+      new PostgresOrganizationGroundingProjection(pool),
+      config.humanDigitalEmployeeWork ? organizationAdapterService : undefined,
+      config.agentRuntime?.mode === 'mastra-supervised-model'
+        ? paperclipReadToolBridge
+        : undefined,
+      new PostgresEmployeeDevelopmentProjection(pool),
+    )
+  : undefined;
+
+const paperclipFastReadService = paperclipExecutionService
+  && paperclipReadToolBridge
+  && config.fastReadExecution
+  ? new PaperclipFastReadExecutionService({
+      intentSecret: config.fastReadExecution.intentSecret,
+      bindingResolver: paperclipExecutionService,
+      readToolBridge: paperclipReadToolBridge,
+      capabilityAdapter: createVendaErpFastReadCapabilityAdapter(),
+      recordLatency: fastReadLatencyRecorder,
+    })
+  : undefined;
+
+const handlePaperclipExecution = paperclipExecutionService
   && config.paperclipExecutionBridge
   ? createPaperclipExecutionHandler({
       secret: config.paperclipExecutionBridge.secret,
       verifyRunIdentity: createPaperclipRunIdentityClient({
         agentMeUrl: config.paperclipExecutionBridge.agentMeUrl,
       }),
-      service: new PaperclipExecutionService(
-        pool,
-        agentRuntime,
-        new PostgresOrganizationGroundingProjection(pool),
-        config.humanDigitalEmployeeWork ? organizationAdapterService : undefined,
-        config.agentRuntime?.mode === 'mastra-supervised-model'
-          ? createPaperclipToolGatewayReadBridge({
-              agentMeUrl: config.paperclipExecutionBridge.agentMeUrl,
-            })
-          : undefined,
-        new PostgresEmployeeDevelopmentProjection(pool),
-      ),
+      service: paperclipExecutionService,
+      ...(paperclipFastReadService ? { fastReadService: paperclipFastReadService } : {}),
     })
   : undefined;
 
@@ -108,6 +137,30 @@ const humanVerifier = pool && config.humanApi
 
 const humanReadService = pool && humanVerifier
   ? new HumanSupervisionReadService(pool, humanVerifier)
+  : undefined;
+
+const humanDigitalEmployeeFastReadService = organizationAdapterService
+  && humanReadService
+  && config.semanticFastRead
+  && config.fastReadExecution
+  ? new HumanDigitalEmployeeFastReadService({
+      bridge: organizationAdapterService,
+      semanticDecisionProvider: new TypeSafeJevSemanticDecisionProvider({
+        apiKey: config.semanticFastRead.apiKey,
+        timeoutMs: config.semanticFastRead.timeoutMs,
+      }),
+      ...(config.semanticFastRead.selector
+        ? {
+            semanticSelectorProvider: new MastraMistralSemanticSelectorProvider({
+              apiKey: config.semanticFastRead.selector.apiKey,
+              timeoutMs: config.semanticFastRead.selector.timeoutMs,
+            }),
+          }
+        : {}),
+      policy: config.semanticFastRead.policy,
+      intentSecret: config.fastReadExecution.intentSecret,
+      recordLatency: fastReadLatencyRecorder,
+    })
   : undefined;
 
 const humanGroundingService = pool && humanReadService
@@ -188,6 +241,8 @@ const handleHumanSupervision = humanReadService
       companyRegistryLookup,
       humanStarterWorkforceReadinessService,
       humanDigitalEmployeeDevelopmentService,
+      humanDigitalEmployeeFastReadService,
+      { recorder: fastReadLatencyRecorder },
     )
   : undefined;
 
@@ -205,6 +260,8 @@ server.listen(config.port, '0.0.0.0', () => {
     port: config.port,
     gatewayIngress: Boolean(handleGatewayInbound),
     paperclipExecutionBridge: Boolean(handlePaperclipExecution),
+    fastReadExecution: Boolean(paperclipFastReadService),
+    semanticFastRead: Boolean(humanDigitalEmployeeFastReadService),
     humanApi: Boolean(handleHumanSupervision),
     customerCompanyOnboarding: Boolean(humanCompanyProfileService),
     humanSendProposal: Boolean(humanSendProposalService),

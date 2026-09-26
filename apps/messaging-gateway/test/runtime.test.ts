@@ -256,3 +256,47 @@ test('Core processing and outage remain retryable while canonical rejection is t
     await close(server);
   }
 });
+
+
+test('valid WhatsApp ingress emits one safe bounded latency event using only the canonical event id', async () => {
+  const events: Record<string, unknown>[] = [];
+  const forwarded: CoreInboundEnvelope[] = [];
+  const ticks = [10, 18];
+  const server = createMessagingGatewayServer({
+    evolutionInstance: instance,
+    evolutionWebhookJwtKey: evolutionSecret,
+    organizationId,
+    connectionId,
+    now: () => nowMs,
+    monotonicNow: () => ticks.shift() ?? 18,
+    recordLatency: (event) => events.push(event),
+    forwardToCore: async (envelope) => {
+      forwarded.push(envelope);
+      return { kind: 'accepted', status: 202 };
+    },
+  });
+  const baseUrl = await listen(server);
+  try {
+    assert.equal((await postWebhook(baseUrl, webhook())).status, 200);
+    assert.equal(events.length, 1);
+    assert.equal(events[0]?.stage, 'whatsapp.gateway_ingress');
+    assert.equal(events[0]?.durationMs, 8);
+    assert.equal(events[0]?.outcome, 'success');
+    assert.equal(events[0]?.correlationId, forwarded[0]?.event.eventId);
+    const serialized = JSON.stringify(events);
+    for (const forbidden of [
+      organizationId,
+      connectionId,
+      instance,
+      evolutionSecret,
+      coreSecret,
+      'Olá, Wandora!',
+      '5551999999999',
+      'must-never-cross-gateway',
+    ]) {
+      assert.equal(serialized.includes(forbidden), false);
+    }
+  } finally {
+    await close(server);
+  }
+});

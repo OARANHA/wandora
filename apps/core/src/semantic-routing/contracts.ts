@@ -12,6 +12,35 @@ export const BUSINESS_CAPABILITIES = [
 
 export type BusinessCapability = typeof BUSINESS_CAPABILITIES[number];
 
+export const PRODUCT_SELECTOR_FIELDS = ['name', 'code', 'barcode'] as const;
+export type ProductSelectorField = typeof PRODUCT_SELECTOR_FIELDS[number];
+
+export type ProductSelector = {
+  kind: 'product';
+  by: ProductSelectorField;
+  value: string;
+};
+
+export type SemanticSelector = ProductSelector;
+
+export function canonicalSemanticSelector(value: unknown): SemanticSelector | null {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
+  const selector = value as Record<string, unknown>;
+  if (
+    selector.kind !== 'product'
+    || typeof selector.by !== 'string'
+    || !PRODUCT_SELECTOR_FIELDS.includes(selector.by as ProductSelectorField)
+    || typeof selector.value !== 'string'
+  ) return null;
+  const normalized = selector.value.trim();
+  if (!normalized || normalized.length > 512) return null;
+  return {
+    kind: 'product',
+    by: selector.by as ProductSelectorField,
+    value: normalized,
+  };
+}
+
 export type SemanticExecutionMode =
   | 'deterministic_read'
   | 'generative_reasoning'
@@ -28,6 +57,7 @@ export type SemanticAmbiguity =
 export type SemanticRouteDecision = {
   mode: SemanticExecutionMode;
   capability: BusinessCapability | null;
+  selector?: SemanticSelector | null;
   confidence: number;
   needsDataOrToolLookup: number;
   needsMoreContext: number;
@@ -50,6 +80,27 @@ export interface SemanticDecisionProvider {
   decide(input: SemanticDecisionInput): Promise<SemanticRouteDecision>;
 }
 
+export type SemanticSelectorInput = {
+  organizationId: string;
+  employeeId: string;
+  request: string;
+  capability: BusinessCapability;
+};
+
+export type SemanticSelectorDecision = {
+  selector: SemanticSelector | null;
+  confidence: number;
+  ambiguity: SemanticAmbiguity;
+  providerEvidence?: {
+    provider: string;
+    model: string | null;
+  };
+};
+
+export interface SemanticSelectorProvider {
+  select(input: SemanticSelectorInput): Promise<SemanticSelectorDecision>;
+}
+
 export type SemanticRoutePolicy = {
   minimumConfidence: number;
   maximumNeedsMoreContext: number;
@@ -66,10 +117,13 @@ export type SemanticRouteGateReason =
   | 'needs-more-context'
   | 'needs-human-review'
   | 'no-tool-lookup-needed'
-  | 'ambiguous';
+  | 'ambiguous'
+  | 'missing-selector'
+  | 'invalid-selector'
+  | 'selector-not-applicable';
 
 export type SemanticRouteGate =
-  | { allowed: true; capability: BusinessCapability }
+  | { allowed: true; capability: BusinessCapability; selector: SemanticSelector | null }
   | { allowed: false; reason: SemanticRouteGateReason };
 
 function probability(value: number): boolean {
@@ -88,6 +142,19 @@ export function validateSemanticRoutePolicy(policy: SemanticRoutePolicy): boolea
     && probability(policy.maximumNeedsMoreContext)
     && probability(policy.maximumNeedsHumanReview)
     && probability(policy.minimumNeedsDataOrToolLookup);
+}
+
+export function validateSemanticSelectorDecision(
+  decision: SemanticSelectorDecision,
+): boolean {
+  return probability(decision.confidence)
+    && [
+      'none',
+      'missing_entity',
+      'multiple_matches',
+      'vague_reference',
+      'unknown',
+    ].includes(decision.ambiguity);
 }
 
 export function gateDeterministicRead(
@@ -125,5 +192,24 @@ export function gateDeterministicRead(
   if (decision.ambiguity !== 'none') {
     return { allowed: false, reason: 'ambiguous' };
   }
-  return { allowed: true, capability: decision.capability };
+
+  const suppliedSelector = decision.selector;
+  const selector = suppliedSelector === undefined || suppliedSelector === null
+    ? null
+    : canonicalSemanticSelector(suppliedSelector);
+  if (suppliedSelector !== undefined && suppliedSelector !== null && !selector) {
+    return { allowed: false, reason: 'invalid-selector' };
+  }
+  if (decision.capability === 'business.products.price' && !selector) {
+    return { allowed: false, reason: 'missing-selector' };
+  }
+  if (
+    selector
+    && decision.capability !== 'business.products.search'
+    && decision.capability !== 'business.products.price'
+  ) {
+    return { allowed: false, reason: 'selector-not-applicable' };
+  }
+
+  return { allowed: true, capability: decision.capability, selector };
 }

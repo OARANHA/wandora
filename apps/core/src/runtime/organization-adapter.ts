@@ -10,6 +10,14 @@ export type RuntimeOrganizationAdapterConfig = {
   secretDirectory: string;
 };
 
+function siblingWebhookUrl(webhookUrl: string, endpointKey: 'employee-capabilities' | 'employee-fast-read'): string {
+  const endpoint = new URL(webhookUrl);
+  const parts = endpoint.pathname.split('/');
+  parts[parts.length - 1] = endpointKey;
+  endpoint.pathname = parts.join('/');
+  return endpoint.toString();
+}
+
 export function createRuntimeOrganizationAdapter(
   pool: Pool,
   config: RuntimeOrganizationAdapterConfig,
@@ -28,6 +36,8 @@ export function createRuntimeOrganizationAdapter(
     webhookUrl: config.webhookUrl,
     ...(config.activationWebhookUrl ? { activationWebhookUrl: config.activationWebhookUrl } : {}),
     ...(config.workWebhookUrl ? { workWebhookUrl: config.workWebhookUrl } : {}),
+    capabilitiesWebhookUrl: siblingWebhookUrl(config.webhookUrl, 'employee-capabilities'),
+    fastReadWebhookUrl: siblingWebhookUrl(config.webhookUrl, 'employee-fast-read'),
     resolveHmacSecret,
     ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}),
     ...(options.now ? { now: options.now } : {}),
