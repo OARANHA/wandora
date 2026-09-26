@@ -61,7 +61,10 @@ jobs:
           grep -n -B 8 -A 8 "summaries: PluginIssueSummariesClient" .paperclip/packages/plugins/sdk/src/types.ts || true
           grep -n -B 8 -A 14 "export interface PluginContext" .paperclip/packages/plugins/sdk/src/types.ts || true
           grep -n -B 6 -A 10 "approvals: PluginApprovalsClient" .paperclip/packages/plugins/sdk/src/types.ts || true
-          git -C .paperclip apply --check "$patch_file"
+          echo "=== literal types.ts slices ==="
+          sed -n '1615,1630l' .paperclip/packages/plugins/sdk/src/types.ts
+          sed -n '2176,2187l' .paperclip/packages/plugins/sdk/src/types.ts
+          git -C .paperclip apply --verbose --check "$patch_file"
           git -C .paperclip apply "$patch_file"
           git -C .paperclip diff --check
 
