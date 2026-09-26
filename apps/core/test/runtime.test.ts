@@ -214,12 +214,14 @@ test('WANDORA CORE PRIVATE RUNTIME V1', async (t) => {
     const bridgeSecret = join(dir, 'paperclip-bridge-secret');
     const fastReadSecret = join(dir, 'fast-read-secret');
     const typesafeKey = join(dir, 'typesafe-jev-api-key');
+    const modelKey = join(dir, 'model-api-key');
     try {
       await writeFile(dbSecret, 'synthetic-test-password\n', { mode: 0o600 });
       await writeFile(gatewaySecret, 'gateway-test-secret-0123456789abcdef0123456789abcdef\n', { mode: 0o600 });
       await writeFile(bridgeSecret, 'paperclip-bridge-secret-0123456789abcdef0123456789abcdef\n', { mode: 0o600 });
       await writeFile(fastReadSecret, 'fast-read-intent-secret-0123456789abcdef0123456789abcdef\n', { mode: 0o600 });
       await writeFile(typesafeKey, 'typesafe-test-key-0123456789abcdef0123456789abcdef\n', { mode: 0o600 });
+      await writeFile(modelKey, 'mistral-test-key-0123456789abcdef0123456789abcdef\n', { mode: 0o600 });
 
       await assert.rejects(
         loadRuntimeConfig({
@@ -265,6 +267,7 @@ test('WANDORA CORE PRIVATE RUNTIME V1', async (t) => {
       assert.equal(config.semanticFastRead?.provider, 'typesafe-jev');
       assert.equal(config.semanticFastRead?.apiKey.startsWith('typesafe-test-key-'), true);
       assert.equal(config.semanticFastRead?.timeoutMs, 3_000);
+      assert.equal(config.semanticFastRead?.selector, undefined);
       assert.deepEqual(config.semanticFastRead?.policy, {
         minimumConfidence: 0.9,
         maximumNeedsMoreContext: 0.1,
@@ -278,6 +281,43 @@ test('WANDORA CORE PRIVATE RUNTIME V1', async (t) => {
           WANDORA_TYPESAFE_JEV_TIMEOUT_MS: '100',
         }),
         /WANDORA_TYPESAFE_JEV_TIMEOUT_MS must be an integer between 250 and 10000/,
+      );
+
+      await assert.rejects(
+        loadRuntimeConfig({
+          WANDORA_CORE_MODE: 'database',
+          WANDORA_CORE_DB_PASSWORD_FILE: dbSecret,
+          WANDORA_SEMANTIC_SELECTOR_ENABLED: 'true',
+          WANDORA_MODEL_API_KEY_FILE: modelKey,
+        }),
+        /Semantic Selector requires Semantic Fast Read to be enabled/,
+      );
+
+      await assert.rejects(
+        loadRuntimeConfig({
+          ...enabledEnv,
+          WANDORA_SEMANTIC_SELECTOR_ENABLED: 'true',
+        }),
+        /WANDORA_MODEL_API_KEY_FILE is required in database mode/,
+      );
+
+      const selectorConfig = await loadRuntimeConfig({
+        ...enabledEnv,
+        WANDORA_SEMANTIC_SELECTOR_ENABLED: 'true',
+        WANDORA_MODEL_API_KEY_FILE: modelKey,
+      });
+      assert.equal(selectorConfig.semanticFastRead?.selector?.provider, 'mastra-mistral');
+      assert.equal(selectorConfig.semanticFastRead?.selector?.apiKey.startsWith('mistral-test-key-'), true);
+      assert.equal(selectorConfig.semanticFastRead?.selector?.timeoutMs, 3_000);
+
+      await assert.rejects(
+        loadRuntimeConfig({
+          ...enabledEnv,
+          WANDORA_SEMANTIC_SELECTOR_ENABLED: 'true',
+          WANDORA_MODEL_API_KEY_FILE: modelKey,
+          WANDORA_SEMANTIC_SELECTOR_TIMEOUT_MS: '100',
+        }),
+        /WANDORA_SEMANTIC_SELECTOR_TIMEOUT_MS must be an integer between 250 and 10000/,
       );
     } finally {
       await rm(dir, { recursive: true, force: true });

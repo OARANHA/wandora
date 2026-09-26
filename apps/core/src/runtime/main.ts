@@ -14,6 +14,7 @@ import { createPaperclipExecutionHandler } from '../paperclip-execution/handler.
 import { createPaperclipRunIdentityClient } from '../paperclip-execution/paperclip-run-identity.js';
 import { createPaperclipToolGatewayReadBridge } from '../paperclip-execution/tool-gateway-read-bridge.js';
 import { PaperclipExecutionService } from '../paperclip-execution/service.js';
+import { MastraMistralSemanticSelectorProvider } from '../semantic-routing/mastra-mistral-selector-provider.js';
 import { TypeSafeJevSemanticDecisionProvider } from '../semantic-routing/typesafe-jev-provider.js';
 import { BrasilApiCompanyRegistryLookup } from '../supervision/company-registry-lookup.js';
 import { HumanCompanyProfileService } from '../supervision/human-company-profile.js';
@@ -148,6 +149,14 @@ const humanDigitalEmployeeFastReadService = organizationAdapterService
         apiKey: config.semanticFastRead.apiKey,
         timeoutMs: config.semanticFastRead.timeoutMs,
       }),
+      ...(config.semanticFastRead.selector
+        ? {
+            semanticSelectorProvider: new MastraMistralSemanticSelectorProvider({
+              apiKey: config.semanticFastRead.selector.apiKey,
+              timeoutMs: config.semanticFastRead.selector.timeoutMs,
+            }),
+          }
+        : {}),
       policy: config.semanticFastRead.policy,
       intentSecret: config.fastReadExecution.intentSecret,
       recordLatency: fastReadLatencyRecorder,

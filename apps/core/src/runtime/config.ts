@@ -78,11 +78,18 @@ export type RuntimeFastReadExecutionConfig = {
   intentSecret: string;
 };
 
+export type RuntimeSemanticSelectorConfig = {
+  provider: 'mastra-mistral';
+  apiKey: string;
+  timeoutMs: number;
+};
+
 export type RuntimeSemanticFastReadConfig = {
   provider: 'typesafe-jev';
   apiKey: string;
   timeoutMs: number;
   policy: SemanticRoutePolicy;
+  selector?: RuntimeSemanticSelectorConfig;
 };
 
 export type RuntimeConfig = {
@@ -129,6 +136,22 @@ const required = (env: NodeJS.ProcessEnv, name: string): string => {
   const value = env[name]?.trim();
   if (!value) throw new Error(`${name} is required in database mode.`);
   return value;
+};
+
+const loadPlatformModelApiKey = async (env: NodeJS.ProcessEnv): Promise<string> => {
+  const apiKeyFile = required(env, 'WANDORA_MODEL_API_KEY_FILE');
+  if (!isAbsolute(apiKeyFile)) {
+    throw new Error('WANDORA_MODEL_API_KEY_FILE must be an absolute mounted file.');
+  }
+  const apiKeyStat = await stat(apiKeyFile).catch(() => null);
+  if (!apiKeyStat?.isFile()) {
+    throw new Error('WANDORA_MODEL_API_KEY_FILE must be a mounted regular file.');
+  }
+  const apiKey = (await readFile(apiKeyFile, 'utf8')).trim();
+  if (apiKey.length < 20 || apiKey.length > 4096 || /\s/.test(apiKey)) {
+    throw new Error('Wandora model API key is invalid.');
+  }
+  return apiKey;
 };
 
 const parseEnabled = (value: string | undefined, name: string): boolean => {
@@ -301,6 +324,10 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     env.WANDORA_SEMANTIC_FAST_READ_ENABLED,
     'WANDORA_SEMANTIC_FAST_READ_ENABLED',
   );
+  const semanticSelectorEnabled = parseEnabled(
+    env.WANDORA_SEMANTIC_SELECTOR_ENABLED,
+    'WANDORA_SEMANTIC_SELECTOR_ENABLED',
+  );
   const agentRuntimeMode = parseAgentRuntimeMode(env.WANDORA_AGENT_RUNTIME_MODE);
 
   if (mode === 'standby') {
@@ -337,6 +364,9 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     if (semanticFastReadEnabled) {
       throw new Error('Semantic Fast Read cannot be enabled while Wandora Core is in standby mode.');
     }
+    if (semanticSelectorEnabled) {
+      throw new Error('Semantic Selector cannot be enabled while Wandora Core is in standby mode.');
+    }
     if (agentRuntimeMode !== 'disabled') {
       throw new Error('Agent Runtime cannot be enabled while Wandora Core is in standby mode.');
     }
@@ -372,6 +402,9 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
   }
   if (semanticFastReadEnabled && !fastReadExecutionEnabled) {
     throw new Error('Semantic Fast Read requires Fast Read Execution to be enabled.');
+  }
+  if (semanticSelectorEnabled && !semanticFastReadEnabled) {
+    throw new Error('Semantic Selector requires Semantic Fast Read to be enabled.');
   }
   if (humanDigitalEmployeeActivationEnabled && !humanApiEnabled) {
     throw new Error('Human Digital Employee Activation requires the Human API to be enabled.');
@@ -423,18 +456,7 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     if (baseUrl !== 'https://api.mistral.ai/v1') {
       throw new Error('WANDORA_MODEL_BASE_URL must be the approved Mistral API base URL.');
     }
-    const apiKeyFile = required(env, 'WANDORA_MODEL_API_KEY_FILE');
-    if (!isAbsolute(apiKeyFile)) {
-      throw new Error('WANDORA_MODEL_API_KEY_FILE must be an absolute mounted file.');
-    }
-    const apiKeyStat = await stat(apiKeyFile).catch(() => null);
-    if (!apiKeyStat?.isFile()) {
-      throw new Error('WANDORA_MODEL_API_KEY_FILE must be a mounted regular file.');
-    }
-    const apiKey = (await readFile(apiKeyFile, 'utf8')).trim();
-    if (apiKey.length < 20 || apiKey.length > 4096 || /\s/.test(apiKey)) {
-      throw new Error('Wandora model API key is invalid.');
-    }
+    const apiKey = await loadPlatformModelApiKey(env);
 
     agentRuntime = {
       mode: 'mastra-supervised-model',
@@ -581,6 +603,21 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
         maximumNeedsHumanReview: 0.1,
         minimumNeedsDataOrToolLookup: 0.9,
       },
+      ...(semanticSelectorEnabled
+        ? {
+            selector: {
+              provider: 'mastra-mistral' as const,
+              apiKey: await loadPlatformModelApiKey(env),
+              timeoutMs: parseBoundedInteger(
+                env.WANDORA_SEMANTIC_SELECTOR_TIMEOUT_MS,
+                3_000,
+                250,
+                10_000,
+                'WANDORA_SEMANTIC_SELECTOR_TIMEOUT_MS',
+              ),
+            },
+          }
+        : {}),
     };
   }
 
