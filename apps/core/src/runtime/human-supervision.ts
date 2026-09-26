@@ -1,5 +1,10 @@
 import { HumanAuthError } from '../human-auth/es256-jwks.js';
 import {
+  emitFastReadLatency,
+  fastReadMonotonicNow,
+  type FastReadLatencyRecorder,
+} from '../latency.js';
+import {
   CompanyRegistryLookupError,
   type CompanyRegistryLookupService,
 } from '../supervision/company-registry-lookup.js';
@@ -368,6 +373,10 @@ export function createHumanSupervisionHandler(
   starterWorkforceReadinessService?: HumanStarterWorkforceReadinessService,
   employeeDevelopmentService?: HumanDigitalEmployeeDevelopmentService,
   digitalEmployeeFastReadService?: HumanDigitalEmployeeFastReadService,
+  fastReadLatency?: {
+    recorder: FastReadLatencyRecorder;
+    monotonicNow?: () => number;
+  },
 ) {
   return async (request: HumanSupervisionRequest): Promise<HumanSupervisionResponse> => {
     try {
@@ -605,14 +614,48 @@ export function createHumanSupervisionHandler(
         const fastReadRequest = parseDigitalEmployeeFastReadRequest(request.rawBody);
         if (!fastReadRequest) return { status: 400, body: { error: 'invalid-fast-read-request' } };
 
-        const session = await service.getSessionContext(request.authorization);
-        const result = await digitalEmployeeFastReadService.execute({
-          organizationId,
-          actorUserId: session.user.id,
-          employeeId,
-          request: fastReadRequest.request,
-        });
-        return { status: 200, body: { fastRead: result } };
+        const monotonicNow = fastReadLatency?.monotonicNow ?? fastReadMonotonicNow;
+        const responseStartedAt = monotonicNow();
+        const authStartedAt = monotonicNow();
+        let session;
+        try {
+          session = await service.getSessionContext(request.authorization);
+          emitFastReadLatency(fastReadLatency?.recorder, {
+            stage: 'core.auth_context',
+            durationMs: monotonicNow() - authStartedAt,
+            outcome: 'success',
+          });
+        } catch (error) {
+          emitFastReadLatency(fastReadLatency?.recorder, {
+            stage: 'core.auth_context',
+            durationMs: monotonicNow() - authStartedAt,
+            outcome: 'error',
+          });
+          throw error;
+        }
+
+        try {
+          const result = await digitalEmployeeFastReadService.execute({
+            organizationId,
+            actorUserId: session.user.id,
+            employeeId,
+            request: fastReadRequest.request,
+          });
+          emitFastReadLatency(fastReadLatency?.recorder, {
+            stage: 'core.response',
+            durationMs: monotonicNow() - responseStartedAt,
+            outcome: result.kind === 'completed' ? 'success' : 'fallback',
+            ...(result.kind === 'completed' ? { correlationId: result.correlationId } : {}),
+          });
+          return { status: 200, body: { fastRead: result } };
+        } catch (error) {
+          emitFastReadLatency(fastReadLatency?.recorder, {
+            stage: 'core.response',
+            durationMs: monotonicNow() - responseStartedAt,
+            outcome: 'error',
+          });
+          throw error;
+        }
       }
 
       const employeeWorkMatch = DIGITAL_EMPLOYEE_WORK_PATH_RE.exec(request.pathname);

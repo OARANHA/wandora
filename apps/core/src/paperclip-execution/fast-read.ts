@@ -1,4 +1,9 @@
 import { createHash } from 'node:crypto';
+import {
+  emitFastReadLatency,
+  fastReadMonotonicNow,
+  type FastReadLatencyRecorder,
+} from '../latency.js';
 import type { RuntimeReadTool } from '../agent-runtime/task-runtime.js';
 import { DeterministicReadExecutor } from '../agent-runtime/deterministic-read.js';
 import {
@@ -29,6 +34,8 @@ export class PaperclipFastReadExecutionService {
       paperclipRunId: string;
     }) => Promise<RuntimeReadTool[]>;
     capabilityAdapter: RuntimeReadCapabilityAdapter;
+    recordLatency?: FastReadLatencyRecorder;
+    monotonicNow?: () => number;
   }) {}
 
   async execute(input: {
@@ -62,20 +69,57 @@ export class PaperclipFastReadExecutionService {
       ...(input.nowMs === undefined ? {} : { nowMs: input.nowMs }),
     });
 
-    const tools = await this.deps.readToolBridge({
-      runToken: input.runToken,
-      paperclipRunId: input.paperclipRunId,
-    });
+    const monotonicNow = this.deps.monotonicNow ?? fastReadMonotonicNow;
+    const toolGatewayStartedAt = monotonicNow();
+    let tools: RuntimeReadTool[];
+    try {
+      tools = await this.deps.readToolBridge({
+        runToken: input.runToken,
+        paperclipRunId: input.paperclipRunId,
+      });
+      emitFastReadLatency(this.deps.recordLatency, {
+        stage: 'paperclip.tool_gateway',
+        durationMs: monotonicNow() - toolGatewayStartedAt,
+        outcome: 'success',
+        correlationId: input.correlationId,
+      });
+    } catch (error) {
+      emitFastReadLatency(this.deps.recordLatency, {
+        stage: 'paperclip.tool_gateway',
+        durationMs: monotonicNow() - toolGatewayStartedAt,
+        outcome: 'error',
+        correlationId: input.correlationId,
+      });
+      throw error;
+    }
     const bindings = createDeterministicReadBindingsFromAuthorizedTools(
       tools,
       this.deps.capabilityAdapter,
     );
 
-    const result = await this.executor.executeAuthorizedIntent({
-      request: input.request,
-      capability: intent.capability,
-      bindings,
-    });
+    const readToolStartedAt = monotonicNow();
+    let result;
+    try {
+      result = await this.executor.executeAuthorizedIntent({
+        request: input.request,
+        capability: intent.capability,
+        bindings,
+      });
+      emitFastReadLatency(this.deps.recordLatency, {
+        stage: 'paperclip.read_tool',
+        durationMs: monotonicNow() - readToolStartedAt,
+        outcome: result.kind === 'completed' ? 'success' : 'fallback',
+        correlationId: input.correlationId,
+      });
+    } catch (error) {
+      emitFastReadLatency(this.deps.recordLatency, {
+        stage: 'paperclip.read_tool',
+        durationMs: monotonicNow() - readToolStartedAt,
+        outcome: 'error',
+        correlationId: input.correlationId,
+      });
+      throw error;
+    }
     if (result.kind !== 'completed') {
       throw new Error('fast_read_capability_unavailable');
     }

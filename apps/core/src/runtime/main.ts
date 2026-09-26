@@ -7,6 +7,7 @@ import { PostgresAnaRepository } from '../ana/postgres-repository.js';
 import { AnaSupervisedIngressService } from '../ana/supervised-ingress.js';
 import { createVendaErpFastReadCapabilityAdapter } from '../business-system/vendaerp-fast-read.js';
 import { Es256JwksHumanTokenVerifier } from '../human-auth/es256-jwks.js';
+import { createConsoleFastReadLatencyRecorder } from '../latency.js';
 import { createPrivateGatewayClient } from '../messaging/private-gateway.js';
 import { PaperclipFastReadExecutionService } from '../paperclip-execution/fast-read.js';
 import { createPaperclipExecutionHandler } from '../paperclip-execution/handler.js';
@@ -32,6 +33,7 @@ import { createRuntimeReadinessChecker } from './readiness.js';
 import { createRuntimeServer } from './server.js';
 
 const config = await loadRuntimeConfig();
+const fastReadLatencyRecorder = createConsoleFastReadLatencyRecorder();
 
 const pool = config.mode === 'database' && config.database
   ? new Pool({
@@ -108,6 +110,7 @@ const paperclipFastReadService = paperclipExecutionService
       bindingResolver: paperclipExecutionService,
       readToolBridge: paperclipReadToolBridge,
       capabilityAdapter: createVendaErpFastReadCapabilityAdapter(),
+      recordLatency: fastReadLatencyRecorder,
     })
   : undefined;
 
@@ -147,6 +150,7 @@ const humanDigitalEmployeeFastReadService = organizationAdapterService
       }),
       policy: config.semanticFastRead.policy,
       intentSecret: config.fastReadExecution.intentSecret,
+      recordLatency: fastReadLatencyRecorder,
     })
   : undefined;
 
@@ -229,6 +233,7 @@ const handleHumanSupervision = humanReadService
       humanStarterWorkforceReadinessService,
       humanDigitalEmployeeDevelopmentService,
       humanDigitalEmployeeFastReadService,
+      { recorder: fastReadLatencyRecorder },
     )
   : undefined;
 

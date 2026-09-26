@@ -1,5 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import {
+  emitFastReadLatency,
+  fastReadMonotonicNow,
+  type FastReadLatencyRecorder,
+  type FastReadLatencyStage,
+} from '../latency.js';
+import {
   gateDeterministicRead,
   type BusinessCapability,
   type SemanticDecisionProvider,
@@ -59,6 +65,8 @@ export class HumanDigitalEmployeeFastReadService {
     intentSecret: string;
     createCorrelationId?: () => string;
     now?: () => number;
+    recordLatency?: FastReadLatencyRecorder;
+    monotonicNow?: () => number;
   }) {}
 
   async execute(input: {
@@ -68,22 +76,54 @@ export class HumanDigitalEmployeeFastReadService {
     request: string;
   }): Promise<HumanFastReadAdmissionResult> {
     const request = boundedRequest(input.request);
-    const availableCapabilities = await this.deps.bridge.getAvailableCapabilities({
-      organizationId: input.organizationId,
-      actorUserId: input.actorUserId,
-      employeeId: input.employeeId,
-    });
+    const correlationId = (this.deps.createCorrelationId ?? randomUUID)();
+    const monotonicNow = this.deps.monotonicNow ?? fastReadMonotonicNow;
+    const timed = async <T>(
+      stage: FastReadLatencyStage,
+      operation: () => Promise<T>,
+    ): Promise<T> => {
+      const startedAt = monotonicNow();
+      try {
+        const value = await operation();
+        emitFastReadLatency(this.deps.recordLatency, {
+          stage,
+          durationMs: monotonicNow() - startedAt,
+          outcome: 'success',
+          correlationId,
+        });
+        return value;
+      } catch (error) {
+        emitFastReadLatency(this.deps.recordLatency, {
+          stage,
+          durationMs: monotonicNow() - startedAt,
+          outcome: 'error',
+          correlationId,
+        });
+        throw error;
+      }
+    };
 
-    const decision = await this.deps.semanticDecisionProvider.decide({
-      organizationId: input.organizationId,
-      employeeId: input.employeeId,
-      request,
-      availableCapabilities,
-    });
+    const availableCapabilities = await timed(
+      'core.capability_projection',
+      () => this.deps.bridge.getAvailableCapabilities({
+        organizationId: input.organizationId,
+        actorUserId: input.actorUserId,
+        employeeId: input.employeeId,
+      }),
+    );
+
+    const decision = await timed(
+      'jev.semantic_decision',
+      () => this.deps.semanticDecisionProvider.decide({
+        organizationId: input.organizationId,
+        employeeId: input.employeeId,
+        request,
+        availableCapabilities,
+      }),
+    );
     const gate = gateDeterministicRead(decision, availableCapabilities, this.deps.policy);
     if (!gate.allowed) return { kind: 'fallback', reason: gate.reason };
 
-    const correlationId = (this.deps.createCorrelationId ?? randomUUID)();
     const nowMs = (this.deps.now ?? Date.now)();
     const intentToken = issueFastReadIntent({
       secret: this.deps.intentSecret,
@@ -97,14 +137,17 @@ export class HumanDigitalEmployeeFastReadService {
       nowMs,
     });
 
-    const result = await this.deps.bridge.dispatchFastRead({
-      organizationId: input.organizationId,
-      actorUserId: input.actorUserId,
-      employeeId: input.employeeId,
-      correlationId,
-      intentToken,
-      request,
-    });
+    const result = await timed(
+      'paperclip.dispatch_roundtrip',
+      () => this.deps.bridge.dispatchFastRead({
+        organizationId: input.organizationId,
+        actorUserId: input.actorUserId,
+        employeeId: input.employeeId,
+        correlationId,
+        intentToken,
+        request,
+      }),
+    );
     requireDeterministicResult(result);
 
     return {

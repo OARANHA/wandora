@@ -227,3 +227,50 @@ test('deterministic provider result with nonzero token usage is rejected', async
     request: 'Liste produtos.',
   }), /invalid-fast-read-result/);
 });
+
+
+test('Fast Read latency evidence is stage-bounded, correlated, and contains no customer or tenant payload', async () => {
+  const events: Record<string, unknown>[] = [];
+  const ticks = [10, 14, 20, 27, 30, 41];
+  const service = new HumanDigitalEmployeeFastReadService({
+    intentSecret: SECRET,
+    policy: POLICY,
+    createCorrelationId: () => CORRELATION,
+    now: () => 1_790_000_000_000,
+    monotonicNow: () => ticks.shift() ?? 41,
+    recordLatency: (event) => events.push(event),
+    semanticDecisionProvider: { async decide() { return deterministicDecision(); } },
+    bridge: {
+      async getAvailableCapabilities() {
+        return ['business.products.search'];
+      },
+      async dispatchFastRead() {
+        return {
+          model: 'wandora-deterministic-read-v1',
+          summary: 'Resposta segura.',
+          usage: { inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, totalTokens: 0 },
+        };
+      },
+    },
+  });
+
+  await service.execute({
+    organizationId: ORG,
+    actorUserId: USER,
+    employeeId: EMPLOYEE,
+    request: 'segredo-do-cliente-nao-pode-ir-para-log',
+  });
+
+  assert.deepEqual(events.map((event) => event.stage), [
+    'core.capability_projection',
+    'jev.semantic_decision',
+    'paperclip.dispatch_roundtrip',
+  ]);
+  assert.deepEqual(events.map((event) => event.durationMs), [4, 7, 11]);
+  assert.equal(events.every((event) => event.correlationId === CORRELATION), true);
+  assert.equal(events.every((event) => event.outcome === 'success'), true);
+  const serialized = JSON.stringify(events);
+  for (const forbidden of [ORG, EMPLOYEE, USER, SECRET, 'segredo-do-cliente']) {
+    assert.equal(serialized.includes(forbidden), false);
+  }
+});
