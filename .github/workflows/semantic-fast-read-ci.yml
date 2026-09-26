@@ -51,6 +51,7 @@ jobs:
           repository: paperclipai/paperclip
           ref: d554c4789ed3930f8a53ac9fdf6503b3187097da
           path: .paperclip
+          persist-credentials: false
 
       - name: Apply qualified Paperclip Semantic Fast Read provider patches
         shell: bash
@@ -64,7 +65,6 @@ jobs:
           git -C .paperclip apply --check "$webhook_patch"
           git -C .paperclip apply "$webhook_patch"
           git -C .paperclip diff --check
-          persist-credentials: false
 
       - name: Set up Node 24.21.0
         uses: actions/setup-node@v4
