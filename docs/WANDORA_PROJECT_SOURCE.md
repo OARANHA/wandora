@@ -1,3 +1,48 @@
+## Reconciled checkpoint — ADR 0295 Semantic Fast Read Production Convergence Artifact + Activation Contract V1
+
+ADR 0295 is **QUALIFIED / 17/17 PR WORKFLOWS GREEN / PRODUCTION EXECUTION NO-GO / NO PRODUCTION EFFECT**.
+
+The qualified implementation head before this documentation checkpoint is PR #369 head `2029c7b3f49ad984510f30c4e19cff3e52c877ff`, with GitHub pull-request merge ref `fd4d9373d3d7e4d9eca202abdf075fde8feeb8d0` over unchanged `main` `8d6a65f519de5c1c49607314b49968af608c7164`. The distinction is intentional: GitHub `pull_request` workflows test the merge ref and expose it as `GITHUB_SHA`, so candidate provenance records `fd4d9373...` while the branch source head is `2029c7b3...`.
+
+The slice closed the two deployment-evidence gaps from ADR 0294 without touching production:
+
+- exact Paperclip `v2026.916.1` + three already-qualified Fast Read patches candidate built from upstream source `d554c4789ed3930f8a53ac9fdf6503b3187097da`;
+- authenticated/private disposable startup proven through `/api/health status=ok`;
+- exact image bytes frozen as Docker archive + zstd with provenance/checksums;
+- Core fail-closed `compose.semantic-fast-read.yaml` added with Fast Read execution, Semantic Fast Read, Semantic Selector and Human Send explicitly OFF;
+- future custody separated into `compose.semantic-fast-read-custody.yaml` with only read-only TypeSafe/System One API-key + distinct Fast Read intent-HMAC mounts;
+- the semantic selector still reuses the existing platform Mistral mount from `compose.agent-runtime-model.yaml`; no selector-specific Mistral secret exists.
+
+Exact Paperclip candidate evidence:
+
+- workflow run `36266133475`, job `108471033723` GREEN;
+- Docker config digest `sha256:e05f1604cf863d316b4ce5db189782f022fa4fd17544f9724747e11223d4356c`;
+- raw Docker archive SHA-256 `a91f96feff4dbb8161d182e350fc3e2ca1d0d6784cfa9179fdaa20a200e7ce97`;
+- zstd artifact SHA-256 `69c962c79375446060af12fc9240385987790f4d11a3528cbb7a6ad745e98269`;
+- provenance SHA-256 `00dc1f18c30e610107498531c80a09d9296b5295008a72c8ab2208a212af01e9`;
+- Actions artifact ID `10914008713`, retention 7 days;
+- patch SHA-256s: host-read `fc0ce000...`, run-result `8972f5d5...`, synchronous-webhook `94d8d520...`.
+
+The upstream Paperclip Dockerfile intentionally resolves floating CLI `@latest` dependencies. Therefore the promotion unit is the **exact archived candidate bytes**, not a later rebuild from nominally identical source. If artifact `10914008713` expires or cannot be proven byte-identical, a new candidate + new preflight is mandatory.
+
+Core Candidate precedence was re-proven after Core CI + Semantic Fast Read CI:
+
+- post-gates job `108472053317` GREEN;
+- merge-ref/source `fd4d9373...`;
+- image `wandora/core:organization-adapter-candidate-fd4d9373d3d7`;
+- archive SHA-256 `520207bf5caff9530104e600ec9522bcaeeca2d05264da367ed254627188cc55`;
+- OCI config `sha256:391fbe85384dc0d8ab4420776c1d70d9851da382473b15a72b599f2d9c42c8d1`;
+- OCI manifest `sha256:c567405a6cbdce247de15b4b08aa01ff1fc4b665b79d4473ff570b477efdd538`;
+- Actions artifact ID `10914002165`.
+
+Validation history is preserved rather than hidden: Semantic Fast Read CI had one disposable PostgreSQL `pg_isready` first-attempt flake and passed one retry without code change. The first Paperclip candidate smoke exposed a verifier bug because HTTP 200 can carry `status=starting`; commit `2029c7b3...` corrected the smoke to wait for `status=ok`, after which the candidate closed GREEN.
+
+Permanent authority remains unchanged: Wandora owns semantics/product/effect authorization; Paperclip owns workforce/run/tools/secrets/audit; TypeSafe/System One, Mastra/Mistral and VendaERP remain replaceable provider implementations. No lifecycle, registry, run mirror, cache, retry engine, secret manager or provider implementation was internalized.
+
+Production remains explicitly **NO-GO**. Before any production mutation a new reviewed slice must qualify the real TypeSafe/System One credential, create/qualify the distinct Fast Read intent HMAC, metadata-only re-attest the existing Mistral secret, verify the exact Paperclip artifact is still available and digest-identical, capture fresh rollback evidence, prove Task Drain/quiescence, reconcile live state and pass a new adversarial review.
+
+Canonical detail: `docs/decisions/0295-semantic-fast-read-production-convergence-artifact-activation-contract-v1.md`.
+
 ## Reconciled checkpoint — ADR 0294 Production Convergence Preflight V2
 
 ADR 0294 is **PREFLIGHT COMPLETE / NEXT PRODUCTION EXECUTION NO-GO / NO PRODUCTION EFFECT**.
