@@ -54,7 +54,7 @@ export type OrganizationAdapterFastReadBridge = {
 };
 
 export type OrganizationAdapterProvider = {
-  readonly provider: 'paperclip';
+  readonly provider: string;
   reconcileCatalogEmployee(input: {
     providerCompanyRef: string;
     catalogKey: string;
