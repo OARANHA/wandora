@@ -1,0 +1,241 @@
+name: Paperclip Fast Read Production Candidate CI
+
+on:
+  pull_request:
+    paths:
+      - 'integrations/paperclip/fast-read-convergence-v1/**'
+      - 'integrations/paperclip/patches/v2026.916.1-host-operational-read-v1.patch'
+      - 'integrations/paperclip/patches/v2026.916.1-fast-read-run-result-read-v1.patch'
+      - 'integrations/paperclip/patches/v2026.916.1-synchronous-webhook-response-v1.patch'
+      - 'integrations/paperclip/plugins/organization-adapter-v1/compatibility.json'
+      - 'integrations/paperclip/plugins/organization-adapter-v1/package.json'
+      - '.github/workflows/paperclip-fast-read-production-candidate-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: paperclip-fast-read-production-candidate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - name: Checkout Wandora
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Checkout exact Paperclip v2026.916.1 source
+        uses: actions/checkout@v4
+        with:
+          repository: paperclipai/paperclip
+          ref: d554c4789ed3930f8a53ac9fdf6503b3187097da
+          path: .paperclip
+          persist-credentials: false
+
+      - name: Compose already-qualified Fast Read provider deltas
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x integrations/paperclip/fast-read-convergence-v1/compose-qualified-patches.sh
+          integrations/paperclip/fast-read-convergence-v1/compose-qualified-patches.sh "$GITHUB_WORKSPACE/.paperclip"
+
+      - name: Prove Organization Adapter compatibility pin
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const compatibility = JSON.parse(fs.readFileSync(
+            'integrations/paperclip/plugins/organization-adapter-v1/compatibility.json',
+            'utf8',
+          ));
+          const pkg = JSON.parse(fs.readFileSync(
+            'integrations/paperclip/plugins/organization-adapter-v1/package.json',
+            'utf8',
+          ));
+          if (compatibility.paperclipImage !== 'wandora/paperclip:v2026.916.1') {
+            throw new Error('Organization Adapter Paperclip image pin changed');
+          }
+          if (compatibility.paperclipSourceCommit !== 'd554c4789ed3930f8a53ac9fdf6503b3187097da') {
+            throw new Error('Organization Adapter Paperclip source pin changed');
+          }
+          if (pkg.version !== '0.5.0') {
+            throw new Error('Organization Adapter candidate version changed');
+          }
+          console.log('PAPERCLIP_FAST_READ_CANDIDATE_COMPATIBILITY_PIN_OK');
+          NODE
+
+      - name: Build exact local Paperclip candidate
+        id: build
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_sha='d554c4789ed3930f8a53ac9fdf6503b3187097da'
+          test "$(git -C .paperclip rev-parse HEAD)" = "$source_sha"
+          image='wandora/paperclip:v2026.916.1'
+
+          docker build             --target production             --build-arg PAPERCLIP_BUILD_VERSION=v2026.916.1             --build-arg PAPERCLIP_BUILD_COMMIT="$source_sha"             --label io.wandora.candidate.contract=paperclip-fast-read-production-candidate-v1             --label io.wandora.candidate.wandora-source-sha="$GITHUB_SHA"             --label io.wandora.candidate.paperclip-source-sha="$source_sha"             -t "$image"             .paperclip
+
+          image_id="$(docker image inspect --format '{{.Id}}' "$image")"
+          test -n "$image_id"
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+          echo "image_id=$image_id" >> "$GITHUB_OUTPUT"
+
+      - name: Disposable authenticated/private startup proof
+        id: startup
+        shell: bash
+        env:
+          IMAGE: ${{ steps.build.outputs.image }}
+        run: |
+          set -euo pipefail
+          name="paperclip-fast-read-candidate-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          volume="$name-home"
+          cleanup() {
+            docker rm -f "$name" >/dev/null 2>&1 || true
+            docker volume rm "$volume" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          better_auth_secret="$(openssl rand -hex 32)"
+          agent_jwt_secret="$(openssl rand -hex 32)"
+          tool_action_secret="$(openssl rand -hex 32)"
+
+          docker volume create "$volume" >/dev/null
+          docker run -d             --name "$name"             -e PAPERCLIP_DEPLOYMENT_MODE=authenticated             -e PAPERCLIP_DEPLOYMENT_EXPOSURE=private             -e PAPERCLIP_PUBLIC_URL=http://127.0.0.1:3100             -e PAPERCLIP_ALLOWED_HOSTNAMES=127.0.0.1,localhost,wandora-paperclip             -e PAPERCLIP_TELEMETRY_DISABLED=1             -e DO_NOT_TRACK=1             -e BETTER_AUTH_SECRET="$better_auth_secret"             -e PAPERCLIP_AGENT_JWT_SECRET="$agent_jwt_secret"             -e PAPERCLIP_TOOL_ACTION_SIGNING_SECRET="$tool_action_secret"             -v "$volume:/paperclip"             "$IMAGE" >/dev/null
+
+          health=''
+          for _ in $(seq 1 120); do
+            if health="$(docker exec "$name" curl -fsS http://127.0.0.1:3100/api/health 2>/dev/null)"; then
+              break
+            fi
+            if ! docker inspect --format '{{.State.Running}}' "$name" | grep -qx true; then
+              docker logs "$name" >&2 || true
+              exit 1
+            fi
+            sleep 1
+          done
+
+          test -n "$health"
+          HEALTH_JSON="$health" node <<'NODE'
+          const health = JSON.parse(process.env.HEALTH_JSON);
+          if (health.status !== 'ok') {
+            throw new Error('unexpected Paperclip health payload');
+          }
+          NODE
+
+          docker exec "$name" test -f /app/server/dist/build-info.json
+          docker exec "$name" grep -Fq 'd554c4789ed3930f8a53ac9fdf6503b3187097da' /app/server/dist/build-info.json
+          echo 'startup_result=ok' >> "$GITHUB_OUTPUT"
+          echo 'PAPERCLIP_FAST_READ_CANDIDATE_DISPOSABLE_STARTUP_OK'
+
+      - name: Freeze exact candidate bytes and provenance
+        id: artifact
+        shell: bash
+        env:
+          IMAGE: ${{ steps.build.outputs.image }}
+          IMAGE_ID: ${{ steps.build.outputs.image_id }}
+          STARTUP_RESULT: ${{ steps.startup.outputs.startup_result }}
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/paperclip-fast-read-production-candidate"
+          mkdir -p "$out"
+
+          docker builder prune -af >/dev/null || true
+          docker save -o "$out/paperclip-v2026.916.1-fast-read-candidate.tar" "$IMAGE"
+          archive_sha="$(sha256sum "$out/paperclip-v2026.916.1-fast-read-candidate.tar" | awk '{print $1}')"
+          zstd -T0 -3 --rm             "$out/paperclip-v2026.916.1-fast-read-candidate.tar"             -o "$out/paperclip-v2026.916.1-fast-read-candidate.tar.zst"
+          compressed_sha="$(sha256sum "$out/paperclip-v2026.916.1-fast-read-candidate.tar.zst" | awk '{print $1}')"
+
+          host_patch='integrations/paperclip/patches/v2026.916.1-host-operational-read-v1.patch'
+          run_patch='integrations/paperclip/patches/v2026.916.1-fast-read-run-result-read-v1.patch'
+          webhook_patch='integrations/paperclip/patches/v2026.916.1-synchronous-webhook-response-v1.patch'
+          host_patch_sha="$(sha256sum "$host_patch" | awk '{print $1}')"
+          run_patch_sha="$(sha256sum "$run_patch" | awk '{print $1}')"
+          webhook_patch_sha="$(sha256sum "$webhook_patch" | awk '{print $1}')"
+
+          export CANDIDATE_OUT="$out"
+          export ARCHIVE_SHA="$archive_sha"
+          export COMPRESSED_SHA="$compressed_sha"
+          export HOST_PATCH_SHA="$host_patch_sha"
+          export RUN_PATCH_SHA="$run_patch_sha"
+          export WEBHOOK_PATCH_SHA="$webhook_patch_sha"
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const data = {
+            contract: 'paperclip-fast-read-production-candidate-v1',
+            artifactFormat: 'docker-archive+zstd',
+            imageTag: process.env.IMAGE,
+            dockerConfigDigest: process.env.IMAGE_ID,
+            ociManifestDigest: null,
+            ociManifestDigestReason:
+              'not-applicable: this candidate is a Docker image archive and is not pushed to an OCI registry in this code/CI-only slice',
+            paperclipSourceCommit: 'd554c4789ed3930f8a53ac9fdf6503b3187097da',
+            paperclipBuildVersion: 'v2026.916.1',
+            wandoraSourceSha: process.env.GITHUB_SHA,
+            patches: [
+              {
+                path: 'integrations/paperclip/patches/v2026.916.1-host-operational-read-v1.patch',
+                sha256: process.env.HOST_PATCH_SHA,
+              },
+              {
+                path: 'integrations/paperclip/patches/v2026.916.1-fast-read-run-result-read-v1.patch',
+                sha256: process.env.RUN_PATCH_SHA,
+              },
+              {
+                path: 'integrations/paperclip/patches/v2026.916.1-synchronous-webhook-response-v1.patch',
+                sha256: process.env.WEBHOOK_PATCH_SHA,
+              },
+            ],
+            dockerArchiveSha256: process.env.ARCHIVE_SHA,
+            compressedArtifactSha256: process.env.COMPRESSED_SHA,
+            build: {
+              runner: 'github-hosted ubuntu-24.04',
+              dockerTarget: 'production',
+              paperclipBuildCommitArg: 'd554c4789ed3930f8a53ac9fdf6503b3187097da',
+              paperclipBuildVersionArg: 'v2026.916.1',
+            },
+            startup: {
+              result: process.env.STARTUP_RESULT,
+              endpoint: 'http://127.0.0.1:3100/api/health',
+              expectedStatus: 'ok',
+              deploymentMode: 'authenticated',
+              deploymentExposure: 'private',
+              credentials: 'synthetic-ci-only',
+            },
+            rebuildPolicy:
+              'The exact archived image bytes are the candidate. A later source rebuild is a new candidate because the upstream Dockerfile intentionally resolves floating CLI @latest packages.',
+          };
+          fs.writeFileSync(
+            path.join(process.env.CANDIDATE_OUT, 'provenance.json'),
+            JSON.stringify(data, null, 2) + '\n',
+          );
+          NODE
+
+          provenance_sha="$(sha256sum "$out/provenance.json" | awk '{print $1}')"
+          {
+            printf '%s  %s\n' "$compressed_sha" 'paperclip-v2026.916.1-fast-read-candidate.tar.zst'
+            printf '%s  %s\n' "$provenance_sha" 'provenance.json'
+          } > "$out/SHA256SUMS"
+
+          cat "$out/provenance.json"
+          cat "$out/SHA256SUMS"
+          echo "candidate_archive_sha256=$compressed_sha" >> "$GITHUB_OUTPUT"
+          echo "PAPERCLIP_FAST_READ_PRODUCTION_CANDIDATE_V1_OK"
+
+      - name: Upload exact candidate bytes and provenance
+        uses: actions/upload-artifact@v4
+        with:
+          name: paperclip-v2026.916.1-fast-read-production-candidate-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/paperclip-fast-read-production-candidate/paperclip-v2026.916.1-fast-read-candidate.tar.zst
+            ${{ runner.temp }}/paperclip-fast-read-production-candidate/provenance.json
+            ${{ runner.temp }}/paperclip-fast-read-production-candidate/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
