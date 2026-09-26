@@ -1,3 +1,27 @@
+## Reconciled checkpoint — ADR 0286 Core Organization Adapter Fast Read Bridge V1
+
+ADR 0286 is **QUALIFIED / CORE BRIDGE GREEN / PRODUCTION ACTIVATION NO-GO / NO PRODUCTION EFFECT**.
+
+PR #369 qualified the Core-side provider-neutral Fast Read bridge at exact code head `3ca3800adf9fdef3478d43b1fb6044e02e073aab`. All **16/16 PR workflows were GREEN** on that head. Semantic Fast Read CI run `36228374257` and Core CI run `36228374350` were GREEN; Core Candidate Artifact run `36228374169` was rerun after both gates and finished GREEN on attempt 2.
+
+The Wandora-owned `OrganizationAdapterFastReadBridge` now exposes only BusinessCapability projection and bounded deterministic Fast Read dispatch/result using Wandora organization/actor/employee/correlation semantics. It does not expose Paperclip, agentRuns, webhook URLs, Tool Gateway internals, credentials or provider run identity. `OrganizationAdapterProvider` no longer hard-codes the Paperclip literal in its provider discriminator.
+
+`OrganizationAdapterService` reuses the existing owner/admin checks plus exact active employee/hire/control-plane/provider binding validation. No table, migration, registry, lifecycle/run state, result mirror or provider-state cache was introduced.
+
+The Paperclip implementation remains isolated in `paperclip-provider.ts` / runtime adapter. It reuses the existing company-scoped HMAC secret custody and timeout/fail-closed behavior, calls the already-qualified signed `employee-capabilities` and `employee-fast-read` webhooks, validates provider run correlation internally and strips `runId` before returning the Wandora-owned result. The runtime adapter derives the sibling webhook URLs from the already-configured canonical plugin route, so no new environment variable or credential custody exists.
+
+`HumanDigitalEmployeeFastReadService` now consumes this canonical bridge for both capability projection and dispatch. `SemanticDecisionProvider` remains injected and deliberately has no concrete JEV/TypeSafe runtime implementation.
+
+Tests prove valid projection, unavailable capability fail-closed, deterministic bounded result, explicit rejection of nonzero token usage, malformed provider payload fail-closed, provider/transport uncertainty fail-closed, single dispatch with no Core retry/second execution, and no Paperclip run identity crossing the Wandora result contract.
+
+A first Core CI run exposed a stale production-activation rehearsal assertion still pinned to Organization Adapter 0.4.0. ADR 0285 had already qualified 0.5.0. The rehearsal was reconciled to 0.5.0 without weakening its production-disabled/custody/activation/work guardrails; the next exact head passed.
+
+Pre-execution adversarial review routed the narrow bridge as `proceed_fast`; post-validation JEV completion review marked the objective `complete` with probability 0.96.
+
+Production remains unchanged and **NO-GO** for candidate activation. No production deploy/upgrade, compose change, migration, VPS mutation, VendaERP/provider/model real call, customer work or outbound was executed.
+
+Next gap: **qualify the concrete `SemanticDecisionProvider` boundary under ADR 0276** — exact JEV/TypeSafe network surface, authentication, credential custody, tenant isolation, timeout/fail-closed semantics and bounded provider-neutral decision response. Only after that boundary is GREEN may Core instantiate the already-injected provider and wire customer Fast Read admission at runtime.
+
 ## Reconciled checkpoint — ADR 0285 Semantic Fast Read Organization Adapter Candidate V1
 
 ADR 0285 is **CANDIDATE QUALIFIED / PRODUCTION ACTIVATION NO-GO / NO PRODUCTION EFFECT**.
