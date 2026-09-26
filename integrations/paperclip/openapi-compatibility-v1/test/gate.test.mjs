@@ -46,20 +46,66 @@ test('every operation has an existing code or canonical-document evidence anchor
   assert.ok(!manifest.operations.some((op) => /\/agents\/\{id\}\/(pause|resume|wakeup)/.test(op.path)));
 });
 
-test('provider package and CI pins cannot advance while silently retaining an old baseline', () => {
-  for (const file of ['adapters/wandora-mastra-v1/compatibility.json', 'plugins/organization-adapter-v1/compatibility.json']) {
-    const pin = json(resolve(root, '..', file));
-    assert.equal(pin.paperclipSourceCommit, manifest.sourceCommit, `${file}: qualify candidate OpenAPI before changing provider pin`);
-    assert.equal(pin.paperclipImage, `wandora/paperclip:${manifest.providerVersion}`);
-  }
-  for (const file of ['paperclip-mastra-adapter-ci.yml', 'organization-adapter-plugin-ci.yml']) {
-    const workflow = readFileSync(join(repo, '.github/workflows', file), 'utf8');
-    assert.equal(workflow.match(/ref: ([a-f0-9]{40})/)?.[1], manifest.sourceCommit, `${file}: source pin differs from qualified OpenAPI`);
-  }
+test('production pins remain canonical while explicitly qualified provider candidates may advance independently', () => {
+  const productionPin = json(resolve(root, '..', 'adapters/wandora-mastra-v1/compatibility.json'));
+  assert.equal(productionPin.paperclipSourceCommit, manifest.sourceCommit);
+  assert.equal(productionPin.paperclipImage, `wandora/paperclip:${manifest.providerVersion}`);
+
+  const productionWorkflow = readFileSync(join(repo, '.github/workflows/paperclip-mastra-adapter-ci.yml'), 'utf8');
+  assert.equal(
+    productionWorkflow.match(/ref: ([a-f0-9]{40})/)?.[1],
+    manifest.sourceCommit,
+    'paperclip-mastra-adapter-ci.yml: production source pin differs from canonical OpenAPI',
+  );
+
   const compose = readFileSync(join(repo, 'infra/stacks/paperclip/compose.yaml'), 'utf8');
   assert.equal(compose.match(/image: wandora\/paperclip:(\S+)/)?.[1], manifest.providerVersion);
   assert.equal(compose.match(/PAPERCLIP_BUILD_COMMIT: (\S+)/)?.[1], manifest.sourceCommit);
   assert.equal(compose.match(/PAPERCLIP_BUILD_VERSION: (\S+)/)?.[1], manifest.providerVersion);
+
+  const candidate = json(join(
+    root,
+    'candidates/organization-adapter-v0.5.0-paperclip-v2026.916.1.json',
+  ));
+  assert.equal(candidate.schemaVersion, 1);
+  assert.equal(candidate.kind, 'organization_adapter_candidate');
+  assert.equal(candidate.productionEffect, false);
+  assert.equal(candidate.productionPromotionAuthorized, false);
+  assert.equal(candidate.openApi.pathCount, 685);
+  assert.equal(
+    candidate.openApi.sha256,
+    json(join(root, 'fixtures/provenance.json')).upstreamSha256,
+    'candidate OpenAPI must remain byte-identical to the qualified production HTTP contract',
+  );
+  assert.equal(candidate.openApi.sourceEvidenceIdenticalTo, manifest.providerVersion);
+
+  const candidatePackage = json(resolve(root, '..', 'plugins/organization-adapter-v1/package.json'));
+  const candidatePin = json(resolve(root, '..', 'plugins/organization-adapter-v1/compatibility.json'));
+  assert.equal(candidatePackage.version, candidate.pluginVersion);
+  assert.equal(candidatePin.paperclipSourceCommit, candidate.paperclipSourceCommit);
+  assert.equal(candidatePin.paperclipImage, `wandora/paperclip:${candidate.providerVersion}`);
+
+  const candidateWorkflow = readFileSync(join(repo, '.github/workflows/organization-adapter-plugin-ci.yml'), 'utf8');
+  assert.equal(
+    candidateWorkflow.match(/ref: ([a-f0-9]{40})/)?.[1],
+    candidate.paperclipSourceCommit,
+    'organization-adapter-plugin-ci.yml: candidate source pin differs from qualified candidate record',
+  );
+
+  const expectedDeltas = new Set([
+    'integrations/paperclip/patches/v2026.916.1-host-operational-read-v1.patch',
+    'integrations/paperclip/patches/v2026.916.1-fast-read-run-result-read-v1.patch',
+    'integrations/paperclip/patches/v2026.916.1-synchronous-webhook-response-v1.patch',
+  ]);
+  assert.deepEqual(
+    new Set(candidate.providerDeltas.map((entry) => entry.path)),
+    expectedDeltas,
+  );
+  for (const entry of candidate.providerDeltas) {
+    assert.ok(readFileSync(join(repo, entry.path), 'utf8').length > 0, `missing candidate delta ${entry.path}`);
+    assert.equal(typeof entry.qualificationWorkflow, 'string');
+    assert.ok(entry.qualificationWorkflow.length > 0);
+  }
 });
 
 test('incomplete raw upstream is a coverage FAIL, never silently enriched or accepted', () => {
