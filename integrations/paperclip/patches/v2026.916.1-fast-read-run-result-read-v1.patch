@@ -88,7 +88,7 @@ diff --git a/packages/plugins/sdk/src/types.ts b/packages/plugins/sdk/src/types.
 +  HeartbeatRunStatus,
  } from "@paperclipai/shared";
  import type { PluginPerformActionContext } from "./protocol.js";
-@@ -1539,4 +1540,37 @@ export interface PluginIssuesClient {
+@@ -1621,4 +1622,37 @@ export interface PluginIssuesClient {
    summaries: PluginIssueSummariesClient;
  }
 +
@@ -126,7 +126,7 @@ diff --git a/packages/plugins/sdk/src/types.ts b/packages/plugins/sdk/src/types.
 +
  /**
   * `ctx.approvals` — read and decide company approvals.
-@@ -2065,5 +2099,8 @@ export interface PluginContext {
+@@ -2180,5 +2214,8 @@ export interface PluginContext {
    /** Read and decide company approvals. Requires `approvals.read` / `approvals.respond`. */
    approvals: PluginApprovalsClient;
  
