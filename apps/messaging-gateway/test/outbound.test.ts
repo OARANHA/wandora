@@ -215,3 +215,38 @@ test('pending duplicate and saturated unresolved cache never trigger another pro
     result: { accepted: true, requestId: command.idempotencyKey },
   });
 });
+
+
+test('real outbound provider call emits safe latency without message, recipient, credentials or provider ids', async () => {
+  const events: Record<string, unknown>[] = [];
+  const ticks = [100, 112];
+  const sender = createEvolutionOutboundSender({
+    connectionId,
+    instanceName: 'evo-internal-secret',
+    baseUrl: 'http://wandora-evolution:8080',
+    apiKey: 'private-evolution-api-key',
+    monotonicNow: () => ticks.shift() ?? 112,
+    recordLatency: (event) => events.push(event),
+    fetchImpl: async () => new Response('{}', { status: 200 }),
+  });
+
+  await sender(command);
+  assert.deepEqual(events, [{
+    event: 'wandora.latency.v1',
+    path: 'whatsapp-messaging-v1',
+    stage: 'whatsapp.outbound',
+    durationMs: 12,
+    outcome: 'success',
+  }]);
+  const serialized = JSON.stringify(events);
+  for (const forbidden of [
+    connectionId,
+    command.recipient,
+    command.text,
+    command.idempotencyKey,
+    'evo-internal-secret',
+    'private-evolution-api-key',
+  ]) {
+    assert.equal(serialized.includes(forbidden), false);
+  }
+});

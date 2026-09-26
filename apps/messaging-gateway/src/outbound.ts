@@ -1,4 +1,9 @@
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
+import {
+  emitMessagingLatency,
+  messagingMonotonicNow,
+  type MessagingLatencyRecorder,
+} from './latency.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const RECIPIENT_RE = /^\+?[1-9]\d{7,14}$/;
@@ -101,6 +106,8 @@ export type EvolutionOutboundSenderDeps = {
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
   maxRememberedAttempts?: number;
+  recordLatency?: MessagingLatencyRecorder;
+  monotonicNow?: () => number;
 };
 
 export function createEvolutionOutboundSender(deps: EvolutionOutboundSenderDeps) {
@@ -141,6 +148,8 @@ export function createEvolutionOutboundSender(deps: EvolutionOutboundSenderDeps)
     attempts.set(command.idempotencyKey, { state: 'pending', fingerprint: commandFingerprint });
     const number = command.recipient.replace(/\D/g, '');
 
+    const monotonicNow = deps.monotonicNow ?? messagingMonotonicNow;
+    const outboundStartedAt = monotonicNow();
     let response: Response;
     try {
       response = await fetchImpl(
@@ -157,15 +166,30 @@ export function createEvolutionOutboundSender(deps: EvolutionOutboundSenderDeps)
         },
       );
     } catch {
+      emitMessagingLatency(deps.recordLatency, {
+        stage: 'whatsapp.outbound',
+        durationMs: monotonicNow() - outboundStartedAt,
+        outcome: 'error',
+      });
       attempts.set(command.idempotencyKey, { state: 'uncertain', fingerprint: commandFingerprint });
       return { kind: 'delivery-uncertain' };
     }
 
     if (!response.ok) {
+      emitMessagingLatency(deps.recordLatency, {
+        stage: 'whatsapp.outbound',
+        durationMs: monotonicNow() - outboundStartedAt,
+        outcome: 'error',
+      });
       attempts.set(command.idempotencyKey, { state: 'uncertain', fingerprint: commandFingerprint });
       return { kind: 'delivery-uncertain' };
     }
 
+    emitMessagingLatency(deps.recordLatency, {
+      stage: 'whatsapp.outbound',
+      durationMs: monotonicNow() - outboundStartedAt,
+      outcome: 'success',
+    });
     const result: OutboundTextAccepted = {
       accepted: true,
       requestId: command.idempotencyKey,
