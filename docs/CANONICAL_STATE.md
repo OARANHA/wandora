@@ -1,3 +1,55 @@
+## Reconciled checkpoint — ADR 0289 Fast Read Measurable Convergence + Latency Instrumentation V1
+
+ADR 0289 is **QUALIFIED / 16/16 PR WORKFLOWS GREEN / PRODUCTION ACTIVATION NO-GO / NO PRODUCTION EFFECT**.
+
+PR #369 exact code head `fafa3f8e8697a510aa51f3d464c50aff89c6b44c` completed **16/16 PR workflows GREEN**. Core CI, Semantic Fast Read CI, Organization Adapter Plugin CI, Messaging Gateway CI and VendaERP Read-Only MCP CI all passed. Core Candidate Artifact run `36236475808` completed GREEN on **attempt 2**, after the primary code gates, preserving the accepted candidate-order discipline.
+
+The slice adds only bounded, structured, ephemeral `wandora.latency.v1` evidence at existing boundaries. It introduces no table, migration, tracing backend, durable trace store, lifecycle/run mirror, Connection/grant/secret/tool registry, retry subsystem or orchestration layer.
+
+Measured boundaries now include:
+
+- WhatsApp Gateway inbound;
+- Core Fast Read auth/context;
+- Core capability projection;
+- TypeSafe/JEV semantic decision;
+- Core -> Paperclip Fast Read dispatch round-trip;
+- Paperclip issue-less dispatch;
+- Paperclip terminal-result observation;
+- Paperclip Tool Gateway session/tool listing;
+- exact read-tool execution;
+- VendaERP read-only tool/API call;
+- Core Fast Read response;
+- WhatsApp outbound provider call.
+
+The evidence is intentionally split across the two real current paths. WhatsApp supervised ingress does **not** yet invoke Semantic Fast Read, so ADR 0289 does not claim a synthetic end-to-end WhatsApp Fast Read trace. Existing correlation identifiers are reused where already authoritative; no new global trace-id contract is introduced.
+
+Tests prove latency events contain no customer text, phone, credentials, provider payload, organization/employee/provider IDs or provider-private run IDs. Observability recorder failures are swallowed so instrumentation cannot alter business/execution semantics. VendaERP latency is emitted on stderr so MCP stdout remains JSON-RPC only.
+
+Capability Authority / Reuse Gate remains intact. Wandora owns semantic timing evidence and the product-facing BusinessCapability contract; Paperclip remains operational authority for run lifecycle, dispatch, Connections, grants, secrets, Tool Gateway authorization/execution and terminal result. VendaERP remains the concrete provider implementation only.
+
+Second adversarial review selected the bounded structured-event approach, reuse of existing correlation IDs, and explicit separate-path evidence with probability 1.00 for the key architectural choices. No production/VPS/Compose/secret/real provider/outbound effect occurred; `WANDORA_SEMANTIC_FAST_READ_ENABLED` remains disabled by default.
+
+### Next minimum preflight toward the ProRevest commercial objective
+
+Do **not** wire WhatsApp to Fast Read yet.
+
+REAL NOW proves one semantic gap that would make the demo misleading:
+
+- Paperclip capability projection already maps `vendaerp_search_products` to both `business.products.search` and `business.products.price`;
+- Core's `createVendaErpFastReadCapabilityAdapter()` still maps only `business.products.search`;
+- the Core adapter currently calls `vendaerp_search_products` with only `{ pageSize: 5, skip: 0 }`, so it does not identify the product requested by the customer;
+- therefore a natural request such as “quanto custa a tinta X?” is not yet safely bound to an exact product selector even though the provider response may contain `salePrice`.
+
+The next preflight is therefore:
+
+**ProRevest Product Selector + Price Fast Read V1 — CODE ONLY / NO PRODUCTION EFFECT.**
+
+It must qualify the smallest Wandora-owned provider-neutral product selector/query contract, bind that selector into the existing signed Fast Read authorization, reuse the already-authorized `vendaerp_search_products` tool for both `business.products.search` and `business.products.price`, and prove in disposable/read-only evidence that the intended product and real price are returned without a second provider call, ERP write, new registry or durable query state.
+
+Only after that selector/price attestation is GREEN should the next slice wire authenticated WhatsApp ingress to Semantic Fast Read and then the existing bounded outbound path.
+
+Quote V1 remains subsequent: item identity + unit price from qualified read-only facts, quantities from customer request/context, deterministic arithmetic only, no ERP quote/order write.
+
 ## Reconciled checkpoint — ADR 0288 SemanticDecisionProvider Runtime Wiring V1
 
 ADR 0288 is **QUALIFIED / RUNTIME WIRING GREEN / PRODUCTION ACTIVATION NO-GO / NO PRODUCTION EFFECT**.
