@@ -43,10 +43,10 @@ assert_static_activation_contract() {
   grep -Fq 'pluginContext.agents.managed.reconcile(catalogKey, companyId)' "$PLUGIN_WORKER"
 
   # The live adapter remains the production baseline until a separately reviewed
-  # promotion. The v0.4.x candidate keeps activation, work and fast-read as different webhook
+  # promotion. The v0.5.x candidate keeps activation, work, capability projection and fast-read as different webhook
   # contracts. Activation itself must still use only managed read + resume and
   # must never create an issue, wake a run or invoke an agent.
-  grep -Fq "version: '0.4.0'" "$CANDIDATE_PLUGIN_ROOT/src/manifest.ts"
+  grep -Fq "version: '0.5.0'" "$CANDIDATE_PLUGIN_ROOT/src/manifest.ts"
   grep -Fq "'agents.resume'" "$CANDIDATE_PLUGIN_ROOT/src/manifest.ts"
   grep -Fq "'issues.create'" "$CANDIDATE_PLUGIN_ROOT/src/manifest.ts"
   grep -Fq "'issues.wakeup'" "$CANDIDATE_PLUGIN_ROOT/src/manifest.ts"
