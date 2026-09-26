@@ -132,19 +132,22 @@ export class MastraMistralSemanticSelectorProvider implements SemanticSelectorPr
       throw new Error('mastra_mistral_selector_unsupported_capability');
     }
 
-    const signal = AbortSignal.timeout(this.timeoutMs);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
     let rawDecision: unknown;
     try {
       rawDecision = await this.generateImpl({
         request,
         capability: input.capability,
-        signal,
+        signal: controller.signal,
       });
     } catch {
-      if (signal.aborted) {
+      if (controller.signal.aborted) {
         throw new Error('mastra_mistral_selector_timeout');
       }
       throw new Error('mastra_mistral_selector_unavailable');
+    } finally {
+      clearTimeout(timeout);
     }
 
     const parsed = selectorDecisionSchema.safeParse(rawDecision);
