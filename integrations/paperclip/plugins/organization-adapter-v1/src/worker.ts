@@ -90,6 +90,8 @@ const plugin = definePlugin({
         correlationId: request.correlationId,
         intentToken: request.intentToken,
         request: request.request,
+      }, {
+        recordLatency: (event) => pluginContext?.logger.info(JSON.stringify(event)),
       });
       const response: PluginWebhookResponse = {
         runId: result.runId,

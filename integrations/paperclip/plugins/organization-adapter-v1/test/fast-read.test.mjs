@@ -213,3 +213,26 @@ test('missing or malformed terminal result fails closed', async () => {
   );
   assert.equal(h.invokeCalls(), 1);
 });
+
+
+test('latency events split Paperclip dispatch from terminal-result wait without provider ids or customer text', async () => {
+  const h = harness({ runReads: [succeededRun] });
+  const events = [];
+  const ticks = [10, 13, 20, 29];
+  await waitForManagedCatalogEmployeeFastReadResult(h.ctx, input, {
+    maxAttempts: 1,
+    pollIntervalMs: 0,
+    monotonicNow: () => ticks.shift() ?? 29,
+    recordLatency: (event) => events.push(event),
+  });
+
+  assert.deepEqual(events.map((event) => [event.stage, event.durationMs, event.outcome]), [
+    ['paperclip.dispatch', 3, 'success'],
+    ['paperclip.terminal_result', 9, 'success'],
+  ]);
+  assert.equal(events.every((event) => event.correlationId === CORRELATION), true);
+  const serialized = JSON.stringify(events);
+  for (const forbidden of [COMPANY, AGENT, RUN, input.request, input.intentToken]) {
+    assert.equal(serialized.includes(forbidden), false);
+  }
+});
