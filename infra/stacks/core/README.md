@@ -171,3 +171,20 @@ Task Drain/quiescence.
 Health/readiness must remain provider-effect free: selecting the gates-OFF overlay
 does not call TypeSafe/System One, Mistral, VendaERP or any customer system.
 
+
+
+## Production credential custody checkpoint — ADR 0297
+
+ADR 0297 completes the **host custody only** prerequisite for future Semantic/Fast Read activation.
+
+Current canonical host files:
+
+- TypeSafe/System One Core credential: `/opt/wandora/stacks/core/secrets/wandora_typesafe_jev_api_key`;
+- Fast Read intent `wfri1` HMAC: `/opt/wandora/stacks/core/secrets/wandora_fast_read_intent_hmac`;
+- existing platform Mistral credential: `/opt/wandora/stacks/core/secrets/wandora_model_provider_api_key`.
+
+Fresh metadata-only verification recorded all three as regular files owned by `wandora-admin:wandora-ops` with mode `0640`. The TypeSafe Core copy was verified equivalent to the qualified System One provider credential and the `wfri1` material was verified distinct from the current Core and Organization Adapter protected secret sets without emitting values.
+
+**Custody completion is not activation.** The running Core still does not include `compose.semantic-fast-read.yaml` or `compose.semantic-fast-read-custody.yaml`; the two new files are not mounted into the live container and all Semantic/Fast Read/Human Send effects remain off.
+
+Do not use this checkpoint as pre-mutation authorization. The next production slice must freshly capture rollback readiness, Task Drain/quiescence, exact live component state and exact candidate-artifact identity immediately adjacent to the proposed mutation.
