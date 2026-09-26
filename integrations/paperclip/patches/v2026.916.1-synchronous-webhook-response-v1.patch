@@ -1,7 +1,7 @@
 diff --git a/packages/plugins/sdk/src/define-plugin.ts b/packages/plugins/sdk/src/define-plugin.ts
 --- a/packages/plugins/sdk/src/define-plugin.ts
 +++ b/packages/plugins/sdk/src/define-plugin.ts
-@@ -156,6 +156,19 @@ export interface PluginWebhookInput {
+@@ -156,6 +156,20 @@ export interface PluginWebhookInput {
    requestId: string;
  }
  
@@ -84,7 +84,7 @@ diff --git a/packages/plugins/sdk/src/protocol.ts b/packages/plugins/sdk/src/pro
 diff --git a/packages/plugins/sdk/src/worker-rpc-host.ts b/packages/plugins/sdk/src/worker-rpc-host.ts
 --- a/packages/plugins/sdk/src/worker-rpc-host.ts
 +++ b/packages/plugins/sdk/src/worker-rpc-host.ts
-@@ -48,12 +48,15 @@ import type {
+@@ -48,12 +48,16 @@ import type {
    SuggestTasksInteraction,
  } from "@paperclipai/shared";
  
@@ -102,7 +102,7 @@ diff --git a/packages/plugins/sdk/src/worker-rpc-host.ts b/packages/plugins/sdk/
  } from "./define-plugin.js";
  import type {
    PluginContext,
-@@ -1886,6 +1889,35 @@ export function startWorkerRpcHost(options: WorkerRpcHostOptions): WorkerRpcHost
+@@ -1886,7 +1889,36 @@ export function startWorkerRpcHost(options: WorkerRpcHostOptions): WorkerRpcHost
      await handler(params.job);
    }
  
@@ -157,7 +157,7 @@ diff --git a/packages/plugins/sdk/tests/worker-rpc-host-webhook.test.ts b/packag
 new file mode 100644
 --- /dev/null
 +++ b/packages/plugins/sdk/tests/worker-rpc-host-webhook.test.ts
-@@ -0,0 +1,151 @@
+@@ -0,0 +1,157 @@
 +import { createInterface } from "node:readline";
 +import { PassThrough } from "node:stream";
 +
@@ -341,7 +341,7 @@ diff --git a/server/src/routes/plugins.ts b/server/src/routes/plugins.ts
     * Errors:
     * - 404 if plugin not found or endpointKey not declared
     * - 400 if plugin is not in ready state or lacks webhooks.receive capability
-@@ -2774,13 +2779,22 @@ export function pluginRoutes(
+@@ -2774,14 +2779,23 @@ export function pluginRoutes(
  
      // Step 7: Dispatch to the worker via handleWebhook RPC
      try {
@@ -382,7 +382,7 @@ diff --git a/server/src/__tests__/plugin-webhook-response-routes.test.ts b/serve
 new file mode 100644
 --- /dev/null
 +++ b/server/src/__tests__/plugin-webhook-response-routes.test.ts
-@@ -0,0 +1,157 @@
+@@ -0,0 +1,148 @@
 +import express from "express";
 +import request from "supertest";
 +import { beforeEach, describe, expect, it, vi } from "vitest";
