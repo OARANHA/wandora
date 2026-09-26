@@ -1,0 +1,475 @@
+diff --git a/packages/plugins/sdk/src/host-client-factory.ts b/packages/plugins/sdk/src/host-client-factory.ts
+--- a/packages/plugins/sdk/src/host-client-factory.ts
++++ b/packages/plugins/sdk/src/host-client-factory.ts
+@@ -117,6 +117,13 @@ export interface HostServices {
+     deleteFile(params: WorkerToHostMethods["localFolders.deleteFile"][0]): Promise<WorkerToHostMethods["localFolders.deleteFile"][1]>;
+   };
+ 
++  /** Provides bounded read-only heartbeat-run results to capability-gated plugins. */
++  agentRuns: {
++    get(
++      params: WorkerToHostMethods["agentRuns.get"][0],
++    ): Promise<WorkerToHostMethods["agentRuns.get"][1]>;
++  };
++
+   /** Provides `state.get`, `state.set`, `state.delete`. */
+   state: {
+     get(params: WorkerToHostMethods["state.get"][0]): Promise<WorkerToHostMethods["state.get"][1]>;
+@@ -389,6 +396,9 @@ const METHOD_CAPABILITY_MAP: Record<WorkerToHostMethodName, PluginCapability | n
+   "localFolders.writeTextAtomic": "local.folders",
+   "localFolders.deleteFile": "local.folders",
+ 
++  // Agent run read
++  "agentRuns.get": "agent.runs.read",
++
+   // State
+   "state.get": "plugin.state.read",
+   "state.set": "plugin.state.write",
+@@ -761,6 +771,11 @@ export function createHostClientHandlers(
+       return services.entities.list(params);
+     }),
+ 
++    // Agent run read
++    "agentRuns.get": gated("agentRuns.get", async (params) => {
++      return services.agentRuns.get(params);
++    }),
++
+     // Events
+     "events.emit": gated("events.emit", async (params) => {
+       return services.events.emit(params);
+diff --git a/packages/plugins/sdk/src/protocol.ts b/packages/plugins/sdk/src/protocol.ts
+--- a/packages/plugins/sdk/src/protocol.ts
++++ b/packages/plugins/sdk/src/protocol.ts
+@@ -74,6 +74,7 @@ import type {
+   PluginAuthorizationDecisionResult,
+   PluginAuthorizationPolicyRecord,
+   PluginAuthorizationPolicySummary,
++  PluginAgentRunReadResult,
+ } from "./types.js";
+ import type {
+   PluginHealthDiagnostics,
+@@ -1630,6 +1631,12 @@ export interface WorkerToHostMethods {
+     }>,
+   ];
+ 
++  // Agent run read
++  "agentRuns.get": [
++    params: { companyId: string; agentId: string; runId: string },
++    result: PluginAgentRunReadResult | null,
++  ];
++
+   // Events
+   "events.emit": [
+     params: { name: string; companyId: string; payload: unknown },
+diff --git a/packages/plugins/sdk/src/testing.ts b/packages/plugins/sdk/src/testing.ts
+--- a/packages/plugins/sdk/src/testing.ts
++++ b/packages/plugins/sdk/src/testing.ts
+@@ -921,6 +921,13 @@ export function createTestHarness(options: TestHarnessOptions): TestHarness {
+         activity.push(entry);
+       },
+     },
++    agentRuns: {
++      async get(input) {
++        requireCapability(manifest, capabilitySet, "agent.runs.read");
++        requireCompanyId(input.companyId);
++        return null;
++      },
++    },
+     state: {
+       async get(input) {
+         requireCapability(manifest, capabilitySet, "plugin.state.read");
+diff --git a/packages/plugins/sdk/src/types.ts b/packages/plugins/sdk/src/types.ts
+--- a/packages/plugins/sdk/src/types.ts
++++ b/packages/plugins/sdk/src/types.ts
+@@ -53,6 +53,7 @@ import type {
+   PrincipalPermissionGrant,
+   PrincipalType,
+   EnvSecretRefBinding,
++  HeartbeatRunStatus,
+ } from "@paperclipai/shared";
+ import type { PluginPerformActionContext } from "./protocol.js";
+@@ -1540,6 +1541,39 @@ export interface PluginIssuesClient {
+   summaries: PluginIssueSummariesClient;
+ }
++
++export interface PluginAgentRunReadResult {
++  runId: string;
++  status: HeartbeatRunStatus;
++  result: {
++    model: string;
++    summary: string;
++    executionId: string | null;
++  } | null;
++  usage: {
++    inputTokens: number;
++    outputTokens: number;
++    cachedInputTokens: number;
++    totalTokens: number;
++  } | null;
++}
++
++/**
++ * `ctx.agentRuns` — read one bounded Paperclip-owned agent run result.
++ *
++ * Requires `agent.runs.read`. The host independently enforces invocation
++ * company scope and verifies that the requested run belongs to both the
++ * requested company and agent. No log, process, session, error-detail,
++ * provider metadata, or mutation surface crosses this client.
++ */
++export interface PluginAgentRunsClient {
++  get(input: {
++    companyId: string;
++    agentId: string;
++    runId: string;
++  }): Promise<PluginAgentRunReadResult | null>;
++}
++
+ /**
+  * `ctx.approvals` — read and decide company approvals.
+@@ -2065,6 +2099,9 @@ export interface PluginContext {
+   /** Read and decide company approvals. Requires `approvals.read` / `approvals.respond`. */
+   approvals: PluginApprovalsClient;
+ 
++  /** Read bounded agent-run results. Requires `agent.runs.read`. */
++  agentRuns: PluginAgentRunsClient;
++
+   /** Read and manage agents. Requires `agents.read` for reads; `agents.pause` / `agents.resume` / `agents.invoke` for write ops. */
+   agents: PluginAgentsClient;
+diff --git a/packages/plugins/sdk/src/worker-rpc-host.ts b/packages/plugins/sdk/src/worker-rpc-host.ts
+--- a/packages/plugins/sdk/src/worker-rpc-host.ts
++++ b/packages/plugins/sdk/src/worker-rpc-host.ts
+@@ -522,6 +522,12 @@ export function startWorkerRpcHost(options: WorkerRpcHostOptions): WorkerRpcHost
+         },
+       },
+ 
++      agentRuns: {
++        async get(input) {
++          return callHost("agentRuns.get", input);
++        },
++      },
++
+       events: {
+         on(
+           name: string,
+diff --git a/packages/plugins/sdk/tests/host-client-factory.test.ts b/packages/plugins/sdk/tests/host-client-factory.test.ts
+--- a/packages/plugins/sdk/tests/host-client-factory.test.ts
++++ b/packages/plugins/sdk/tests/host-client-factory.test.ts
+@@ -123,6 +123,50 @@ describe("createHostClientHandlers invocation company scope", () => {
+     ).resolves.toEqual([{ id: "company-a", name: "Company A" }]);
+   });
+ 
++  it("gates agent-run reads behind the explicit capability and host company scope", async () => {
++    const get = vi.fn(async () => null);
++    const services = {
++      agentRuns: { get },
++    } as unknown as HostServices;
++
++    const denied = createHostClientHandlers({
++      pluginId: "paperclip.test",
++      capabilities: [],
++      services,
++    });
++    const context = { invocationScope: { companyId: "company-a" } };
++
++    await expect(
++      denied["agentRuns.get"](
++        { companyId: "company-a", agentId: "agent-a", runId: "run-a" },
++        context,
++      ),
++    ).rejects.toBeInstanceOf(CapabilityDeniedError);
++    expect(get).not.toHaveBeenCalled();
++
++    const allowed = createHostClientHandlers({
++      pluginId: "paperclip.test",
++      capabilities: ["agent.runs.read"],
++      services,
++    });
++
++    await expect(
++      allowed["agentRuns.get"](
++        { companyId: "company-b", agentId: "agent-b", runId: "run-b" },
++        context,
++      ),
++    ).rejects.toBeInstanceOf(InvocationScopeDeniedError);
++    expect(get).not.toHaveBeenCalled();
++
++    await expect(
++      allowed["agentRuns.get"](
++        { companyId: "company-a", agentId: "agent-a", runId: "run-a" },
++        context,
++      ),
++    ).resolves.toBeNull();
++    expect(get).toHaveBeenCalledWith({
++      companyId: "company-a",
++      agentId: "agent-a",
++      runId: "run-a",
++    });
++  });
++
+   it("rejects company-scope store access for a different company", async () => {
+     const stateGet = vi.fn(async () => null);
+     const services = {
+diff --git a/packages/shared/src/constants.ts b/packages/shared/src/constants.ts
+--- a/packages/shared/src/constants.ts
++++ b/packages/shared/src/constants.ts
+@@ -1251,6 +1251,9 @@ export const PLUGIN_CAPABILITIES = [
+   "authorization.grants.read",
+   "authorization.policies.read",
+   "authorization.audit.read",
++  // Read one host-sanitized company+agent-scoped heartbeat run result.
++  // This exposes no Board credential, logs, process/session state or mutation.
++  "agent.runs.read",
+   "database.namespace.read",
+   // Data Write
+   "issues.create",
+diff --git a/server/src/__tests__/plugin-agent-run-read.test.ts b/server/src/__tests__/plugin-agent-run-read.test.ts
+new file mode 100644
+--- /dev/null
++++ b/server/src/__tests__/plugin-agent-run-read.test.ts
+@@ -0,0 +1,152 @@
++import { randomUUID } from "node:crypto";
++import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
++import {
++  agents,
++  companies,
++  createDb,
++  heartbeatRuns,
++} from "@paperclipai/db";
++import { eq } from "drizzle-orm";
++import { buildHostServices } from "../services/plugin-host-services.js";
++import {
++  getEmbeddedPostgresTestSupport,
++  startEmbeddedPostgresTestDatabase,
++} from "./helpers/embedded-postgres.js";
++
++function createEventBusStub() {
++  return {
++    forPlugin() {
++      return {
++        emit: vi.fn(),
++        subscribe: vi.fn(),
++        clear: vi.fn(),
++      };
++    },
++  } as any;
++}
++
++const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
++const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
++
++describeEmbeddedPostgres("plugin agent-run read boundary", () => {
++  let db!: ReturnType<typeof createDb>;
++  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
++
++  beforeAll(async () => {
++    tempDb = await startEmbeddedPostgresTestDatabase("paperclip-plugin-agent-run-read-");
++    db = createDb(tempDb.connectionString);
++  }, 20_000);
++
++  afterAll(async () => {
++    await tempDb?.cleanup();
++  });
++
++  it("returns only a bounded same-company same-agent run projection", async () => {
++    const [companyA] = await db.insert(companies).values({
++      name: "Run Read A",
++      issuePrefix: "RRA" + randomUUID().slice(0, 5).toUpperCase(),
++    }).returning();
++    const [companyB] = await db.insert(companies).values({
++      name: "Run Read B",
++      issuePrefix: "RRB" + randomUUID().slice(0, 5).toUpperCase(),
++    }).returning();
++    const [agentA] = await db.insert(agents).values({
++      companyId: companyA!.id,
++      name: "Agent A",
++      role: "operator",
++      adapterType: "process",
++      adapterConfig: {},
++      permissions: {},
++    }).returning();
++    const [agentB] = await db.insert(agents).values({
++      companyId: companyB!.id,
++      name: "Agent B",
++      role: "operator",
++      adapterType: "process",
++      adapterConfig: {},
++      permissions: {},
++    }).returning();
++
++    const [run] = await db.insert(heartbeatRuns).values({
++      companyId: companyA!.id,
++      agentId: agentA!.id,
++      status: "succeeded",
++      invocationSource: "automation",
++      resultJson: {
++        model: "wandora-deterministic-read-v1",
++        summary: "bounded result",
++        executionId: "fast_fixture",
++        stdout: "must-not-cross",
++        internalProviderMetadata: { secret: "must-not-cross" },
++      },
++      usageJson: {
++        inputTokens: 0,
++        outputTokens: 0,
++        cachedInputTokens: 0,
++        totalTokens: 0,
++        providerPrivateUsage: "must-not-cross",
++      },
++    }).returning();
++
++    const services = buildHostServices(
++      db,
++      "plugin-record-id",
++      "run-read-test",
++      createEventBusStub(),
++    );
++    try {
++      const result = await services.agentRuns.get({
++        companyId: companyA!.id,
++        agentId: agentA!.id,
++        runId: run!.id,
++      });
++      expect(result).toEqual({
++        runId: run!.id,
++        status: "succeeded",
++        result: {
++          model: "wandora-deterministic-read-v1",
++          summary: "bounded result",
++          executionId: "fast_fixture",
++        },
++        usage: {
++          inputTokens: 0,
++          outputTokens: 0,
++          cachedInputTokens: 0,
++          totalTokens: 0,
++        },
++      });
++      expect(JSON.stringify(result)).not.toMatch(
++        /stdout|secret|internalProviderMetadata|providerPrivateUsage|logRef|processPid|contextSnapshot/,
++      );
++
++      await expect(services.agentRuns.get({
++        companyId: companyB!.id,
++        agentId: agentB!.id,
++        runId: run!.id,
++      })).resolves.toBeNull();
++      await expect(services.agentRuns.get({
++        companyId: companyA!.id,
++        agentId: agentB!.id,
++        runId: run!.id,
++      })).resolves.toBeNull();
++    } finally {
++      services.dispose();
++    }
++  });
++
++  it("returns status only while a run is non-terminal", async () => {
++    const company = await db.select().from(companies).limit(1).then(rows => rows[0]!);
++    const agent = await db.select().from(agents).where(eq(agents.companyId, company.id)).limit(1).then(rows => rows[0]!);
++    const [run] = await db.insert(heartbeatRuns).values({
++      companyId: company.id,
++      agentId: agent.id,
++      status: "running",
++      invocationSource: "automation",
++      resultJson: { model: "partial", summary: "partial" },
++      usageJson: { inputTokens: 12, outputTokens: 3 },
++    }).returning();
++    const services = buildHostServices(db, "plugin-record-id", "run-read-test", createEventBusStub());
++    try {
++      await expect(services.agentRuns.get({
++        companyId: company.id,
++        agentId: agent.id,
++        runId: run!.id,
++      })).resolves.toEqual({
++        runId: run!.id,
++        status: "running",
++        result: null,
++        usage: null,
++      });
++    } finally {
++      services.dispose();
++    }
++  });
++});
+diff --git a/server/src/services/plugin-host-services.ts b/server/src/services/plugin-host-services.ts
+--- a/server/src/services/plugin-host-services.ts
++++ b/server/src/services/plugin-host-services.ts
+@@ -1511,6 +1511,86 @@ export function buildHostServices(
+       },
+     },
+ 
++    agentRuns: {
++      async get(params) {
++        const companyId = ensureCompanyId(params.companyId);
++        await ensurePluginAvailableForCompany(companyId);
++
++        const agent = await agents.getById(params.agentId);
++        if (!agent || agent.companyId !== companyId) return null;
++
++        const run = await heartbeat.getRun(params.runId);
++        if (!run || run.companyId !== companyId || run.agentId !== agent.id) {
++          return null;
++        }
++
++        const terminal = [
++          "succeeded",
++          "interrupted",
++          "failed",
++          "cancelled",
++          "timed_out",
++        ].includes(run.status);
++        if (!terminal) {
++          return {
++            runId: run.id,
++            status: run.status,
++            result: null,
++            usage: null,
++          };
++        }
++
++        const resultJson =
++          run.resultJson && typeof run.resultJson === "object" && !Array.isArray(run.resultJson)
++            ? run.resultJson as Record<string, unknown>
++            : {};
++        const usageJson =
++          run.usageJson && typeof run.usageJson === "object" && !Array.isArray(run.usageJson)
++            ? run.usageJson as Record<string, unknown>
++            : {};
++        const boundedText = (value: unknown, max: number) => {
++          if (typeof value !== "string") return null;
++          const normalized = value.trim();
++          return normalized && normalized.length <= max ? normalized : null;
++        };
++        const tokenCount = (value: unknown) =>
++          typeof value === "number" && Number.isFinite(value) && value >= 0
++            ? Math.floor(value)
++            : 0;
++        const model = boundedText(resultJson.model, 160);
++        const summary = boundedText(resultJson.summary, 12_000);
++        const executionId = boundedText(resultJson.executionId, 255);
++        const inputTokens = tokenCount(usageJson.inputTokens);
++        const outputTokens = tokenCount(usageJson.outputTokens);
++        const cachedInputTokens = tokenCount(usageJson.cachedInputTokens);
++        const totalTokens = tokenCount(
++          usageJson.totalTokens ?? inputTokens + outputTokens + cachedInputTokens,
++        );
++
++        return {
++          runId: run.id,
++          status: run.status,
++          result: model && summary
++            ? { model, summary, executionId }
++            : null,
++          usage: {
++            inputTokens,
++            outputTokens,
++            cachedInputTokens,
++            totalTokens,
++          },
++        };
++      },
++    },
++
+     state: {
+       async get(params) {
+         return stateStore.get(pluginId, params.scopeKind as any, params.stateKey, {
