@@ -1,0 +1,134 @@
+name: Integration Capability Projection CI
+
+on:
+  pull_request:
+    paths:
+      - 'apps/core/src/integrations/capability-plane.ts'
+      - 'apps/core/src/semantic-routing/contracts.ts'
+      - 'integrations/paperclip/plugins/organization-adapter-v1/attestation/**'
+      - 'integrations/paperclip/patches/v2026.916.1-host-operational-read-v1.patch'
+      - 'integrations/paperclip/host-operational-read-v1/**'
+      - '.github/workflows/integration-capability-projection-ci.yml'
+      - 'docs/decisions/0282-paperclip-side-adapter-consumption-disposable-integration-capability-projection-attestation-v1.md'
+      - 'docs/CAPABILITY_AUTHORITY.md'
+      - 'docs/architecture.md'
+      - 'docs/CANONICAL_STATE.md'
+      - 'docs/WANDORA_PROJECT_SOURCE.md'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/core/src/integrations/capability-plane.ts'
+      - 'apps/core/src/semantic-routing/contracts.ts'
+      - 'integrations/paperclip/plugins/organization-adapter-v1/attestation/**'
+      - 'integrations/paperclip/patches/v2026.916.1-host-operational-read-v1.patch'
+      - 'integrations/paperclip/host-operational-read-v1/**'
+      - '.github/workflows/integration-capability-projection-ci.yml'
+      - 'docs/decisions/0282-paperclip-side-adapter-consumption-disposable-integration-capability-projection-attestation-v1.md'
+      - 'docs/CAPABILITY_AUTHORITY.md'
+      - 'docs/architecture.md'
+      - 'docs/CANONICAL_STATE.md'
+      - 'docs/WANDORA_PROJECT_SOURCE.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: integration-capability-projection-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  attest:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    steps:
+      - name: Checkout Wandora
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Checkout exact Paperclip v2026.916.1 source
+        uses: actions/checkout@v4
+        with:
+          repository: paperclipai/paperclip
+          ref: d554c4789ed3930f8a53ac9fdf6503b3187097da
+          path: .paperclip
+          persist-credentials: false
+
+      - name: Apply exact qualified host operational-read patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          patch_file="$GITHUB_WORKSPACE/integrations/paperclip/patches/v2026.916.1-host-operational-read-v1.patch"
+          test "$(sha256sum "$patch_file" | cut -d' ' -f1)" = "fc0ce000b2fa5051f10fb71cfece71df17e9b4953779486d951b3f2990cd8bfb"
+          git -C .paperclip apply --check "$patch_file"
+          git -C .paperclip apply "$patch_file"
+          git -C .paperclip diff --check
+
+      - name: Set up Node 24.21.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.21.0
+
+      - name: Set up pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.4 --activate
+          pnpm --version
+
+      - name: Install exact Paperclip dependencies
+        working-directory: .paperclip
+        run: pnpm install --frozen-lockfile
+
+      - name: Build patched Paperclip plugin SDK
+        working-directory: .paperclip
+        run: pnpm --filter @paperclipai/plugin-sdk build
+
+      - name: Re-run host capability, tenant and cache-only proof
+        working-directory: .paperclip
+        run: |
+          pnpm exec vitest run \
+            packages/plugins/sdk/tests/host-client-factory.test.ts \
+            server/src/__tests__/plugin-tool-access-operational-read.test.ts
+
+      - name: Build and test disposable Paperclip-side adapter consumption
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x integrations/paperclip/plugins/organization-adapter-v1/attestation/verify.sh
+          integrations/paperclip/plugins/organization-adapter-v1/attestation/verify.sh "$GITHUB_WORKSPACE/.paperclip"
+
+      - name: Verify adapter-local semantic map is a subset of Wandora authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const core = fs.readFileSync('apps/core/src/semantic-routing/contracts.ts', 'utf8');
+          const { ADAPTER_MAPPED_BUSINESS_CAPABILITIES } = await import(
+            './integrations/paperclip/plugins/organization-adapter-v1/.attestation-build/integration-capability.mjs'
+          );
+          const coreCaps = new Set(
+            [...core.matchAll(/'business\.[a-z0-9_.]+'/g)].map((m) => m[0].slice(1, -1)),
+          );
+          const mappedCaps = new Set(ADAPTER_MAPPED_BUSINESS_CAPABILITIES);
+          for (const capability of mappedCaps) {
+            if (!coreCaps.has(capability)) throw new Error('adapter_semantic_capability_not_authorized:' + capability);
+          }
+          if (mappedCaps.size === 0) throw new Error('adapter_semantic_map_empty');
+          console.log('WANDORA_INTEGRATION_CAPABILITY_SEMANTIC_AUTHORITY_OK count=' + mappedCaps.size);
+          NODE
+
+      - name: Static no-shadow-state/no-admin-boundary verifier
+        shell: bash
+        run: |
+          set -euo pipefail
+          file='integrations/paperclip/plugins/organization-adapter-v1/attestation/integration-capability.ts'
+          if grep -Ein 'board|admin[_-]?token|postgres|database|plugin\.state|secretRef|connectionId|catalogEntryId|grantId|profileId|fetch\(|axios|http:' "$file"; then
+            echo 'forbidden authority/persistence/provider-I/O material found in projection adapter' >&2
+            exit 1
+          fi
+          grep -q 'toolAccess.readOperationalSnapshot' "$file"
+          grep -q 'allowedByEffectiveProfile' "$file"
+          grep -q 'organizationGrantActive' "$file"
+          echo WANDORA_INTEGRATION_CAPABILITY_PROJECTION_STATIC_OK

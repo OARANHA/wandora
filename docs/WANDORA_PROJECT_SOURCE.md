@@ -1,3 +1,45 @@
+## Reconciled checkpoint — ADR 0282 Paperclip-side Integration Capability Projection attestation V1
+
+ADR 0282 is **CODE COMPLETE / DISPOSABLE ATTESTATION GREEN / NO PRODUCTION EFFECT**.
+
+The Paperclip-side Organization Adapter now consumes the ADR 0281 bounded
+`tools.operational.read` host projection and maps provider-local read tools to the
+canonical Wandora `BusinessCapability` vocabulary through one explicit finite adapter
+map. Provider tool names remain implementation evidence inside the replaceable
+Paperclip adapter; they do not become customer semantics or Wandora durable state.
+
+The projection separates semantic support from organization operational availability.
+Availability can only narrow support and requires current Paperclip evidence such as
+active/enabled connection state, healthy/ok connection health, active organization
+grant, installation for the exact agent, read-only/non-destructive tool semantics and
+effective Tool Profile admission. Current-run Tool Gateway authorization remains a
+separate final gate for Fast Read.
+
+No Connection/catalog/grant/health mirror, Wandora integration registry, `plugin.state`
+snapshot, Board credential, provider credential, secret ref, Paperclip object ID,
+migration/table, provider/model call, customer work, outbound or production mutation
+was introduced.
+
+PR #367 implementation head
+`5e2baa5e25b0f3aa19096c3a2807809178da0126` completed **8/8 relevant
+GitHub-hosted workflows GREEN** under ADR 0158. Integration Capability Projection CI
+run `36201952698` passed the exact Paperclip v2026.916.1 checkout, retained ADR 0281
+patch, host capability/tenant/cache-only proof, disposable adapter attestation,
+semantic-authority subset proof and static no-shadow-state/no-admin boundary verifier.
+
+The only prior CI failure, `adapter_semantic_map_empty`, was a verifier defect: an
+inline regex failed to discover the mapping. The corrected gate imports the adapter's
+actual compiled/exported `ADAPTER_MAPPED_BUSINESS_CAPABILITIES` and proves that set is
+a non-empty subset of Wandora semantic authority.
+
+Final adversarial completion review returned `verify_more` solely because this
+canonical checkpoint still needed to be committed and the exact documentation head
+must be revalidated. Therefore merge remains gated on GREEN CI for the final PR head.
+
+Production Paperclip promotion remains a separate future effect-authorizing
+preflight/execution. This ADR does not authorize deploy, provider calls, customer work
+or outbound effects.
+
 ## Reconciled checkpoint — ADR 0281 Paperclip host operational read capability extension preflight
 
 ADR 0281 is **PREFLIGHT GREEN / HOST EXTENSION QUALIFIED / NO PRODUCTION EFFECT**.
