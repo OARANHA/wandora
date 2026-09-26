@@ -88,7 +88,7 @@ diff --git a/packages/plugins/sdk/src/types.ts b/packages/plugins/sdk/src/types.
 +  HeartbeatRunStatus,
  } from "@paperclipai/shared";
  import type { PluginPerformActionContext } from "./protocol.js";
-@@ -1540,4 +1541,37 @@ export interface PluginIssuesClient {
+@@ -1539,4 +1540,37 @@ export interface PluginIssuesClient {
    summaries: PluginIssueSummariesClient;
  }
 +
