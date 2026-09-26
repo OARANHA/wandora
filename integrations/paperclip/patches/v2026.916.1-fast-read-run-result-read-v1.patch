@@ -395,7 +395,7 @@ new file mode 100644
 diff --git a/server/src/services/plugin-host-services.ts b/server/src/services/plugin-host-services.ts
 --- a/server/src/services/plugin-host-services.ts
 +++ b/server/src/services/plugin-host-services.ts
-@@ -1511,6 +1511,78 @@ export function buildHostServices(
+@@ -1511,6 +1511,89 @@ export function buildHostServices(
        },
      },
  
