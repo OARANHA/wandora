@@ -52,6 +52,7 @@ jobs:
           operational_patch="$GITHUB_WORKSPACE/integrations/paperclip/patches/v2026.916.1-host-operational-read-v1.patch"
           git -C .paperclip apply --check "$operational_patch"
           git -C .paperclip apply "$operational_patch"
+          git -C .paperclip add -A
 
           git -C .paperclip apply --3way "$RUNNER_TEMP/run-result-full-index.patch"
 
@@ -60,6 +61,7 @@ jobs:
           git -C .paperclip apply "$webhook_patch"
 
           git -C .paperclip diff --check
+          git -C .paperclip diff --cached --check
           test -z "$(git -C .paperclip ls-files -u)"
           grep -q '"tools.operational.read"' .paperclip/packages/shared/src/constants.ts
           grep -q '"agent.runs.read"' .paperclip/packages/shared/src/constants.ts
