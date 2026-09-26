@@ -1,3 +1,27 @@
+## Reconciled checkpoint — ADR 0293 Concrete Semantic Product Selector Provider Runtime Wiring V1
+
+ADR 0293 is **QUALIFIED / 16/16 PR WORKFLOWS GREEN / PRODUCTION ACTIVATION NO-GO / NO PRODUCTION EFFECT**.
+
+PR #369 exact code head `a44348706fc99aace844de63e0be078c2b1fe70d` completed **16/16 PR workflows GREEN**. Semantic Fast Read CI run `36260828998` and Core CI run `36260828980` were GREEN. The first Core Candidate Artifact completed before both primary gates and was not counted; after Semantic Fast Read CI + Core CI were GREEN, post-gate Candidate job `108457131633` completed GREEN.
+
+The already-qualified `MastraMistralSemanticSelectorProvider` is now composed into Human Fast Read behind an additional explicit disabled-by-default runtime gate, `WANDORA_SEMANTIC_SELECTOR_ENABLED`. No selector provider registry/router was added. When the gate is false, runtime behavior is unchanged and selector-required requests remain fail-closed.
+
+When enabled in a future separately authorized environment, selector wiring requires the existing Semantic Fast Read path and reuses the Wandora platform-owned file-backed model credential locator `WANDORA_MODEL_API_KEY_FILE` under ADR 0144. No selector-specific secret store/custody subsystem was created. `WANDORA_SEMANTIC_SELECTOR_TIMEOUT_MS` defaults to 3000 ms and is bounded to 250..10000 ms. Provider/model identity remains internal implementation configuration.
+
+Runtime instantiates the qualified Mastra/Mistral selector only when the optional selector config exists and injects it through the existing Wandora-owned `SemanticSelectorProvider` dependency of `HumanDigitalEmployeeFastReadService`. TypeSafe/JEV remains route-decision provider; Wandora still reruns its gate before signed `wfri1`; Paperclip remains operational lifecycle/Tool Gateway/result authority; VendaERP remains the business-system read provider.
+
+Capability Authority / Reuse Gate remains intact. No table, migration, provider registry, lifecycle/run mirror, Connection/grant/secret/tool registry, retry engine, product catalog/cache, heuristic parser or new LLM subsystem was introduced.
+
+The first adversarial review requested `deep_review` (0.52 vs 0.48 `proceed_fast`) over credential purpose/provider-selection concerns. The refined design removed a selector-provider selection registry and reused the existing platform credential boundary. A focused second review then selected `proceed_fast` with probability 0.94.
+
+No live model credential was mounted, no provider/VendaERP call occurred, no WhatsApp path was wired, and no VPS/Compose/deploy/customer/ERP-write effect occurred. `WANDORA_SEMANTIC_FAST_READ_ENABLED` and the new selector gate remain disabled by default in production. Production remains **NO-GO**.
+
+### Next minimum slice
+
+Do **not** wire WhatsApp yet.
+
+Next: **Semantic Fast Read + Product Selector Production Convergence Preflight V2 — NO EFFECT**. Reconcile the exact qualified Core/Paperclip/Organization Adapter candidates against real production, prove deployment/rollback order and platform-model credential mount/custody without reading the secret value, and freeze the smallest activation/attestation sequence. No production mutation or real customer outbound is authorized by ADR 0293.
+
 ## Reconciled checkpoint — ADR 0292 Concrete Semantic Product Selector Provider Qualification V1
 
 ADR 0292 is **QUALIFIED / 16/16 PR WORKFLOWS GREEN / PRODUCTION ACTIVATION NO-GO / NO PRODUCTION EFFECT**.
