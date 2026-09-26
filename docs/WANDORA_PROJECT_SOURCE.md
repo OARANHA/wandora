@@ -1,3 +1,42 @@
+## Reconciled checkpoint — ADR 0294 Production Convergence Preflight V2
+
+ADR 0294 is **PREFLIGHT COMPLETE / NEXT PRODUCTION EXECUTION NO-GO / NO PRODUCTION EFFECT**.
+
+The preflight reconciled the current qualified Semantic Fast Read + product-selector branch against real production. Before this documentation checkpoint, `main` remained `8d6a65f519de5c1c49607314b49968af608c7164`, PR #369 was open/draft/mergeable at `8fe81cb2b2b0cb603e9f33b5325b6756377a7c61`, and PR #370 remained separate at `11fd59599b21493a0fe335f4c32354989a6083a2`. The exact PR #369 head had 16/16 workflows GREEN.
+
+Exact post-gates Core candidate evidence is frozen from merge ref `bc2f98bd52074d13a3cae2752ba04c95cbba1d99`: image `wandora/core:organization-adapter-candidate-bc2f98bd5207`, archive SHA-256 `77593828dcd69a258c4e814752d540105a43e7b79ab8135243ed385b6799d315`, OCI manifest `sha256:a0cf838cc79439652961aa04cbc3d9b50930117fa6bcdec4e4deade6325b2061`, post-gates job `108458569619` GREEN.
+
+Production remains healthy but behind the qualified code:
+
+- Core = `wandora/core:organization-adapter-candidate-f3225586d082`, revision `f3225586...`, healthy/restart 0, `/readyz` 200; this revision does not contain the Fast Read/Semantic Fast Read/Semantic Selector/TypeSafe activation gates;
+- Human Send = OFF;
+- Messaging Gateway outbound = OFF;
+- Paperclip = `wandora/paperclip:v2026.916.0`, commit `dffc2b3...`, exact image ID `sha256:4fb5073...`, healthy/restart 0;
+- Task Drain = OFF, activeRuns 0, pendingWakes 0, quiescent true;
+- Organization Adapter live = `0.3.1` / ready;
+- Organization Adapter candidate = `0.5.0`, package SHA-256 `f4e733613e72e771eb18361dbdbf420c810c5b8bbe31361a64040a2081cc2ae2`, requiring the qualified Paperclip 916.1 host capabilities.
+
+The existing Wandora platform Mistral credential is already mounted read-only into Core at `/run/secrets/wandora/model-provider.api-key` from `/opt/wandora/stacks/core/secrets/wandora_model_provider_api_key`. ADR 0144 remains authoritative and ADR 0293 correctly reuses this same credential for the selector. **Do not create a selector-specific Mistral secret.** MCP secret-path policy correctly prevented direct secret metadata inspection; current file mode/owner/group must be re-attested with metadata-only `stat` before any mutation.
+
+Production execution is blocked by deployment evidence, not by a need for a new subsystem:
+
+1. no deployable Paperclip v2026.916.1 + qualified Fast Read patches image artifact/provenance;
+2. no reviewed production Core activation overlay for the new gates/mounts;
+3. no qualified live Core TypeSafe/JEV API-key mount;
+4. no qualified distinct Fast Read intent-HMAC mount;
+5. current exact Mistral file metadata still needs metadata-only readback;
+6. fresh immediately-pre-mutation rollback capture must be taken only when execution is ready.
+
+Capability Authority / ADR 0168 remains unchanged: Wandora owns semantics and effect authorization; Paperclip owns operational workforce/run/tools/secrets/audit; TypeSafe/JEV and Mastra/Mistral are replaceable semantic/model providers; VendaERP is a replaceable Business System implementation. No registry, lifecycle, run mirror, catalog/cache, retry engine, secret manager or ERP mirror is justified.
+
+The next executable slice is:
+
+**Semantic Fast Read Production Convergence Artifact + Activation Contract Preparation V1 — CODE/CI ONLY / NO PRODUCTION EFFECT**.
+
+That slice must close the deployable Paperclip candidate and the disabled-by-default activation/mount contract, then stop. Production/provider/ERP/customer/WhatsApp effects remain forbidden until a new pre-mutation decision and adversarial review.
+
+Canonical detail: `docs/decisions/0294-semantic-fast-read-product-selector-production-convergence-preflight-v2.md`.
+
 ## Reconciled checkpoint — ADR 0293 Concrete Semantic Product Selector Provider Runtime Wiring V1
 
 ADR 0293 is **QUALIFIED / 16/16 PR WORKFLOWS GREEN / PRODUCTION ACTIVATION NO-GO / NO PRODUCTION EFFECT**.
