@@ -55,7 +55,7 @@ jobs:
           set -euo pipefail
           test "$(git -C .paperclip rev-parse HEAD)" = "d554c4789ed3930f8a53ac9fdf6503b3187097da"
           patch_file="$GITHUB_WORKSPACE/integrations/paperclip/patches/v2026.916.1-fast-read-run-result-read-v1.patch"
-          test "$(sha256sum "$patch_file" | awk '{print $1}')" = "b8d0473ab7ae51ddc417ad0ed8ef182ddf6a95a5ef6f56e1e4295731afca1c31"
+          test "$(sha256sum "$patch_file" | awk '{print $1}')" = "34df4f673f824ebbc9025745b016672d2832b82131f85b1906d02528e5764338"
           echo "=== exact types.ts anchors ==="
           grep -n -B 4 -A 8 "export interface PluginIssuesClient" .paperclip/packages/plugins/sdk/src/types.ts || true
           grep -n -B 8 -A 8 "summaries: PluginIssueSummariesClient" .paperclip/packages/plugins/sdk/src/types.ts || true
