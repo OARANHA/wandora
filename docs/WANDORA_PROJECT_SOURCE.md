@@ -1,3 +1,23 @@
+## Reconciled checkpoint — ADR 0285 Semantic Fast Read Organization Adapter Candidate V1
+
+ADR 0285 is **CANDIDATE QUALIFIED / PRODUCTION ACTIVATION NO-GO / NO PRODUCTION EFFECT**.
+
+PR #369 proved the provider-side Semantic Fast Read candidate at exact code head `28acf5d1f7e1c6ceb6fc1ec899be6bdfa666412a`: Semantic Fast Read CI (including disposable E2E), Organization Adapter Plugin CI, Paperclip OpenAPI Compatibility and Paperclip 916.1 OpenAPI Candidate CI were GREEN.
+
+The installable candidate is `wandora.organization-adapter-v1@0.5.0`, qualified against exact Paperclip `v2026.916.1@d554c4789ed3930f8a53ac9fdf6503b3187097da` plus the independently retained provider deltas for `tools.operational.read`, `agent.runs.read` and bounded synchronous webhook responses. The three deltas are composed only in candidate CI through the insertion-restricted compositor; their standalone retained patches remain independently auditable.
+
+The candidate productionizes the ADR 0282 operational capability projection without persistence, adds signed `employee-capabilities`, and makes `employee-fast-read` invoke at most once then observe only its exact Paperclip-owned run with a bounded wait. Timeout, retry scheduling, missing/malformed result and non-success terminal states fail closed; no Wandora run lifecycle or result mirror exists.
+
+The provider adapter now preserves only the already-sanitized `executionId`, deterministic `model` and bounded `summary` in Paperclip `resultJson`; exact v2026.916.1 `heartbeat_runs` has no separate model/summary columns. This allows the qualified `ctx.agentRuns.get` read to return the terminal result without Board credentials, direct DB access from Wandora/plugin or provider metadata leakage.
+
+Disposable E2E proves one issue-less accepted run, one bounded read tool invocation, deterministic result persistence, zero model tokens, zero agentic/model calls, replay without a second invoke, and fail-closed expired/unauthorized/ambiguous cases with no added tool calls.
+
+Paperclip v2026.916.1 has a separately qualified OpenAPI candidate: 685 paths, SHA-256 `55383e4b9aceee52544a5e8a93b7c04526f10cb13ce91082185df0691bd7e740`, byte-identical to the current v2026.916.0 HTTP contract with reviewed generator/supplement source evidence unchanged. Canonical production pins and `infra/stacks/paperclip/compose.yaml` remain v2026.916.0.
+
+No production deploy/upgrade/promotion, migration, VPS mutation, provider/VendaERP real call, customer work, outbound or production model/JEV call occurred.
+
+Next code-only slice: **Core Organization Adapter Fast Read Bridge V1** — extend the Wandora-owned provider-neutral adapter contract for ephemeral capability projection and bounded Fast Read dispatch/result, reuse existing Human authorization and exact managed-employee/provider binding checks, map Paperclip only inside its adapter, and keep concrete JEV/TypeSafe wiring separately gated by ADR 0276.
+
 ## Reconciled checkpoint — ADR 0284 Paperclip Fast Read terminal result read boundary preflight
 
 ADR 0284 is **PREFLIGHT COMPLETE / GO FOR NARROW PAPERCLIP HOST RUN-RESULT READ QUALIFICATION / NO PRODUCTION EFFECT**.
