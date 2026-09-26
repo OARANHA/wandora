@@ -6,7 +6,7 @@ const compatibility = JSON.parse(await readFile(new URL('../compatibility.json',
 const packageJson = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
 
 assert.equal(packageJson.name, 'paperclip-plugin-wandora-organization-adapter');
-assert.equal(packageJson.version, '0.4.0');
+assert.equal(packageJson.version, '0.5.0');
 assert.deepEqual(packageJson.paperclipPlugin, {
   manifest: './dist/manifest.js',
   worker: './dist/worker.js',
@@ -14,10 +14,10 @@ assert.deepEqual(packageJson.paperclipPlugin, {
 
 assert.equal(manifest.id, 'wandora.organization-adapter-v1');
 assert.equal(manifest.apiVersion, 1);
-assert.equal(manifest.version, '0.4.0');
-assert.deepEqual([...manifest.capabilities].sort(), ['agents.invoke', 'agents.managed', 'agents.resume', 'issues.create', 'issues.read', 'issues.wakeup', 'plugin.state.read', 'plugin.state.write', 'secrets.read-ref', 'webhooks.receive']);
-assert.equal(manifest.webhooks?.length, 4);
-assert.deepEqual(manifest.webhooks?.map((entry) => entry.endpointKey).sort(), ['employee-activate', 'employee-fast-read', 'employee-reconcile', 'employee-work']);
+assert.equal(manifest.version, '0.5.0');
+assert.deepEqual([...manifest.capabilities].sort(), ['agents.invoke', 'agents.managed', 'agents.resume', 'issues.create', 'issues.read', 'issues.wakeup', 'plugin.state.read', 'plugin.state.write', 'secrets.read-ref', 'tools.operational.read', 'webhooks.receive']);
+assert.equal(manifest.webhooks?.length, 5);
+assert.deepEqual(manifest.webhooks?.map((entry) => entry.endpointKey).sort(), ['employee-activate', 'employee-fast-read', 'employee-integration-capabilities', 'employee-reconcile', 'employee-work']);
 assert.equal(manifest.agents?.length, 1);
 assert.equal(manifest.agents?.[0]?.agentKey, 'ana-commercial-v1');
 assert.equal(manifest.agents?.[0]?.adapterType, 'wandora_mastra');
@@ -25,8 +25,12 @@ assert.equal(manifest.agents?.[0]?.status, 'paused');
 assert.equal(manifest.agents?.[0]?.budgetMonthlyCents, 0);
 assert.equal(manifest.agents?.[0]?.adapterConfig, undefined);
 
-assert.equal(compatibility.paperclipImage, 'wandora/paperclip:v2026.916.0');
-assert.equal(compatibility.paperclipSourceCommit, 'dffc2b3ca1b9e88fa21cb17493083e682dffd1ca');
+assert.equal(compatibility.paperclipImage, 'wandora/paperclip:v2026.916.1-semantic-fast-read-candidate');
+assert.equal(compatibility.paperclipSourceCommit, 'd554c4789ed3930f8a53ac9fdf6503b3187097da');
+assert.deepEqual(compatibility.paperclipPatches, [
+  'integrations/paperclip/patches/v2026.916.1-host-operational-read-v1.patch',
+  'integrations/paperclip/patches/v2026.916.1-synchronous-webhook-response-v1.patch',
+]);
 assert.equal(compatibility.pluginApiVersion, 1);
 assert.equal(compatibility.pluginSdkVersion, '1.0.0');
 
