@@ -4,6 +4,7 @@ import { createHmac } from 'node:crypto';
 import {
   parseActivationWebhook,
   parseFastReadWebhook,
+  parseIntegrationCapabilitiesWebhook,
   parseReconcileWebhook,
   parseWorkWebhook,
   requireFreshTimestamp,
@@ -152,6 +153,31 @@ test('fast read accepts only bounded provider-neutral intent transport and rejec
     headers: {
       'x-wandora-timestamp': timestamp,
       'x-wandora-signature': fastReadSignature,
+    },
+  }), /invalid_wandora_request/);
+});
+
+
+test('integration capability projection accepts only the signed catalog shape', () => {
+  const req = parseIntegrationCapabilitiesWebhook({
+    endpointKey: 'employee-integration-capabilities',
+    parsedBody: JSON.parse(body),
+    rawBody: body,
+    headers: {
+      'x-wandora-timestamp': timestamp,
+      'x-wandora-signature': signature,
+    },
+  });
+  assert.equal(req.companyId, 'company-test-only');
+  assert.equal(req.catalogKey, 'ana-commercial-v1');
+
+  assert.throws(() => parseIntegrationCapabilitiesWebhook({
+    endpointKey: 'employee-integration-capabilities',
+    parsedBody: { ...JSON.parse(body), connectionId: 'provider-owned-id' },
+    rawBody: body,
+    headers: {
+      'x-wandora-timestamp': timestamp,
+      'x-wandora-signature': signature,
     },
   }), /invalid_wandora_request/);
 });
