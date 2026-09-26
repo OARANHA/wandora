@@ -2,9 +2,10 @@ import type { PluginContext } from '@paperclipai/plugin-sdk';
 import { definePlugin, runWorker } from '@paperclipai/plugin-sdk';
 import { activateManagedCatalogEmployee } from './activation.js';
 import { CATALOG_KEY } from './catalog.js';
-import { parseActivationWebhook, parseFastReadWebhook, parseReconcileWebhook, parseWorkWebhook, requireFreshTimestamp, requireHmacSecret, verifySignature } from './contract.js';
+import { parseActivationWebhook, parseCapabilitiesWebhook, parseFastReadWebhook, parseReconcileWebhook, parseWorkWebhook, requireFreshTimestamp, requireHmacSecret, verifySignature } from './contract.js';
 import { ensureManagedCatalogEmployeeWork } from './work.js';
-import { ensureManagedCatalogEmployeeFastRead } from './fast-read.js';
+import { waitForManagedCatalogEmployeeFastReadResult } from './fast-read.js';
+import { readManagedEmployeeIntegrationCapabilityProjection } from './integration-capability.js';
 
 let pluginContext: PluginContext | null = null;
 type SecretRef = { type: 'secret_ref'; secretId: string };
@@ -60,16 +61,30 @@ const plugin = definePlugin({
       });
       return;
     }
+    if (input.endpointKey === 'employee-capabilities') {
+      const request = parseCapabilitiesWebhook(input);
+      await authenticateRequest(pluginContext, request);
+      const integrations = await readManagedEmployeeIntegrationCapabilityProjection(
+        pluginContext,
+        request.companyId,
+      );
+      return { integrations };
+    }
     if (input.endpointKey === 'employee-fast-read') {
       const request = parseFastReadWebhook(input);
       await authenticateRequest(pluginContext, request);
-      await ensureManagedCatalogEmployeeFastRead(pluginContext, {
+      const result = await waitForManagedCatalogEmployeeFastReadResult(pluginContext, {
         companyId: request.companyId,
         correlationId: request.correlationId,
         intentToken: request.intentToken,
         request: request.request,
       });
-      return;
+      return {
+        runId: result.runId,
+        model: result.model,
+        summary: result.summary,
+        usage: result.usage,
+      };
     }
     throw new Error('unknown_endpoint');
   },
