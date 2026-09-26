@@ -1,3 +1,23 @@
+## 2026-09-26 — ADR 0296 Production Credential Custody Qualification V1
+
+Status: **PARTIAL / BLOCKED ON OPERATOR CUSTODY COMPLETION / NO ACTIVATION / NO PRODUCTION EFFECT**.
+
+Repository/GitHub reconciliation preserved `main@8d6a65f519de5c1c49607314b49968af608c7164`, PR #369 open/draft/mergeable at pre-checkpoint head `99fd0f6dfb6382fd706a0216449d924a9b0d0bf5` with **17/17 workflows GREEN**, and PR #370 separate at `11fd59599b21493a0fe335f4c32354989a6083a2`.
+
+The exact ADR 0295 Paperclip production candidate remains artifact `10914008713`, non-expired at readback, with ZIP digest `sha256:e43acc85e3f7f010b7189f11bd9c3622f9a7a9015765a50f315ca61a98c36a19`. No later rebuild replaces it.
+
+Credential-purpose evidence is now narrower and stronger: the existing production JEV service has a separate TypeSafe provider file and MCP OAuth boundary; its code uses the provider file as HTTP Bearer auth for `POST https://api.typesafe.ai/v1/systemone`. Metadata-only stat proved that provider file is `0600 wandora-exec:ops-mcp`. Its purpose is therefore qualified, but that service-local custody must not be widened or directly reused as Core custody.
+
+The canonical Core-side TypeSafe mount and distinct Wandora-owned `wfri1` HMAC contract remain those of ADR 0295. Current Remote-Ops policy intentionally cannot write `/opt/wandora/stacks/core/secrets`; the slice refused to widen that policy or create secrets in a provisional path. The Fast Read intent HMAC is therefore not yet created/qualified.
+
+Mistral remains the existing Wandora platform credential reused by the selector; no selector-specific secret is justified. The live read-only bind remains visible, but exact current host-file owner/group/mode cannot be re-attested through the available secret-safe MCP boundary. Historical metadata is not substituted for a fresh readback.
+
+The first adversarial review requested `deep_review`; after proving the service-local custody and tool restrictions, the second review returned **block = 0.94**. The block is accepted. Production remains **NO-GO** and no deploy, container/Compose mutation, provider call, secret-value read, Task Drain change, customer traffic or outbound effect occurred.
+
+Next safe work is **Production Credential Custody Completion V1 — operator-local / NO ACTIVATION**: securely install Core-side TypeSafe custody, generate/install the distinct `wfri1` HMAC, and metadata-only stat those files plus the existing Mistral secret while all semantic/Fast Read gates remain OFF. Only after that checkpoint may a fresh **Immediate Pre-Mutation Attestation + Effect Authorization** be considered.
+
+See `docs/decisions/0296-production-credential-custody-qualification-v1.md`.
+
 ## Reconciled checkpoint — ADR 0295 Semantic Fast Read Production Convergence Artifact + Activation Contract V1
 
 ADR 0295 is **QUALIFIED / 17/17 PR WORKFLOWS GREEN / PRODUCTION EXECUTION NO-GO / NO PRODUCTION EFFECT**.
