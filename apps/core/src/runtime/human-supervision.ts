@@ -16,6 +16,7 @@ import {
 } from '../organization-adapter/contracts.js';
 import type { OrganizationAdapterService } from '../organization-adapter/service.js';
 import type { HumanDigitalEmployeeActivationService } from '../supervision/human-digital-employee-activation.js';
+import type { HumanDigitalEmployeeFastReadService } from '../supervision/human-digital-employee-fast-read.js';
 import {
   HumanEmployeeDevelopmentConflictError,
   type HumanDigitalEmployeeDevelopmentService,
@@ -45,6 +46,7 @@ const DIGITAL_EMPLOYEES_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/digital-e
 const STARTER_WORKFORCE_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/starter-workforce$/;
 const DIGITAL_EMPLOYEE_ACTIVATE_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/digital-employees\/([^/]+)\/activate$/;
 const DIGITAL_EMPLOYEE_WORK_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/digital-employees\/([^/]+)\/work$/;
+const DIGITAL_EMPLOYEE_FAST_READ_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/digital-employees\/([^/]+)\/fast-read$/;
 const DIGITAL_EMPLOYEE_DEVELOPMENT_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/digital-employees\/([^/]+)\/development$/;
 const DIGITAL_EMPLOYEE_DEVELOPMENT_RETIRE_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/digital-employees\/([^/]+)\/development\/([^/]+)\/retire$/;
 const DIGITAL_EMPLOYEE_DEVELOPMENT_CORRECT_PATH_RE = /^\/api\/v1\/organizations\/([^/]+)\/digital-employees\/([^/]+)\/development\/([^/]+)\/correct$/;
@@ -205,6 +207,24 @@ function parseDigitalEmployeeWorkRequest(rawBody: string | undefined): {
   }
 }
 
+function parseDigitalEmployeeFastReadRequest(rawBody: string | undefined): { request: string } | undefined {
+  if (!rawBody || rawBody.length > 12_100) return undefined;
+  try {
+    const parsed = JSON.parse(rawBody) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return undefined;
+    const record = parsed as Record<string, unknown>;
+    if (
+      Object.keys(record).length !== 1
+      || typeof record.request !== 'string'
+    ) return undefined;
+    const request = record.request.trim();
+    if (!request || request.length > 12_000) return undefined;
+    return { request };
+  } catch {
+    return undefined;
+  }
+}
+
 function parseCatalogHireRequest(rawBody: string | undefined): { catalogKey: string } | undefined {
   if (!rawBody || rawBody.length > 1_024) return undefined;
   try {
@@ -342,6 +362,7 @@ export function createHumanSupervisionHandler(
   digitalEmployeeHireService?: OrganizationAdapterService,
   digitalEmployeeActivationService?: HumanDigitalEmployeeActivationService,
   digitalEmployeeWorkService?: OrganizationAdapterService,
+  digitalEmployeeFastReadService?: HumanDigitalEmployeeFastReadService,
   groundingService?: HumanGroundingService,
   companyProfileService?: HumanCompanyProfileService,
   companyRegistryLookup?: CompanyRegistryLookupService,
@@ -570,6 +591,28 @@ export function createHumanSupervisionHandler(
           organizationId, employeeId, authorization: request.authorization, idempotencyKey, ...creation,
         });
         return { status: 200, body: { entry } };
+      }
+
+      const employeeFastReadMatch = DIGITAL_EMPLOYEE_FAST_READ_PATH_RE.exec(request.pathname);
+      if (employeeFastReadMatch) {
+        const organizationId = employeeFastReadMatch[1];
+        const employeeId = employeeFastReadMatch[2];
+        if (!organizationId || !employeeId || !UUID_RE.test(organizationId) || !UUID_RE.test(employeeId)) {
+          return { status: 404, body: { error: 'not-found' } };
+        }
+        if (!digitalEmployeeFastReadService) return { status: 404, body: { error: 'not-found' } };
+        if (request.method !== 'POST') return { status: 405, body: { error: 'method-not-allowed' } };
+        const fastReadRequest = parseDigitalEmployeeFastReadRequest(request.rawBody);
+        if (!fastReadRequest) return { status: 400, body: { error: 'invalid-fast-read-request' } };
+
+        const session = await service.getSessionContext(request.authorization);
+        const result = await digitalEmployeeFastReadService.execute({
+          organizationId,
+          actorUserId: session.user.id,
+          employeeId,
+          request: fastReadRequest.request,
+        });
+        return { status: 200, body: { fastRead: result } };
       }
 
       const employeeWorkMatch = DIGITAL_EMPLOYEE_WORK_PATH_RE.exec(request.pathname);
