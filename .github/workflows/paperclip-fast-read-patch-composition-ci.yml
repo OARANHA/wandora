@@ -54,7 +54,20 @@ jobs:
           git -C .paperclip apply "$operational_patch"
           git -C .paperclip add -A
 
+          set +e
           git -C .paperclip apply --3way "$RUNNER_TEMP/run-result-full-index.patch"
+          compose_rc=$?
+          set -e
+          if [[ "$compose_rc" -ne 0 ]]; then
+            echo "=== FAST READ COMPOSITION CONFLICTS ==="
+            git -C .paperclip status --short
+            while IFS= read -r conflicted; do
+              [[ -n "$conflicted" ]] || continue
+              echo "=== CONFLICT FILE: $conflicted ==="
+              grep -n -B 12 -A 80 '<<<<<<<' ".paperclip/$conflicted" || true
+            done < <(git -C .paperclip diff --name-only --diff-filter=U)
+            exit "$compose_rc"
+          fi
 
           webhook_patch="$GITHUB_WORKSPACE/integrations/paperclip/patches/v2026.916.1-synchronous-webhook-response-v1.patch"
           git -C .paperclip apply --check "$webhook_patch"
