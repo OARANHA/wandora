@@ -194,3 +194,36 @@ test('non-deterministic or non-zero-token provider result is rejected after disp
     request: 'Liste produtos.',
   }), /invalid-fast-read-result/);
 });
+
+
+test('deterministic provider result with nonzero token usage is rejected', async () => {
+  const service = new HumanDigitalEmployeeFastReadService({
+    intentSecret: SECRET,
+    policy: POLICY,
+    semanticDecisionProvider: { async decide() { return deterministicDecision(); } },
+    bridge: {
+      async getAvailableCapabilities() {
+        return ['business.products.search'];
+      },
+      async dispatchFastRead() {
+        return {
+          model: 'wandora-deterministic-read-v1',
+          summary: 'Would otherwise be valid.',
+          usage: {
+            inputTokens: 1,
+            outputTokens: 0,
+            cachedInputTokens: 0,
+            totalTokens: 1,
+          },
+        };
+      },
+    },
+  });
+
+  await assert.rejects(service.execute({
+    organizationId: ORG,
+    actorUserId: USER,
+    employeeId: EMPLOYEE,
+    request: 'Liste produtos.',
+  }), /invalid-fast-read-result/);
+});
