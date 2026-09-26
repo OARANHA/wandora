@@ -1,3 +1,21 @@
+## Reconciled checkpoint — ADR 0284 Paperclip Fast Read terminal result read boundary preflight
+
+ADR 0284 is **PREFLIGHT COMPLETE / GO FOR NARROW PAPERCLIP HOST RUN-RESULT READ QUALIFICATION / NO PRODUCTION EFFECT**.
+
+PR #369 on branch `feat/semantic-fast-read-runtime-wiring-v1` reached exact head `55851366e0e9b31c51ae8bdd1c2519795cd8466d` with **10/10 PR workflows GREEN**, including Core CI, Semantic Fast Read CI, Core Candidate Artifact, Organization Adapter Plugin CI and the new Paperclip Synchronous Webhook Response CI.
+
+The customer-admission layer is now code-proven behind injected boundaries: authenticated Human API Fast Read route, provider-neutral `SemanticDecisionProvider`, deterministic gate, signed short-lived `FastReadIntent`, capability fail-closed behavior and zero-token deterministic-result enforcement. It remains intentionally unwired in `runtime/main.ts` until the Organization Adapter result bridge and semantic provider qualification are complete.
+
+The next proven gap is provider-operational, not Wandora-owned: `ctx.agents.invoke(...)` creates the Paperclip run and returns its `runId`, while Paperclip itself owns terminal status, `resultJson` and `usageJson`. The supported plugin worker surface used by this slice does not provide a qualified read of one exact terminal run result. The new synchronous webhook response transport is GREEN, but it can return the result only after the worker can legitimately read that Paperclip-owned state.
+
+Rejected: Core polling of Board APIs, Board/agent credential custody in Core, direct Paperclip DB reads, plugin direct DB reads, a Wandora run/result table, run lifecycle mirror, polling/retry subsystem, or relying on documented run-finished events without exact-version proof.
+
+Second adversarial review selected a **preflight then narrow host run-read** boundary (0.82), rejected relying on run-finished events now (0.82 no) and rejected new Wandora durable run state (0.83 no).
+
+Next executable slice: **Paperclip Host Fast Read Run Result Read Qualification V1 — CODE ONLY / NO PRODUCTION EFFECT**. Reuse exact Paperclip v2026.916.1 heartbeat-run services behind one capability-gated, company/agent/run-scoped, read-only plugin SDK surface returning bounded status/result/usage only. Follow ADR 0281's digest-pinned provider-patch qualification pattern. Concrete JEV wiring remains separately blocked by ADR 0276 auth/network/custody requirements.
+
+No production mutation, migration, provider/model/VendaERP call, customer work, outbound or VPS action occurred.
+
 ## Reconciled checkpoint — ADR 0283 Semantic Fast Read production convergence preflight
 
 ADR 0283 is **PREFLIGHT COMPLETE / PRODUCTION ACTIVATION NO-GO / RUNTIME WIRING + ARTIFACT GAPS PROVEN / NO PRODUCTION EFFECT**.
