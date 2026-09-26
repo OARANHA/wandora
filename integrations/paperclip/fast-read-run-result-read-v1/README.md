@@ -10,7 +10,7 @@ This directory is **CODE ONLY / NO PRODUCTION EFFECT**. It does not patch the li
 - release: v2026.916.1
 - commit: d554c4789ed3930f8a53ac9fdf6503b3187097da
 - retained patch: `integrations/paperclip/patches/v2026.916.1-fast-read-run-result-read-v1.patch`
-- patch SHA-256: `70816a63fdfdcb797e91d9e827a004b29ba354670d7500fed3a2b0cdb421c2e7`
+- patch SHA-256: `030208bdf2904961d73cba19712ba0a4cb1ffb216a0a6c52646ade1356b2a21c`
 
 ## Purpose
 
