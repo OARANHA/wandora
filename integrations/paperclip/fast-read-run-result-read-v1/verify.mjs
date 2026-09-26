@@ -13,7 +13,7 @@ const patchPath = resolve(
 );
 
 const expectedUpstream = "d554c4789ed3930f8a53ac9fdf6503b3187097da";
-const expectedPatchSha = "1bdc5fffdf097c71d8ae7a8e746b168f55d9fdc2c66c02f2d8d7893051a09785";
+const expectedPatchSha = "8d03867f37fc91e2e291f960e6abb3acbb57cf90963d4289624f964effe8fc11";
 
 const patchSha = createHash("sha256").update(readFileSync(patchPath)).digest("hex");
 assert.equal(patchSha, expectedPatchSha, "retained patch digest drift");
