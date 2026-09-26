@@ -412,17 +412,28 @@ diff --git a/server/src/services/plugin-host-services.ts b/server/src/services/p
 +          return null;
 +        }
 +
-+        const terminal = [
++        const status = [
++          "queued",
++          "running",
++          "scheduled_retry",
 +          "succeeded",
 +          "interrupted",
 +          "failed",
 +          "cancelled",
 +          "timed_out",
-+        ].includes(run.status);
++        ].find((candidate) => candidate === run.status);
++        if (!status) return null;
++
++        const terminal =
++          status === "succeeded"
++          || status === "interrupted"
++          || status === "failed"
++          || status === "cancelled"
++          || status === "timed_out";
 +        if (!terminal) {
 +          return {
 +            runId: run.id,
-+            status: run.status,
++            status,
 +            result: null,
 +            usage: null,
 +          };
@@ -457,7 +468,7 @@ diff --git a/server/src/services/plugin-host-services.ts b/server/src/services/p
 +
 +        return {
 +          runId: run.id,
-+          status: run.status,
++          status,
 +          result: model && summary
 +            ? { model, summary, executionId }
 +            : null,
