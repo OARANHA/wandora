@@ -1,3 +1,47 @@
+## 2026-09-26 — ADR 0294 Semantic Fast Read + Product Selector Production Convergence Preflight V2
+
+Status: **PREFLIGHT COMPLETE / NEXT PRODUCTION EXECUTION NO-GO / ARTIFACT + ACTIVATION-CONTRACT GAPS PROVEN / NO PRODUCTION EFFECT**.
+
+Repository reconciliation at decision time:
+
+- `main = 8d6a65f519de5c1c49607314b49968af608c7164`;
+- PR #369 remained open/draft/mergeable at `8fe81cb2b2b0cb603e9f33b5325b6756377a7c61` before this ADR checkpoint;
+- PR #370 remained separate at `11fd59599b21493a0fe335f4c32354989a6083a2`;
+- the exact pre-checkpoint PR head had 16/16 workflows GREEN.
+
+Current-head qualified Core candidate remains the post-gates artifact from merge ref `bc2f98bd52074d13a3cae2752ba04c95cbba1d99`:
+
+- image `wandora/core:organization-adapter-candidate-bc2f98bd5207`;
+- archive SHA-256 `77593828dcd69a258c4e814752d540105a43e7b79ab8135243ed385b6799d315`;
+- OCI manifest `sha256:a0cf838cc79439652961aa04cbc3d9b50930117fa6bcdec4e4deade6325b2061`;
+- post-gates job `108458569619` GREEN.
+
+Read-only production reconciliation proved:
+
+- Core = `wandora/core:organization-adapter-candidate-f3225586d082`, revision `f3225586d0825334d2c9c697a1720512a65d47f8`, healthy, restart 0, `/readyz` 200;
+- that live Core revision does not contain the Fast Read/Semantic Fast Read/Semantic Selector/TypeSafe runtime gates;
+- live agent runtime remains `mastra-supervised-model`;
+- Human Send remains OFF;
+- Messaging Gateway remains healthy with `outboundEnabled=false`;
+- Paperclip = `wandora/paperclip:v2026.916.0`, commit `dffc2b3ca1b9e88fa21cb17493083e682dffd1ca`, image ID `sha256:4fb5073ff0b09ea50527cfeafe5bcaff4f9dae2b0f508fd06c0dc58661735ced`, healthy/restart 0;
+- Task Drain = OFF / activeRuns 0 / pendingWakes 0 / quiescent true;
+- Organization Adapter live = exactly `wandora.organization-adapter-v1@0.3.1`, ready;
+- qualified Organization Adapter candidate = `0.5.0`, package SHA-256 `f4e733613e72e771eb18361dbdbf420c810c5b8bbe31361a64040a2081cc2ae2`, pinned to Paperclip v2026.916.1 / `d554c478...`.
+
+The platform-owned Mistral credential is already mounted read-only from `/opt/wandora/stacks/core/secrets/wandora_model_provider_api_key` to `/run/secrets/wandora/model-provider.api-key`. ADR 0144 still makes Wandora the semantic owner; ADR 0293 reuses that same credential for the selector. **No selector-specific Mistral secret is justified.** MCP correctly denied direct secret-path metadata access; exact current file owner/mode/group must be re-attested with metadata-only `stat` before any mutation.
+
+Paperclip v2026.916.1 + the qualified Fast Read patches remains code/CI-qualified but lacks a deployable production-promotable image artifact/digest. The current 916.1 artifact is OpenAPI only. Production also lacks a reviewed Core activation overlay, a qualified TypeSafe/JEV Core secret mount and a distinct Fast Read intent-HMAC mount.
+
+Capability Authority / ADR 0168 remains intact: Wandora semantic authority; no new durable product/operational state; Paperclip operational authority; TypeSafe/JEV, Mastra/Mistral and VendaERP remain replaceable implementations; `SemanticDecisionProvider`, `SemanticSelectorProvider`, `OrganizationAdapterFastReadBridge`, `BusinessCapability` and signed `wfri1` remain replacement boundaries. Exit Test = PASS.
+
+Decision: **NO-GO for production execution/attestation**. The next executable slice is repository/CI-only:
+
+**Semantic Fast Read Production Convergence Artifact + Activation Contract Preparation V1 — CODE/CI ONLY / NO PRODUCTION EFFECT**.
+
+It must build/freeze the deployable patched Paperclip 916.1 candidate, define the explicit disabled-by-default Core activation overlay/mount contract, prove secret custody references without reading values, and stop before any production/provider/ERP/customer/outbound effect.
+
+See `docs/decisions/0294-semantic-fast-read-product-selector-production-convergence-preflight-v2.md`.
+
 ## Reconciled checkpoint — ADR 0293 Concrete Semantic Product Selector Provider Runtime Wiring V1
 
 ADR 0293 is **QUALIFIED / 16/16 PR WORKFLOWS GREEN / PRODUCTION ACTIVATION NO-GO / NO PRODUCTION EFFECT**.
