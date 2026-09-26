@@ -120,11 +120,13 @@ fi
 
 cp "$PACK2" "$ROOT/artifacts/"
 printf '%s  %s\n' "$HASH2" "$(basename "$PACK2")" > "$ROOT/artifacts/package-sha256.txt"
+PAPERCLIP_IMAGE="$(node -e "const c=require('$ROOT/compatibility.json'); process.stdout.write(c.paperclipImage)")"
+PAPERCLIP_PATCHES="$(node -e "const c=require('$ROOT/compatibility.json'); process.stdout.write((c.paperclipPatches||[]).join(','))")"
 cat > "$ROOT/artifacts/provenance.txt" <<EOF
 wandora_source_sha=${WANDORA_SOURCE_SHA:-unversioned}
 paperclip_source_commit=$EXPECTED_COMMIT
-paperclip_image="$(node -e "const c=require('$ROOT/compatibility.json'); process.stdout.write(c.paperclipImage)")"
-paperclip_patches="$(node -e "const c=require('$ROOT/compatibility.json'); process.stdout.write((c.paperclipPatches||[]).join(','))")"
+paperclip_image=$PAPERCLIP_IMAGE
+paperclip_patches=$PAPERCLIP_PATCHES
 plugin_package=$(basename "$PACK2")
 plugin_package_sha256=$HASH2
 EOF
