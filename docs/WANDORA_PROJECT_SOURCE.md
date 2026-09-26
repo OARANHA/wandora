@@ -1,3 +1,25 @@
+## Reconciled checkpoint — ADR 0292 Concrete Semantic Product Selector Provider Qualification V1
+
+ADR 0292 is **QUALIFIED / 16/16 PR WORKFLOWS GREEN / PRODUCTION ACTIVATION NO-GO / NO PRODUCTION EFFECT**.
+
+PR #369 exact qualification code head `7d0aaf1e6581bb9aac97b129d88ac710362bd777` completed **16/16 PR workflows GREEN**. Semantic Fast Read CI `36258479880` and Core CI `36258479851` were GREEN. The early Core Candidate did not count; after both primary gates were GREEN its job was rerun, and post-gate job `108450267362` completed GREEN.
+
+The concrete selector provider is now qualified as `MastraMistralSemanticSelectorProvider` behind the existing Wandora-owned `SemanticSelectorProvider`. The reuse gate selected the existing `@mastra/core@1.66.0` + Zod + Mistral stack already present in Core instead of adding a direct/vendor client. Official current Mistral evidence proves `mistral-small-2603` supports schema-constrained Structured Outputs.
+
+The provider receives only bounded request + already-selected BusinessCapability; no tenant/employee/actor/Paperclip/ERP identifiers cross the provider boundary. It can emit only one strict product selector by `name|code|barcode`, confidence and ambiguity. It uses one generation step, zero tools, zero ERP reads, zero retry, default 3s timeout bounded 250..10000 ms, and fails closed on timeout/provider/malformed/incoherent output.
+
+Wandora remains semantic authority and reruns its deterministic gate before issuing signed `wfri1`; Paperclip remains operational authority; VendaERP remains the business-system read provider. No new LLM subsystem, catalog/cache, parser, state table, lifecycle, retry engine or provider registry was introduced.
+
+Second adversarial review selected `reuse_mastra_mistral = 0.97` and `provider_only = 1.00`; post-validation completion review marked `complete = 0.92`.
+
+Production remains unchanged and **NO-GO**. No runtime selector wiring, live provider secret/call, VendaERP, WhatsApp, deploy, VPS/Compose mutation, migration or ERP write occurred.
+
+### Next minimum preflight
+
+Do **not** wire WhatsApp yet.
+
+The next slice is **Concrete Semantic Product Selector Provider Runtime Wiring V1 — CODE ONLY / NO PRODUCTION EFFECT**: compose the qualified provider disabled-by-default into Human Fast Read using the existing file-backed model credential pattern only if purpose/custody remain correct, and prove config/custody/fail-closed behavior in CI before any live convergence preflight.
+
 ## Reconciled checkpoint — ADR 0291 Semantic Product Selector Provider Qualification V1
 
 ADR 0291 is **QUALIFIED / 16/16 PR WORKFLOWS GREEN / PRODUCTION ACTIVATION NO-GO / NO PRODUCTION EFFECT**.
