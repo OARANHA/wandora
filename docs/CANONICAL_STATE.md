@@ -1,3 +1,37 @@
+## Reconciled checkpoint — ADR 0290 ProRevest Product Selector + Price Fast Read V1
+
+ADR 0290 is **QUALIFIED / 16/16 PR WORKFLOWS GREEN / PRODUCTION ACTIVATION NO-GO / NO PRODUCTION EFFECT**.
+
+PR #369 exact qualification code head `7898dfc7e664185d872ad0e8fc6cefc3efcc2d12` completed **16/16 PR workflows GREEN**. Semantic Fast Read CI `36239607985`, Core CI `36239607974` and VendaERP Read-Only MCP CI `36239608018` were GREEN. Core Candidate Artifact run `36239607989` initially completed before the primary gates and was deliberately rerun only after Semantic Fast Read CI + Core CI were GREEN; **attempt 2** job `108398239115` completed GREEN.
+
+The qualified Wandora-owned selector is deliberately small and provider-neutral:
+
+```text
+{ kind: "product", by: "name" | "code" | "barcode", value: bounded-string }
+```
+
+The selector is canonicalized by the semantic contract and, when present, is carried inside the existing HMAC-signed `wfri1` Fast Read intent. Existing selector-less product-search intents remain compatible. `business.products.price` now requires a valid product selector before dispatch; missing/invalid selectors fail closed before Paperclip invocation. No downstream ERP adapter is allowed to reinterpret raw customer text into a product query.
+
+Execution reuses the already-authorized `vendaerp_search_products` tool. Core maps that exact tool to `business.products.search` and `business.products.price`; it does not map the price-table tool into this Fast Read V1. Selector-aware execution sends exactly one of `name`, `code` or `barcode` plus the existing bounded pagination, then deterministically post-filters normalized returned rows against the authorized selector. Zero exact matches returns not-found; multiple exact matches returns bounded clarification; exactly one matching product may expose its normalized `salePrice`. No second provider call, fuzzy ranking, price service, registry or durable selector/query state exists.
+
+The disposable proof additionally verifies that the signed selector reaches the already-authorized deterministic binding only after Fast Read intent verification and that model/token usage remains zero. Focused VendaERP tests prove one exact existing product-read call, no trust in the first returned row, bounded clarification for ambiguity, and no tool call when price lacks selector.
+
+**Important provider gap:** the qualified `TypeSafeJevSemanticDecisionProvider` still returns only the ADR 0287 mode/capability/probability/ambiguity decision and does not originate arbitrary structured product selectors. That behavior was not invented or bypassed. Therefore current live/customer product-price admission remains intentionally fail-closed even though the downstream selector+price contract is now qualified.
+
+Capability Authority / Reuse Gate remains intact: Wandora owns the semantic product selector and signed authorization; Paperclip remains operational authority for lifecycle, Tool Gateway authorization/execution and terminal result; VendaERP remains the concrete read provider. No table, migration, lifecycle/run mirror, Connection/grant/secret/tool registry, retry subsystem, new price service or provider-specific semantic contract was added.
+
+The adversarial review selected signed-intent selector authority, the single-key provider-neutral selector, current-TypeSafe fail-closed behavior and `reuse_search_products` with probability 1.00 for the architectural choices. A focused second pass selected execution `proceed` at 0.92. Post-validation completion review marked the code-only objective `complete` at 0.77.
+
+No production/VPS/Compose/secret/customer/real TypeSafe/VendaERP/WhatsApp effect occurred. `WANDORA_SEMANTIC_FAST_READ_ENABLED` remains disabled by default and production remains **NO-GO**.
+
+### Next minimum preflight
+
+Do **not** wire WhatsApp yet.
+
+The next code-only gap is **Semantic Product Selector Provider Qualification V1**: prove whether the current qualified TypeSafe/System One boundary can emit the bounded Wandora product selector contract without untyped/arbitrary behavior. If it cannot, qualify the smallest provider-neutral semantic-provider extension instead. Do not add a heuristic Core/ERP parser.
+
+Only after selector origination is GREEN should a later effect-authorizing preflight consider authenticated WhatsApp ingress -> Semantic Fast Read -> real read-only product+price -> bounded outbound. Quote V1 remains subsequent and deterministic, with no ERP write.
+
 ## Reconciled checkpoint — ADR 0289 Fast Read Measurable Convergence + Latency Instrumentation V1
 
 ADR 0289 is **QUALIFIED / 16/16 PR WORKFLOWS GREEN / PRODUCTION ACTIVATION NO-GO / NO PRODUCTION EFFECT**.
