@@ -97,6 +97,87 @@ test('customer Fast Read admission emits one signed intent and returns only zero
   assert.equal(dispatchCalls, 1);
 });
 
+test('product price without a semantic product selector fails closed before dispatch', async () => {
+  let dispatchCalls = 0;
+  const service = new HumanDigitalEmployeeFastReadService({
+    intentSecret: SECRET,
+    policy: POLICY,
+    semanticDecisionProvider: {
+      async decide() {
+        return deterministicDecision({
+          capability: 'business.products.price',
+        });
+      },
+    },
+    bridge: {
+      async getAvailableCapabilities() {
+        return ['business.products.search', 'business.products.price'];
+      },
+      async dispatchFastRead() {
+        dispatchCalls += 1;
+        throw new Error('must not dispatch');
+      },
+    },
+  });
+
+  assert.deepEqual(await service.execute({
+    organizationId: ORG,
+    actorUserId: USER,
+    employeeId: EMPLOYEE,
+    request: 'Qual o preço do PREMIUM PLUS?',
+  }), {
+    kind: 'fallback',
+    reason: 'missing-selector',
+  });
+  assert.equal(dispatchCalls, 0);
+});
+
+test('product price selector is carried by the issued signed Fast Read intent', async () => {
+  let dispatchCalls = 0;
+  const service = new HumanDigitalEmployeeFastReadService({
+    intentSecret: SECRET,
+    policy: POLICY,
+    createCorrelationId: () => CORRELATION,
+    now: () => 1_790_000_000_000,
+    semanticDecisionProvider: {
+      async decide() {
+        return deterministicDecision({
+          capability: 'business.products.price',
+          selector: { kind: 'product', by: 'name', value: 'PREMIUM PLUS' },
+        });
+      },
+    },
+    bridge: {
+      async getAvailableCapabilities() {
+        return ['business.products.search', 'business.products.price'];
+      },
+      async dispatchFastRead(input) {
+        dispatchCalls += 1;
+        const payload = JSON.parse(Buffer.from(input.intentToken.split('.')[1]!, 'base64url').toString('utf8'));
+        assert.deepEqual(payload.sel, {
+          kind: 'product',
+          by: 'name',
+          value: 'PREMIUM PLUS',
+        });
+        return {
+          model: 'wandora-deterministic-read-v1',
+          summary: 'PREMIUM PLUS\nPreço: R$ 129,90',
+          usage: { inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, totalTokens: 0 },
+        };
+      },
+    },
+  });
+
+  const result = await service.execute({
+    organizationId: ORG,
+    actorUserId: USER,
+    employeeId: EMPLOYEE,
+    request: 'Qual o preço do PREMIUM PLUS?',
+  });
+  assert.equal(result.kind, 'completed');
+  assert.equal(dispatchCalls, 1);
+});
+
 test('low-confidence or unavailable semantic decisions fail closed before dispatch', async () => {
   let dispatchCalls = 0;
   const service = new HumanDigitalEmployeeFastReadService({

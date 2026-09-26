@@ -103,6 +103,7 @@ export class PaperclipFastReadExecutionService {
       result = await this.executor.executeAuthorizedIntent({
         request: input.request,
         capability: intent.capability,
+        selector: intent.selector,
         bindings,
       });
       emitFastReadLatency(this.deps.recordLatency, {

@@ -389,6 +389,9 @@ make_intent() {
         decision: {
           mode: "deterministic_read",
           capability: process.env.CAPABILITY,
+          selector: process.env.CAPABILITY === "business.products.price"
+            ? { kind: "product", by: "name", value: "PREMIUM PLUS" }
+            : null,
           confidence: 1,
           needsDataOrToolLookup: 1,
           needsMoreContext: 0,
