@@ -1,3 +1,27 @@
+## 2026-09-26 — ADR 0298 Immediate Pre-Mutation Attestation + Effect Authorization V1
+
+Status: **BLOCKED / NO MUTATION / NO PRODUCTION EFFECT**.
+
+Fresh GitHub reconciliation preserved `main@8d6a65f519de5c1c49607314b49968af608c7164`; PR #369 was open/draft/mergeable at pre-checkpoint head `3064c151331378c4d8b608c409967fd9f9f503ef`, merge ref `0049e193f945f4c1512430df51a0b145c45c3c97`, with **17/17 workflows GREEN**. PR #370 remained separate at `11fd59599b21493a0fe335f4c32354989a6083a2`.
+
+The exact ADR 0295 Paperclip candidate remains available and non-expired: artifact `10914008713`, ZIP digest `sha256:e43acc85e3f7f010b7189f11bd9c3622f9a7a9015765a50f315ca61a98c36a19`, exact Paperclip source `d554c4789ed3930f8a53ac9fdf6503b3187097da`. A newer workflow artifact was deliberately not substituted because exact archived bytes are the promotion unit.
+
+Fresh production readback proved Core `wandora/core:organization-adapter-candidate-f3225586d082` / revision `f3225586...` healthy/restart 0, Paperclip `wandora/paperclip:v2026.916.0` / commit `dffc2b3...` healthy/restart 0, Task Drain OFF with activeRuns=0/pendingWakes=0/quiescent=true, exactly one Organization Adapter `0.3.1` ready, Human Send OFF and Messaging Gateway `outboundEnabled=false`. Semantic/Fast Read convergence/custody overlays remain absent from live Core.
+
+The attestation nevertheless cannot authorize the first planned compatibility mutation. ADR 0294 requires a fresh immediately-pre-mutation rollback set containing current Paperclip durable-state recovery evidence, matching key custody, plugin/adapter store, compose/wrapper and protected manifests. No such fresh rollback bundle exists in this window, and the available MCP has no dedicated backup/snapshot capability. The official `paperclipai db:backup` path exists but would itself be a gap-closing write, so it was not improvised inside the read-only attestation.
+
+A second freshness gap is also recorded: Remote-Ops correctly denied direct access to the Core secret directory with `SECRET_PATH_DENIED`. ADR 0297 remains the canonical custody qualification, but this immediate slice did not bypass the guard to re-stat TypeSafe/`wfri1`.
+
+Capability Authority remains unchanged and ADR 0168 Exit Test passes. No subsystem, registry, lifecycle, run mirror, secret manager or permission widening is justified.
+
+Decision: **BLOCKED / NO MUTATION / NO PRODUCTION EFFECT**. The contemplated first mutation — promotion of exact Paperclip artifact `10914008713` while Organization Adapter remains 0.3.1 and all semantic/outbound gates remain OFF — is **not authorized**.
+
+Second adversarial JEV review returned `block=0.95`, `split_task=0.04`, `deep_review=0.01`, `proceed_fast=0` (route confidence 0.93), consistent with the deterministic rollback gap.
+
+Next slice: **Production Rollback Freeze + Secret Metadata Readback V1 — operator-local / NO ACTIVATION / NO CUSTOMER EFFECT**. Only after that gap is closed should Immediate Pre-Mutation Attestation be rerun from fresh state.
+
+See `docs/decisions/0298-immediate-pre-mutation-attestation-effect-authorization-v1.md`.
+
 ## 2026-09-26 — ADR 0297 Production Credential Custody Completion V1
 
 Status: **COMPLETE / CUSTODY QUALIFIED / NO ACTIVATION / NO RUNTIME OR CUSTOMER EFFECT**.
