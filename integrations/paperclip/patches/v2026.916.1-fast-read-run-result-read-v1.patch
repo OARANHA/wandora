@@ -412,16 +412,19 @@ diff --git a/server/src/services/plugin-host-services.ts b/server/src/services/p
 +          return null;
 +        }
 +
-+        const status = [
-+          "queued",
-+          "running",
-+          "scheduled_retry",
-+          "succeeded",
-+          "interrupted",
-+          "failed",
-+          "cancelled",
-+          "timed_out",
-+        ].find((candidate) => candidate === run.status);
++        const status = (() => {
++          switch (run.status) {
++            case "queued": return "queued" as const;
++            case "running": return "running" as const;
++            case "scheduled_retry": return "scheduled_retry" as const;
++            case "succeeded": return "succeeded" as const;
++            case "interrupted": return "interrupted" as const;
++            case "failed": return "failed" as const;
++            case "cancelled": return "cancelled" as const;
++            case "timed_out": return "timed_out" as const;
++            default: return null;
++          }
++        })();
 +        if (!status) return null;
 +
 +        const terminal =
