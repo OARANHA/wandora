@@ -9,6 +9,7 @@ on:
       - 'apps/core/src/supervision/human-digital-employee-fast-read.ts'
       - 'apps/core/src/business-system/vendaerp-fast-read.ts'
       - 'apps/core/test/human-digital-employee-fast-read.test.ts'
+      - 'apps/core/test/mastra-mistral-semantic-selector-provider.test.ts'
       - 'apps/core/test/vendaerp-fast-read.test.ts'
       - 'apps/core/test/paperclip-organization-adapter-provider.test.ts'
       - 'apps/core/src/paperclip-execution/**'
@@ -28,6 +29,7 @@ on:
       - 'apps/core/src/supervision/human-digital-employee-fast-read.ts'
       - 'apps/core/src/business-system/vendaerp-fast-read.ts'
       - 'apps/core/test/human-digital-employee-fast-read.test.ts'
+      - 'apps/core/test/mastra-mistral-semantic-selector-provider.test.ts'
       - 'apps/core/test/vendaerp-fast-read.test.ts'
       - 'apps/core/test/paperclip-organization-adapter-provider.test.ts'
       - 'apps/core/src/paperclip-execution/**'
@@ -105,6 +107,7 @@ jobs:
           node --import tsx --test
           test/fast-read-intent.test.ts
           test/human-digital-employee-fast-read.test.ts
+          test/mastra-mistral-semantic-selector-provider.test.ts
           test/vendaerp-fast-read.test.ts
           test/paperclip-organization-adapter-provider.test.ts
 
