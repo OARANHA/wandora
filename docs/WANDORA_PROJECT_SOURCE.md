@@ -1,3 +1,23 @@
+## Reconciled checkpoint — ADR 0287 TypeSafe Jev SemanticDecisionProvider Qualification V1
+
+ADR 0287 is **QUALIFIED / TYPESAFE JEV ADAPTER GREEN / PRODUCTION ACTIVATION NO-GO / NO PRODUCTION EFFECT**.
+
+PR #369 qualifies the concrete pre-Issue semantic provider behind the existing provider-neutral `SemanticDecisionProvider` at exact code head `e4b044c5efbdf25ba50f181764b55c2a3782fd6d`. All **16/16 PR workflows were GREEN** on that head. Semantic Fast Read CI run `36230335382` and Core CI run `36230335422` were GREEN; Core Candidate Artifact run `36230335359` was rerun only after both gates completed and finished GREEN on **attempt 2**.
+
+The qualified implementation is `TypeSafeJevSemanticDecisionProvider` over the official TypeSafe System One HTTPS boundary: one `POST https://api.typesafe.ai/v1/systemone`, HTTP Bearer authentication, strict typed response validation, 3 second default timeout, 64 KiB maximum response, zero retries and fail-closed handling for timeout/network/non-200/oversize/malformed/unknown provider output.
+
+Semantic authority remains Wandora-owned. The adapter sends only the bounded customer request plus the finite currently-advertised Wandora `BusinessCapability` set; it intentionally omits organization id, employee id, actor id, Paperclip ids, provider bindings and Tool Gateway state. Provider-specific identity remains only bounded `providerEvidence` and does not alter the Wandora contract.
+
+The existing Paperclip semantic-decision plugin remains post-Issue/advisory and is not reused as this pre-Issue provider. The ChatGPT JEV MCP connector is not treated as the Core runtime contract.
+
+No table, migration, provider registry, lifecycle, runtime memory, result mirror, retry subsystem, new secrets subsystem or provider execution store was introduced. No runtime secret was created or mounted and the provider is not wired into `runtime/main.ts` by this slice.
+
+Pre-execution adversarial review via TypeSafe-backed JEV 1.13.0 returned `proceed_fast=0.56`, `deep_review=0.34`, `block=0.09`, `split_task=0.01`; implementation stayed deliberately narrow.
+
+Production remains unchanged and **NO-GO**. No deploy, VPS mutation, Paperclip/Organization Adapter promotion, migration, VendaERP call, customer/provider production call, customer work or outbound effect occurred.
+
+Next exact gap: **SemanticDecisionProvider runtime wiring V1 — CODE ONLY / NO PRODUCTION EFFECT**. Reuse the existing file-backed secret-custody pattern to bind the qualified TypeSafe Bearer credential behind a disabled-by-default runtime config, instantiate the provider with the ADR 0286 Organization Adapter bridge and wire the already-authenticated customer Fast Read admission route. That future slice must prove config/readiness/fail-closed behavior in CI before any production preflight.
+
 ## Reconciled checkpoint — ADR 0286 Core Organization Adapter Fast Read Bridge V1
 
 ADR 0286 is **QUALIFIED / CORE BRIDGE GREEN / PRODUCTION ACTIVATION NO-GO / NO PRODUCTION EFFECT**.

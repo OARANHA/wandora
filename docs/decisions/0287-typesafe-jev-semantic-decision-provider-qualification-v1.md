@@ -1,6 +1,6 @@
 # ADR 0287 — TypeSafe Jev SemanticDecisionProvider Qualification V1
 
-Status: **IMPLEMENTED / QUALIFICATION CI PENDING / PRODUCTION ACTIVATION NO-GO / NO PRODUCTION EFFECT**
+Status: **QUALIFIED / TYPESAFE JEV ADAPTER GREEN / PRODUCTION ACTIVATION NO-GO / NO PRODUCTION EFFECT**
 
 Date: 2026-09-26
 
@@ -124,9 +124,21 @@ Before implementation, the TypeSafe-backed JEV 1.13.0 review returned:
 
 The implementation therefore remained intentionally narrow: adapter + fixtures/tests + documentation only, with no runtime wiring or production effect.
 
-## Validation required before qualification
+## Validation
 
-The exact implementation head must prove through existing GitHub-hosted CI:
+Exact implementation head: `e4b044c5efbdf25ba50f181764b55c2a3782fd6d`.
+
+All **16/16 PR workflows are GREEN** on that head under the ADR 0158 GitHub-hosted CI boundary.
+
+Key runs:
+
+- Semantic Fast Read CI `36230335382` — GREEN;
+- Core CI `36230335422` — GREEN;
+- Core Candidate Artifact `36230335359`, **attempt 2** — GREEN after Semantic Fast Read CI and Core CI completed;
+- Paperclip Fast Read Run Result Read CI `36230335463` — GREEN;
+- Paperclip OpenAPI Compatibility `36230335467` — GREEN.
+
+The exact-head validation proves:
 
 - Core typecheck/build/tests GREEN;
 - adapter performs one exact HTTPS request with Bearer auth;
@@ -137,7 +149,7 @@ The exact implementation head must prove through existing GitHub-hosted CI:
 - oversized response fails closed;
 - malformed typed answers fail closed.
 
-Only after exact-head CI is GREEN may this ADR status become **QUALIFIED**.
+The implementation is therefore **QUALIFIED** as a code-only concrete `SemanticDecisionProvider` adapter. This qualification does not authorize runtime wiring or production activation.
 
 ## Production boundary
 
