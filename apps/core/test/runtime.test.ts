@@ -144,6 +144,69 @@ test('WANDORA CORE PRIVATE RUNTIME V1', async (t) => {
     }
   });
 
+
+  await t.test('Fast Read execution is disabled by default and requires a distinct file-backed intent HMAC plus the Paperclip bridge', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'wandora-core-fast-read-'));
+    const dbSecret = join(dir, 'db-password');
+    const gatewaySecret = join(dir, 'gateway-secret');
+    const bridgeSecret = join(dir, 'paperclip-bridge-secret');
+    const fastReadSecret = join(dir, 'fast-read-secret');
+    try {
+      await writeFile(dbSecret, 'synthetic-test-password\n', { mode: 0o600 });
+      await writeFile(gatewaySecret, 'gateway-test-secret-0123456789abcdef0123456789abcdef\n', { mode: 0o600 });
+      await writeFile(bridgeSecret, 'paperclip-bridge-secret-0123456789abcdef0123456789abcdef\n', { mode: 0o600 });
+      await writeFile(fastReadSecret, 'fast-read-intent-secret-0123456789abcdef0123456789abcdef\n', { mode: 0o600 });
+
+      await assert.rejects(
+        loadRuntimeConfig({
+          WANDORA_CORE_MODE: 'standby',
+          WANDORA_FAST_READ_EXECUTION_ENABLED: 'true',
+        }),
+        /Fast Read Execution cannot be enabled while Wandora Core is in standby/,
+      );
+
+      await assert.rejects(
+        loadRuntimeConfig({
+          WANDORA_CORE_MODE: 'database',
+          WANDORA_CORE_DB_PASSWORD_FILE: dbSecret,
+          WANDORA_FAST_READ_EXECUTION_ENABLED: 'true',
+          WANDORA_FAST_READ_INTENT_SECRET_FILE: fastReadSecret,
+        }),
+        /requires the Paperclip Execution Bridge/,
+      );
+
+      const config = await loadRuntimeConfig({
+        WANDORA_CORE_MODE: 'database',
+        WANDORA_CORE_DB_PASSWORD_FILE: dbSecret,
+        WANDORA_GATEWAY_INGRESS_ENABLED: 'true',
+        WANDORA_GATEWAY_INGRESS_SECRET_FILE: gatewaySecret,
+        WANDORA_AGENT_RUNTIME_MODE: 'mastra-deterministic',
+        WANDORA_PAPERCLIP_EXECUTION_BRIDGE_ENABLED: 'true',
+        WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE: bridgeSecret,
+        WANDORA_FAST_READ_EXECUTION_ENABLED: 'true',
+        WANDORA_FAST_READ_INTENT_SECRET_FILE: fastReadSecret,
+      });
+      assert.equal(config.fastReadExecution?.intentSecret.startsWith('fast-read-intent-secret-'), true);
+
+      await assert.rejects(
+        loadRuntimeConfig({
+          WANDORA_CORE_MODE: 'database',
+          WANDORA_CORE_DB_PASSWORD_FILE: dbSecret,
+          WANDORA_GATEWAY_INGRESS_ENABLED: 'true',
+          WANDORA_GATEWAY_INGRESS_SECRET_FILE: gatewaySecret,
+          WANDORA_AGENT_RUNTIME_MODE: 'mastra-deterministic',
+          WANDORA_PAPERCLIP_EXECUTION_BRIDGE_ENABLED: 'true',
+          WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE: bridgeSecret,
+          WANDORA_FAST_READ_EXECUTION_ENABLED: 'true',
+          WANDORA_FAST_READ_INTENT_SECRET_FILE: bridgeSecret,
+        }),
+        /Fast Read intent HMAC must be distinct/,
+      );
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   await t.test('health stays healthy while standby readiness stays closed', async () => {
     await withServer(async () => ({ ready: false, reason: 'standby' }), async (baseUrl) => {
       const health = await fetch(`${baseUrl}/healthz`);

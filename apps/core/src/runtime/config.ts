@@ -73,6 +73,10 @@ export type RuntimePaperclipExecutionBridgeConfig = {
   agentMeUrl: string;
 };
 
+export type RuntimeFastReadExecutionConfig = {
+  intentSecret: string;
+};
+
 export type RuntimeConfig = {
   port: number;
   mode: RuntimeMode;
@@ -87,6 +91,7 @@ export type RuntimeConfig = {
   humanDigitalEmployeeActivation?: RuntimeHumanDigitalEmployeeActivationConfig;
   humanDigitalEmployeeWork?: RuntimeHumanDigitalEmployeeWorkConfig;
   paperclipExecutionBridge?: RuntimePaperclipExecutionBridgeConfig;
+  fastReadExecution?: RuntimeFastReadExecutionConfig;
 };
 
 const parsePort = (value: string | undefined, fallback: number, name: string): number => {
@@ -279,6 +284,10 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_ENABLED,
     'WANDORA_PAPERCLIP_EXECUTION_BRIDGE_ENABLED',
   );
+  const fastReadExecutionEnabled = parseEnabled(
+    env.WANDORA_FAST_READ_EXECUTION_ENABLED,
+    'WANDORA_FAST_READ_EXECUTION_ENABLED',
+  );
   const agentRuntimeMode = parseAgentRuntimeMode(env.WANDORA_AGENT_RUNTIME_MODE);
 
   if (mode === 'standby') {
@@ -309,6 +318,9 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     if (paperclipExecutionBridgeEnabled) {
       throw new Error('Paperclip Execution Bridge cannot be enabled while Wandora Core is in standby mode.');
     }
+    if (fastReadExecutionEnabled) {
+      throw new Error('Fast Read Execution cannot be enabled while Wandora Core is in standby mode.');
+    }
     if (agentRuntimeMode !== 'disabled') {
       throw new Error('Agent Runtime cannot be enabled while Wandora Core is in standby mode.');
     }
@@ -332,6 +344,9 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
   }
   if (paperclipExecutionBridgeEnabled && agentRuntimeMode === 'disabled') {
     throw new Error('Paperclip Execution Bridge requires an Agent Runtime to be enabled.');
+  }
+  if (fastReadExecutionEnabled && !paperclipExecutionBridgeEnabled) {
+    throw new Error('Fast Read Execution requires the Paperclip Execution Bridge to be enabled.');
   }
   if (humanDigitalEmployeeActivationEnabled && !humanApiEnabled) {
     throw new Error('Human Digital Employee Activation requires the Human API to be enabled.');
@@ -487,6 +502,30 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     };
   }
 
+  let fastReadExecution: RuntimeFastReadExecutionConfig | undefined;
+  if (fastReadExecutionEnabled) {
+    const secretFile = required(env, 'WANDORA_FAST_READ_INTENT_SECRET_FILE');
+    if (!isAbsolute(secretFile)) {
+      throw new Error('WANDORA_FAST_READ_INTENT_SECRET_FILE must be an absolute mounted file.');
+    }
+    const secretFileStat = await stat(secretFile).catch(() => null);
+    if (!secretFileStat?.isFile()) {
+      throw new Error('WANDORA_FAST_READ_INTENT_SECRET_FILE must be a mounted regular file.');
+    }
+    const intentSecret = (await readFile(secretFile, 'utf8')).trim();
+    if (intentSecret.length < 32 || intentSecret.length > 8_192) {
+      throw new Error('Wandora Fast Read intent secret must contain between 32 and 8192 characters.');
+    }
+    if (
+      gatewayIngress?.secret === intentSecret
+      || humanSendProposal?.gatewaySecret === intentSecret
+      || paperclipExecutionBridge?.secret === intentSecret
+    ) {
+      throw new Error('Fast Read intent HMAC must be distinct from existing Wandora HMAC secrets.');
+    }
+    fastReadExecution = { intentSecret };
+  }
+
   let organizationAdapter: RuntimeOrganizationAdapterConfig | undefined;
   if (organizationAdapterEnabled) {
     const secretDirectory = required(env, 'WANDORA_ORGANIZATION_ADAPTER_SECRET_DIRECTORY');
@@ -537,6 +576,7 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     ...(humanSendProposal ? { humanSendProposal } : {}),
     ...(organizationAdapter ? { organizationAdapter } : {}),
     ...(paperclipExecutionBridge ? { paperclipExecutionBridge } : {}),
+    ...(fastReadExecution ? { fastReadExecution } : {}),
     ...(humanDigitalEmployeeHireEnabled
       ? { humanDigitalEmployeeHire: { enabled: true as const } }
       : {}),

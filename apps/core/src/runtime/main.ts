@@ -5,8 +5,10 @@ import { MastraSupervisedModelAgentRuntime } from '../agent-runtime/mastra-super
 import { PostgresOrganizationGroundingProjection } from '../agent-runtime/organization-grounding.js';
 import { PostgresAnaRepository } from '../ana/postgres-repository.js';
 import { AnaSupervisedIngressService } from '../ana/supervised-ingress.js';
+import { createVendaErpFastReadCapabilityAdapter } from '../business-system/vendaerp-fast-read.js';
 import { Es256JwksHumanTokenVerifier } from '../human-auth/es256-jwks.js';
 import { createPrivateGatewayClient } from '../messaging/private-gateway.js';
+import { PaperclipFastReadExecutionService } from '../paperclip-execution/fast-read.js';
 import { createPaperclipExecutionHandler } from '../paperclip-execution/handler.js';
 import { createPaperclipRunIdentityClient } from '../paperclip-execution/paperclip-run-identity.js';
 import { createPaperclipToolGatewayReadBridge } from '../paperclip-execution/tool-gateway-read-bridge.js';
@@ -75,26 +77,47 @@ const handleGatewayInbound = pool && config.gatewayIngress
     })
   : undefined;
 
-const handlePaperclipExecution = pool
+const paperclipReadToolBridge = config.paperclipExecutionBridge
+  ? createPaperclipToolGatewayReadBridge({
+      agentMeUrl: config.paperclipExecutionBridge.agentMeUrl,
+    })
+  : undefined;
+
+const paperclipExecutionService = pool
   && agentRuntime
+  && config.paperclipExecutionBridge
+  ? new PaperclipExecutionService(
+      pool,
+      agentRuntime,
+      new PostgresOrganizationGroundingProjection(pool),
+      config.humanDigitalEmployeeWork ? organizationAdapterService : undefined,
+      config.agentRuntime?.mode === 'mastra-supervised-model'
+        ? paperclipReadToolBridge
+        : undefined,
+      new PostgresEmployeeDevelopmentProjection(pool),
+    )
+  : undefined;
+
+const paperclipFastReadService = paperclipExecutionService
+  && paperclipReadToolBridge
+  && config.fastReadExecution
+  ? new PaperclipFastReadExecutionService({
+      intentSecret: config.fastReadExecution.intentSecret,
+      bindingResolver: paperclipExecutionService,
+      readToolBridge: paperclipReadToolBridge,
+      capabilityAdapter: createVendaErpFastReadCapabilityAdapter(),
+    })
+  : undefined;
+
+const handlePaperclipExecution = paperclipExecutionService
   && config.paperclipExecutionBridge
   ? createPaperclipExecutionHandler({
       secret: config.paperclipExecutionBridge.secret,
       verifyRunIdentity: createPaperclipRunIdentityClient({
         agentMeUrl: config.paperclipExecutionBridge.agentMeUrl,
       }),
-      service: new PaperclipExecutionService(
-        pool,
-        agentRuntime,
-        new PostgresOrganizationGroundingProjection(pool),
-        config.humanDigitalEmployeeWork ? organizationAdapterService : undefined,
-        config.agentRuntime?.mode === 'mastra-supervised-model'
-          ? createPaperclipToolGatewayReadBridge({
-              agentMeUrl: config.paperclipExecutionBridge.agentMeUrl,
-            })
-          : undefined,
-        new PostgresEmployeeDevelopmentProjection(pool),
-      ),
+      service: paperclipExecutionService,
+      ...(paperclipFastReadService ? { fastReadService: paperclipFastReadService } : {}),
     })
   : undefined;
 
@@ -205,6 +228,7 @@ server.listen(config.port, '0.0.0.0', () => {
     port: config.port,
     gatewayIngress: Boolean(handleGatewayInbound),
     paperclipExecutionBridge: Boolean(handlePaperclipExecution),
+    fastReadExecution: Boolean(paperclipFastReadService),
     humanApi: Boolean(handleHumanSupervision),
     customerCompanyOnboarding: Boolean(humanCompanyProfileService),
     humanSendProposal: Boolean(humanSendProposalService),
