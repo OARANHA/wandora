@@ -1,3 +1,25 @@
+## Reconciled checkpoint — ADR 0292 Concrete Semantic Product Selector Provider Qualification V1
+
+ADR 0292 is **QUALIFIED / 16/16 PR WORKFLOWS GREEN / PRODUCTION ACTIVATION NO-GO / NO PRODUCTION EFFECT**.
+
+PR #369 exact qualification code head `7d0aaf1e6581bb9aac97b129d88ac710362bd777` completed **16/16 PR workflows GREEN**. Semantic Fast Read CI `36258479880` and Core CI `36258479851` were GREEN. The Core Candidate Artifact completed before those primary gates and was therefore not counted; after both gates were GREEN, its exact job was rerun and post-gate job `108450267362` completed GREEN.
+
+Official Mistral documentation proves Mistral Small 4 `mistral-small-2603` supports Structured Outputs on Chat Completions and accepts caller-defined JSON schema, including Zod-defined structures. The reuse gate also proved Core already depends on `@mastra/core@1.66.0` + `zod@4.6.4` and already uses the same Mistral model in its supervised runtime with structured output, bounded aborts and zero retries.
+
+The qualified concrete implementation is `MastraMistralSemanticSelectorProvider` behind the existing Wandora-owned `SemanticSelectorProvider`. It receives only bounded request text plus the already-selected BusinessCapability and deliberately omits organization/employee/actor/Paperclip/ERP context. Strict output permits only one bounded product selector by `name|code|barcode`, confidence 0..1 and canonical ambiguity. It uses one Mastra generation step, tools=0, ERP reads=0, timeout default 3s bounded 250..10000 ms, and retries=0.
+
+Capability authority remains unchanged: Wandora owns selector semantics, admission, final gate and signed `wfri1`; Mastra/Mistral are replaceable selector implementation only; Paperclip remains operational authority for lifecycle/Tool Gateway/Connections/grants/secrets/audit/result; VendaERP remains the business-system read provider. No second LLM subsystem, direct vendor client, catalog/cache, selector table, lifecycle/run mirror, retry engine, pre-admission ERP lookup, fuzzy matcher or heuristic parser was created.
+
+Second adversarial review selected `reuse_mastra_mistral = 0.97` and `provider_only = 1.00`. Post-validation review marked `complete = 0.92`.
+
+No runtime selector composition, live provider secret, live provider call, VendaERP call, WhatsApp wiring/outbound, deploy, VPS/Compose mutation, migration or ERP write occurred. `WANDORA_SEMANTIC_FAST_READ_ENABLED` remains disabled by default and production remains **NO-GO**.
+
+### Next minimum slice
+
+**Concrete Semantic Product Selector Provider Runtime Wiring V1 — CODE ONLY / NO PRODUCTION EFFECT**.
+
+Reuse the already-qualified provider and existing file-backed model credential pattern where authority/purpose remain correct, compose it disabled-by-default into Human Fast Read, and prove config/custody/fail-closed behavior. Do not wire WhatsApp or execute live provider/customer/ERP work in that slice.
+
 ## Reconciled checkpoint — ADR 0291 Semantic Product Selector Provider Qualification V1
 
 ADR 0291 is **QUALIFIED / 16/16 PR WORKFLOWS GREEN / PRODUCTION ACTIVATION NO-GO / NO PRODUCTION EFFECT**.
