@@ -43,6 +43,11 @@ jobs:
           chmod +x integrations/paperclip/fast-read-convergence-v1/compose-qualified-patches.sh
           integrations/paperclip/fast-read-convergence-v1/compose-qualified-patches.sh "$GITHUB_WORKSPACE/.paperclip"
 
+      - name: Diagnostic composed worker RPC host
+        shell: bash
+        run: |
+          nl -ba .paperclip/packages/plugins/sdk/src/worker-rpc-host.ts | sed -n '1315,1385p'
+
       - name: Set up Node 24.21.0
         uses: actions/setup-node@v4
         with:
