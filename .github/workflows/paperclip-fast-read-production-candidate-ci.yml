@@ -109,9 +109,17 @@ jobs:
           docker run -d             --name "$name"             -e PAPERCLIP_DEPLOYMENT_MODE=authenticated             -e PAPERCLIP_DEPLOYMENT_EXPOSURE=private             -e PAPERCLIP_PUBLIC_URL=http://127.0.0.1:3100             -e PAPERCLIP_ALLOWED_HOSTNAMES=127.0.0.1,localhost,wandora-paperclip             -e PAPERCLIP_TELEMETRY_DISABLED=1             -e DO_NOT_TRACK=1             -e BETTER_AUTH_SECRET="$better_auth_secret"             -e PAPERCLIP_AGENT_JWT_SECRET="$agent_jwt_secret"             -e PAPERCLIP_TOOL_ACTION_SIGNING_SECRET="$tool_action_secret"             -v "$volume:/paperclip"             "$IMAGE" >/dev/null
 
           health=''
+          ready='false'
           for _ in $(seq 1 120); do
             if health="$(docker exec "$name" curl -fsS http://127.0.0.1:3100/api/health 2>/dev/null)"; then
-              break
+              if HEALTH_JSON="$health" node <<'NODE'
+          const health = JSON.parse(process.env.HEALTH_JSON);
+          process.exit(health.status === 'ok' ? 0 : 1);
+          NODE
+              then
+                ready='true'
+                break
+              fi
             fi
             if ! docker inspect --format '{{.State.Running}}' "$name" | grep -qx true; then
               docker logs "$name" >&2 || true
@@ -120,13 +128,11 @@ jobs:
             sleep 1
           done
 
-          test -n "$health"
-          HEALTH_JSON="$health" node <<'NODE'
-          const health = JSON.parse(process.env.HEALTH_JSON);
-          if (health.status !== 'ok') {
-            throw new Error('unexpected Paperclip health payload');
-          }
-          NODE
+          if [ "$ready" != 'true' ]; then
+            printf 'Paperclip did not reach status=ok. Last health payload: %s\n' "$health" >&2
+            docker logs "$name" >&2 || true
+            exit 1
+          fi
 
           docker exec "$name" test -f /app/server/dist/build-info.json
           docker exec "$name" grep -Fq 'd554c4789ed3930f8a53ac9fdf6503b3187097da' /app/server/dist/build-info.json
