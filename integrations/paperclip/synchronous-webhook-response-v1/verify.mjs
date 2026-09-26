@@ -5,9 +5,9 @@ import path from "node:path";
 const root = path.resolve(process.argv[2] ?? ".paperclip");
 const read = (file) => readFileSync(path.join(root, file), "utf8");
 
-const changed = execFileSync("git", ["-C", root, "diff", "--name-only"], {
+const changed = execFileSync("git", ["-C", root, "status", "--porcelain"], {
   encoding: "utf8",
-}).trim().split("\n").filter(Boolean);
+}).trim().split("\n").filter(Boolean).map((line) => line.slice(3));
 
 const expected = [
   "packages/plugins/sdk/src/define-plugin.ts",
