@@ -55,7 +55,7 @@ jobs:
           set -euo pipefail
           test "$(git -C .paperclip rev-parse HEAD)" = "d554c4789ed3930f8a53ac9fdf6503b3187097da"
           patch_file="$GITHUB_WORKSPACE/integrations/paperclip/patches/v2026.916.1-fast-read-run-result-read-v1.patch"
-          test "$(sha256sum "$patch_file" | awk '{print $1}')" = "030208bdf2904961d73cba19712ba0a4cb1ffb216a0a6c52646ade1356b2a21c"
+          test "$(sha256sum "$patch_file" | awk '{print $1}')" = "8972f5d500012f706ccce82dee8aef055aa99f8b97a1d34f89856a3e1d311c6f"
           git -C .paperclip apply --check "$patch_file"
           git -C .paperclip apply "$patch_file"
           git -C .paperclip diff --check
