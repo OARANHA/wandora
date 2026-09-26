@@ -5,6 +5,10 @@ on:
     paths:
       - 'apps/core/src/semantic-routing/**'
       - 'apps/core/src/agent-runtime/**'
+      - 'apps/core/src/organization-adapter/**'
+      - 'apps/core/src/supervision/human-digital-employee-fast-read.ts'
+      - 'apps/core/test/human-digital-employee-fast-read.test.ts'
+      - 'apps/core/test/paperclip-organization-adapter-provider.test.ts'
       - 'apps/core/src/paperclip-execution/**'
       - 'apps/core/test/fast-read-intent.test.ts'
       - 'integrations/paperclip/adapters/wandora-mastra-v1/**'
@@ -18,6 +22,10 @@ on:
     paths:
       - 'apps/core/src/semantic-routing/**'
       - 'apps/core/src/agent-runtime/**'
+      - 'apps/core/src/organization-adapter/**'
+      - 'apps/core/src/supervision/human-digital-employee-fast-read.ts'
+      - 'apps/core/test/human-digital-employee-fast-read.test.ts'
+      - 'apps/core/test/paperclip-organization-adapter-provider.test.ts'
       - 'apps/core/src/paperclip-execution/**'
       - 'apps/core/test/fast-read-intent.test.ts'
       - 'integrations/paperclip/adapters/wandora-mastra-v1/**'
@@ -89,7 +97,11 @@ jobs:
 
       - name: Focused fast-read Core tests
         working-directory: apps/core
-        run: node --import tsx --test test/fast-read-intent.test.ts
+        run: >-
+          node --import tsx --test
+          test/fast-read-intent.test.ts
+          test/human-digital-employee-fast-read.test.ts
+          test/paperclip-organization-adapter-provider.test.ts
 
       - name: Adapter contract tests
         working-directory: integrations/paperclip/adapters/wandora-mastra-v1
