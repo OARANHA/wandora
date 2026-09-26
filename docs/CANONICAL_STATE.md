@@ -1,3 +1,21 @@
+## Reconciled checkpoint — ADR 0288 SemanticDecisionProvider Runtime Wiring V1
+
+ADR 0288 is **QUALIFIED / RUNTIME WIRING GREEN / PRODUCTION ACTIVATION NO-GO / NO PRODUCTION EFFECT**.
+
+PR #369 now composes the already-qualified TypeSafe/JEV semantic provider into Core runtime without creating a new execution subsystem. Qualification code head `52e2a4fc9b7fe8768d3b003eec492680eaaea58a` completed **16/16 PR workflows GREEN**. Semantic Fast Read CI run `36234623424` and Core CI run `36234623515` were GREEN. The early Core Candidate Artifact run `36234623410` was deliberately rerun only after those gates; rerun job `108384859313` completed GREEN.
+
+Runtime activation is explicitly disabled by default through `WANDORA_SEMANTIC_FAST_READ_ENABLED`. When enabled in a future separately qualified environment, it requires the existing Human API, Organization Adapter and Fast Read Execution boundaries; loads the TypeSafe Bearer credential only from absolute file-backed `WANDORA_TYPESAFE_JEV_API_KEY_FILE`; preserves ADR 0287's 3 second default / 250..10000 ms bound / zero-retry fail-closed provider behavior; instantiates `TypeSafeJevSemanticDecisionProvider`; instantiates the existing `HumanDigitalEmployeeFastReadService`; and injects it into the existing authenticated Human Fast Read route.
+
+The Wandora-owned V1 gate remains caller policy: confidence >= 0.90, needs-more-context <= 0.10, needs-human-review <= 0.10 and data/tool-lookup >= 0.90. No live provider readiness probe is added: startup proves local config/custody and request-time provider uncertainty fails closed.
+
+Capability Authority remains intact. Reused: Wandora semantic contracts/auth/intent, ADR 0286 Organization Adapter bridge, ADR 0287 TypeSafe provider, existing file-backed custody, and Paperclip-owned lifecycle/Connections/grants/secrets/Tool Gateway/run result/audit. Not created: table, migration, lifecycle/run mirror, registry, Connection mirror, secret store, retry/orchestration subsystem, provider execution store or production credential.
+
+The first adversarial routing pass returned a near tie (`deep_review=0.40`, `proceed_fast=0.39`). A focused review then selected Wandora runtime policy constant (1.00), startup-config-only readiness (1.00), and proceed for the narrowed slice (0.97). Post-validation completion review marked `complete=0.93`.
+
+Production remains unchanged and **NO-GO**. No deploy, Compose/VPS mutation, migration, live TypeSafe key, real TypeSafe/VendaERP call, customer work or WhatsApp outbound occurred.
+
+Next gap: reconcile the complete Fast Read candidate as a measurable end-to-end path, add stage latency instrumentation before optimization, then run a fresh production convergence preflight before any live credential mount/promotion. ProRevest product + price and deterministic read-only Quote V1 remain subsequent separately governed steps.
+
 ## Reconciled checkpoint — ADR 0287 TypeSafe Jev SemanticDecisionProvider Qualification V1
 
 ADR 0287 is **QUALIFIED / TYPESAFE JEV ADAPTER GREEN / PRODUCTION ACTIVATION NO-GO / NO PRODUCTION EFFECT**.
