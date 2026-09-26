@@ -132,6 +132,173 @@ test('product price without a semantic product selector fails closed before disp
   assert.equal(dispatchCalls, 0);
 });
 
+test('selector-required price composes one narrow selector provider before signed admission', async () => {
+  let selectorCalls = 0;
+  let dispatchCalls = 0;
+  const events: Record<string, unknown>[] = [];
+  const ticks = [10, 12, 20, 23, 30, 34, 40, 45];
+
+  const service = new HumanDigitalEmployeeFastReadService({
+    intentSecret: SECRET,
+    policy: POLICY,
+    createCorrelationId: () => CORRELATION,
+    now: () => 1_790_000_000_000,
+    monotonicNow: () => ticks.shift() ?? 45,
+    recordLatency: (event) => events.push(event),
+    semanticDecisionProvider: {
+      async decide() {
+        return deterministicDecision({
+          capability: 'business.products.price',
+        });
+      },
+    },
+    semanticSelectorProvider: {
+      async select(input) {
+        selectorCalls += 1;
+        assert.deepEqual(input, {
+          organizationId: ORG,
+          employeeId: EMPLOYEE,
+          request: 'Qual o preço do PREMIUM PLUS?',
+          capability: 'business.products.price',
+        });
+        return {
+          selector: { kind: 'product', by: 'name', value: 'PREMIUM PLUS' },
+          confidence: 0.98,
+          ambiguity: 'none',
+          providerEvidence: { provider: 'synthetic-selector', model: 'fixture-v1' },
+        };
+      },
+    },
+    bridge: {
+      async getAvailableCapabilities() {
+        return ['business.products.search', 'business.products.price'];
+      },
+      async dispatchFastRead(input) {
+        dispatchCalls += 1;
+        const payload = JSON.parse(Buffer.from(input.intentToken.split('.')[1]!, 'base64url').toString('utf8'));
+        assert.deepEqual(payload.sel, {
+          kind: 'product',
+          by: 'name',
+          value: 'PREMIUM PLUS',
+        });
+        return {
+          model: 'wandora-deterministic-read-v1',
+          summary: 'PREMIUM PLUS\nPreço: R$ 129,90',
+          usage: { inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, totalTokens: 0 },
+        };
+      },
+    },
+  });
+
+  const result = await service.execute({
+    organizationId: ORG,
+    actorUserId: USER,
+    employeeId: EMPLOYEE,
+    request: 'Qual o preço do PREMIUM PLUS?',
+  });
+
+  assert.equal(result.kind, 'completed');
+  assert.equal(selectorCalls, 1);
+  assert.equal(dispatchCalls, 1);
+  assert.deepEqual(events.map((event) => event.stage), [
+    'core.capability_projection',
+    'jev.semantic_decision',
+    'semantic.product_selector',
+    'paperclip.dispatch_roundtrip',
+  ]);
+});
+
+test('low-confidence selector decision fails closed before signed dispatch', async () => {
+  let selectorCalls = 0;
+  let dispatchCalls = 0;
+  const service = new HumanDigitalEmployeeFastReadService({
+    intentSecret: SECRET,
+    policy: POLICY,
+    semanticDecisionProvider: {
+      async decide() {
+        return deterministicDecision({
+          capability: 'business.products.price',
+        });
+      },
+    },
+    semanticSelectorProvider: {
+      async select() {
+        selectorCalls += 1;
+        return {
+          selector: { kind: 'product', by: 'name', value: 'PREMIUM PLUS' },
+          confidence: 0.5,
+          ambiguity: 'none',
+        };
+      },
+    },
+    bridge: {
+      async getAvailableCapabilities() {
+        return ['business.products.search', 'business.products.price'];
+      },
+      async dispatchFastRead() {
+        dispatchCalls += 1;
+        throw new Error('must not dispatch');
+      },
+    },
+  });
+
+  assert.deepEqual(await service.execute({
+    organizationId: ORG,
+    actorUserId: USER,
+    employeeId: EMPLOYEE,
+    request: 'Qual o preço do PREMIUM PLUS?',
+  }), {
+    kind: 'fallback',
+    reason: 'low-confidence',
+  });
+  assert.equal(selectorCalls, 1);
+  assert.equal(dispatchCalls, 0);
+});
+
+test('malformed selector-provider confidence fails closed before dispatch', async () => {
+  let dispatchCalls = 0;
+  const service = new HumanDigitalEmployeeFastReadService({
+    intentSecret: SECRET,
+    policy: POLICY,
+    semanticDecisionProvider: {
+      async decide() {
+        return deterministicDecision({
+          capability: 'business.products.price',
+        });
+      },
+    },
+    semanticSelectorProvider: {
+      async select() {
+        return {
+          selector: { kind: 'product', by: 'name', value: 'PREMIUM PLUS' },
+          confidence: 2,
+          ambiguity: 'none',
+        };
+      },
+    },
+    bridge: {
+      async getAvailableCapabilities() {
+        return ['business.products.search', 'business.products.price'];
+      },
+      async dispatchFastRead() {
+        dispatchCalls += 1;
+        throw new Error('must not dispatch');
+      },
+    },
+  });
+
+  assert.deepEqual(await service.execute({
+    organizationId: ORG,
+    actorUserId: USER,
+    employeeId: EMPLOYEE,
+    request: 'Qual o preço do PREMIUM PLUS?',
+  }), {
+    kind: 'fallback',
+    reason: 'invalid-selector',
+  });
+  assert.equal(dispatchCalls, 0);
+});
+
 test('product price selector is carried by the issued signed Fast Read intent', async () => {
   let dispatchCalls = 0;
   const service = new HumanDigitalEmployeeFastReadService({

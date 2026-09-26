@@ -4,6 +4,7 @@ export type FastReadLatencyStage =
   | 'core.auth_context'
   | 'core.capability_projection'
   | 'jev.semantic_decision'
+  | 'semantic.product_selector'
   | 'paperclip.dispatch_roundtrip'
   | 'paperclip.tool_gateway'
   | 'paperclip.read_tool'

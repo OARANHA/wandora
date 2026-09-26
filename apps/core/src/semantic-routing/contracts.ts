@@ -80,6 +80,27 @@ export interface SemanticDecisionProvider {
   decide(input: SemanticDecisionInput): Promise<SemanticRouteDecision>;
 }
 
+export type SemanticSelectorInput = {
+  organizationId: string;
+  employeeId: string;
+  request: string;
+  capability: BusinessCapability;
+};
+
+export type SemanticSelectorDecision = {
+  selector: SemanticSelector | null;
+  confidence: number;
+  ambiguity: SemanticAmbiguity;
+  providerEvidence?: {
+    provider: string;
+    model: string | null;
+  };
+};
+
+export interface SemanticSelectorProvider {
+  select(input: SemanticSelectorInput): Promise<SemanticSelectorDecision>;
+}
+
 export type SemanticRoutePolicy = {
   minimumConfidence: number;
   maximumNeedsMoreContext: number;
@@ -121,6 +142,19 @@ export function validateSemanticRoutePolicy(policy: SemanticRoutePolicy): boolea
     && probability(policy.maximumNeedsMoreContext)
     && probability(policy.maximumNeedsHumanReview)
     && probability(policy.minimumNeedsDataOrToolLookup);
+}
+
+export function validateSemanticSelectorDecision(
+  decision: SemanticSelectorDecision,
+): boolean {
+  return probability(decision.confidence)
+    && [
+      'none',
+      'missing_entity',
+      'multiple_matches',
+      'vague_reference',
+      'unknown',
+    ].includes(decision.ambiguity);
 }
 
 export function gateDeterministicRead(

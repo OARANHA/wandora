@@ -7,10 +7,13 @@ import {
 } from '../latency.js';
 import {
   gateDeterministicRead,
+  validateSemanticSelectorDecision,
   type BusinessCapability,
   type SemanticDecisionProvider,
+  type SemanticRouteDecision,
   type SemanticRouteGateReason,
   type SemanticRoutePolicy,
+  type SemanticSelectorProvider,
 } from '../semantic-routing/contracts.js';
 import { issueFastReadIntent } from '../semantic-routing/fast-read-intent.js';
 import type {
@@ -61,6 +64,7 @@ export class HumanDigitalEmployeeFastReadService {
   constructor(private readonly deps: {
     bridge: HumanFastReadBridge;
     semanticDecisionProvider: SemanticDecisionProvider;
+    semanticSelectorProvider?: SemanticSelectorProvider;
     policy: SemanticRoutePolicy;
     intentSecret: string;
     createCorrelationId?: () => string;
@@ -112,7 +116,7 @@ export class HumanDigitalEmployeeFastReadService {
       }),
     );
 
-    const decision = await timed(
+    let decision = await timed(
       'jev.semantic_decision',
       () => this.deps.semanticDecisionProvider.decide({
         organizationId: input.organizationId,
@@ -121,7 +125,38 @@ export class HumanDigitalEmployeeFastReadService {
         availableCapabilities,
       }),
     );
-    const gate = gateDeterministicRead(decision, availableCapabilities, this.deps.policy);
+    let gate = gateDeterministicRead(decision, availableCapabilities, this.deps.policy);
+
+    if (
+      !gate.allowed
+      && gate.reason === 'missing-selector'
+      && decision.capability
+      && this.deps.semanticSelectorProvider
+    ) {
+      const selectorDecision = await timed(
+        'semantic.product_selector',
+        () => this.deps.semanticSelectorProvider!.select({
+          organizationId: input.organizationId,
+          employeeId: input.employeeId,
+          request,
+          capability: decision.capability!,
+        }),
+      );
+      if (!validateSemanticSelectorDecision(selectorDecision)) {
+        return { kind: 'fallback', reason: 'invalid-selector' };
+      }
+
+      decision = {
+        ...decision,
+        selector: selectorDecision.selector,
+        confidence: Math.min(decision.confidence, selectorDecision.confidence),
+        ambiguity: selectorDecision.ambiguity === 'none'
+          ? decision.ambiguity
+          : selectorDecision.ambiguity,
+      } satisfies SemanticRouteDecision;
+      gate = gateDeterministicRead(decision, availableCapabilities, this.deps.policy);
+    }
+
     if (!gate.allowed) return { kind: 'fallback', reason: gate.reason };
 
     const nowMs = (this.deps.now ?? Date.now)();
