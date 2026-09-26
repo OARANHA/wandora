@@ -1,4 +1,5 @@
 import readline from 'node:readline';
+import { performance } from 'node:perf_hooks';
 
 export const VENDAERP_HOST_SUFFIX = '.vendaerp.com.br';
 export const DEFAULT_TIMEOUT_MS = 5000;
@@ -9,6 +10,38 @@ const ENV = Object.freeze({
   user: 'VENDAERP_USER',
   app: 'VENDAERP_APP',
 });
+const SAFE_OPERATION_BY_PATH = new Map([
+  ['/api/request/Public/ping', 'connection.probe'],
+  ['/api/request/Empresas/GetTodasEmpresas', 'companies.list'],
+  ['/api/request/Produtos/GetAll', 'products.list'],
+  ['/api/request/Produtos/Pesquisar', 'products.search'],
+  ['/api/request/Produtos/GetSaldo', 'stock.read'],
+  ['/api/request/TabelasPreco/Pesquisar', 'price_tables.list'],
+  ['/api/request/TabelasPreco/Produtos', 'price_tables.products.read'],
+  ['/api/request/Pessoas/Pesquisar', 'parties.search'],
+  ['/api/request/Pedidos/Pesquisar', 'orders.search'],
+]);
+
+function emitLatency(recorder, input) {
+  if (typeof recorder !== 'function') return;
+  const rawDuration = input.durationMs;
+  const durationMs = !Number.isFinite(rawDuration) || rawDuration <= 0
+    ? 0
+    : Math.round(rawDuration * 1000) / 1000;
+  try {
+    recorder({
+      event: 'wandora.latency.v1',
+      path: 'vendaerp-readonly-v1',
+      stage: 'vendaerp.tool_api',
+      operation: input.operation,
+      durationMs,
+      outcome: input.outcome,
+    });
+  } catch {
+    // Observability must never change provider-call semantics.
+  }
+}
+
 const SAFE_ERROR_REASONS = new Set([
   'product-list-shape',
   'product-name-missing',
@@ -286,6 +319,8 @@ export function createVendaErpClient({
   credentials,
   fetchImpl = fetch,
   timeoutMs = DEFAULT_TIMEOUT_MS,
+  recordLatency,
+  monotonicNow = () => performance.now(),
 } = {}) {
   const origin = vendaErpOriginForTenant(tenant);
   const safeCredentials = credentials ?? credentialsFromEnv();
@@ -302,6 +337,16 @@ export function createVendaErpClient({
   }
 
   async function getJson(path, query = {}) {
+    const operation = SAFE_OPERATION_BY_PATH.get(path);
+    if (!operation) {
+      throw new VendaErpAdapterError('invalid-input', 'Invalid provider path.');
+    }
+    const startedAt = monotonicNow();
+    const record = (outcome) => emitLatency(recordLatency, {
+      operation,
+      durationMs: monotonicNow() - startedAt,
+      outcome,
+    });
     if (typeof path !== 'string' || !path.startsWith('/api/request/')) {
       throw new VendaErpAdapterError('invalid-input', 'Invalid provider path.');
     }
@@ -330,6 +375,7 @@ export function createVendaErpClient({
         signal: AbortSignal.timeout(timeoutMs),
       });
     } catch {
+      record('error');
       throw new VendaErpAdapterError(
         'provider-unavailable',
         'Business system provider is unavailable.',
@@ -337,18 +383,21 @@ export function createVendaErpClient({
     }
 
     if (response.status === 401 || response.status === 403) {
+      record('error');
       throw new VendaErpAdapterError(
         'unauthorized',
         'Business system credentials were rejected.',
       );
     }
     if (response.status === 429) {
+      record('error');
       throw new VendaErpAdapterError(
         'rate-limited',
         'Business system request limit was reached.',
       );
     }
     if (!response.ok) {
+      record('error');
       throw new VendaErpAdapterError(
         'provider-unavailable',
         'Business system provider returned an error.',
@@ -356,10 +405,16 @@ export function createVendaErpClient({
     }
 
     const body = await response.text();
-    if (!body.trim()) return null;
+    if (!body.trim()) {
+      record('success');
+      return null;
+    }
     try {
-      return JSON.parse(body);
+      const parsed = JSON.parse(body);
+      record('success');
+      return parsed;
     } catch {
+      record('error');
       throw new VendaErpAdapterError(
         'invalid-provider-response',
         'Business system provider returned invalid JSON.',
@@ -733,6 +788,10 @@ async function handleMessage(message, options = {}) {
 }
 
 export async function runStdio(options = {}) {
+  const runtimeOptions = {
+    ...options,
+    recordLatency: options.recordLatency ?? ((event) => console.error(JSON.stringify(event))),
+  };
   const rl = readline.createInterface({
     input: process.stdin,
     crlfDelay: Infinity,
@@ -752,7 +811,7 @@ export async function runStdio(options = {}) {
       );
       continue;
     }
-    const response = await handleMessage(message, options);
+    const response = await handleMessage(message, runtimeOptions);
     if (response) process.stdout.write(JSON.stringify(response) + '\n');
   }
 }
