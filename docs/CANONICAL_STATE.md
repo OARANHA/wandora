@@ -18,6 +18,20 @@ Next safe work is **Production Credential Custody Completion V1 — operator-loc
 
 See `docs/decisions/0296-production-credential-custody-qualification-v1.md`.
 
+## 2026-09-26 — ADR 0295 Semantic Fast Read Production Convergence Artifact + Activation Contract V1
+
+Status: **QUALIFIED / 17/17 PR WORKFLOWS GREEN / PRODUCTION EXECUTION NO-GO / NO PRODUCTION EFFECT**.
+
+ADR 0295 closed the deployment-evidence gaps left by ADR 0294 without touching production: it froze the exact Paperclip `v2026.916.1` + three qualified Fast Read patches candidate, proved authenticated/private disposable startup with `/api/health status=ok`, and separated Core gates-OFF convergence from future secret custody.
+
+The exact Paperclip promotion unit is Actions artifact `10914008713`, built from upstream `d554c4789ed3930f8a53ac9fdf6503b3187097da`. Its Docker config digest is `sha256:e05f1604cf863d316b4ce5db189782f022fa4fd17544f9724747e11223d4356c`; raw archive SHA-256 `a91f96feff4dbb8161d182e350fc3e2ca1d0d6784cfa9179fdaa20a200e7ce97`; compressed artifact SHA-256 `69c962c79375446060af12fc9240385987790f4d11a3528cbb7a6ad745e98269`; uploaded ZIP digest `sha256:e43acc85e3f7f010b7189f11bd9c3622f9a7a9015765a50f315ca61a98c36a19`. Because the upstream Dockerfile resolves some CLI dependencies through floating `@latest`, those exact archived bytes — not a later rebuild — are the qualified promotion unit.
+
+The Core convergence contract leaves Fast Read execution, Semantic Fast Read, Semantic Selector and Human Send disabled by default. The future custody overlay contains only the TypeSafe/System One API-key mount and a distinct Wandora-owned `wfri1` HMAC mount. The semantic selector reuses the existing platform Mistral credential; no selector-specific Mistral secret or new secret authority is justified.
+
+Capability Authority remains unchanged: Wandora owns semantics/product/effect authorization; Paperclip owns workforce/run/tools/secrets/audit; TypeSafe/System One, Mastra/Mistral and VendaERP remain replaceable implementations. Production remains **NO-GO** pending credential custody qualification and a later freshness-sensitive Immediate Pre-Mutation Attestation.
+
+See `docs/decisions/0295-semantic-fast-read-production-convergence-artifact-activation-contract-v1.md`.
+
 ## 2026-09-26 — ADR 0294 Semantic Fast Read + Product Selector Production Convergence Preflight V2
 
 Status: **PREFLIGHT COMPLETE / NEXT PRODUCTION EXECUTION NO-GO / ARTIFACT + ACTIVATION-CONTRACT GAPS PROVEN / NO PRODUCTION EFFECT**.
