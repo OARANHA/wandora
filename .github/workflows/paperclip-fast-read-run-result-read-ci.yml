@@ -58,6 +58,7 @@ jobs:
           test "$(sha256sum "$patch_file" | awk '{print $1}')" = "b8d0473ab7ae51ddc417ad0ed8ef182ddf6a95a5ef6f56e1e4295731afca1c31"
           echo "=== exact types.ts anchors ==="
           grep -n -B 4 -A 8 "export interface PluginIssuesClient" .paperclip/packages/plugins/sdk/src/types.ts || true
+          grep -n -B 8 -A 8 "summaries: PluginIssueSummariesClient" .paperclip/packages/plugins/sdk/src/types.ts || true
           grep -n -B 8 -A 14 "export interface PluginContext" .paperclip/packages/plugins/sdk/src/types.ts || true
           grep -n -B 6 -A 10 "approvals: PluginApprovalsClient" .paperclip/packages/plugins/sdk/src/types.ts || true
           git -C .paperclip apply --check "$patch_file"
