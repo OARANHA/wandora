@@ -1,3 +1,32 @@
+## Reconciled checkpoint — ADR 0283 Semantic Fast Read production convergence preflight
+
+ADR 0283 is **PREFLIGHT COMPLETE / PRODUCTION ACTIVATION NO-GO / RUNTIME WIRING + ARTIFACT GAPS PROVEN / NO PRODUCTION EFFECT**.
+
+Canonical entry is `main@3ce1a138c87593c6be1881bdf7aa6347bbbe5186`, with no open PRs at reconciliation and all nine push workflows on that exact merge SHA GREEN.
+
+Production remains healthy and intentionally unchanged:
+
+- Core = `wandora/core:organization-adapter-candidate-f3225586d082` / revision `f3225586d0825334d2c9c697a1720512a65d47f8`;
+- Paperclip = `wandora/paperclip:v2026.916.0` / upstream commit `dffc2b3ca1b9e88fa21cb17493083e682dffd1ca`;
+- Organization Adapter = exactly one `wandora.organization-adapter-v1@0.3.1` / ready;
+- Task Drain = OFF / activeRuns=0 / pendingWakes=0 / quiescent=true.
+
+The preflight proved that ADRs 0275–0282 are not yet a production-wired customer path. Current Core runtime does not instantiate `PaperclipFastReadExecutionService`; `createPaperclipExecutionHandler` receives no `fastReadService`, so a Fast Read execution envelope would fail closed as `409 fast-read-unavailable`. The runtime Organization Adapter has no Fast Read webhook configuration/provider dispatch path, no customer-facing route currently performs semantic decision -> signed FastReadIntent -> `employee-fast-read`, and no runtime `SemanticDecisionProvider`/JEV adapter is wired.
+
+ADR 0282 remains intentionally a disposable operational-capability projection attestation. The installable Organization Adapter 0.4.0 contains `employee-fast-read`, but does not declare/use `tools.operational.read`; its exact current-main artifact is Actions artifact `10893171670`, GitHub digest `sha256:5e8cedd32720608e9b81bd5fcbaf526a6bd6c1ae1552d287877d004d6d6a7f7f`, package SHA-256 `1b8d9ede3a14277858e0363aff433018fdd1c99df2d4354f11714df0315b1034`, and compatibility remains pinned to Paperclip v2026.916.0 / `dffc2b3...`.
+
+The ADR 0277 Core artifact `10874807043` is not promotable as the current convergence candidate: its synthetic source tree predates ADR 0278 and lacks `apps/core/src/integrations/capability-plane.ts` plus its test. A fresh Core candidate must be produced after runtime wiring is complete.
+
+Paperclip v2026.916.1 resolves to `d554c4789ed3930f8a53ac9fdf6503b3187097da`, exactly one upstream commit ahead of v2026.916.0, with no upstream migration-file delta. ADR 0281 qualifies the retained host patch, but the current workflow produces proof only, not a deployable v2026.916.1+patch candidate image. Production promotion therefore remains blocked until exact candidate provenance and rollback are qualified.
+
+Capability Authority / Reuse Gate remains unchanged: no Wandora integration registry, Connection/catalog/grant/health mirror, tool registry, lifecycle, orchestration or execution subsystem is authorized.
+
+Second adversarial review returned `block` with probability 0.99 for production activation now.
+
+Next executable slice: **Semantic Fast Read Runtime Wiring V1 — CODE ONLY / NO PRODUCTION EFFECT**. It must wire the already-qualified contracts end-to-end behind existing provider boundaries, prove the customer admission/semantic decision/FastReadIntent/Paperclip dispatch/Core deterministic execution path in disposable CI, and only then return to a fresh production convergence preflight.
+
+No production mutation, migration, provider/model/VendaERP call, customer work or outbound effect occurred.
+
 ## Reconciled checkpoint — ADR 0282 Paperclip-side Integration Capability Projection attestation V1
 
 ADR 0282 is **CODE COMPLETE / DISPOSABLE ATTESTATION GREEN / NO PRODUCTION EFFECT**.
