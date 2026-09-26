@@ -81,14 +81,14 @@ diff --git a/packages/plugins/sdk/src/testing.ts b/packages/plugins/sdk/src/test
 diff --git a/packages/plugins/sdk/src/types.ts b/packages/plugins/sdk/src/types.ts
 --- a/packages/plugins/sdk/src/types.ts
 +++ b/packages/plugins/sdk/src/types.ts
-@@ -53,6 +53,7 @@ import type {
+@@ -53,5 +53,6 @@ import type {
    PrincipalPermissionGrant,
    PrincipalType,
    EnvSecretRefBinding,
 +  HeartbeatRunStatus,
  } from "@paperclipai/shared";
  import type { PluginPerformActionContext } from "./protocol.js";
-@@ -1540,6 +1541,39 @@ export interface PluginIssuesClient {
+@@ -1540,4 +1541,37 @@ export interface PluginIssuesClient {
    summaries: PluginIssueSummariesClient;
  }
 +
@@ -126,7 +126,7 @@ diff --git a/packages/plugins/sdk/src/types.ts b/packages/plugins/sdk/src/types.
 +
  /**
   * `ctx.approvals` — read and decide company approvals.
-@@ -2065,6 +2099,9 @@ export interface PluginContext {
+@@ -2065,5 +2099,8 @@ export interface PluginContext {
    /** Read and decide company approvals. Requires `approvals.read` / `approvals.respond`. */
    approvals: PluginApprovalsClient;
  
@@ -154,7 +154,7 @@ diff --git a/packages/plugins/sdk/src/worker-rpc-host.ts b/packages/plugins/sdk/
 diff --git a/packages/plugins/sdk/tests/host-client-factory.test.ts b/packages/plugins/sdk/tests/host-client-factory.test.ts
 --- a/packages/plugins/sdk/tests/host-client-factory.test.ts
 +++ b/packages/plugins/sdk/tests/host-client-factory.test.ts
-@@ -123,6 +123,50 @@ describe("createHostClientHandlers invocation company scope", () => {
+@@ -123,6 +123,54 @@ describe("createHostClientHandlers invocation company scope", () => {
      ).resolves.toEqual([{ id: "company-a", name: "Company A" }]);
    });
  
@@ -226,7 +226,7 @@ diff --git a/server/src/__tests__/plugin-agent-run-read.test.ts b/server/src/__t
 new file mode 100644
 --- /dev/null
 +++ b/server/src/__tests__/plugin-agent-run-read.test.ts
-@@ -0,0 +1,152 @@
+@@ -0,0 +1,164 @@
 +import { randomUUID } from "node:crypto";
 +import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 +import {
@@ -394,7 +394,7 @@ new file mode 100644
 diff --git a/server/src/services/plugin-host-services.ts b/server/src/services/plugin-host-services.ts
 --- a/server/src/services/plugin-host-services.ts
 +++ b/server/src/services/plugin-host-services.ts
-@@ -1511,6 +1511,86 @@ export function buildHostServices(
+@@ -1511,6 +1511,78 @@ export function buildHostServices(
        },
      },
  
