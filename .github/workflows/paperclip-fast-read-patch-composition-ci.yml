@@ -39,12 +39,29 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git -C .paperclip rev-parse HEAD)" = "d554c4789ed3930f8a53ac9fdf6503b3187097da"
-          for patch in             integrations/paperclip/patches/v2026.916.1-host-operational-read-v1.patch             integrations/paperclip/patches/v2026.916.1-fast-read-run-result-read-v1.patch             integrations/paperclip/patches/v2026.916.1-synchronous-webhook-response-v1.patch
-          do
-            echo "=== APPLY $patch ==="
-            git -C .paperclip apply --check "$GITHUB_WORKSPACE/$patch"
-            git -C .paperclip apply "$GITHUB_WORKSPACE/$patch"
-          done
+          upstream="d554c4789ed3930f8a53ac9fdf6503b3187097da"
+          test "$(git -C .paperclip rev-parse HEAD)" = "$upstream"
+
+          cp -a .paperclip .paperclip-run-result
+          run_patch="$GITHUB_WORKSPACE/integrations/paperclip/patches/v2026.916.1-fast-read-run-result-read-v1.patch"
+          git -C .paperclip-run-result apply --check "$run_patch"
+          git -C .paperclip-run-result apply "$run_patch"
+          git -C .paperclip-run-result diff --full-index --binary > "$RUNNER_TEMP/run-result-full-index.patch"
+          test -s "$RUNNER_TEMP/run-result-full-index.patch"
+
+          operational_patch="$GITHUB_WORKSPACE/integrations/paperclip/patches/v2026.916.1-host-operational-read-v1.patch"
+          git -C .paperclip apply --check "$operational_patch"
+          git -C .paperclip apply "$operational_patch"
+
+          git -C .paperclip apply --3way "$RUNNER_TEMP/run-result-full-index.patch"
+
+          webhook_patch="$GITHUB_WORKSPACE/integrations/paperclip/patches/v2026.916.1-synchronous-webhook-response-v1.patch"
+          git -C .paperclip apply --check "$webhook_patch"
+          git -C .paperclip apply "$webhook_patch"
+
           git -C .paperclip diff --check
+          test -z "$(git -C .paperclip ls-files -u)"
+          grep -q '"tools.operational.read"' .paperclip/packages/shared/src/constants.ts
+          grep -q '"agent.runs.read"' .paperclip/packages/shared/src/constants.ts
+          grep -q 'PLUGIN_WEBHOOK_RESPONSE_MAX_BYTES' .paperclip/packages/plugins/sdk/src/define-plugin.ts
           echo "PAPERCLIP_FAST_READ_PATCH_COMPOSITION_V1_OK"
