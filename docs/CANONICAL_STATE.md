@@ -1,3 +1,27 @@
+## Reconciled checkpoint — ADR 0291 Semantic Product Selector Provider Qualification V1
+
+ADR 0291 is **QUALIFIED / 16/16 PR WORKFLOWS GREEN / PRODUCTION ACTIVATION NO-GO / NO PRODUCTION EFFECT**.
+
+PR #369 exact qualification code head `7de01d0ffd32079d2a18cac919dd0d2bd9d8581e` completed **16/16 PR workflows GREEN**. Semantic Fast Read CI `36256708250` and Core CI `36256708309` were GREEN. Core Candidate Artifact run `36256708316` completed before the primary gates, so only after both primary gates were GREEN its exact job was rerun; post-gate candidate job `108445446127` completed GREEN.
+
+Official TypeSafe OpenAPI 0.2.0 at `https://api.typesafe.ai/openapi.json` proves the current System One question/answer union contains only `noul`, `choice` and `score`. `choice` selects only among caller-supplied criteria. There is no arbitrary string/extraction primitive, so the current qualified TypeSafe/JEV boundary cannot originate an arbitrary product `selector.value` without a pre-supplied candidate set.
+
+The rejected workarounds remain rejected: no Core/ERP heuristic parser, no Wandora product catalog/cache, no pre-admission VendaERP candidate fetch, no second ERP lookup and no provider-specific semantic contract.
+
+The qualified extension adds a narrow Wandora-owned `SemanticSelectorProvider`. It returns only a canonical selector, confidence, ambiguity and bounded provider evidence. `HumanDigitalEmployeeFastReadService` invokes it only after the first Wandora gate returns `missing-selector`; the selector output is then combined with the original route decision, confidence can only narrow through `min(route, selector)`, ambiguity can only block, and the Wandora deterministic gate runs again before the existing signed `wfri1` intent is issued.
+
+Without a concrete selector provider, current TypeSafe-only runtime behavior remains fail-closed. The slice adds only one new ephemeral latency stage, `semantic.product_selector`, and introduces no provider secret, network client, table, migration, registry, catalog mirror, lifecycle/run state, deploy, WhatsApp wiring or production effect.
+
+Pre-execution adversarial review selected `compose_selector_provider`, `selector_plus_confidence` and `rerun_wandora_gate_before_intent` with probability 1.00; narrowed code execution was `proceed = 0.93`. Post-validation review marked the qualification `complete = 0.95` and selected the next gap `concrete_selector_provider = 0.98`.
+
+Production remains unchanged and **NO-GO**. `WANDORA_SEMANTIC_FAST_READ_ENABLED` remains disabled by default.
+
+### Next minimum preflight
+
+Do **not** wire WhatsApp yet.
+
+The next slice is **Concrete Semantic Product Selector Provider Qualification V1 — CODE ONLY / NO PRODUCTION EFFECT**: qualify one replaceable provider capable of bounded string extraction behind `SemanticSelectorProvider`, including exact network/auth/credential custody, typed response validation, timeout/retry policy and fail-closed behavior. Only after that provider is GREEN should disabled-by-default runtime wiring be considered.
+
 ## Reconciled checkpoint — ADR 0290 ProRevest Product Selector + Price Fast Read V1
 
 ADR 0290 is **QUALIFIED / 16/16 PR WORKFLOWS GREEN / PRODUCTION ACTIVATION NO-GO / NO PRODUCTION EFFECT**.
