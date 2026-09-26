@@ -1,0 +1,127 @@
+# Production Rollback Freeze + Secret Metadata Readback V1
+
+Status: **PREPARED CONTRACT / NOT YET EXECUTED**
+
+This runbook narrows the operator-local operation required by ADR 0299. It is not an activation runbook.
+
+## Hard stops
+
+Do not execute any backup write unless all prechecks below are fresh and GREEN in the same operator window. Any mismatch is STOP / NO EFFECT.
+
+Never:
+
+- deploy or promote Core, Paperclip or Organization Adapter;
+- enable Semantic Fast Read, Semantic Selector, Fast Read execution or Human Send;
+- change Task Drain;
+- call TypeSafe, Mistral or VendaERP;
+- create customer work or outbound;
+- print/read secret values;
+- widen Remote-Ops/Docker permissions;
+- move the recovery bundle into `/opt/wandora/ops-workspace`;
+- pull a helper image during the operation;
+- create a new Wandora-owned backup/secret/lifecycle subsystem.
+
+## Fresh pre-effect checks
+
+Using the existing operator authority:
+
+1. Paperclip container is running/healthy, image exactly `wandora/paperclip:v2026.916.0`, restart count 0.
+2. `/api/health` is `status=ok`, commit exactly `dffc2b3ca1b9e88fa21cb17493083e682dffd1ca`, database backup status `ok`.
+3. Reuse Paperclip stored-board authority and the existing Task Drain endpoint; require:
+   - drain disabled;
+   - `activeRuns=0`;
+   - `pendingWakes=0`;
+   - `quiescent=true`.
+4. Reuse Paperclip plugin registry read; require exactly one `wandora.organization-adapter-v1`, version `0.3.1`, status `ready`, empty lastError, and an existing packagePath under `/paperclip/`.
+5. Core must remain healthy/restart 0 on `wandora/core:organization-adapter-candidate-f3225586d082`.
+6. Read only these effect flags from Core and require false/absent:
+   - `WANDORA_FAST_READ_EXECUTION_ENABLED`;
+   - `WANDORA_SEMANTIC_FAST_READ_ENABLED`;
+   - `WANDORA_SEMANTIC_SELECTOR_ENABLED`;
+   - `WANDORA_HUMAN_SEND_PROPOSAL_ENABLED`.
+7. Messaging Gateway must remain healthy/restart 0 and `WANDORA_GATEWAY_OUTBOUND_ENABLED=false`.
+8. Metadata-only `stat` the TypeSafe Core key, `wfri1` HMAC and existing Mistral key. Require regular non-symlink files, `wandora-admin:wandora-ops`, mode `0640`.
+9. Require a **pre-existing local** `postgres:18.1` image. If absent, STOP; do not pull it as part of this slice.
+10. Prove a PostgreSQL 18.1 schema-only read against the live embedded Paperclip DB before any backup write. DB credentials may be consumed only through Paperclip's existing runtime connection resolver and an in-memory pipe; do not print or persist them.
+
+## Recovery bundle
+
+Only after all prechecks pass, create one unique protected root:
+
+`/home/wandora-admin/backups/paperclip-v9161-fast-read-rollback-freeze-v1-<UTC>/`
+
+Custody:
+
+- root directory 0700;
+- contents 0600;
+- owner/group `wandora-admin:wandora-ops`.
+
+Capture:
+
+- one official `paperclipai db:backup` using a unique filename prefix so normal `paperclip-*` retention is not pruned;
+- copy of that fresh `.sql.gz`;
+- matching live `master.key`; prove source/copy byte equality without emitting key contents or a public key-derived digest;
+- PostgreSQL 18.1 `pg_dump -Fc` from live;
+- live schema-only dump;
+- current `adapter-plugins.json`;
+- complete `/paperclip/operator-packages`;
+- the exact OA 0.3.1 package tree from its current plugin registry `packagePath`;
+- Paperclip `compose.yaml`;
+- Paperclip `compose.paperclip-execution-bridge.yaml`;
+- `paperclip-bridge-secret-entrypoint.sh`;
+- current Core `compose*.yaml`;
+- safe runtime anchors: image IDs/tags, health, restart counts, active Compose file labels, OA version/status, gate booleans and Task Drain projection.
+
+## Disposable restore validation
+
+Start a fresh `postgres:18.1` container with:
+
+- no published ports;
+- `--network none`;
+- no live Paperclip volume;
+- no customer/provider connectivity.
+
+Restore the custom-format dump, dump schema-only, normalize only generated psql `\\restrict/\\unrestrict` lines, and require byte-equal normalized schema against the live schema dump.
+
+Any restore/schema mismatch is STOP and the bundle must not be marked qualified.
+
+## Protected manifest and receipt
+
+Create protected SHA-256 manifests for non-key files. Do not place `master.key` in any user-visible digest list.
+
+Write a safe receipt at:
+
+`/opt/wandora/ops-workspace/production-rollback-freeze-v1.metadata`
+
+The receipt may contain only:
+
+- rollback root;
+- Paperclip/Core/Gateway image identities and health/restart metadata;
+- OA count/version/status;
+- Task Drain quiescent boolean;
+- official backup created/gzip-valid booleans;
+- master-key source-copy equality boolean;
+- schema restore/equality booleans;
+- TypeSafe/`wfri1`/Mistral path + owner/group/mode/type;
+- `activation_performed=false`;
+- `provider_call_performed=false`;
+- `customer_effect=false`;
+- `outbound_effect=false`;
+- terminal marker `ROLLBACK_FREEZE_V1_OK`.
+
+The receipt must not contain secret values, DB credentials, provider payloads or customer data.
+
+## After operator execution
+
+Do not activate anything.
+
+A new agent/chat must:
+
+1. reconcile the current GitHub head before trusting the receipt;
+2. read the receipt;
+3. independently verify the protected recovery root/manifest without exposing secrets;
+4. recheck Task Drain, Paperclip/Core/OA/Gateway and all gates;
+5. update the ADR checkpoint only if the recovery freeze is proven GREEN;
+6. then start a **new Immediate Pre-Mutation Attestation + Effect Authorization** from fresh state.
+
+No production promotion is authorized by this runbook.

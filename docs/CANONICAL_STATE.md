@@ -1,3 +1,19 @@
+## 2026-09-26 — ADR 0299 Production Rollback Freeze + Secret Metadata Readback V1 — partial operator checkpoint
+
+Status: **PARTIAL / OPERATOR-LOCAL EXECUTION REQUIRED / NO BACKUP CREATED / NO ACTIVATION / NO CUSTOMER EFFECT**.
+
+Fresh reconciliation kept `main@8d6a65f519de5c1c49607314b49968af608c7164`; PR #369 was open/draft/mergeable at exact source head `5619622bc079bb1b5019f39c5221a81bc4cdd845` with **17/17 workflows GREEN**; PR #370 remained separate at `11fd59599b21493a0fe335f4c32354989a6083a2` with **4/4 GREEN**. ADR 0295 artifact `10914008713` remained available/non-expired.
+
+Fresh Paperclip readback proved `status=ok`, authenticated/private deployment, live/source commit `dffc2b3ca1b9e88fa21cb17493083e682dffd1ca`, and database-backup health `ok`. The exact rollback artifact set required by ADRs 0129/0130/0294 was re-derived without inventing a new subsystem.
+
+Execution is intentionally not complete: the existing Remote-Ops Task Drain semantic path currently fails at the broker transport with `fetch failed`, Docker inspection remains unavailable through that boundary, and secret directories still correctly return `SECRET_PATH_DENIED`. This session has no authorized root/operator path for the protected `/home/wandora-admin/backups` operation. No partial backup, permission widening, shell/sudo bypass or provisional workspace custody was used.
+
+The reviewed operator-local contract requires fresh Task Drain OFF/0/0/quiescent, OA 0.3.1 ready, old Core/Gateway healthy, semantic/Human Send/outbound gates OFF and fresh metadata-only secret stat **before** the first backup write. Only then may it create the official Paperclip backup + matching key + PostgreSQL 18.1 schema-faithful dump/restore proof + exact plugin/package/Compose recovery state and protected manifests.
+
+Second review history: initial route review was low-confidence (`proceed_fast=0.41`, `deep_review=0.33`); the narrowed final guard review returned `allow=0.64`. Because the mandatory freshness boundary is unavailable in this session, the deterministic result remains **NO BACKUP CREATED / NO ACTIVATION / NO CUSTOMER EFFECT**.
+
+Continuation is repository-backed in `docs/decisions/0299-production-rollback-freeze-secret-metadata-readback-v1.md` and `docs/operations/production-rollback-freeze-secret-metadata-readback-v1.md`. Complete that operator-local slice first; only then rerun ADR 0298-style Immediate Pre-Mutation Attestation from fresh state.
+
 ## 2026-09-26 — ADR 0298 Immediate Pre-Mutation Attestation + Effect Authorization V1
 
 Status: **BLOCKED / NO MUTATION / NO PRODUCTION EFFECT**.
