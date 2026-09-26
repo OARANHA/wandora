@@ -1,3 +1,23 @@
+## 2026-09-26 — ADR 0297 Production Credential Custody Completion V1
+
+Status: **COMPLETE / CUSTODY QUALIFIED / NO ACTIVATION / NO RUNTIME OR CUSTOMER EFFECT**.
+
+The ADR 0296 operator-local custody gap is closed. Core-side TypeSafe/System One custody now exists at `/opt/wandora/stacks/core/secrets/wandora_typesafe_jev_api_key`, and a distinct Wandora-owned `wfri1` HMAC now exists at `/opt/wandora/stacks/core/secrets/wandora_fast_read_intent_hmac`. Fresh metadata-only verification proved both are regular files owned by `wandora-admin:wandora-ops` with mode `0640`.
+
+The TypeSafe Core-side file was verified byte-equivalent to the already-qualified JEV/System One provider credential without emitting secret bytes. The `wfri1` HMAC was verified distinct from the current Core regular-secret set and the Organization Adapter HMAC set without exposing values.
+
+The existing Mistral platform credential `wandora_model_provider_api_key` was freshly re-attested as a regular file, `0640 wandora-admin:wandora-ops`. No selector-specific credential was created.
+
+Post-operation readback proved the live Core remains `wandora/core:organization-adapter-candidate-f3225586d082` / revision `f3225586d0825334d2c9c697a1720512a65d47f8`, healthy/restart 0. The active Core Compose set still excludes the Semantic/Fast Read convergence and custody overlays, so the new TypeSafe/`wfri1` host files are not mounted. Messaging Gateway outbound remains inactive and Paperclip remains `wandora/paperclip:v2026.916.0`.
+
+No deploy, restart, Compose/runtime mutation, provider call, VendaERP call, WhatsApp/customer traffic, Task Drain change or candidate promotion occurred. The operator verification ended in `CUSTODY_V1_OK` with `activation_performed=false` and `provider_call_performed=false`.
+
+Capability Authority / ADR 0168 remains unchanged: no secret manager, provider registry, lifecycle, run mirror, retry engine or new operational subsystem was introduced.
+
+Next slice: **Immediate Pre-Mutation Attestation + Effect Authorization**. Rollback readiness, Task Drain/quiescence, final live component state and exact candidate-artifact identity must be captured fresh immediately adjacent to the proposed mutation and are intentionally not captured here.
+
+See `docs/decisions/0297-production-credential-custody-completion-v1.md`.
+
 ## 2026-09-26 — ADR 0296 Production Credential Custody Qualification V1
 
 Status: **PARTIAL / BLOCKED ON OPERATOR CUSTODY COMPLETION / NO ACTIVATION / NO PRODUCTION EFFECT**.
