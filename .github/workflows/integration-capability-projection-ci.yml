@@ -6,7 +6,6 @@ on:
       - 'apps/core/src/integrations/capability-plane.ts'
       - 'apps/core/src/semantic-routing/contracts.ts'
       - 'integrations/paperclip/plugins/organization-adapter-v1/attestation/**'
-      - 'integrations/paperclip/plugins/organization-adapter-v1/src/integration-capability.ts'
       - 'integrations/paperclip/patches/v2026.916.1-host-operational-read-v1.patch'
       - 'integrations/paperclip/host-operational-read-v1/**'
       - '.github/workflows/integration-capability-projection-ci.yml'
@@ -21,7 +20,6 @@ on:
       - 'apps/core/src/integrations/capability-plane.ts'
       - 'apps/core/src/semantic-routing/contracts.ts'
       - 'integrations/paperclip/plugins/organization-adapter-v1/attestation/**'
-      - 'integrations/paperclip/plugins/organization-adapter-v1/src/integration-capability.ts'
       - 'integrations/paperclip/patches/v2026.916.1-host-operational-read-v1.patch'
       - 'integrations/paperclip/host-operational-read-v1/**'
       - '.github/workflows/integration-capability-projection-ci.yml'
@@ -125,7 +123,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          file='integrations/paperclip/plugins/organization-adapter-v1/src/integration-capability.ts'
+          file='integrations/paperclip/plugins/organization-adapter-v1/attestation/integration-capability.ts'
           if grep -Ein 'board|admin[_-]?token|postgres|database|plugin\.state|secretRef|connectionId|catalogEntryId|grantId|profileId|fetch\(|axios|http:' "$file"; then
             echo 'forbidden authority/persistence/provider-I/O material found in projection adapter' >&2
             exit 1

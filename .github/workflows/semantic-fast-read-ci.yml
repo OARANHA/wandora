@@ -49,22 +49,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: paperclipai/paperclip
-          ref: d554c4789ed3930f8a53ac9fdf6503b3187097da
+          ref: dffc2b3ca1b9e88fa21cb17493083e682dffd1ca
           path: .paperclip
           persist-credentials: false
-
-      - name: Apply qualified Paperclip Semantic Fast Read provider patches
-        shell: bash
-        run: |
-          set -euo pipefail
-          host_patch="$GITHUB_WORKSPACE/integrations/paperclip/patches/v2026.916.1-host-operational-read-v1.patch"
-          webhook_patch="$GITHUB_WORKSPACE/integrations/paperclip/patches/v2026.916.1-synchronous-webhook-response-v1.patch"
-          test "$(git -C .paperclip rev-parse HEAD)" = "d554c4789ed3930f8a53ac9fdf6503b3187097da"
-          git -C .paperclip apply --check "$host_patch"
-          git -C .paperclip apply "$host_patch"
-          git -C .paperclip apply --check "$webhook_patch"
-          git -C .paperclip apply "$webhook_patch"
-          git -C .paperclip diff --check
 
       - name: Set up Node 24.21.0
         uses: actions/setup-node@v4
@@ -77,11 +64,11 @@ jobs:
           corepack prepare pnpm@9.15.4 --activate
           pnpm --version
 
-      - name: Install exact Paperclip dependencies
+      - name: Install pinned Paperclip dependencies
         working-directory: .paperclip
         run: pnpm install --frozen-lockfile
 
-      - name: Build patched Paperclip plugin SDK
+      - name: Build pinned Paperclip plugin SDK
         working-directory: .paperclip
         run: pnpm --filter @paperclipai/plugin-sdk build
 
