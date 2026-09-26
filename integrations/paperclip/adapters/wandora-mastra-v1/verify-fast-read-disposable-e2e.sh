@@ -266,6 +266,36 @@ signed_webhook() {
     '
 }
 
+signed_webhook_expect_fast_read_failure() {
+  local endpoint="$1" body="$2" timestamp signature
+  timestamp="$(date +%s)"
+  signature="$(node -e '
+    const { createHmac }=require("node:crypto");
+    process.stdout.write("sha256=" + createHmac("sha256", process.argv[1])
+      .update(process.argv[2] + "." + process.argv[3]).digest("hex"));
+  ' "$ORGANIZATION_KEY" "$timestamp" "$body")"
+  docker exec -e ENDPOINT="$endpoint" -e BODY="$body" -e TS="$timestamp" -e SIG="$signature" \
+    "$PAPERCLIP" node --input-type=module -e '
+      const response=await fetch("http://127.0.0.1:3100"+process.env.ENDPOINT,{
+        method:"POST",
+        headers:{
+          "content-type":"application/json",
+          "x-wandora-timestamp":process.env.TS,
+          "x-wandora-signature":process.env.SIG,
+        },
+        body:process.env.BODY,
+      });
+      const text=await response.text();
+      if(response.ok){console.error("expected Fast Read failure but received success",text);process.exit(23);}
+      let payload;
+      try{payload=JSON.parse(text);}catch{console.error(text);process.exit(24);}
+      if(payload?.status!=="failed" || typeof payload?.error!=="string" || !payload.error.startsWith("fast_read_run_")){
+        console.error(text);
+        process.exit(25);
+      }
+    '
+}
+
 reconcile_body="$(node -e 'process.stdout.write(JSON.stringify({companyId:process.argv[1],catalogKey:"ana-commercial-v1"}))' "$COMPANY_ID")"
 signed_webhook "/api/plugins/wandora.organization-adapter-v1/webhooks/employee-reconcile" "$reconcile_body"
 signed_webhook "/api/plugins/wandora.organization-adapter-v1/webhooks/employee-activate" "$reconcile_body"
@@ -424,7 +454,7 @@ test "$agentic_calls" = "0"
 expired_before="$(tool_count)"
 EXPIRED_CORRELATION="88888888-8888-4888-8888-888888888888"
 EXPIRED_TOKEN="$(make_intent "$EXPIRED_CORRELATION" business.products.price 10000 5)"
-signed_webhook "/api/plugins/wandora.organization-adapter-v1/webhooks/employee-fast-read" "$(make_body "$EXPIRED_CORRELATION" "$EXPIRED_TOKEN")"
+signed_webhook_expect_fast_read_failure "/api/plugins/wandora.organization-adapter-v1/webhooks/employee-fast-read" "$(make_body "$EXPIRED_CORRELATION" "$EXPIRED_TOKEN")"
 EXPIRED_RUN_ID="$(latest_fast_run)"
 test "$(wait_terminal "$EXPIRED_RUN_ID")" = "failed"
 expired_after="$(tool_count)"
@@ -433,7 +463,7 @@ test "$expired_after" = "$expired_before"
 unauthorized_before="$(tool_count)"
 UNAUTHORIZED_CORRELATION="99999999-9999-4999-8999-999999999999"
 UNAUTHORIZED_TOKEN="$(make_intent "$UNAUTHORIZED_CORRELATION" business.orders.search 0 120)"
-signed_webhook "/api/plugins/wandora.organization-adapter-v1/webhooks/employee-fast-read" "$(make_body "$UNAUTHORIZED_CORRELATION" "$UNAUTHORIZED_TOKEN")"
+signed_webhook_expect_fast_read_failure "/api/plugins/wandora.organization-adapter-v1/webhooks/employee-fast-read" "$(make_body "$UNAUTHORIZED_CORRELATION" "$UNAUTHORIZED_TOKEN")"
 UNAUTHORIZED_RUN_ID="$(latest_fast_run)"
 test "$(wait_terminal "$UNAUTHORIZED_RUN_ID")" = "failed"
 unauthorized_after="$(tool_count)"
@@ -446,7 +476,7 @@ pc_sql "insert into tool_profile_entries(company_id,profile_id,selector_type,eff
 duplicate_before="$(tool_count)"
 DUP_CORRELATION="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
 DUP_TOKEN="$(make_intent "$DUP_CORRELATION" business.products.price 0 120)"
-signed_webhook "/api/plugins/wandora.organization-adapter-v1/webhooks/employee-fast-read" "$(make_body "$DUP_CORRELATION" "$DUP_TOKEN")"
+signed_webhook_expect_fast_read_failure "/api/plugins/wandora.organization-adapter-v1/webhooks/employee-fast-read" "$(make_body "$DUP_CORRELATION" "$DUP_TOKEN")"
 DUP_RUN_ID="$(latest_fast_run)"
 test "$(wait_terminal "$DUP_RUN_ID")" = "failed"
 duplicate_after="$(tool_count)"
