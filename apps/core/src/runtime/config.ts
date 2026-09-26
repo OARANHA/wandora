@@ -1,5 +1,6 @@
 import { readFile, stat } from 'node:fs/promises';
 import { isAbsolute } from 'node:path';
+import type { SemanticRoutePolicy } from '../semantic-routing/contracts.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -77,6 +78,13 @@ export type RuntimeFastReadExecutionConfig = {
   intentSecret: string;
 };
 
+export type RuntimeSemanticFastReadConfig = {
+  provider: 'typesafe-jev';
+  apiKey: string;
+  timeoutMs: number;
+  policy: SemanticRoutePolicy;
+};
+
 export type RuntimeConfig = {
   port: number;
   mode: RuntimeMode;
@@ -92,6 +100,7 @@ export type RuntimeConfig = {
   humanDigitalEmployeeWork?: RuntimeHumanDigitalEmployeeWorkConfig;
   paperclipExecutionBridge?: RuntimePaperclipExecutionBridgeConfig;
   fastReadExecution?: RuntimeFastReadExecutionConfig;
+  semanticFastRead?: RuntimeSemanticFastReadConfig;
 };
 
 const parsePort = (value: string | undefined, fallback: number, name: string): number => {
@@ -288,6 +297,10 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     env.WANDORA_FAST_READ_EXECUTION_ENABLED,
     'WANDORA_FAST_READ_EXECUTION_ENABLED',
   );
+  const semanticFastReadEnabled = parseEnabled(
+    env.WANDORA_SEMANTIC_FAST_READ_ENABLED,
+    'WANDORA_SEMANTIC_FAST_READ_ENABLED',
+  );
   const agentRuntimeMode = parseAgentRuntimeMode(env.WANDORA_AGENT_RUNTIME_MODE);
 
   if (mode === 'standby') {
@@ -321,6 +334,9 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     if (fastReadExecutionEnabled) {
       throw new Error('Fast Read Execution cannot be enabled while Wandora Core is in standby mode.');
     }
+    if (semanticFastReadEnabled) {
+      throw new Error('Semantic Fast Read cannot be enabled while Wandora Core is in standby mode.');
+    }
     if (agentRuntimeMode !== 'disabled') {
       throw new Error('Agent Runtime cannot be enabled while Wandora Core is in standby mode.');
     }
@@ -347,6 +363,15 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
   }
   if (fastReadExecutionEnabled && !paperclipExecutionBridgeEnabled) {
     throw new Error('Fast Read Execution requires the Paperclip Execution Bridge to be enabled.');
+  }
+  if (semanticFastReadEnabled && !humanApiEnabled) {
+    throw new Error('Semantic Fast Read requires the Human API to be enabled.');
+  }
+  if (semanticFastReadEnabled && !organizationAdapterEnabled) {
+    throw new Error('Semantic Fast Read requires the Organization Adapter to be enabled.');
+  }
+  if (semanticFastReadEnabled && !fastReadExecutionEnabled) {
+    throw new Error('Semantic Fast Read requires Fast Read Execution to be enabled.');
   }
   if (humanDigitalEmployeeActivationEnabled && !humanApiEnabled) {
     throw new Error('Human Digital Employee Activation requires the Human API to be enabled.');
@@ -526,6 +551,39 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     fastReadExecution = { intentSecret };
   }
 
+  let semanticFastRead: RuntimeSemanticFastReadConfig | undefined;
+  if (semanticFastReadEnabled) {
+    const apiKeyFile = required(env, 'WANDORA_TYPESAFE_JEV_API_KEY_FILE');
+    if (!isAbsolute(apiKeyFile)) {
+      throw new Error('WANDORA_TYPESAFE_JEV_API_KEY_FILE must be an absolute mounted file.');
+    }
+    const apiKeyFileStat = await stat(apiKeyFile).catch(() => null);
+    if (!apiKeyFileStat?.isFile()) {
+      throw new Error('WANDORA_TYPESAFE_JEV_API_KEY_FILE must be a mounted regular file.');
+    }
+    const apiKey = (await readFile(apiKeyFile, 'utf8')).trim();
+    if (apiKey.length < 20 || apiKey.length > 4_096 || /\s/.test(apiKey)) {
+      throw new Error('Wandora TypeSafe JEV API key is invalid.');
+    }
+    semanticFastRead = {
+      provider: 'typesafe-jev',
+      apiKey,
+      timeoutMs: parseBoundedInteger(
+        env.WANDORA_TYPESAFE_JEV_TIMEOUT_MS,
+        3_000,
+        250,
+        10_000,
+        'WANDORA_TYPESAFE_JEV_TIMEOUT_MS',
+      ),
+      policy: {
+        minimumConfidence: 0.9,
+        maximumNeedsMoreContext: 0.1,
+        maximumNeedsHumanReview: 0.1,
+        minimumNeedsDataOrToolLookup: 0.9,
+      },
+    };
+  }
+
   let organizationAdapter: RuntimeOrganizationAdapterConfig | undefined;
   if (organizationAdapterEnabled) {
     const secretDirectory = required(env, 'WANDORA_ORGANIZATION_ADAPTER_SECRET_DIRECTORY');
@@ -577,6 +635,7 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     ...(organizationAdapter ? { organizationAdapter } : {}),
     ...(paperclipExecutionBridge ? { paperclipExecutionBridge } : {}),
     ...(fastReadExecution ? { fastReadExecution } : {}),
+    ...(semanticFastRead ? { semanticFastRead } : {}),
     ...(humanDigitalEmployeeHireEnabled
       ? { humanDigitalEmployeeHire: { enabled: true as const } }
       : {}),
