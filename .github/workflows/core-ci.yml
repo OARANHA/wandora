@@ -132,3 +132,42 @@ jobs:
           ! grep -q 'WANDORA_HUMAN_SEND_PROPOSAL_ENABLED' <<<"$model_effective"
           ! grep -q 'WANDORA_CORE_OUTBOUND_SECRET_FILE' <<<"$model_effective"
           rm -f "$WANDORA_MODEL_API_KEY_FILE_HOST"
+
+
+      - name: Validate Semantic Fast Read production convergence overlays
+        shell: bash
+        env:
+          WANDORA_TYPESAFE_JEV_API_KEY_FILE_HOST: ${{ runner.temp }}/typesafe-jev.synthetic
+          WANDORA_FAST_READ_INTENT_SECRET_FILE_HOST: ${{ runner.temp }}/fast-read-intent.synthetic
+        run: |
+          set -euo pipefail
+
+          # Gates-OFF compatibility convergence must render without requiring
+          # either future host secret file.
+          off_effective="$(env             -u WANDORA_TYPESAFE_JEV_API_KEY_FILE_HOST             -u WANDORA_FAST_READ_INTENT_SECRET_FILE_HOST             docker compose               -f infra/stacks/core/compose.yaml               -f infra/stacks/core/compose.semantic-fast-read.yaml               config)"
+
+          grep -q 'WANDORA_FAST_READ_EXECUTION_ENABLED: "false"' <<<"$off_effective"
+          grep -q 'WANDORA_SEMANTIC_FAST_READ_ENABLED: "false"' <<<"$off_effective"
+          grep -q 'WANDORA_SEMANTIC_SELECTOR_ENABLED: "false"' <<<"$off_effective"
+          grep -q 'WANDORA_HUMAN_SEND_PROPOSAL_ENABLED: "false"' <<<"$off_effective"
+          grep -q 'WANDORA_FAST_READ_INTENT_SECRET_FILE: /run/secrets/wandora/fast-read-intent.hmac' <<<"$off_effective"
+          grep -q 'WANDORA_TYPESAFE_JEV_API_KEY_FILE: /run/secrets/wandora/typesafe-jev.api-key' <<<"$off_effective"
+          grep -q 'WANDORA_TYPESAFE_JEV_TIMEOUT_MS: "3000"' <<<"$off_effective"
+          grep -q 'WANDORA_SEMANTIC_SELECTOR_TIMEOUT_MS: "3000"' <<<"$off_effective"
+          ! grep -Fq "$WANDORA_TYPESAFE_JEV_API_KEY_FILE_HOST" <<<"$off_effective"
+          ! grep -Fq "$WANDORA_FAST_READ_INTENT_SECRET_FILE_HOST" <<<"$off_effective"
+
+          # Custody is a distinct future overlay. It introduces only the two
+          # read-only mounts and never duplicates the existing Mistral mount.
+          custody_effective="$(docker compose             -f infra/stacks/core/compose.yaml             -f infra/stacks/core/compose.semantic-fast-read.yaml             -f infra/stacks/core/compose.semantic-fast-read-custody.yaml             config)"
+
+          grep -Fq "source: $WANDORA_TYPESAFE_JEV_API_KEY_FILE_HOST" <<<"$custody_effective"
+          grep -q 'target: /run/secrets/wandora/typesafe-jev.api-key' <<<"$custody_effective"
+          grep -Fq "source: $WANDORA_FAST_READ_INTENT_SECRET_FILE_HOST" <<<"$custody_effective"
+          grep -q 'target: /run/secrets/wandora/fast-read-intent.hmac' <<<"$custody_effective"
+          test "$(grep -c 'read_only: true' <<<"$custody_effective")" -ge 2
+          ! grep -Fq 'model-provider.api-key' infra/stacks/core/compose.semantic-fast-read.yaml
+          ! grep -Fq 'model-provider.api-key' infra/stacks/core/compose.semantic-fast-read-custody.yaml
+          grep -Fq 'WANDORA_MODEL_API_KEY_FILE: /run/secrets/wandora/model-provider.api-key'             infra/stacks/core/compose.agent-runtime-model.yaml
+
+          echo 'SEMANTIC_FAST_READ_PRODUCTION_ACTIVATION_CONTRACT_V1_OK'
