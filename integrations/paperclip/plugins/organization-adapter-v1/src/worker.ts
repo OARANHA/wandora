@@ -1,4 +1,4 @@
-import type { PluginContext } from '@paperclipai/plugin-sdk';
+import type { PluginContext, PluginWebhookResponse } from '@paperclipai/plugin-sdk';
 import { definePlugin, runWorker } from '@paperclipai/plugin-sdk';
 import { activateManagedCatalogEmployee } from './activation.js';
 import { CATALOG_KEY } from './catalog.js';
@@ -68,7 +68,19 @@ const plugin = definePlugin({
         pluginContext,
         request.companyId,
       );
-      return { integrations };
+      const response: PluginWebhookResponse = {
+        integrations: integrations.map((integration) => ({
+          integrationKind: integration.integrationKind,
+          displayName: integration.displayName,
+          connection: {
+            health: integration.connection.health,
+            readiness: integration.connection.readiness,
+          },
+          supportedCapabilities: [...integration.supportedCapabilities],
+          organizationEnabledCapabilities: [...integration.organizationEnabledCapabilities],
+        })),
+      };
+      return response;
     }
     if (input.endpointKey === 'employee-fast-read') {
       const request = parseFastReadWebhook(input);
@@ -79,12 +91,18 @@ const plugin = definePlugin({
         intentToken: request.intentToken,
         request: request.request,
       });
-      return {
+      const response: PluginWebhookResponse = {
         runId: result.runId,
         model: result.model,
         summary: result.summary,
-        usage: result.usage,
+        usage: {
+          inputTokens: result.usage.inputTokens,
+          outputTokens: result.usage.outputTokens,
+          cachedInputTokens: result.usage.cachedInputTokens,
+          totalTokens: result.usage.totalTokens,
+        },
       };
+      return response;
     }
     throw new Error('unknown_endpoint');
   },
