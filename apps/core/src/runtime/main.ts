@@ -13,10 +13,12 @@ import { createPaperclipExecutionHandler } from '../paperclip-execution/handler.
 import { createPaperclipRunIdentityClient } from '../paperclip-execution/paperclip-run-identity.js';
 import { createPaperclipToolGatewayReadBridge } from '../paperclip-execution/tool-gateway-read-bridge.js';
 import { PaperclipExecutionService } from '../paperclip-execution/service.js';
+import { TypeSafeJevSemanticDecisionProvider } from '../semantic-routing/typesafe-jev-provider.js';
 import { BrasilApiCompanyRegistryLookup } from '../supervision/company-registry-lookup.js';
 import { HumanCompanyProfileService } from '../supervision/human-company-profile.js';
 import { HumanDigitalEmployeeActivationService } from '../supervision/human-digital-employee-activation.js';
 import { HumanDigitalEmployeeDevelopmentService } from '../supervision/human-digital-employee-development.js';
+import { HumanDigitalEmployeeFastReadService } from '../supervision/human-digital-employee-fast-read.js';
 import { HumanDigitalEmployeesReadService } from '../supervision/human-digital-employees-read.js';
 import { HumanStarterWorkforceReadinessService } from '../supervision/human-starter-workforce-readiness.js';
 import { HumanGroundingService } from '../supervision/human-grounding.js';
@@ -133,6 +135,21 @@ const humanReadService = pool && humanVerifier
   ? new HumanSupervisionReadService(pool, humanVerifier)
   : undefined;
 
+const humanDigitalEmployeeFastReadService = organizationAdapterService
+  && humanReadService
+  && config.semanticFastRead
+  && config.fastReadExecution
+  ? new HumanDigitalEmployeeFastReadService({
+      bridge: organizationAdapterService,
+      semanticDecisionProvider: new TypeSafeJevSemanticDecisionProvider({
+        apiKey: config.semanticFastRead.apiKey,
+        timeoutMs: config.semanticFastRead.timeoutMs,
+      }),
+      policy: config.semanticFastRead.policy,
+      intentSecret: config.fastReadExecution.intentSecret,
+    })
+  : undefined;
+
 const humanGroundingService = pool && humanReadService
   ? new HumanGroundingService(pool, humanReadService)
   : undefined;
@@ -211,6 +228,7 @@ const handleHumanSupervision = humanReadService
       companyRegistryLookup,
       humanStarterWorkforceReadinessService,
       humanDigitalEmployeeDevelopmentService,
+      humanDigitalEmployeeFastReadService,
     )
   : undefined;
 
@@ -229,6 +247,7 @@ server.listen(config.port, '0.0.0.0', () => {
     gatewayIngress: Boolean(handleGatewayInbound),
     paperclipExecutionBridge: Boolean(handlePaperclipExecution),
     fastReadExecution: Boolean(paperclipFastReadService),
+    semanticFastRead: Boolean(humanDigitalEmployeeFastReadService),
     humanApi: Boolean(handleHumanSupervision),
     customerCompanyOnboarding: Boolean(humanCompanyProfileService),
     humanSendProposal: Boolean(humanSendProposalService),
