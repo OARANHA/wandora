@@ -7,33 +7,13 @@ import {
   type SemanticRoutePolicy,
 } from '../semantic-routing/contracts.js';
 import { issueFastReadIntent } from '../semantic-routing/fast-read-intent.js';
+import type {
+  OrganizationAdapterFastReadBridge,
+  OrganizationAdapterFastReadResult,
+} from '../organization-adapter/contracts.js';
 
-export type HumanFastReadDispatchResult = {
-  model: string;
-  summary: string;
-  usage: {
-    inputTokens: number;
-    outputTokens: number;
-    cachedInputTokens: number;
-    totalTokens: number;
-  };
-};
-
-export type HumanFastReadBridge = {
-  getAvailableCapabilities(input: {
-    organizationId: string;
-    actorUserId: string;
-    employeeId: string;
-  }): Promise<BusinessCapability[]>;
-  dispatchFastRead(input: {
-    organizationId: string;
-    actorUserId: string;
-    employeeId: string;
-    correlationId: string;
-    intentToken: string;
-    request: string;
-  }): Promise<HumanFastReadDispatchResult>;
-};
+export type HumanFastReadDispatchResult = OrganizationAdapterFastReadResult;
+export type HumanFastReadBridge = OrganizationAdapterFastReadBridge;
 
 export type HumanFastReadAdmissionResult =
   | {
