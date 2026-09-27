@@ -54,6 +54,7 @@ root_created=false
 restore_created=false
 pc_tmp_owned=false
 tmp_receipt=""
+receipt_published=false
 
 cleanup() {
   if [[ "${restore_created}" == "true" ]]; then
@@ -64,6 +65,9 @@ cleanup() {
   fi
   if [[ "${qualified}" != "true" && -n "${tmp_receipt}" && -e "${tmp_receipt}" ]]; then
     rm -f -- "${tmp_receipt}" || true
+  fi
+  if [[ "${qualified}" != "true" && "${receipt_published}" == "true" ]]; then
+    rm -f -- "${RECEIPT}" || true
   fi
   if [[ "${qualified}" != "true" && "${root_created}" == "true" && -d "${root}" ]]; then
     rm -rf -- "${root}" || true
@@ -543,7 +547,8 @@ tmp_receipt="$(mktemp /opt/wandora/ops-workspace/.production-rollback-freeze-v1.
 chown root:ops-mcp -- "${tmp_receipt}"
 chmod 0640 -- "${tmp_receipt}"
 ln -- "${tmp_receipt}" "${RECEIPT}" || fail "receipt appeared concurrently; refusing overwrite"
-rm -f -- "${tmp_receipt}"
+receipt_published=true
+rm -f -- "${tmp_receipt}" || fail "temporary receipt cleanup failed after publication"
 tmp_receipt=""
 qualified=true
 
