@@ -88,6 +88,8 @@ jobs:
               'post_drain_proxy=',
               'restore_created=true',
               'parent_created=true',
+              'rollback root appeared concurrently',
+              'receipt appeared concurrently; refusing overwrite',
               'ROLLBACK_FREEZE_V1_OK',
           ]
           missing = [item for item in required if item not in source]
@@ -103,6 +105,9 @@ jobs:
           first_write = source.index('# First write begins here')
           if precheck > first_write:
               raise SystemExit('adr0299_schema_probe_after_first_write')
+
+          if 'mv -- "${tmp_receipt}" "${RECEIPT}"' in source:
+              raise SystemExit('adr0299_receipt_overwrite_path')
 
           receipt = source[source.index('# Safe MCP-readable receipt'):]
           for forbidden_receipt in ('postgres18_image_id', 'postgres_server_version', 'master.key'):
