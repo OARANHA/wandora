@@ -5909,3 +5909,16 @@ The retained provider patch is `integrations/paperclip/patches/v2026.916.1-host-
 Production remains unchanged: Paperclip `v2026.916.0` healthy; Task Drain OFF; activeRuns=0; pendingWakes=0; quiescent=true; zero provider/model/customer/outbound effect.
 
 Next only after exact PR-head CI GREEN: disposable ADR 0279 Integration Capability Plane attestation against an isolated Paperclip candidate/lab. Production activation remains a separate slice.
+
+
+## 2026-09-27 — ADR 0295 production image-store identity reconciliation
+
+Status: **IDENTITY RECONCILED / NO PROMOTION / NO CUSTOMER OR OUTBOUND EFFECT**.
+
+The exact frozen Paperclip `v2026.916.1` candidate staged from ADR 0295 remains byte-identical: compressed SHA-256 `69c962c79375446060af12fc9240385987790f4d11a3528cbb7a6ad745e98269`, raw Docker archive SHA-256 `a91f96feff4dbb8161d182e350fc3e2ca1d0d6784cfa9179fdaa20a200e7ce97`.
+
+Archive inspection proves the OCI chain `manifest sha256:7b72d43e87d54fcb9aa48b665150e062750c0cacb270e069f94297d58caa91e5 -> config sha256:e05f1604cf863d316b4ce5db189782f022fa4fd17544f9724747e11223d4356c`. Production Docker Engine 29.8.0 reports the loaded tag `.Id` as the manifest digest `7b72d43e...`, while the original CI workflow recorded `e05f1604...` from its build-time `.Id`; this is now treated as image-store representation semantics, not candidate divergence.
+
+For this frozen candidate, identity validation is the exact archive checksums plus the internal manifest->config digest relation; post-load `.Id` equality alone is not a portable verifier across image-store semantics.
+
+Live Paperclip remained `wandora/paperclip:v2026.916.0`, healthy/restart 0, and Task Drain remained OFF/0/0/quiescent during reconciliation. No promotion was authorized by this checkpoint. Next: fresh Immediate Pre-Mutation Attestation + adversarial review for exactly one compatibility effect — Paperclip 916.1 promotion with Organization Adapter 0.3.1 and all semantic/Human Send/Gateway outbound/WhatsApp effects OFF.
