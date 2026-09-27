@@ -2,7 +2,7 @@
 
 Date: 2026-09-27
 
-Status: **IMPLEMENTED / CI PENDING / CODE+CI ONLY / NO PRODUCTION EFFECT**
+Status: **QUALIFIED / 17/17 PR WORKFLOWS GREEN / CODE+CI ONLY / NO PRODUCTION EFFECT**
 
 ## Objective
 
@@ -139,13 +139,32 @@ In particular it does not:
 
 ## Validation
 
-CI must prove the future attestation render has exactly the intended gates and reuses the existing provider/custody boundaries without adding outbound capability.
+Exact implementation/documentation head before qualification:
 
-Exact-head GitHub-hosted CI must be GREEN before this ADR becomes QUALIFIED.
+`8a4e58877dcc845ba47332949285c764fc2d940d`
+
+GitHub-hosted CI completed **17/17 GREEN** with zero failures.
+
+Relevant direct evidence:
+
+- Core CI run `36329848056` — GREEN;
+- Semantic Fast Read CI run `36329848114` — GREEN;
+- Core CI emitted `SEMANTIC_FAST_READ_BOUNDED_ATTESTATION_CONTRACT_V1_OK`;
+- the same render preserved the existing `SEMANTIC_FAST_READ_PRODUCTION_ACTIVATION_CONTRACT_V1_OK` convergence proof;
+- the attestation render proved the three intended gates ON, Human Send OFF, existing TypeSafe/`wfri1`/Mistral mounts reused, and Core outbound variables absent;
+- static CI proved the attestation overlay contains no volume, port, image, build, network or secret declaration.
+
+No production mutation was part of validation.
+
+## Result
+
+**QUALIFIED / CODE+CI ONLY / NO PRODUCTION EFFECT.**
+
+The repository now contains the missing versioned bounded-attestation effect contract. This closes configuration preparation only; it does not open the production attestation window.
 
 ## Next
 
-After exact-head CI is GREEN, stop.
+Stop here.
 
 The next production slice is a fresh **Immediate Pre-Mutation Attestation + Effect Authorization** for the bounded Human Fast Read attestation. It must capture fresh rollback/runtime/custody/Task Drain evidence and obtain a new immediately-adjacent second adversarial review before any production mutation.
 
