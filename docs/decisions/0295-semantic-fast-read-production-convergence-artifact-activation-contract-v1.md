@@ -262,3 +262,31 @@ ADR 0294 deployment-evidence gaps (Paperclip candidate artifact and reviewed fai
 This ADR does not authorize production activation.
 
 The next slice should be a separately reviewed production credential-custody + pre-mutation attestation slice, not a continuation by assumption.
+
+
+### 2026-09-27 — production image-store import identity reconciliation
+
+A production-side staging/import reconciliation closed an apparent digest mismatch without rebuilding, retagging or promoting the candidate.
+
+The exact frozen bytes remained authoritative and revalidated as:
+
+- compressed artifact SHA-256: `69c962c79375446060af12fc9240385987790f4d11a3528cbb7a6ad745e98269`;
+- raw Docker archive SHA-256: `a91f96feff4dbb8161d182e350fc3e2ca1d0d6784cfa9179fdaa20a200e7ce97`;
+- image tag: `wandora/paperclip:v2026.916.1`.
+
+Direct inspection of the exact archive proved the internal OCI identity chain:
+
+- `index.json` manifest digest: `sha256:7b72d43e87d54fcb9aa48b665150e062750c0cacb270e069f94297d58caa91e5`;
+- the referenced manifest blob hashes to exactly `sha256:7b72d43e87d54fcb9aa48b665150e062750c0cacb270e069f94297d58caa91e5`;
+- that manifest references config digest `sha256:e05f1604cf863d316b4ce5db189782f022fa4fd17544f9724747e11223d4356c`;
+- the referenced config blob hashes to exactly `sha256:e05f1604cf863d316b4ce5db189782f022fa4fd17544f9724747e11223d4356c`.
+
+The original candidate workflow recorded `dockerConfigDigest=e05f1604...` from its CI-time `docker image inspect --format '{{.Id}}'` result. After loading the same exact archive into production Docker Engine `29.8.0` / API `1.56`, `docker image inspect` reports `.Id=sha256:7b72d43e...`, i.e. the OCI manifest digest. This is a representation difference across the image-store/runtime path, not evidence of different candidate bytes.
+
+For this frozen promotion unit, cross-runtime identity MUST therefore be established by the exact archive checksums plus the internal relation:
+
+`archive SHA -> OCI manifest 7b72d43e... -> config e05f1604...`
+
+A post-load `.Id` comparison to the CI-time `.Id` alone is insufficient across differing image-store semantics. The historical provenance value is not rewritten: `e05f1604...` remains the exact frozen config digest and CI-time image identifier, while `7b72d43e...` is the exact OCI manifest digest present inside the same frozen archive.
+
+No Paperclip container restart/recreate, Organization Adapter change, Core change, Task Drain mutation, provider call, customer effect or outbound effect occurred during this reconciliation. Production Paperclip remained on `v2026.916.0` throughout.
