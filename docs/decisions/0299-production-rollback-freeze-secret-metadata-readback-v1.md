@@ -122,3 +122,23 @@ Validated without production mutation:
 **PARTIAL / OPERATOR-LOCAL EXECUTION REQUIRED / NO BACKUP CREATED / NO ACTIVATION / NO CUSTOMER EFFECT**
 
 Do not rerun ADR 0298 yet. First complete this slice through the reviewed operator-local boundary and validate its safe receipt. Only then update this checkpoint (or add the sequential completion ADR) and rerun Immediate Pre-Mutation Attestation from fresh state.
+
+### 2026-09-26 — fresh continuation: Task Drain recovered, operator custody still unavailable
+
+A fresh continuation re-ran the exact canonical and runtime checks before any backup write.
+
+- `main` remains `8d6a65f519de5c1c49607314b49968af608c7164`.
+- PR #369 remained open/draft/mergeable at pre-documentation source head `4f461ae3bcdffa7ef20b47c3f8be60b9c835f068`, with **17/17 workflows GREEN**.
+- PR #370 remained open/draft/mergeable at `11fd59599b21493a0fe335f4c32354989a6083a2`, with **4/4 workflows GREEN**.
+- ADR 0295 artifact `10914008713` remains available/non-expired through 2026-10-03, with GitHub digest `sha256:e43acc85e3f7f010b7189f11bd9c3622f9a7a9015765a50f315ca61a98c36a19`.
+- Fresh Task Drain readback now succeeds again: `draining=false`, `activeRuns=0`, `pendingWakes=0`, `quiescent=true`.
+- Fresh runtime still shows Paperclip `wandora/paperclip:v2026.916.0` / commit `dffc2b3ca1b9e88fa21cb17493083e682dffd1ca`, healthy/restart 0; Core `wandora/core:organization-adapter-candidate-f3225586d082`, healthy/restart 0; Messaging Gateway healthy/restart 0 with `outboundEnabled=false`.
+- Core active Compose labels still exclude `compose.semantic-fast-read.yaml` and `compose.semantic-fast-read-custody.yaml`; startup still reports `humanSendProposal=false`.
+- Fresh Paperclip plugin CLI readback reports exactly `wandora.organization-adapter-v1@0.3.1`, status `ready`.
+
+The former Task Drain transport failure is therefore closed. The execution blocker is narrower: neither the current `wandora-agent` boundary nor the newly visible `wandora-admin` target exposes authorized access to `/home/wandora-admin/backups`, and the canonical Core secret directory continues to fail closed with `SECRET_PATH_DENIED`. No exposed capability can perform the required metadata-only `stat` for TypeSafe/`wfri1`/Mistral or create the protected rollback root without widening policy, using shell/sudo as a bypass, or relocating custody.
+
+The deterministic decision remains **STOP BEFORE FIRST BACKUP WRITE**. A fresh independent JEV route review returned `block=0.99`, `deep_review=0.01`, confidence `0.98`. No backup, deploy, promotion, restart, Compose mutation, secret read, provider call, VendaERP call, customer work, outbound, Task Drain mutation or production effect occurred.
+
+Status remains **PARTIAL / OPERATOR-LOCAL EXECUTION REQUIRED / NO BACKUP CREATED / NO ACTIVATION / NO CUSTOMER EFFECT**. Complete the already-reviewed operator-local runbook through an authorized boundary; do not expand Remote-Ops allowlists or bypass secret guards. Only after the safe receipt ends in `ROLLBACK_FREEZE_V1_OK` should ADR 0298-style Immediate Pre-Mutation Attestation be rerun from fresh state.
+
