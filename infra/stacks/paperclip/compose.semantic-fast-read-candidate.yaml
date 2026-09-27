@@ -1,0 +1,5 @@
+services:
+  paperclip:
+    build: !reset null
+    image: wandora/paperclip:v2026.916.1
+    pull_policy: never
