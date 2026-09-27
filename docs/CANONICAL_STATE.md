@@ -1,3 +1,13 @@
+## 2026-09-26 — ADR 0299 operator-local boundary recheck
+
+Status: **PARTIAL / NO BACKUP CREATED / NO ACTIVATION / NO CUSTOMER EFFECT**.
+
+The exact pre-documentation PR #369 head `66d7f2e15c1c1a09a7f42c146375fce8c709078b` completed **17/17 workflows GREEN**. Fresh production reconciliation preserved Paperclip v2026.916.0 / `dffc2b3...`, Core `organization-adapter-candidate-f3225586d082`, OA 0.3.1 ready, Gateway outbound OFF, Human Send OFF, Semantic/Fast Read overlays absent and Task Drain OFF/0/0/quiescent. Frozen artifact `10914008713` remains available/non-expired.
+
+Execution remains blocked only by the operator custody boundary: `/home/wandora-admin/backups` is outside exposed operator paths, the Core secret directory remains `SECRET_PATH_DENIED`, and no narrow current capability performs the protected rollback write plus metadata-only secret stat. No permission widening or bypass is authorized. Independent JEV guard review returned **deny=1.00**.
+
+ADR 0299 remains the active slice. Do not create another ADR for this unchanged block. Resume only when the exact operator-local boundary is authorized; require `ROLLBACK_FREEZE_V1_OK`, validate, then start a new Immediate Pre-Mutation Attestation + Effect Authorization.
+
 ## 2026-09-26 — ADR 0299 continuation: freshness recheck
 
 **PARTIAL / OPERATOR-LOCAL EXECUTION REQUIRED / NO BACKUP CREATED / NO ACTIVATION / NO CUSTOMER EFFECT.**
