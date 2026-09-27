@@ -142,3 +142,32 @@ The deterministic decision remains **STOP BEFORE FIRST BACKUP WRITE**. A fresh i
 
 Status remains **PARTIAL / OPERATOR-LOCAL EXECUTION REQUIRED / NO BACKUP CREATED / NO ACTIVATION / NO CUSTOMER EFFECT**. Complete the already-reviewed operator-local runbook through an authorized boundary; do not expand Remote-Ops allowlists or bypass secret guards. Only after the safe receipt ends in `ROLLBACK_FREEZE_V1_OK` should ADR 0298-style Immediate Pre-Mutation Attestation be rerun from fresh state.
 
+
+
+### 2026-09-26 — fresh continuation: exact head GREEN; operator-local boundary still absent
+
+A new reconciliation was completed before any effect.
+
+- `main` remains `8d6a65f519de5c1c49607314b49968af608c7164`.
+- PR #369 remained open/draft/mergeable at source head `66d7f2e15c1c1a09a7f42c146375fce8c709078b`; that exact pre-documentation head is now **17/17 workflows GREEN**.
+- PR #370 remains open/draft/mergeable at `11fd59599b21493a0fe335f4c32354989a6083a2`, with **4/4 workflows GREEN**.
+- Frozen ADR 0295 artifact `10914008713` remains available and non-expired through 2026-10-03 with digest `sha256:e43acc85e3f7f010b7189f11bd9c3622f9a7a9015765a50f315ca61a98c36a19`.
+- Task Drain is freshly `draining=false`, `activeRuns=0`, `pendingWakes=0`, `quiescent=true`.
+- Paperclip remains `wandora/paperclip:v2026.916.0`, commit `dffc2b3ca1b9e88fa21cb17493083e682dffd1ca`, healthy/restart 0, authenticated/private, with database-backup health `ok`.
+- Core remains `wandora/core:organization-adapter-candidate-f3225586d082`, revision `f3225586d0825334d2c9c697a1720512a65d47f8`, healthy/restart 0. Active Compose files still exclude `compose.semantic-fast-read.yaml` and `compose.semantic-fast-read-custody.yaml`; startup readback still reports `humanSendProposal=false`.
+- Paperclip plugin registry still reports exactly `wandora.organization-adapter-v1@0.3.1`, status `ready`, `lastError=null`.
+- Messaging Gateway remains healthy/restart 0 and startup readback reports `outboundEnabled=false`.
+
+The operator-local boundary is still absent. Current registry/schema evidence is explicit:
+
+- `wandora-admin` remains an operator target but exposes no allowed paths, write paths, process programs or Docker execution surface;
+- `wandora-agent` remains operator-capable but does not allow `/home/wandora-admin/backups` or the protected Core secret directory;
+- listing `/home/wandora-admin/backups` is denied on both `wandora-admin` and `wandora-agent` with `PATH_DENIED`;
+- listing `/opt/wandora/stacks/core/secrets` on `wandora-agent` remains denied with `SECRET_PATH_DENIED`;
+- the current MCP schema exposes no narrow capability that can both create the reviewed protected rollback bundle and perform metadata-only `stat` for TypeSafe/`wfri1`/Mistral without bypassing those guards.
+
+No allowlist was widened, no shell/sudo path was used, no substitute custody under `/opt/wandora/ops-workspace` was created and no partial backup was attempted.
+
+A fresh independent JEV guard review of the proposed first write returned **deny=1.00**. The deterministic decision therefore remains **STOP BEFORE FIRST BACKUP WRITE**.
+
+Status remains **PARTIAL / NO BACKUP CREATED / NO ACTIVATION / NO CUSTOMER EFFECT**. Continue only when an authorized operator-local boundary exists for the exact ADR 0299 runbook; do not improvise or reopen ADR 0298 before a safe receipt ends in `ROLLBACK_FREEZE_V1_OK`.
