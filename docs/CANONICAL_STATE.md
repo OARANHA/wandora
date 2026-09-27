@@ -1,3 +1,17 @@
+## 2026-09-27 — ADR 0310 managed-admin root capability governance for canonical Rollback V2 precheck
+
+Status: **QUALIFIED / CODE+CI ONLY / CAPABILITY NOT DEPLOYED / ROOT PRECHECK NOT EXECUTED / NO PRODUCTION EFFECT**.
+
+Fresh authority reconciliation proved that current Remote-Ops-MCP `main@f408ed420dc8e104c6b105e31d8b093a624523e6` is the live control-plane implementation and that its managed-admin provider already supplies the generic operational mechanics required for governed root execution: target program allowlists, explicit prepare/apply, signed short-lived one-use tickets, root broker replay protection and `shell=false`. Generic `bash`, `sh`, `sudo` and interpreter execution remain hard-denied at both layers.
+
+No approved-script/helper primitive exists. Reuse Gate therefore selected a Wandora-owned dedicated precheck program instead of a new Remote-Ops subsystem. The qualified entrypoint accepts zero caller arguments, requires root-owned non-symlink installed files, pins the exact canonical V2 helper Git blob `849a05971d5f2526b6e8829d5315b4678f169315`, validates syntax, and executes only fixed `--precheck-only`. Direct helper allowlisting was rejected because the helper also exposes the separately governed no-argument rollback capture.
+
+Final code head `ac53b2d6389e382f55615906e40b4bed9c0fe839` passed **17/17 workflows GREEN**; Semantic Fast Read CI run `36341259674` includes the ADR 0310 gate, Core CI run `36341259563` is GREEN, and the post-primary-gates Core Candidate job `108682490694` is GREEN. Final adversarial review returned `allow=0.74` / confidence `0.66`.
+
+No live Remote-Ops config, target, broker, VPS application runtime or production effect changed. The dedicated program is **not live yet**. Next slice is capability deployment only: install root-owned exact bytes and add only `wandora-rollback-freeze-v2-precheck` to the existing target and broker admin-program allowlists; then validate and stop before root precheck.
+
+Canonical detail: `docs/decisions/0310-managed-admin-root-capability-governance-canonical-rollback-v2-precheck-v1.md`.
+
 ## 2026-09-27 — ADR 0309 canonical V2 exact-byte host staging complete
 
 Status: **CANONICAL V2 STAGED EXACT-BYTES / BASH-N GREEN / NO ROOT EXECUTION / NO PRODUCTION EFFECT**.
