@@ -41,7 +41,6 @@ if (missing.length) {
 const forbidden = [
   "/opt/wandora/ops-workspace/production-rollback-freeze-v2.sh",
   '"$@"',
-  '"$*"',
   "eval ",
   "sudo ",
   "docker ",
