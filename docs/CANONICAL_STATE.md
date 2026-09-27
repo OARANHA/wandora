@@ -1,3 +1,19 @@
+## 2026-09-27 — ADR 0305 Core Semantic Fast Read Compatibility Convergence Production Execution V1
+
+Status: **COMPLETE / CORE COMPATIBILITY CONVERGED / SEMANTIC+OUTBOUND EFFECTS OFF**.
+
+PR #369 was reconciled at source head `c6deae0fd0419b3b4d5f8a2eac85fa2930e6093d`, base `main@8d6a65f519de5c1c49607314b49968af608c7164`, with **17/17 workflows GREEN**. Because the original Core Candidate Artifact completed before the primary Core/Semantic gates, the successful candidate job was rerun post-gates and only that later artifact was accepted.
+
+The exact production candidate is `wandora/core:organization-adapter-candidate-2c2142237c9c`, archive SHA-256 `93e98c07b9914eb99b89cfc185effe6397ecd021cbded6121ab0c7edfb571d4b`, OCI config `sha256:25a89258bd27e96f57ecf641911005dafc8d714c2d10521e1d37b3e27b309393`, OCI manifest `sha256:d3ed5494c03c0720419387befc54f6f6cb124e5407fc619150ecf3dde03dfed7`, revision/merge ref `2c2142237c9cccc1f7a90d6ae056cd12cc5f4754`.
+
+Production Core was recreated alone, using the complete existing Compose chain plus canonical `compose.semantic-fast-read.yaml` blob `e65ba5293d3d51fb9f2038ed368cadbe217e54b3`. Post-change Core is healthy/restart 0 and active Compose provenance includes the gates-OFF overlay but excludes `compose.semantic-fast-read-custody.yaml`. Runtime startup reports `fastReadExecution=false`, `semanticFastRead=false`, `humanSendProposal=false`, `organizationAdapter=true`, `agentRuntime=mastra-supervised-model`; final rendered composition also keeps Semantic Selector OFF. TypeSafe and Fast Read intent-HMAC custody mounts remain absent.
+
+Paperclip was not recreated and remains exactly `v2026.916.1` / `sha256:7b72d43...`; Organization Adapter remains exactly one `0.5.0`, same plugin id, ready/lastError null; Messaging Gateway was not recreated and remains `outboundEnabled=false`; Task Drain remains `false/0/0/quiescent`. No provider/model/VendaERP/WhatsApp/customer/Human Send/outbound effect occurred.
+
+Canonical detail: `docs/decisions/0305-core-semantic-fast-read-compatibility-convergence-production-execution-v1.md`.
+
+Next slice must begin from fresh repository/CI/runtime reconciliation. **No semantic activation is implied by compatibility convergence.**
+
 ## 2026-09-27 — ADR 0304 Organization Adapter 0.5.0 Production Promotion Execution V1
 
 Status: **COMPLETE / OA 0.5.0 LIVE / PAPERCLIP 916.1 PRESERVED / SEMANTIC+OUTBOUND EFFECTS OFF**.
