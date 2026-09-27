@@ -107,6 +107,11 @@ jobs:
               'embedded-postgres@${target.port}',
               'postgres://paperclip:paperclip@127.0.0.1:${target.port}/paperclip',
               'paperclip_db_data_dir',
+              'PC_ADAPTER_REGISTRY="/paperclip/adapter-plugins.json"',
+              'Paperclip master.key source missing',
+              'Paperclip adapter registry source missing',
+              'Paperclip operator-packages source missing',
+              'Organization Adapter package source missing',
               "SHOW data_directory",
               'live PostgreSQL data_directory does not match Paperclip embedded target',
               '--dbname="$db_url"',
@@ -142,6 +147,16 @@ jobs:
           first_write = source.index('# First write begins here')
           if precheck > first_write:
               raise SystemExit('adr0299_schema_probe_after_first_write')
+
+          custody_prechecks = [
+              'Paperclip master.key source missing',
+              'Paperclip adapter registry source missing',
+              'Paperclip operator-packages source missing',
+              'Organization Adapter package source missing',
+          ]
+          for item in custody_prechecks:
+              if source.index(item) > first_write:
+                  raise SystemExit(f'adr0299_custody_precheck_after_first_write:{item}')
 
           if 'mv -- "${tmp_receipt}" "${RECEIPT}"' in source:
               raise SystemExit('adr0299_receipt_overwrite_path')
@@ -214,11 +229,15 @@ jobs:
           git -C .paperclip cat-file -e "${production_commit}^{commit}"
           git -C .paperclip show "${production_commit}:cli/src/commands/db-backup.ts" > /tmp/paperclip-production-db-backup.ts
           git -C .paperclip show "${production_commit}:packages/db/src/backup-lib.ts" > /tmp/paperclip-production-backup-lib.ts
+          git -C .paperclip show "${production_commit}:server/src/services/adapter-plugin-store.ts" > /tmp/paperclip-production-adapter-plugin-store.ts
+          git -C .paperclip show "${production_commit}:packages/shared/src/home-paths.ts" > /tmp/paperclip-production-home-paths.ts
           python3 - <<'PY'
           from pathlib import Path
 
           upstream = Path("/tmp/paperclip-production-db-backup.ts").read_text()
           backup_lib = Path("/tmp/paperclip-production-backup-lib.ts").read_text()
+          adapter_store = Path("/tmp/paperclip-production-adapter-plugin-store.ts").read_text()
+          home_paths = Path("/tmp/paperclip-production-home-paths.ts").read_text()
           helper = Path("scripts/operations/production-rollback-freeze-v1.sh").read_text()
 
           upstream_contract = 'postgres://paperclip:paperclip@127.0.0.1:${port}/paperclip'
@@ -230,6 +249,14 @@ jobs:
               raise SystemExit("adr0299_upstream_embedded_source_contract_missing")
           if backup_lib.count('--dbname=${opts.connectionString}') < 2:
               raise SystemExit("adr0299_upstream_dbname_connection_contract_missing")
+          if 'path.join(paperclipDir, "adapter-plugins.json")' not in adapter_store:
+              raise SystemExit("adr0299_upstream_adapter_registry_contract_missing")
+          if 'resolvePaperclipHomeDir()' not in adapter_store:
+              raise SystemExit("adr0299_upstream_adapter_home_resolver_missing")
+          if 'process.env.PAPERCLIP_HOME?.trim()' not in home_paths:
+              raise SystemExit("adr0299_upstream_paperclip_home_env_contract_missing")
+          if 'PC_ADAPTER_REGISTRY="/paperclip/adapter-plugins.json"' not in helper:
+              raise SystemExit("adr0299_helper_adapter_registry_path_mismatch")
           if helper_contract not in helper:
               raise SystemExit("adr0299_helper_embedded_connection_contract_missing")
           if 'target.mode !== "embedded-postgres"' not in helper:

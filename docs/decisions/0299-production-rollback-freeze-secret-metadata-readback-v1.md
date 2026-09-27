@@ -48,7 +48,7 @@ ADRs 0129/0130 and 0294 establish the accepted recovery pattern. A fresh rollbac
 2. PostgreSQL 18.1 schema-faithful custom-format `pg_dump -Fc`;
 3. disposable PostgreSQL 18.1 restore proof and normalized schema equality;
 4. the matching live `/paperclip/instances/default/secrets/master.key`, copied without printing contents and verified only by boolean byte equality;
-5. current `/paperclip/instances/default/adapter-plugins.json`;
+5. current `/paperclip/adapter-plugins.json`, matching the live production `PAPERCLIP_HOME=/paperclip` provider contract;
 6. complete current `/paperclip/operator-packages` adapter package state;
 7. exact current Organization Adapter 0.3.1 package path/tree obtained from Paperclip's own plugin registry;
 8. live Paperclip base Compose, execution-bridge overlay and bridge wrapper;
@@ -229,3 +229,35 @@ Pinned Paperclip v2026.916.0 source at `dffc2b3ca1b9e88fa21cb17493083e682dffd1ca
 The Semantic Fast Read CI gate is updated simultaneously so it no longer enforces the failed `PGDATABASE` assumption and instead verifies both the helper's three `--dbname="$db_url"` uses and the pinned Paperclip `backup-lib.ts` connection mechanism.
 
 Status remains **PARTIAL / NO QUALIFIED ROLLBACK BUNDLE YET / NO ACTIVATION / NO CUSTOMER EFFECT**. Do not rerun the helper until this corrected exact PR head is CI GREEN, rematerialized to the operator workspace, hash-verified, and a fresh adversarial review passes.
+
+
+### 2026-09-27 — continuation: adapter registry custody path corrected after post-write cleanup
+
+A manually authorized execution of helper blob `8f3c44df6675de1d1633ffec05b1bd0372ff3248` crossed the helper's first-write boundary and then stopped while copying the adapter registry:
+
+```text
+Error response from daemon: Could not find the file /paperclip/instances/default/adapter-plugins.json in container wandora-paperclip
+```
+
+Before that failure the helper had created the unique protected rollback root, copied the official Paperclip backup, created fresh PostgreSQL 18.1 dumps, and copied `master.key`. The helper therefore was **not** eligible for a blind rerun.
+
+Fresh reconciliation proved all partial state was cleaned:
+
+- the safe ADR 0299 receipt is absent;
+- Task Drain remains `draining=false`, `activeRuns=0`, `pendingWakes=0`, `quiescent=true`;
+- the normal seven-container production set remains unchanged and healthy;
+- the Paperclip temporary backup path for the failed attempt is absent;
+- the exact host rollback root `/home/wandora-admin/backups/paperclip-v9161-fast-read-rollback-freeze-v1-20260927T073945719168949Z` is absent.
+
+A read-only managed-admin runtime probe proved:
+
+- `paperclipHome=/paperclip`;
+- `registryPath=/paperclip/adapter-plugins.json`;
+- that registry exists;
+- the stale `/paperclip/instances/default/adapter-plugins.json` path does not exist.
+
+Pinned Paperclip v2026.916.0 source at `dffc2b3ca1b9e88fa21cb17493083e682dffd1ca` defines the adapter store as `path.join(resolvePaperclipHomeDir(), "adapter-plugins.json")`, while the shared home resolver honors `PAPERCLIP_HOME`. The production-specific ADR 0299 helper is therefore corrected to `/paperclip/adapter-plugins.json`.
+
+The helper is also hardened so `master.key`, the adapter registry, `/paperclip/operator-packages`, and the exact Organization Adapter 0.3.1 package path must all exist with the expected basic file/directory type **before** `# First write begins here`. CI pins the upstream provider contract and verifies those guards remain before the first-write boundary.
+
+Status remains **PARTIAL / CLEANED AFTER FAILED WRITE / NO QUALIFIED ROLLBACK BUNDLE YET / NO ACTIVATION / NO CUSTOMER EFFECT** until the corrected exact head is fully GREEN and the helper completes with `ROLLBACK_FREEZE_V1_OK`.

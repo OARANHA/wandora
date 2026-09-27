@@ -33,16 +33,17 @@ Using the existing operator authority:
    - `pendingWakes=0`;
    - `quiescent=true`.
 4. Reuse Paperclip plugin registry read; require exactly one `wandora.organization-adapter-v1`, version `0.3.1`, status `ready`, empty lastError, and an existing packagePath under `/paperclip/`.
-5. Core must remain healthy/restart 0 on `wandora/core:organization-adapter-candidate-f3225586d082`.
-6. Read only these effect flags from Core and require false/absent:
+5. Before the first persistent rollback write, require the live custody sources to exist with the expected basic type: `/paperclip/instances/default/secrets/master.key` regular file, `/paperclip/adapter-plugins.json` regular file, `/paperclip/operator-packages` directory, and the exact OA 0.3.1 `packagePath` directory. The adapter registry path is the current production provider path derived from live `PAPERCLIP_HOME=/paperclip`; do not use the stale `/paperclip/instances/default/adapter-plugins.json` path.
+6. Core must remain healthy/restart 0 on `wandora/core:organization-adapter-candidate-f3225586d082`.
+7. Read only these effect flags from Core and require false/absent:
    - `WANDORA_FAST_READ_EXECUTION_ENABLED`;
    - `WANDORA_SEMANTIC_FAST_READ_ENABLED`;
    - `WANDORA_SEMANTIC_SELECTOR_ENABLED`;
    - `WANDORA_HUMAN_SEND_PROPOSAL_ENABLED`.
-7. Messaging Gateway must remain healthy/restart 0 and `WANDORA_GATEWAY_OUTBOUND_ENABLED=false`.
-8. Metadata-only `stat` the TypeSafe Core key, `wfri1` HMAC and existing Mistral key. Require regular non-symlink files, `wandora-admin:wandora-ops`, mode `0640`.
-9. Require a **pre-existing local** `postgres:18.1` image qualified by the separate PostgreSQL 18.1 recovery-image acquisition slice. Its local `RepoDigests` must include official index digest `postgres@sha256:1090bc3a8ccfb0b55f78a494d76f8d603434f7e4553543d6e807bc7bd6bbd17f` and platform must be `linux/amd64`. If absent or mismatched, STOP; do not pull or retag it as part of this slice.
-10. Prove the live Paperclip target resolves as `embedded-postgres@54329`, construct exactly the provider-local loopback connection contract used by pinned Paperclip v2026.916.0 `db:backup`, and pass that URI to PostgreSQL clients through their documented `--dbname` connection-string argument, matching pinned Paperclip `backup-lib.ts`. Require live `SHOW data_directory` to equal Paperclip's resolved embedded `dataDir`, then prove a PostgreSQL 18.1 schema-only read before any backup write. Do not use `resolveMigrationConnection` because it may adopt/start an embedded cluster. The URI must remain transient process state only; do not print or persist it.
+8. Messaging Gateway must remain healthy/restart 0 and `WANDORA_GATEWAY_OUTBOUND_ENABLED=false`.
+9. Metadata-only `stat` the TypeSafe Core key, `wfri1` HMAC and existing Mistral key. Require regular non-symlink files, `wandora-admin:wandora-ops`, mode `0640`.
+10. Require a **pre-existing local** `postgres:18.1` image qualified by the separate PostgreSQL 18.1 recovery-image acquisition slice. Its local `RepoDigests` must include official index digest `postgres@sha256:1090bc3a8ccfb0b55f78a494d76f8d603434f7e4553543d6e807bc7bd6bbd17f` and platform must be `linux/amd64`. If absent or mismatched, STOP; do not pull or retag it as part of this slice.
+11. Prove the live Paperclip target resolves as `embedded-postgres@54329`, construct exactly the provider-local loopback connection contract used by pinned Paperclip v2026.916.0 `db:backup`, and pass that URI to PostgreSQL clients through their documented `--dbname` connection-string argument, matching pinned Paperclip `backup-lib.ts`. Require live `SHOW data_directory` to equal Paperclip's resolved embedded `dataDir`, then prove a PostgreSQL 18.1 schema-only read before any backup write. Do not use `resolveMigrationConnection` because it may adopt/start an embedded cluster. The URI must remain transient process state only; do not print or persist it.
 
 ## Recovery bundle
 

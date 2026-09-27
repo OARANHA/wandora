@@ -34,7 +34,7 @@ WFRI1="/opt/wandora/stacks/core/secrets/wandora_fast_read_intent_hmac"
 MISTRAL="/opt/wandora/stacks/core/secrets/wandora_model_provider_api_key"
 
 PC_MASTER_KEY="/paperclip/instances/default/secrets/master.key"
-PC_ADAPTER_REGISTRY="/paperclip/instances/default/adapter-plugins.json"
+PC_ADAPTER_REGISTRY="/paperclip/adapter-plugins.json"
 
 PAPERCLIP_COMPOSE="/opt/wandora/stacks/paperclip/compose.yaml"
 PAPERCLIP_BRIDGE_COMPOSE="/opt/wandora/stacks/paperclip/compose.paperclip-execution-bridge.yaml"
@@ -281,6 +281,18 @@ oa="$(jq -c --arg k "${OA_KEY}" '.[] | select(.pluginKey==$k)' <<<"$plugins")"
 [[ "$(jq -r '.status' <<<"$oa")" == "ready" ]] || fail "OA not ready"
 [[ "$(jq -r '.lastError // ""' <<<"$oa")" == "" ]] || fail "OA lastError non-empty"
 [[ "$(jq -r '.packagePath' <<<"$oa")" == "${OA_PATH}" ]] || fail "OA packagePath mismatch"
+
+# All custody sources must exist with the expected basic type before the first
+# persistent rollback write. This prevents a late copy failure after the
+# protected rollback root has already been created.
+docker exec "${PC}" test -f "${PC_MASTER_KEY}" ||
+  fail "Paperclip master.key source missing"
+docker exec "${PC}" test -f "${PC_ADAPTER_REGISTRY}" ||
+  fail "Paperclip adapter registry source missing"
+docker exec "${PC}" test -d /paperclip/operator-packages ||
+  fail "Paperclip operator-packages source missing"
+docker exec "${PC}" test -d "${OA_PATH}" ||
+  fail "Organization Adapter package source missing"
 
 core_compose="$(container_field "${CORE}" '{{index .Config.Labels "com.docker.compose.project.config_files"}}')"
 [[ "$core_compose" != *"compose.semantic-fast-read.yaml"* ]] || fail "semantic-fast-read overlay is live"
