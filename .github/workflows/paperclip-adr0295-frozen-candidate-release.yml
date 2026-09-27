@@ -1,4 +1,4 @@
-name: Paperclip ADR0295 Frozen Candidate Release Publication
+name: Paperclip ADR0295 Frozen Candidate Transfer Staging
 
 on:
   push:
@@ -8,15 +8,15 @@ on:
       - '.github/workflows/paperclip-adr0295-frozen-candidate-release.yml'
 
 permissions:
-  contents: write
+  contents: read
   actions: read
 
 concurrency:
-  group: paperclip-adr0295-frozen-candidate-release
+  group: paperclip-adr0295-frozen-candidate-transfer
   cancel-in-progress: false
 
 jobs:
-  publish:
+  stage:
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     env:
@@ -28,9 +28,8 @@ jobs:
       PROVENANCE_SHA256: '00dc1f18c30e610107498531c80a09d9296b5295008a72c8ab2208a212af01e9'
       DOCKER_CONFIG_DIGEST: 'sha256:e05f1604cf863d316b4ce5db189782f022fa4fd17544f9724747e11223d4356c'
       PAPERCLIP_SOURCE_SHA: 'd554c4789ed3930f8a53ac9fdf6503b3187097da'
-      CANDIDATE_SOURCE_HEAD: '2029c7b3f49ad984510f30c4e19cff3e52c877ff'
       TESTED_MERGE_REF: 'fd4d9373d3d7e4d9eca202abdf075fde8feeb8d0'
-      RELEASE_TAG: 'paperclip-fast-read-adr0295-artifact-10914008713'
+      CHUNK_BYTES: '400000000'
     steps:
       - name: Download exact frozen Actions artifact
         shell: bash
@@ -39,7 +38,7 @@ jobs:
         run: |
           set -euo pipefail
           work="$RUNNER_TEMP/adr0295-frozen-candidate"
-          mkdir -p "$work/files"
+          mkdir -p "$work/files" "$work/chunks"
           printf '%s\n' "$work" > "$RUNNER_TEMP/adr0295-workdir"
 
           curl --fail --location --silent --show-error --retry 0 \
@@ -49,8 +48,7 @@ jobs:
             -o "$work/artifact.zip" \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip"
 
-          actual_zip_sha="$(sha256sum "$work/artifact.zip" | awk '{print $1}')"
-          test "$actual_zip_sha" = "$ARTIFACT_ZIP_SHA256"
+          test "$(sha256sum "$work/artifact.zip" | awk '{print $1}')" = "$ARTIFACT_ZIP_SHA256"
           echo 'ADR0295_ACTIONS_ARTIFACT_ZIP_DIGEST_OK'
 
       - name: Verify exact frozen candidate contents
@@ -100,84 +98,119 @@ jobs:
           rm -f "$work/candidate.tar"
           echo 'ADR0295_FROZEN_CANDIDATE_BYTES_OK'
 
-      - name: Publish exact frozen bytes as GitHub prerelease assets
+      - name: Split and prove byte-exact reassembly
         shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           work="$(cat "$RUNNER_TEMP/adr0295-workdir")"
 
-          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "Release $RELEASE_TAG already exists; verifying without overwrite."
-          else
-            gh release create "$RELEASE_TAG" \
-              --repo "$GITHUB_REPOSITORY" \
-              --target "$CANDIDATE_SOURCE_HEAD" \
-              --prerelease \
-              --title 'ADR 0295 Paperclip Fast Read Frozen Candidate' \
-              --notes 'Distribution-only publication of the exact ADR 0295 frozen candidate. This prerelease does not authorize production deployment or activation.' \
-              "$work/files/$CANDIDATE_FILE" \
-              "$work/files/provenance.json" \
-              "$work/files/SHA256SUMS"
-          fi
+          split -b "$CHUNK_BYTES" -d -a 2 --additional-suffix=.bin \
+            "$work/files/$CANDIDATE_FILE" \
+            "$work/chunks/part-"
 
-          gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" > "$work/release.json"
+          test "$(find "$work/chunks" -maxdepth 1 -type f -name 'part-*.bin' | wc -l)" -eq 5
 
-          CANDIDATE_PATH="$work/files/$CANDIDATE_FILE" \
-          PROVENANCE_PATH="$work/files/provenance.json" \
-          SUMS_PATH="$work/files/SHA256SUMS" \
-          RELEASE_JSON="$work/release.json" node <<'NODE'
+          cat "$work"/chunks/part-*.bin > "$work/reassembled.tar.zst"
+          test "$(sha256sum "$work/reassembled.tar.zst" | awk '{print $1}')" = "$CANDIDATE_SHA256"
+          rm -f "$work/reassembled.tar.zst"
+
+          CHUNKS_DIR="$work/chunks" MANIFEST_PATH="$work/transfer-manifest.json" node <<'NODE'
+          const crypto = require('node:crypto');
           const fs = require('node:fs');
-          const release = JSON.parse(fs.readFileSync(process.env.RELEASE_JSON, 'utf8'));
-          const assets = new Map(release.assets.map((a) => [a.name, a]));
-          const checks = [
-            {
-              name: 'paperclip-v2026.916.1-fast-read-candidate.tar.zst',
-              path: process.env.CANDIDATE_PATH,
-              sha: process.env.CANDIDATE_SHA256,
-            },
-            {
-              name: 'provenance.json',
-              path: process.env.PROVENANCE_PATH,
-              sha: process.env.PROVENANCE_SHA256,
-            },
-            {
-              name: 'SHA256SUMS',
-              path: process.env.SUMS_PATH,
-              sha: null,
-            },
-          ];
-          for (const item of checks) {
-            const asset = assets.get(item.name);
-            if (!asset) throw new Error(`missing release asset: ${item.name}`);
-            const size = fs.statSync(item.path).size;
-            if (asset.size !== size) throw new Error(`release asset size mismatch: ${item.name}`);
-            if (item.sha && asset.digest && asset.digest !== `sha256:${item.sha}`) {
-              throw new Error(`release asset digest mismatch: ${item.name}`);
-            }
-          }
-          if (!release.prerelease) throw new Error('release must remain prerelease');
-          fs.writeFileSync(
-            process.env.RUNNER_TEMP + '/adr0295-candidate-url',
-            assets.get('paperclip-v2026.916.1-fast-read-candidate.tar.zst').browser_download_url + '\n',
-          );
+          const path = require('node:path');
+          const dir = process.env.CHUNKS_DIR;
+          const names = fs.readdirSync(dir).filter((n) => /^part-\d{2}\.bin$/.test(n)).sort();
+          if (names.length !== 5) throw new Error('expected exactly five transfer chunks');
+          const parts = names.map((name, index) => {
+            const file = path.join(dir, name);
+            const bytes = fs.readFileSync(file);
+            return {
+              index,
+              name,
+              sizeBytes: bytes.length,
+              sha256: crypto.createHash('sha256').update(bytes).digest('hex'),
+            };
+          });
+          const manifest = {
+            contract: 'paperclip-adr0295-exact-byte-transfer-v1',
+            sourceActionsArtifactId: Number(process.env.ARTIFACT_ID),
+            sourceActionsArtifactZipSha256: process.env.ARTIFACT_ZIP_SHA256,
+            candidateFile: process.env.CANDIDATE_FILE,
+            candidateSha256: process.env.CANDIDATE_SHA256,
+            chunkBytes: Number(process.env.CHUNK_BYTES),
+            parts,
+            reconstruction: 'concatenate parts in ascending index order; accept only if final SHA-256 equals candidateSha256',
+            productionAuthorization: false,
+          };
+          fs.writeFileSync(process.env.MANIFEST_PATH, JSON.stringify(manifest, null, 2) + '\n');
           NODE
 
-          candidate_url="$(cat "$RUNNER_TEMP/adr0295-candidate-url")"
-          env -u GH_TOKEN curl --fail --silent --show-error --location --head "$candidate_url" >/dev/null
-          echo 'ADR0295_PUBLIC_RELEASE_DISTRIBUTION_OK'
+          echo 'ADR0295_EXACT_BYTE_TRANSFER_SPLIT_OK'
+
+      - name: Upload transfer part 00
+        uses: actions/upload-artifact@v4
+        with:
+          name: paperclip-adr0295-transfer-part-00-${{ github.sha }}
+          path: ${{ runner.temp }}/adr0295-frozen-candidate/chunks/part-00.bin
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+      - name: Upload transfer part 01
+        uses: actions/upload-artifact@v4
+        with:
+          name: paperclip-adr0295-transfer-part-01-${{ github.sha }}
+          path: ${{ runner.temp }}/adr0295-frozen-candidate/chunks/part-01.bin
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+      - name: Upload transfer part 02
+        uses: actions/upload-artifact@v4
+        with:
+          name: paperclip-adr0295-transfer-part-02-${{ github.sha }}
+          path: ${{ runner.temp }}/adr0295-frozen-candidate/chunks/part-02.bin
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+      - name: Upload transfer part 03
+        uses: actions/upload-artifact@v4
+        with:
+          name: paperclip-adr0295-transfer-part-03-${{ github.sha }}
+          path: ${{ runner.temp }}/adr0295-frozen-candidate/chunks/part-03.bin
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+      - name: Upload transfer part 04
+        uses: actions/upload-artifact@v4
+        with:
+          name: paperclip-adr0295-transfer-part-04-${{ github.sha }}
+          path: ${{ runner.temp }}/adr0295-frozen-candidate/chunks/part-04.bin
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+      - name: Upload transfer manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: paperclip-adr0295-transfer-manifest-${{ github.sha }}
+          path: ${{ runner.temp }}/adr0295-frozen-candidate/transfer-manifest.json
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
 
       - name: Summary
         shell: bash
         run: |
           {
-            echo '### ADR 0295 frozen candidate distribution'
+            echo '### ADR 0295 exact-byte transfer staging'
             echo
-            echo "- Artifact ID: \`$ARTIFACT_ID\`"
-            echo "- Actions ZIP SHA-256: \`$ARTIFACT_ZIP_SHA256\`"
+            echo "- Source artifact ID: \`$ARTIFACT_ID\`"
+            echo "- Source ZIP SHA-256: \`$ARTIFACT_ZIP_SHA256\`"
             echo "- Candidate SHA-256: \`$CANDIDATE_SHA256\`"
-            echo "- Docker config digest: \`$DOCKER_CONFIG_DIGEST\`"
-            echo "- Release tag: \`$RELEASE_TAG\`"
+            echo '- Transfer chunks: **5**, 400,000,000 bytes maximum each'
+            echo '- Retention: **1 day**'
             echo '- Production authorization: **NO**'
           } >> "$GITHUB_STEP_SUMMARY"
