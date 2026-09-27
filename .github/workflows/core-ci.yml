@@ -139,6 +139,9 @@ jobs:
         env:
           WANDORA_TYPESAFE_JEV_API_KEY_FILE_HOST: ${{ runner.temp }}/typesafe-jev.synthetic
           WANDORA_FAST_READ_INTENT_SECRET_FILE_HOST: ${{ runner.temp }}/fast-read-intent.synthetic
+          WANDORA_MODEL_API_KEY_FILE_HOST: ${{ runner.temp }}/model-provider.synthetic
+          WANDORA_ORGANIZATION_ADAPTER_SECRET_DIR_HOST: ${{ runner.temp }}/organization-adapter.synthetic
+          WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE_HOST: ${{ runner.temp }}/paperclip-execution-bridge.synthetic
         run: |
           set -euo pipefail
 
@@ -170,4 +173,36 @@ jobs:
           ! grep -Fq 'model-provider.api-key' infra/stacks/core/compose.semantic-fast-read-custody.yaml
           grep -Fq 'WANDORA_MODEL_API_KEY_FILE: /run/secrets/wandora/model-provider.api-key'             infra/stacks/core/compose.agent-runtime-model.yaml
 
+          # The bounded attestation contract must be a final, explicit override
+          # over the inert convergence + custody contracts. It may not acquire
+          # Human Send or Messaging Gateway outbound authority.
+          attestation_effective="$(docker compose \
+            -f infra/stacks/core/compose.yaml \
+            -f infra/stacks/core/compose.agent-runtime-model.yaml \
+            -f infra/stacks/core/compose.human-api.yaml \
+            -f infra/stacks/core/compose.organization-adapter.yaml \
+            -f infra/stacks/core/compose.paperclip-execution-bridge.yaml \
+            -f infra/stacks/core/compose.semantic-fast-read.yaml \
+            -f infra/stacks/core/compose.semantic-fast-read-custody.yaml \
+            -f infra/stacks/core/compose.semantic-fast-read-attestation.yaml \
+            config)"
+
+          grep -q 'WANDORA_FAST_READ_EXECUTION_ENABLED: "true"' <<<"$attestation_effective"
+          grep -q 'WANDORA_SEMANTIC_FAST_READ_ENABLED: "true"' <<<"$attestation_effective"
+          grep -q 'WANDORA_SEMANTIC_SELECTOR_ENABLED: "true"' <<<"$attestation_effective"
+          grep -q 'WANDORA_HUMAN_SEND_PROPOSAL_ENABLED: "false"' <<<"$attestation_effective"
+          grep -q 'WANDORA_HUMAN_API_ENABLED: "true"' <<<"$attestation_effective"
+          grep -q 'WANDORA_ORGANIZATION_ADAPTER_ENABLED: "true"' <<<"$attestation_effective"
+          grep -q 'WANDORA_PAPERCLIP_EXECUTION_BRIDGE_ENABLED: "true"' <<<"$attestation_effective"
+          grep -Fq "source: $WANDORA_TYPESAFE_JEV_API_KEY_FILE_HOST" <<<"$attestation_effective"
+          grep -Fq "source: $WANDORA_FAST_READ_INTENT_SECRET_FILE_HOST" <<<"$attestation_effective"
+          grep -Fq "source: $WANDORA_MODEL_API_KEY_FILE_HOST" <<<"$attestation_effective"
+          ! grep -q 'WANDORA_MESSAGING_GATEWAY_OUTBOUND_URL' <<<"$attestation_effective"
+          ! grep -q 'WANDORA_CORE_OUTBOUND_SECRET_FILE' <<<"$attestation_effective"
+          ! grep -q 'WANDORA_HUMAN_SEND_PROPOSAL_CONNECTION_ID' <<<"$attestation_effective"
+
+          test "$(grep -c 'WANDORA_.*_ENABLED:' infra/stacks/core/compose.semantic-fast-read-attestation.yaml)" -eq 4
+          ! grep -Eq '^[[:space:]]+(volumes|ports|image|build|networks|secrets):' infra/stacks/core/compose.semantic-fast-read-attestation.yaml
+
+          echo 'SEMANTIC_FAST_READ_BOUNDED_ATTESTATION_CONTRACT_V1_OK'
           echo 'SEMANTIC_FAST_READ_PRODUCTION_ACTIVATION_CONTRACT_V1_OK'
