@@ -1,3 +1,17 @@
+## 2026-09-27 — ADR 0307 Immediate Pre-Mutation Attestation + Effect Authorization V1
+
+Status: **BLOCKED / NO MUTATION / NO PRODUCTION EFFECT**.
+
+Fresh reconciliation confirmed PR #369 source head `fc41d10888d67771d9b2b2c6dd465f2c17f725a2` completed **17/17 workflows GREEN**. Production remains inert and healthy: Core `wandora/core:organization-adapter-candidate-2c2142237c9c` / revision `2c2142237...` with Fast Read Execution OFF, Semantic Fast Read OFF and Human Send OFF; Paperclip v2026.916.1 / `d554c478...`; exactly one Organization Adapter 0.5.0 ready/lastError null; Task Drain false/0/0/quiescent; Messaging Gateway outbound OFF.
+
+The attestation found five freshness-sensitive blockers before the first production mutation: no currently exposed authorized metadata-only readback for TypeSafe/`wfri1`/Mistral secret files; exact 28PRO VendaERP Connection/grant authorization for `vendaerp_search_products` not freshly proven; 28PRO Ana currently reports `status=error` / `wandora_execution_failed_422` and issue-less Fast Read admissibility from that state is unresolved; no legitimate authenticated owner/admin Human Fast Read trigger exists in the operator tool context; and the existing protected `ROLLBACK_FREEZE_V1_OK` receipt captures the older pre-0303/0304/0305 baseline rather than the immediately current attestation state.
+
+Capability Authority / Reuse Gate confirms no new Wandora subsystem or Remote-Ops authority widening is justified. JEV second adversarial review returned **block=1.00**. Therefore no effect authorization was issued and no deploy, Compose/secret/gate mutation, Task Drain change, provider/model/VendaERP call, customer work, Human Send, WhatsApp or outbound effect occurred.
+
+Next: **Immediate Pre-Mutation Evidence Gap Closure V1 — READ-ONLY / NO ACTIVATION / NO CUSTOMER EFFECT**. Once all gaps are proven, begin a new fresh Immediate Pre-Mutation Attestation + Effect Authorization for exactly one authenticated owner/admin Human Fast Read.
+
+Canonical detail: `docs/decisions/0307-immediate-pre-mutation-attestation-effect-authorization-v1.md`.
+
 ## 2026-09-27 — ADR 0306 Semantic Fast Read Bounded Attestation Activation Contract V1
 
 Status: **QUALIFIED / 17/17 PR WORKFLOWS GREEN / CODE+CI ONLY / NO PRODUCTION EFFECT**.

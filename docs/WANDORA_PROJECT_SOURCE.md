@@ -1,3 +1,15 @@
+## Latest continuity checkpoint — ADR 0307 Immediate Pre-Mutation Attestation blocked before mutation
+
+ADR 0307 is **BLOCKED / NO MUTATION / NO PRODUCTION EFFECT**. Fresh reconciliation confirmed PR #369 source head `fc41d10888d67771d9b2b2c6dd465f2c17f725a2` at 17/17 GREEN and the ADR 0305/0306 runtime baseline still inert: Core `2c214223...` healthy with Fast Read/Semantic gates OFF and no custody/attestation overlay, Paperclip v2026.916.1 healthy, exactly one OA 0.5.0 ready, Task Drain false/0/0/quiescent, Gateway outbound OFF and Human Send OFF.
+
+The attestation stopped before the first production mutation because freshness-sensitive evidence is incomplete: current metadata-only readback of TypeSafe/`wfri1`/Mistral custody is not exposed through the present operator boundary; the exact 28PRO VendaERP Connection/grant for the single product read is not freshly proven; Paperclip Ana currently reports `status=error` / `wandora_execution_failed_422` and issue-less Fast Read eligibility from that state is unresolved; no legitimate authenticated owner/admin Human Fast Read trigger is available to the operator plane; and the existing `ROLLBACK_FREEZE_V1_OK` receipt freezes an older production baseline rather than the immediately current attestation state.
+
+Capability Authority / Reuse Gate found no missing Wandora subsystem and no justification to widen Remote-Ops authority. A fresh independent JEV review returned **block=1.00**. No deploy, Compose mutation, secret mount, gate activation, provider/model/VendaERP call, customer work, WhatsApp or outbound effect occurred.
+
+Next: **Immediate Pre-Mutation Evidence Gap Closure V1 — READ-ONLY / NO ACTIVATION / NO CUSTOMER EFFECT**. After all five gaps are proven, run a new fresh Immediate Pre-Mutation Attestation + Effect Authorization; do not reuse ADR 0307 as future authorization.
+
+Canonical detail: `docs/decisions/0307-immediate-pre-mutation-attestation-effect-authorization-v1.md`.
+
 ## Latest continuity checkpoint — ADR 0306 bounded attestation activation contract qualified
 
 ADR 0306 is **QUALIFIED / 17/17 PR WORKFLOWS GREEN / CODE+CI ONLY / NO PRODUCTION EFFECT**. It adds only the missing versioned **Semantic Fast Read bounded-attestation effect contract**. The new `compose.semantic-fast-read-attestation.yaml` can later override exactly Fast Read Execution, Semantic Fast Read and Semantic Selector to ON while keeping Human Send OFF, but this file has **not** been applied to production.
