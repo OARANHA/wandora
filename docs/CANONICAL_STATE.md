@@ -1,3 +1,19 @@
+## 2026-09-27 — ADR 0304 Organization Adapter 0.5.0 Production Promotion Execution V1
+
+Status: **COMPLETE / OA 0.5.0 LIVE / PAPERCLIP 916.1 PRESERVED / SEMANTIC+OUTBOUND EFFECTS OFF**.
+
+PR #369 exact execution source head `84bb0dbf78bfb136fbb83c119b764846211cc3b9` completed **17/17 checks SUCCESS**. The qualified Organization Adapter 0.5.0 artifact `10932212876` was hash-verified, staged and promoted through Paperclip's native plugin lifecycle without hard purge or runtime restart.
+
+Production now has exactly one `wandora.organization-adapter-v1@0.5.0`, same plugin id `86e77fe7-c7e4-4bee-afa3-46cdad575d0c`, `ready`, `healthy=true`, `lastError=null`, from immutable package path `/paperclip/operator-packages/wandora-organization-adapter-v1/f4e733613e72e771eb18361dbdbf420c810c5b8bbe31361a64040a2081cc2ae2/package`. All four company-scoped HMAC configs were preserved.
+
+Task Drain remains `false/0/0/quiescent`. Paperclip remains exactly `v2026.916.1@d554c478...`, healthy/restart 0. Core and Messaging Gateway were not recreated; Core remains `humanSendProposal=false`, Gateway remains `outboundEnabled=false`, and current Core composition still excludes Semantic Fast Read/Selector overlays. No Fast Read smoke, VendaERP/provider/model/customer work, Human Send or outbound effect occurred.
+
+A staging permission mismatch was diagnosed rather than bypassed: the copied candidate initially had `0750 uid=999 gid=1003`, making Paperclip's server-side `realpath()` fail. The candidate was normalized to the known-good package convention `uid/gid 1000:1000`, directories `0755`, files `0644`, hashes were reverified, and install then succeeded.
+
+Canonical detail: `docs/decisions/0304-organization-adapter-0-5-0-production-promotion-execution-v1.md`.
+
+Next slice: fresh reconciliation for the remaining **Core compatibility convergence**, still with semantic/outbound gates OFF. No activation is implied.
+
 ## 2026-09-27 — ADR 0302 Remote-Ops Multi-VPS Baseline Production Rollout V1
 
 Status: **COMPLETE / DEPLOYED / VALIDATED / NO TARGET AUTHORITY WIDENING**.
