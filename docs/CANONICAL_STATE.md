@@ -1,3 +1,17 @@
+## 2026-09-27 — ADR 0306 Semantic Fast Read Bounded Attestation Activation Contract V1
+
+Status: **IMPLEMENTED / CI PENDING / CODE+CI ONLY / NO PRODUCTION EFFECT**.
+
+The post-ADR0305 gap is now represented explicitly in repository code: `infra/stacks/core/compose.semantic-fast-read-attestation.yaml` is an attestation-only overlay that turns ON exactly Fast Read Execution, Semantic Fast Read and Semantic Selector while keeping Human Send OFF. It adds no volume, secret, image, build, network or port and must be layered after the existing gates-OFF and custody contracts only inside a future separately authorized attestation window.
+
+The future bounded test remains exactly one owner/admin Human Fast Read request, not WhatsApp. TypeSafe/System One, Mastra/Mistral, Paperclip/Organization Adapter, VendaERP and Messaging Gateway retain their existing provider/operational authority; no Wandora lifecycle, registry, retry engine, secret manager or provider implementation was added.
+
+Production was not changed. Core remains on the ADR 0305 gates-OFF compatibility baseline; TypeSafe/`wfri1` custody mounts are not live; Paperclip remains v2026.916.1; Organization Adapter remains exactly one 0.5.0 ready plugin; Gateway outbound remains OFF; Task Drain remains false/0/0/quiescent.
+
+Exact-head CI is required before ADR 0306 can be marked QUALIFIED. After GREEN, stop and begin a fresh **Immediate Pre-Mutation Attestation + Effect Authorization** before any live attestation.
+
+Canonical detail: `docs/decisions/0306-semantic-fast-read-bounded-attestation-activation-contract-v1.md`.
+
 ## 2026-09-27 — ADR 0305 Core Semantic Fast Read Compatibility Convergence Production Execution V1
 
 Status: **COMPLETE / CORE COMPATIBILITY CONVERGED / SEMANTIC+OUTBOUND EFFECTS OFF**.
