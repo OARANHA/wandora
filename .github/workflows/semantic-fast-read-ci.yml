@@ -112,6 +112,10 @@ jobs:
               'Paperclip adapter registry source missing',
               'Paperclip operator-packages source missing',
               'Organization Adapter package source missing',
+              "PostgreSQL init process complete; ready for start up.",
+              "psql -U postgres -d postgres -Atqc 'SELECT 1'",
+              "disposable PostgreSQL 18.1 final server SQL probe not ready",
+              "-e '/^-- Dumped from database version /d'",
               "SHOW data_directory",
               'live PostgreSQL data_directory does not match Paperclip embedded target',
               '--dbname="$db_url"',
@@ -132,6 +136,7 @@ jobs:
           forbidden = [
               'docker pull', 'target_agent_', 'eval ', 'sudo ',
               'resolveMigrationConnection', 'export PGDATABASE="$db_url"',
+              'pg_isready -U postgres -d postgres',
           ]
           if r'\\n        unset db_url' in source:
               raise SystemExit('adr0299_literal_newline_escape')
@@ -157,6 +162,18 @@ jobs:
           for item in custody_prechecks:
               if source.index(item) > first_write:
                   raise SystemExit(f'adr0299_custody_precheck_after_first_write:{item}')
+
+          marker = source.index('PostgreSQL init process complete; ready for start up.')
+          sql_probe = source.index("psql -U postgres -d postgres -Atqc 'SELECT 1'")
+          createdb = source.index('createdb -U postgres paperclip_restore')
+          if not (marker < sql_probe < createdb):
+              raise SystemExit('adr0299_restore_final_server_gate_order')
+
+          normalize = source[source.index('normalize_schema() {'):source.index('# ---------------------------\n# Fresh pre-effect checks')]
+          if normalize.count("-e '/^-- Dumped from database version /d'") != 1:
+              raise SystemExit('adr0299_schema_version_comment_normalization_mismatch')
+          if '-- Dumped by pg_dump version' in normalize:
+              raise SystemExit('adr0299_pg_dump_version_anchor_must_remain')
 
           if 'mv -- "${tmp_receipt}" "${RECEIPT}"' in source:
               raise SystemExit('adr0299_receipt_overwrite_path')

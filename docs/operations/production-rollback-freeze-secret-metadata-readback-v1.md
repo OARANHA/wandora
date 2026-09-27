@@ -82,7 +82,7 @@ Start a fresh `postgres:18.1` container with:
 - no live Paperclip volume;
 - no customer/provider connectivity.
 
-Restore the custom-format dump, dump schema-only, normalize only generated psql `\\restrict/\\unrestrict` lines, and require byte-equal normalized schema against the live schema dump.
+Restore the custom-format dump, dump schema-only, normalize only generated psql `\\restrict/\\unrestrict` lines plus the volatile `-- Dumped from database version ...` metadata comment, and require byte-equal normalized schema against the live schema dump. Preserve `-- Dumped by pg_dump version ...` and every SQL/schema line. Before `createdb`, wait for the official PostgreSQL entrypoint marker `PostgreSQL init process complete; ready for start up.`, then require a successful final-server `SELECT 1`; do not use `pg_isready` as the advancement gate because the temporary initialization server can satisfy it before the final server is ready.
 
 Any restore/schema mismatch is STOP and the bundle must not be marked qualified.
 

@@ -261,3 +261,35 @@ Pinned Paperclip v2026.916.0 source at `dffc2b3ca1b9e88fa21cb17493083e682dffd1ca
 The helper is also hardened so `master.key`, the adapter registry, `/paperclip/operator-packages`, and the exact Organization Adapter 0.3.1 package path must all exist with the expected basic file/directory type **before** `# First write begins here`. CI pins the upstream provider contract and verifies those guards remain before the first-write boundary.
 
 Status remains **PARTIAL / CLEANED AFTER FAILED WRITE / NO QUALIFIED ROLLBACK BUNDLE YET / NO ACTIVATION / NO CUSTOMER EFFECT** until the corrected exact head is fully GREEN and the helper completes with `ROLLBACK_FREEZE_V1_OK`.
+
+
+### 2026-09-27 — continuation: schema restore verifier narrowed to provider-neutral dump metadata
+
+The next manually authorized ADR 0299 execution crossed the first-write boundary, completed the official Paperclip backup, PostgreSQL 18.1 live dump, master-key copy, adapter registry/package custody copy and disposable restore, then stopped at:
+
+```text
+ROLLBACK_FREEZE_V1_ERROR: normalized schema mismatch after disposable restore
+```
+
+The failed run stamp was `20260927T081332216674083Z`. Fresh reconciliation proved its cleanup completed: no ADR 0299 receipt, no host rollback root, no Paperclip temporary backup directory, no disposable restore container, Task Drain still `false/0/0/quiescent`, and the normal production container set unchanged.
+
+A sequence of schema-only diagnostics then isolated two verifier defects without writing the live database:
+
+1. the official `postgres:18.1` entrypoint exposes a temporary initialization server before stopping it and starting the final server, so `pg_isready` (and even an early `SELECT 1`) can produce a false advancement signal during that transition;
+2. with the real helper startup sequence reproduced and final-server readiness enforced, the restored schema differed from the live schema by exactly one non-schema metadata comment:
+
+```diff
+--- Dumped from database version 18.1
++-- Dumped from database version 18.1 (Debian 18.1-1.pgdg13+2)
+```
+
+The following `-- Dumped by pg_dump version 18.1 (Debian 18.1-1.pgdg13+2)` line matched, and no SQL/object/schema definition differed.
+
+The corrected verifier is therefore intentionally narrow:
+
+- wait for the official entrypoint marker `PostgreSQL init process complete; ready for start up.`;
+- only after that marker, require a successful final-server `SELECT 1` before `createdb`;
+- remove only `-- Dumped from database version ...` from both schema dumps before byte comparison;
+- continue preserving the `-- Dumped by pg_dump version ...` line and every SQL/schema line.
+
+This is verifier hardening, not a broader normalization policy. Status remains **PARTIAL / CLEANED / NO QUALIFIED ROLLBACK BUNDLE YET / NO ACTIVATION / NO CUSTOMER EFFECT** until the corrected exact head is fully GREEN, rematerialized, fresh-prechecked and successfully completes with `ROLLBACK_FREEZE_V1_OK`.

@@ -240,6 +240,7 @@ normalize_schema() {
   sed \
     -e '/^\\restrict /d' \
     -e '/^\\unrestrict /d' \
+    -e '/^-- Dumped from database version /d' \
     "$1" >"$2"
 }
 
@@ -475,14 +476,32 @@ docker run -d --rm \
   "${POSTGRES_CLIENT_IMAGE}" >/dev/null
 restore_created=true
 
-for _ in $(seq 1 60); do
-  if docker exec "${restore_name}" pg_isready -U postgres -d postgres >/dev/null 2>&1; then
+restore_init_complete=false
+for _ in $(seq 1 90); do
+  if docker logs "${restore_name}" 2>&1 |
+    grep -Fq -- 'PostgreSQL init process complete; ready for start up.'; then
+    restore_init_complete=true
     break
   fi
   sleep 1
 done
-docker exec "${restore_name}" pg_isready -U postgres -d postgres >/dev/null 2>&1 ||
-  fail "disposable PostgreSQL 18.1 did not become ready"
+[[ "${restore_init_complete}" == "true" ]] ||
+  fail "disposable PostgreSQL 18.1 init completion marker not observed"
+
+restore_sql_ready=false
+for _ in $(seq 1 90); do
+  restore_probe="$(
+    docker exec "${restore_name}" \
+      psql -U postgres -d postgres -Atqc 'SELECT 1' 2>/dev/null || true
+  )"
+  if [[ "${restore_probe}" == "1" ]]; then
+    restore_sql_ready=true
+    break
+  fi
+  sleep 1
+done
+[[ "${restore_sql_ready}" == "true" ]] ||
+  fail "disposable PostgreSQL 18.1 final server SQL probe not ready"
 
 docker exec "${restore_name}" createdb -U postgres paperclip_restore
 docker cp "${root}/db/paperclip-live.dump" "${restore_name}:/tmp/paperclip-live.dump"
