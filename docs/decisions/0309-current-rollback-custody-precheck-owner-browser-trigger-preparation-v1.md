@@ -2,7 +2,7 @@
 
 Date: 2026-09-27
 
-Status: **PREPARED / CANONICAL V2 STAGED EXACT-BYTES / BASH-N GREEN / ROOT PRECHECK NOT EXECUTED / ROLLBACK NOT CAPTURED / HUMAN FAST READ NOT EXECUTED / NO PRODUCTION EFFECT**
+Status: **PREPARED / CANONICAL V2 STAGED EXACT-BYTES / BASH-N GREEN / ROOT PRECHECK BLOCKED BY CURRENT MANAGED-ADMIN PROGRAM AUTHORITY / ROLLBACK NOT CAPTURED / HUMAN FAST READ NOT EXECUTED / NO PRODUCTION EFFECT**
 
 ## Objective
 
@@ -267,13 +267,64 @@ No helper mode was executed. In particular, no `sudo`, no `--precheck-only`, no 
 
 The former host-byte quarantine is therefore closed **only for file identity and syntax**. This checkpoint does not authorize root execution.
 
+## Root precheck fresh reconciliation — blocked by current managed-admin program authority
+
+A fresh continuation started from repository, CI and runtime state rather than from chat history.
+
+Repository and CI at the decision point:
+
+- `main = 8d6a65f519de5c1c49607314b49968af608c7164`;
+- PR #369 remained open / draft / mergeable at head `ded6f2a443545b52f64d6ec617ffe5531e62230a`;
+- the current head is two documentation-only commits ahead of the fully GREEN staging source head `11cda265e15e75ee03492326a3b9bbf64bfd8d9b`;
+- the canonical helper blob remains `849a05971d5f2526b6e8829d5315b4678f169315`;
+- fresh CI readback reached **16/17 GREEN / 0 failures**, with only `Paperclip Fast Read Production Candidate CI` still in progress; no workflow was rerun.
+
+Fresh host/runtime evidence remained inert and compatible with the V2 guards:
+
+- staged host `git hash-object --no-filters` = `849a05971d5f2526b6e8829d5315b4678f169315`;
+- fresh non-root `bash -n` = exit 0;
+- `production-rollback-freeze-v2.metadata` remained absent from the operator workspace;
+- Paperclip remained `wandora/paperclip:v2026.916.1`, healthy, restart 0, commit `d554c4789ed3930f8a53ac9fdf6503b3187097da`;
+- Core remained `wandora/core:organization-adapter-candidate-2c2142237c9c`, healthy, restart 0, revision `2c2142237c9cccc1f7a90d6ae056cd12cc5f4754`;
+- Core active Compose retained the gates-OFF semantic overlay and excluded custody/attestation overlays;
+- exactly one `wandora.organization-adapter-v1@0.5.0` remained `ready` with `lastError=null`;
+- Task Drain remained `draining=false / activeRuns=0 / pendingWakes=0 / quiescent=true`;
+- Core Fast Read/Semantic execution remained OFF, Human Send remained OFF and Messaging Gateway remained healthy with outbound OFF.
+
+Capability Authority / Reuse Gate again found no missing Wandora subsystem and no justification for a new backup mechanism, secret manager, lifecycle, execution subsystem or Remote-Ops expansion.
+
+The existing `wandora-managed-admin` target does expose semantic capability `host.managed_admin`, but its current root `allowedAdminPrograms` does **not** include `bash` or `sh`. The exact governed preparation:
+
+`bash /opt/wandora/ops-workspace/production-rollback-freeze-v2.sh --precheck-only`
+
+was submitted through `host_admin_prepare` and deterministically rejected before any approval was created:
+
+`CAPABILITY_DENIED: program administrativo "bash" é hard-denied`
+
+Therefore there is no legitimate `adm_...` to confirm for this root precheck under the current authority boundary. No `host_admin_apply` was attempted.
+
+The first adversarial guard review was already non-permissive (`deny=0.52 / confirm=0.46`, low confidence). After the deterministic authority denial, a new independent route review returned:
+
+- `block = 0.97`;
+- confidence `0.96`;
+- `proceed_fast = 0.02`;
+- `deep_review = 0.01`.
+
+Decision:
+
+**BLOCK / NO ROOT PRECHECK / NO AUTHORITY WIDENING / NO PRODUCTION EFFECT.**
+
+Do not resolve this by changing target presets/allowlists, using `target_agent_prepare/apply`, invoking Docker/systemd as a shell substitute, or bypassing the managed-admin policy. The full no-argument rollback capture remains a separate later effect and is not authorized.
+
+The protected rollback-root path was not bypassed merely to enumerate it from an unauthorized boundary. Absence of the V2 safe receipt is proven; absence of an independently created protected V2 root is not upgraded beyond the evidence available through the current authorized boundary.
+
 ## Next
 
-1. Revalidate `production-rollback-freeze-v2.sh` with a real `bash -n` once broker capacity permits, without restarting infrastructure merely for convenience.
-2. Start a fresh decision + second adversarial review for exactly the root `--precheck-only` operation.
-3. Execute it only after explicit human authorization.
-4. If GREEN, separately decide/review/authorize the no-argument V2 rollback capture.
-5. Independently validate the resulting V2 receipt and current runtime.
-6. Only then start a brand-new Immediate Pre-Mutation Attestation + Effect Authorization for exactly one owner/admin Human Fast Read.
+1. Let the current exact-head CI finish naturally; do not rerun merely because one workflow is still in progress.
+2. Keep the root precheck blocked while the only governed root boundary hard-denies the exact executable required by the canonical helper.
+3. Any future change to managed-admin root program authority must be treated as a **separate governance/capability slice**, with its own canonical evidence, decision, second adversarial review and explicit authorization; it must not be smuggled into this precheck slice.
+4. If a canonically authorized existing root boundary later accepts the exact helper without an in-slice authority widening, start again from fresh repository/CI/runtime state, rerun the decision and second adversarial review, prepare the exact one-use admin ticket, and require the user's explicit `APPROVE adm_...` before apply.
+5. Only after a GREEN `ROLLBACK_FREEZE_V2_PRECHECK_OK` may the no-argument V2 rollback capture be considered in a separate slice.
+6. Only after a separately authorized/validated current rollback capture may a brand-new Immediate Pre-Mutation Attestation + Effect Authorization begin.
 
 ADR 0309 must never be reused as production activation authorization.
