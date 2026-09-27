@@ -43,7 +43,7 @@ CORE_STACK="/opt/wandora/stacks/core"
 
 POSTGRES_CLIENT_IMAGE="postgres:18.1"
 
-stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+stamp="$(date -u +%Y%m%dT%H%M%S%NZ)"
 prefix="adr0299-rollback-freeze-v1-${stamp}"
 root="${BACKUP_PARENT}/paperclip-v9161-fast-read-rollback-freeze-v1-${stamp}"
 pc_tmp="/paperclip/instances/default/backups/${prefix}"
@@ -312,8 +312,9 @@ else
   parent_created=true
 fi
 
-install -d -m 0700 -o wandora-admin -g wandora-ops -- "${root}"
+mkdir -m 0700 -- "${root}" || fail "rollback root appeared concurrently"
 root_created=true
+chown wandora-admin:wandora-ops -- "${root}"
 install -d -m 0700 -o wandora-admin -g wandora-ops -- \
   "${root}/db" "${root}/paperclip" "${root}/paperclip/official" \
   "${root}/runtime" "${root}/core-compose"
@@ -538,7 +539,9 @@ tmp_receipt="$(mktemp /opt/wandora/ops-workspace/.production-rollback-freeze-v1.
 
 chown root:ops-mcp -- "${tmp_receipt}"
 chmod 0640 -- "${tmp_receipt}"
-mv -- "${tmp_receipt}" "${RECEIPT}"
+ln -- "${tmp_receipt}" "${RECEIPT}" || fail "receipt appeared concurrently; refusing overwrite"
+rm -f -- "${tmp_receipt}"
+tmp_receipt=""
 qualified=true
 
 printf 'ROLLBACK_FREEZE_V1_OK\n'
