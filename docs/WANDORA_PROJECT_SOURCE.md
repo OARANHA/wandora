@@ -4406,3 +4406,13 @@ Next only after exact PR-head CI GREEN: disposable ADR 0279 Integration Capabili
 Paperclip `v2026.916.1` is production-live from the exact frozen ADR 0295 candidate. OA remains `0.3.1`; Task Drain is quiescent; Core/Gateway are unchanged and healthy; Human Send and Gateway outbound remain OFF. See ADR 0303 and `docs/CANONICAL_STATE.md` for authoritative evidence.
 
 Next slice: **Organization Adapter 0.5.0 Production Promotion**, separately reviewed, with Semantic Fast Read/Selector/Human Send/Gateway outbound/WhatsApp Fast Read still OFF.
+
+## 2026-09-27 — ADR 0304 Organization Adapter 0.5.0 production promotion complete
+
+Organization Adapter `0.5.0` is now production-live on the already-promoted Paperclip `v2026.916.1`. The plugin kept the same durable id, all four company configs were preserved, Task Drain is quiescent, Paperclip/Core/Gateway are healthy and were not restarted by this slice. Human Send and Gateway outbound remain OFF; Semantic Fast Read/Selector are still not active; no VendaERP/provider/model/customer/outbound effect occurred.
+
+Important operational evidence: local-path plugin install is sensitive to filesystem traversal permissions. The candidate copied from the operator workspace initially inherited `0750 uid=999 gid=1003`, while the working Paperclip package layout is `0755 uid=1000 gid=1000`. Paperclip's server-side `realpath()` therefore failed until the candidate tree was normalized to the existing production package ownership/mode and re-hash-verified. Do not treat a root-level `docker exec` read as proof that the Paperclip server process can resolve the same path.
+
+Canonical detail: `docs/decisions/0304-organization-adapter-0-5-0-production-promotion-execution-v1.md`.
+
+Next slice: reconcile repo/CI/runtime fresh, then evaluate the remaining Core compatibility convergence. Keep Semantic Fast Read, Semantic Selector, Human Send, Messaging Gateway outbound and WhatsApp Fast Read OFF until a later separately authorized activation slice.
