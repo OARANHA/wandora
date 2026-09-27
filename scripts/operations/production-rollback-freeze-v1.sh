@@ -245,7 +245,8 @@ health="$(curl -fsS http://127.0.0.1:3100/api/health)"
 drain_proxy="$(curl -fsS -X POST -H 'content-type: application/json' --data '{}' \
   http://127.0.0.1:23751/ops/paperclip/task-drain-status)"
 [[ "$(jq -r '.code' <<<"$drain_proxy")" == "0" ]] || fail "Task Drain proxy failed"
-drain="$(jq -r '.stdout' <<<"$drain_proxy")"
+drain="$(jq -cer '.stdout | fromjson | select(.ok == true and .operation == "task-drain-status") | .result' <<<"$drain_proxy")" ||
+  fail "Task Drain proxy envelope invalid"
 [[ "$(jq -r '.draining' <<<"$drain")" == "false" ]] || fail "Task Drain enabled"
 [[ "$(jq -r '.activeRuns' <<<"$drain")" == "0" ]] || fail "activeRuns non-zero"
 [[ "$(jq -r '.pendingWakes' <<<"$drain")" == "0" ]] || fail "pendingWakes non-zero"
@@ -478,7 +479,8 @@ post_health="$(curl -fsS http://127.0.0.1:3100/api/health)"
 post_drain_proxy="$(curl -fsS -X POST -H 'content-type: application/json' --data '{}' \
   http://127.0.0.1:23751/ops/paperclip/task-drain-status)"
 [[ "$(jq -r '.code' <<<"${post_drain_proxy}")" == "0" ]] || fail "post-freeze Task Drain proxy failed"
-post_drain="$(jq -r '.stdout' <<<"${post_drain_proxy}")"
+post_drain="$(jq -cer '.stdout | fromjson | select(.ok == true and .operation == "task-drain-status") | .result' <<<"${post_drain_proxy}")" ||
+  fail "post-freeze Task Drain proxy envelope invalid"
 [[ "$(jq -r '.draining' <<<"${post_drain}")" == "false" ]] || fail "Task Drain changed during freeze"
 [[ "$(jq -r '.activeRuns' <<<"${post_drain}")" == "0" ]] || fail "activeRuns changed during freeze"
 [[ "$(jq -r '.pendingWakes' <<<"${post_drain}")" == "0" ]] || fail "pendingWakes changed during freeze"
