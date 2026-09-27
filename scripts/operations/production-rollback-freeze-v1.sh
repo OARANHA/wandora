@@ -209,9 +209,7 @@ pg18_live_dump() {
         -ceu '
           db_url="$(cat)"
           test -n "$db_url"
-          export PGDATABASE="$db_url"
-        unset db_url
-        exec pg_dump "$@"
+        exec pg_dump --dbname="$db_url" "$@"
         ' -- "${pg_args[@]}" >/dev/null
     return
   fi
@@ -224,9 +222,7 @@ pg18_live_dump() {
       -ceu '
         db_url="$(cat)"
         test -n "$db_url"
-        export PGDATABASE="$db_url"
-        unset db_url
-        exec pg_dump "$@"
+        exec pg_dump --dbname="$db_url" "$@"
       ' -- "${pg_args[@]}" >"${output}"
 }
 
@@ -236,9 +232,7 @@ pg18_live_scalar() {
     docker run --rm -i       --network "container:${PC}"       --entrypoint /bin/sh       "${POSTGRES_CLIENT_IMAGE}"       -ceu '
         db_url="$(cat)"
         test -n "$db_url"
-        export PGDATABASE="$db_url"
-        unset db_url
-        exec psql --no-psqlrc --tuples-only --no-align --command "$1"
+        exec psql --dbname="$db_url" --no-psqlrc --tuples-only --no-align --command "$1"
       ' -- "$sql"
 }
 
