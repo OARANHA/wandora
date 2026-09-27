@@ -90,6 +90,8 @@ jobs:
               'parent_created=true',
               'rollback root appeared concurrently',
               'receipt appeared concurrently; refusing overwrite',
+              'receipt_published=true',
+              'temporary receipt cleanup failed after publication',
               'unexpected_database_source',
               'database_not_loopback',
               'unexpected_database_port',
