@@ -1,3 +1,19 @@
+## Latest continuity checkpoint — ADR 0310 managed-admin V2 precheck capability governance
+
+ADR 0310 is **QUALIFIED / CODE+CI ONLY / CAPABILITY NOT DEPLOYED / ROOT PRECHECK NOT EXECUTED / NO PRODUCTION EFFECT**.
+
+Fresh reconciliation proved the current Remote-Ops-MCP provider is both repository- and runtime-aligned at `f408ed420dc8e104c6b105e31d8b093a624523e6` / live image `ghcr.io/oaranha/remote-ops-mcp:sha-f408ed4`. Its existing managed-admin boundary already supplies target allowlisting, explicit `host_admin_prepare/apply`, signed one-use tickets and a root broker with `shell=false`; both control plane and broker deliberately hard-deny generic `bash`/`sh`/`sudo`/interpreter authority. No approved-script/root-helper semantic primitive exists.
+
+The Reuse Gate therefore rejected generic shell authority, direct allowlisting of the dual-mode canonical helper, Docker/systemd/sudo substitution, a second approval subsystem, and Wandora-specific rollback logic inside Remote-Ops. The qualified solution is Wandora-owned and narrower: `scripts/operations/managed-admin-production-rollback-freeze-v2-precheck.sh` pins canonical helper Git blob `849a05971d5f2526b6e8829d5315b4678f169315`, accepts no caller arguments, validates root-owned installed identities, runs `bash -n`, and executes only the exact helper bytes with fixed `--precheck-only`.
+
+Final code qualification head `ac53b2d6389e382f55615906e40b4bed9c0fe839` completed **17/17 workflows GREEN**. The Core Candidate Artifact was rerun only after Semantic Fast Read CI and Core CI were GREEN and its post-gates job `108682490694` succeeded. Final adversarial guard review returned `allow=0.74` with confidence `0.66`.
+
+Nothing was deployed. The current live managed-admin target/broker still does **not** allow the dedicated program. No `adm_...`, root precheck, rollback capture, activation, provider/customer or outbound effect occurred.
+
+Next: a separate **Managed-Admin V2 Precheck Capability Deployment V1 — CAPABILITY ONLY / NO ROOT PRECHECK** must install the root-owned exact bytes and add only `wandora-rollback-freeze-v2-precheck` to the two existing administrative program allowlists, with the generic shell hard-deny unchanged. After validating that capability, stop again before root precheck authorization.
+
+Canonical detail: `docs/decisions/0310-managed-admin-root-capability-governance-canonical-rollback-v2-precheck-v1.md`.
+
 ## Latest continuity checkpoint — ADR 0309 canonical V2 staged exact-bytes
 
 The canonical V2 helper has now been staged to `/opt/wandora/ops-workspace/production-rollback-freeze-v2.sh` from exact PR #369 head `11cda265e15e75ee03492326a3b9bbf64bfd8d9b`, after that head completed **17/17 workflows GREEN**.
