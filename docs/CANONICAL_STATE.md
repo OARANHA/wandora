@@ -1,3 +1,13 @@
+## 2026-09-27 — ADR 0300 PostgreSQL 18.1 Recovery Image Acquisition V1
+
+Status: **COMPLETE / QUALIFIED LOCAL RECOVERY IMAGE / NO CUSTOMER EFFECT**.
+
+The exact PR #369 head `2a95053abc96cff5a0de8ff06cfb8279278515f3` was 17/17 GREEN before execution. The operator-local ADR 0300 helper qualified the official PostgreSQL 18.1 image by pinned index digest `sha256:1090bc3a8ccfb0b55f78a494d76f8d603434f7e4553543d6e807bc7bd6bbd17f` for `linux/amd64`, created local tag `postgres:18.1`, and emitted safe receipt `/opt/wandora/ops-workspace/postgres-18-1-recovery-image-v1.metadata`.
+
+Receipt readback is GREEN and ends in `POSTGRES_18_1_RECOVERY_IMAGE_V1_OK`. PostgreSQL runtime version is 18.1. Task Drain remains false/0/0/quiescent. The ADR 0299 receipt remains absent. Product containers Paperclip/Core/Gateway retained identity and health. No activation, provider call, customer work or outbound effect occurred.
+
+ADR 0299 is now unblocked only with respect to its pre-existing PostgreSQL 18.1 recovery-image prerequisite. All other ADR 0299 prechecks remain mandatory and must be freshly reconciled before its first write.
+
 ## 2026-09-26 — ADR 0299 operator-local boundary recheck
 
 Status: **PARTIAL / NO BACKUP CREATED / NO ACTIVATION / NO CUSTOMER EFFECT**.

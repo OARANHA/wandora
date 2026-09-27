@@ -2,7 +2,7 @@
 
 Date: 2026-09-27
 
-Status: **PREPARED / CI REQUIRED / NO PRODUCTION EFFECT**
+Status: **COMPLETE / QUALIFIED LOCAL RECOVERY IMAGE / NO CUSTOMER EFFECT**
 
 ## Context
 
@@ -97,3 +97,69 @@ Require:
 - ADR 0299 receipt remains absent.
 
 Only then may ADR 0299 be rerun from a fresh operator window.
+
+
+## Execution completion — 2026-09-27
+
+The exact helper qualified at PR #369 head `2a95053abc96cff5a0de8ff06cfb8279278515f3` was executed operator-locally as root.
+
+Qualified helper Git blob:
+
+`bdb45f37f6b3efc51069f65c1c09d49cd4e872f0`
+
+Observed result:
+
+```text
+POSTGRES_18_1_RECOVERY_IMAGE_V1_OK
+source_index_digest=sha256:1090bc3a8ccfb0b55f78a494d76f8d603434f7e4553543d6e807bc7bd6bbd17f
+registry_pull_performed=true
+service_restart_performed=false
+customer_effect=false
+outbound_effect=false
+```
+
+Safe receipt:
+
+`/opt/wandora/ops-workspace/postgres-18-1-recovery-image-v1.metadata`
+
+Independent readback through the existing Remote-Ops file boundary proved:
+
+- source ref = exact pinned official `postgres@` digest;
+- source index digest = `sha256:1090bc3a8ccfb0b55f78a494d76f8d603434f7e4553543d6e807bc7bd6bbd17f`;
+- target tag = `postgres:18.1`;
+- platform = `linux/amd64`;
+- runtime version = `postgres (PostgreSQL) 18.1 (Debian 18.1-1.pgdg13+2)`;
+- registry pull performed = true;
+- service restart performed = false;
+- production container recreated = false;
+- customer/provider/outbound effects = false;
+- terminal marker = `POSTGRES_18_1_RECOVERY_IMAGE_V1_OK`.
+
+Fresh Task Drain readback after execution remained:
+
+```text
+draining=false
+activeRuns=0
+pendingWakes=0
+quiescent=true
+```
+
+The ADR 0299 receipt remained absent.
+
+Product-runtime reconciliation showed `wandora-paperclip`, `wandora-core` and `wandora-messaging-gateway` retained their pre-execution container IDs and remained healthy. A newer `remote-ops-mcp` container ID was observed relative to an earlier baseline; that concurrent operational-infrastructure change is not attributed to ADR 0300 and is not treated as evidence that the ADR 0300 helper restarted a product service.
+
+The current MCP Docker boundary does not expose arbitrary image inspection for non-allowlisted images. That guardrail was preserved rather than widened. Image identity/version evidence therefore comes from the exact reviewed root helper receipt plus the operator execution transcript, while product-runtime no-recreate evidence is independently reconciled through allowlisted container reads.
+
+## Result
+
+```text
+ADR 0300 = GREEN / COMPLETE
+postgres:18.1 recovery utility = QUALIFIED / LOCAL
+Task Drain = OFF / 0 / 0 / QUIESCENT
+ADR 0299 receipt = ABSENT
+customer effect = false
+provider call = false
+outbound effect = false
+```
+
+ADR 0299 may now be resumed only from a fresh reconciliation window using its own exact CI-qualified helper and second adversarial review. Do not infer authorization for activation or any customer/provider effect from this prerequisite completion.

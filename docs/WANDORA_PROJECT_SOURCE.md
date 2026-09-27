@@ -1,3 +1,15 @@
+## Reconciled checkpoint — ADR 0300 PostgreSQL 18.1 recovery image acquisition
+
+ADR 0300 is **COMPLETE / QUALIFIED LOCAL RECOVERY IMAGE / NO CUSTOMER EFFECT**.
+
+PR #369 exact head `2a95053abc96cff5a0de8ff06cfb8279278515f3` completed 17/17 workflows GREEN before operator execution. The reviewed root helper pulled only the pinned official PostgreSQL 18.1 multi-platform index digest `sha256:1090bc3a8ccfb0b55f78a494d76f8d603434f7e4553543d6e807bc7bd6bbd17f`, qualified `linux/amd64` with a no-network `postgres --version` check, and created local tag `postgres:18.1`.
+
+Safe receipt `/opt/wandora/ops-workspace/postgres-18-1-recovery-image-v1.metadata` was independently read back and ends in `POSTGRES_18_1_RECOVERY_IMAGE_V1_OK`. It records PostgreSQL 18.1, exact pinned digest, no service restart, no production container recreate by the helper, and no customer/provider/outbound effect.
+
+Fresh Task Drain remains OFF / activeRuns=0 / pendingWakes=0 / quiescent=true. The ADR 0299 receipt remains absent. Paperclip, Core and Messaging Gateway retained their prior product container IDs and remain healthy. A newer Remote-Ops MCP container identity was observed concurrently and is not attributed to ADR 0300.
+
+Next: resume ADR 0299 only after fresh reconciliation and second adversarial review. Do not activate anything.
+
 ## 2026-09-26 — ADR 0299 continuation — exact head GREEN; operator boundary still absent
 
 Status: **PARTIAL / NO BACKUP CREATED / NO ACTIVATION / NO CUSTOMER EFFECT**.
