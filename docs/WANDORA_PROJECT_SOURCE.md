@@ -1,3 +1,19 @@
+## Latest continuity checkpoint — ADR 0309 current rollback/custody precheck + owner-browser trigger prepared
+
+ADR 0309 is **PREPARED / ROOT PRECHECK NOT EXECUTED / ROLLBACK NOT CAPTURED / HUMAN FAST READ NOT EXECUTED / NO PRODUCTION EFFECT**. Its entry head `2b54668dfe85a9495c6a38c9d409f2deeb949a85` completed **17/17 workflows GREEN**.
+
+The already-qualified ADR 0299 rollback mechanism was reused rather than replaced. Operator workspace now contains `production-rollback-freeze-v2.sh`, adapted only to current Paperclip v916.1 / Core `2c214223...` / OA 0.5.0 anchors and the current gates-OFF Semantic Fast Read Compose provenance. V2 adds `--precheck-only`, which stops before the first persistent write and emits metadata-only TypeSafe/`wfri1`/Mistral custody evidence plus safe runtime anchors.
+
+Before that new precheck mode was added, V2 passed `bash -n`. After the edit, the broker returned `BROKER_DENIED: session_capacity`; state-first reconciliation proved the edit exists, all visible sessions are terminal, and infrastructure was not restarted for convenience. A real post-edit syntax validation remains mandatory before any root execution.
+
+The remaining Human-trigger design gap is qualified without credential export: the existing browser session stays in `sessionStorage`; the prepared browser procedure calls `/api/v1/me`, fails closed unless the selected tenant is owner/admin, resolves exactly one active Ana, defaults to preflight-only, and only a separately authorized local switch can submit the single Human Fast Read. The operator plane never receives the Bearer token.
+
+No root precheck, rollback bundle, Core/Compose mutation, secret mount/value read, Task Drain/policy mutation, TypeSafe/Mistral/VendaERP call, customer Fast Read, Human Send, WhatsApp or outbound occurred.
+
+Next: validate V2 with real `bash -n`; then use a fresh decision + second adversarial review + explicit human authorization for exactly `--precheck-only`. A full V2 rollback capture requires a separate later authorization. Only after both remaining freshness gates are GREEN may a new Immediate Pre-Mutation Attestation + Effect Authorization begin.
+
+Canonical detail: `docs/decisions/0309-current-rollback-custody-precheck-owner-browser-trigger-preparation-v1.md`.
+
 ## Latest continuity checkpoint — ADR 0308 evidence gap closure partial
 
 ADR 0308 is **PARTIAL / 2 OF 5 GAPS CLOSED / PRODUCTION ATTESTATION STILL BLOCKED / READ-ONLY / NO PRODUCTION EFFECT**. PR #369 entry head `0274534722f23cb5a7df472885726d2a03f7aac5` completed 17/17 GREEN.

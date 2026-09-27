@@ -1,3 +1,23 @@
+## 2026-09-27 — ADR 0309 Current Rollback/Custody Precheck + Owner Browser Trigger Preparation V1
+
+Status: **PREPARED / ENTRY HEAD 17/17 GREEN / ROOT PRECHECK NOT EXECUTED / ROLLBACK NOT CAPTURED / HUMAN FAST READ NOT EXECUTED / NO PRODUCTION EFFECT**.
+
+PR #369 entry head `2b54668dfe85a9495c6a38c9d409f2deeb949a85` completed 17/17 workflows successfully.
+
+The production gap-closure path now reuses the ADR 0299 helper rather than creating a new backup/secret subsystem. A byte-identical copy was made at `/opt/wandora/ops-workspace/production-rollback-freeze-v2.sh` before narrowly updating current v916.1/Core-2c214/OA-0.5.0 anchors, current Paperclip three-file Compose provenance and current Core gates-OFF semantic overlay guards.
+
+V2 adds a separate `--precheck-only` mode that executes the same fresh pre-write checks, emits only safe runtime/custody metadata and exits on `ROLLBACK_FREEZE_V2_PRECHECK_OK` before the first persistent rollback write. The full no-argument mode remains separately effectful and would create the protected current rollback freeze ending in `ROLLBACK_FREEZE_V2_OK`.
+
+Before the precheck mode was added the helper passed `bash -n`. After the edit, the execution broker hit `BROKER_DENIED: session_capacity`; the edit was independently read back, visible sessions were terminal, and no broker restart/authority widening was used. Post-edit syntax validation therefore remains a hard prerequisite to root execution.
+
+The legitimate Human Fast Read boundary is now prepared as browser-owned: use the normal logged-in Wandora browser session, verify `/api/v1/me` owner/admin membership, require exactly one active Ana, default to preflight only, and keep all access/refresh token material inside the browser. Core still revalidates identity and owner/admin authorization server-side. No operator impersonation is permitted.
+
+No root/precheck/backup/activation/provider/customer/outbound effect occurred. Production attestation remains blocked.
+
+Next: real V2 syntax validation; fresh reviewed + explicitly authorized root `--precheck-only`; then a separate reviewed + authorized full current rollback capture; only afterward a brand-new Immediate Pre-Mutation Attestation + Effect Authorization.
+
+Canonical detail: `docs/decisions/0309-current-rollback-custody-precheck-owner-browser-trigger-preparation-v1.md`.
+
 ## 2026-09-27 — ADR 0308 Immediate Pre-Mutation Evidence Gap Closure V1
 
 Status: **PARTIAL / 2 OF 5 GAPS CLOSED / PRODUCTION ATTESTATION STILL BLOCKED / READ-ONLY / NO PRODUCTION EFFECT**.
