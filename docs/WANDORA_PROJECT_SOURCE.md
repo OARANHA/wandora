@@ -4399,3 +4399,10 @@ The retained provider patch is `integrations/paperclip/patches/v2026.916.1-host-
 Production remains unchanged: Paperclip `v2026.916.0` healthy; Task Drain OFF; activeRuns=0; pendingWakes=0; quiescent=true; zero provider/model/customer/outbound effect.
 
 Next only after exact PR-head CI GREEN: disposable ADR 0279 Integration Capability Plane attestation against an isolated Paperclip candidate/lab. Production activation remains a separate slice.
+
+
+### 2026-09-27 — ADR 0303 Paperclip 916.1 promotion complete
+
+Paperclip `v2026.916.1` is production-live from the exact frozen ADR 0295 candidate. OA remains `0.3.1`; Task Drain is quiescent; Core/Gateway are unchanged and healthy; Human Send and Gateway outbound remain OFF. See ADR 0303 and `docs/CANONICAL_STATE.md` for authoritative evidence.
+
+Next slice: **Organization Adapter 0.5.0 Production Promotion**, separately reviewed, with Semantic Fast Read/Selector/Human Send/Gateway outbound/WhatsApp Fast Read still OFF.
