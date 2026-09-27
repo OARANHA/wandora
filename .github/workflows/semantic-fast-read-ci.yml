@@ -104,6 +104,9 @@ jobs:
               'docker pull', 'target_agent_', 'eval ', 'sudo ',
               'resolveMigrationConnection', '--dbname="$db_url"',
           ]
+          if r'\\n        unset db_url' in source:
+              raise SystemExit('adr0299_literal_newline_escape')
+
           present = [item for item in forbidden if item in source]
           if present:
               raise SystemExit(f"adr0299_helper_forbidden:{present}")
