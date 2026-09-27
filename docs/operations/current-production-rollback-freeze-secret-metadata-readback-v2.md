@@ -1,8 +1,30 @@
 # Current Production Rollback Freeze + Secret Metadata Readback V2 — Preparation
 
-Status: **CANONICAL V2 STAGED EXACT-BYTES / BASH-N GREEN / NOT AUTHORIZED FOR ROOT EXECUTION**
+Status: **CANONICAL V2 STAGED / MANAGED-ADMIN PRECHECK ENTRYPOINT CODE-QUALIFIED / CAPABILITY NOT DEPLOYED / ROOT EXECUTION NOT AUTHORIZED**
 
 This runbook adapts the already-qualified ADR 0299 mechanism to the current Semantic Fast Read baseline. It does not introduce a second backup or secret subsystem.
+
+## Managed-admin precheck capability status
+
+ADR 0310 qualified the narrow execution contract but **did not deploy it**.
+
+Future governed program:
+
+`/usr/local/sbin/wandora-rollback-freeze-v2-precheck`
+
+Future root-owned exact helper copy:
+
+`/usr/local/libexec/wandora/production-rollback-freeze-v2.sh`
+
+Required helper Git blob:
+
+`849a05971d5f2526b6e8829d5315b4678f169315`
+
+The dedicated program accepts no caller arguments, validates both installed files as root-owned/non-symlink, rechecks the helper Git blob and syntax, and executes only `--precheck-only`. It deliberately does not expose the helper's no-argument persistent rollback-capture mode.
+
+The current live Remote-Ops target/broker still does **not** allow this program. A separate capability-deployment slice must install the exact bytes and add only `wandora-rollback-freeze-v2-precheck` to the existing target and broker administrative-program allowlists. Generic shell/interpreter hard-denies remain unchanged.
+
+Even after that deployment is validated, do not execute the precheck until a new fresh decision, second adversarial review, `host_admin_prepare`, new `adm_...`, explicit human `APPROVE adm_...`, and `host_admin_apply`.
 
 ## Exact-byte host staging checkpoint
 
