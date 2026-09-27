@@ -24,13 +24,13 @@ Operator workspace helper:
 
 ## Canonical-source correction
 
-The current VPS workspace copy must not be executed merely because it is named V2. Retained preparation evidence showed stale V1 terminal markers before the later precheck edit, while shared broker `session_capacity` prevents an independent current tail/syntax readback without an unjustified restart.
+The VPS workspace copy must never be trusted merely because it is named V2. Retained preparation evidence had shown stale V1 terminal markers before the later precheck edit, so the former workspace copy was quarantined.
 
-Canonical source is now:
+Canonical source remains:
 
 `scripts/operations/production-rollback-freeze-v2.sh`
 
-Only exact bytes from a GREEN repository head may later replace the quarantined workspace copy. Staging/replacement is a separate effect requiring its own decision/review/authorization. After staging, independently validate identity and syntax before root execution.
+That quarantine has now been closed only by the exact-byte staging checkpoint above: the current host file matches canonical Git blob `849a05971d5f2526b6e8829d5315b4678f169315` and its non-root syntax check is GREEN. This proves source identity/syntax only; root execution remains a separate effect requiring its own fresh decision/review/explicit authorization.
 
 ## Current pinned anchors
 
@@ -55,13 +55,13 @@ Any mismatch is STOP.
 
 ## Mandatory validation before any root call
 
-Do not execute either mode until the current prepared file passes:
+The staged canonical file has now passed:
 
 `bash -n /opt/wandora/ops-workspace/production-rollback-freeze-v2.sh`
 
-The post-`--precheck-only` syntax check is currently outstanding because the execution broker returned `BROKER_DENIED: session_capacity`.
+with exit 0, after exact Git-blob identity was independently proven.
 
-Do not restart or widen Remote-Ops merely to satisfy this validation.
+This closes the syntax prerequisite only. Before either root mode, perform the separately required fresh decision/review/authorization for that exact effect. Do not restart or widen Remote-Ops for convenience.
 
 ## Read-only precheck mode
 

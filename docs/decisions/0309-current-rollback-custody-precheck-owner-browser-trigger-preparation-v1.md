@@ -127,13 +127,13 @@ After the `--precheck-only` block was added, the execution broker refused furthe
 
 `BROKER_DENIED: session_capacity`.
 
-State-first reconciliation proved the edit itself did commit to the workspace. All retained sessions shown by the broker were already terminal, and attempted termination correctly returned `sent=false`. The broker was **not** restarted merely to obtain another syntax check.
+At that preparation checkpoint, state-first reconciliation proved the edit itself did commit to the workspace. All retained sessions shown by the broker were already terminal, and attempted termination correctly returned `sent=false`. The broker was **not** restarted merely to obtain another syntax check.
 
-Direct readback confirms the new argument parser and pre-write exit block are present and bounded. However, a real post-edit `bash -n` remains mandatory before any root execution.
+That historical validation gap is now closed by the later exact-byte staging checkpoint below: the host file matches canonical Git blob `849a05971d5f2526b6e8829d5315b4678f169315` and a fresh non-root `bash -n` exits 0.
 
-Therefore:
+Therefore the current state is:
 
-**HELPER PREPARED / POST-EDIT SYNTAX VALIDATION STILL REQUIRED / DO NOT EXECUTE ROOT YET.**
+**HELPER STAGED EXACT-BYTES / POST-STAGING SYNTAX GREEN / ROOT EXECUTION STILL NOT AUTHORIZED.**
 
 ## Decision C — legitimate owner/admin trigger remains browser-owned
 
