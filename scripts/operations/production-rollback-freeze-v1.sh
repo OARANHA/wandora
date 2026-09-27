@@ -42,6 +42,9 @@ PAPERCLIP_BRIDGE_WRAPPER="/opt/wandora/stacks/paperclip/paperclip-bridge-secret-
 CORE_STACK="/opt/wandora/stacks/core"
 
 POSTGRES_CLIENT_IMAGE="postgres:18.1"
+POSTGRES_CLIENT_INDEX_DIGEST="sha256:1090bc3a8ccfb0b55f78a494d76f8d603434f7e4553543d6e807bc7bd6bbd17f"
+POSTGRES_CLIENT_REPO_DIGEST="postgres@${POSTGRES_CLIENT_INDEX_DIGEST}"
+POSTGRES_CLIENT_PLATFORM="linux/amd64"
 
 stamp="$(date -u +%Y%m%dT%H%M%S%NZ)"
 prefix="adr0299-rollback-freeze-v1-${stamp}"
@@ -279,6 +282,12 @@ docker image inspect "${POSTGRES_CLIENT_IMAGE}" >/dev/null 2>&1 ||
   fail "local postgres:18.1 image absent; do not pull in this slice"
 postgres18_image_id="$(docker image inspect --format '{{.Id}}' "${POSTGRES_CLIENT_IMAGE}")"
 [[ -n "${postgres18_image_id}" ]] || fail "postgres:18.1 image identity unavailable"
+postgres18_platform="$(docker image inspect --format '{{.Os}}/{{.Architecture}}' "${POSTGRES_CLIENT_IMAGE}")"
+[[ "${postgres18_platform}" == "${POSTGRES_CLIENT_PLATFORM}" ]] ||
+  fail "local postgres:18.1 platform mismatch"
+postgres18_repo_digests="$(docker image inspect --format '{{json .RepoDigests}}' "${POSTGRES_CLIENT_IMAGE}")"
+jq -e --arg expected "${POSTGRES_CLIENT_REPO_DIGEST}" 'index($expected) != null' <<<"${postgres18_repo_digests}" >/dev/null ||
+  fail "local postgres:18.1 digest mismatch; rerun the separate image qualification slice"
 
 paperclip_compose="$(container_field "${PC}" '{{index .Config.Labels "com.docker.compose.project.config_files"}}')"
 expected_paperclip_compose="${PAPERCLIP_COMPOSE},${PAPERCLIP_BRIDGE_COMPOSE}"
