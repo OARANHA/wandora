@@ -25,6 +25,9 @@ on:
       - 'docs/operations/production-rollback-freeze-secret-metadata-readback-v1.md'
       - 'docs/decisions/0277-semantic-fast-read-intent-disposable-paperclip-attestation-v1.md'
       - 'docs/CANONICAL_STATE.md'
+      - 'docs/decisions/0295-semantic-fast-read-production-convergence-artifact-activation-contract-v1.md'
+      - 'docs/operations/paperclip-v2026-916-1-fast-read-production-promotion-v1.md'
+      - 'infra/stacks/paperclip/compose.semantic-fast-read-candidate.yaml'
       - 'docs/WANDORA_PROJECT_SOURCE.md'
   push:
     branches: [main]
@@ -51,6 +54,9 @@ on:
       - 'docs/operations/production-rollback-freeze-secret-metadata-readback-v1.md'
       - 'docs/decisions/0277-semantic-fast-read-intent-disposable-paperclip-attestation-v1.md'
       - 'docs/CANONICAL_STATE.md'
+      - 'docs/decisions/0295-semantic-fast-read-production-convergence-artifact-activation-contract-v1.md'
+      - 'docs/operations/paperclip-v2026-916-1-fast-read-production-promotion-v1.md'
+      - 'infra/stacks/paperclip/compose.semantic-fast-read-candidate.yaml'
       - 'docs/WANDORA_PROJECT_SOURCE.md'
   workflow_dispatch:
 
@@ -70,6 +76,53 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+
+
+      - name: Paperclip v916.1 promotion Compose qualification
+        shell: bash
+        env:
+          BETTER_AUTH_SECRET: ci-only-placeholder
+          PAPERCLIP_AGENT_JWT_SECRET: ci-only-placeholder
+          PAPERCLIP_TOOL_ACTION_SIGNING_SECRET: ci-only-placeholder
+          WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE_HOST: /tmp/ci-paperclip-execution-bridge-hmac
+        run: |
+          set -euo pipefail
+          base=infra/stacks/paperclip/compose.yaml
+          bridge=infra/stacks/paperclip/compose.paperclip-execution-bridge.yaml
+          candidate=infra/stacks/paperclip/compose.semantic-fast-read-candidate.yaml
+
+          docker compose -f "$base" -f "$bridge" config --format json > /tmp/paperclip-baseline.json
+          docker compose -f "$base" -f "$bridge" -f "$candidate" config --format json > /tmp/paperclip-candidate.json
+
+          python3 - <<'PY'
+          import copy
+          import json
+          from pathlib import Path
+
+          baseline = json.loads(Path("/tmp/paperclip-baseline.json").read_text())
+          candidate = json.loads(Path("/tmp/paperclip-candidate.json").read_text())
+
+          expected = copy.deepcopy(baseline)
+          service = expected["services"]["paperclip"]
+          service.pop("build", None)
+          service["image"] = "wandora/paperclip:v2026.916.1"
+          service["pull_policy"] = "never"
+
+          actual = candidate["services"]["paperclip"]
+          if "build" in actual:
+              raise SystemExit("paperclip_candidate_build_not_reset")
+          if actual.get("image") != "wandora/paperclip:v2026.916.1":
+              raise SystemExit(f"paperclip_candidate_image_mismatch:{actual.get('image')}")
+          if actual.get("pull_policy") != "never":
+              raise SystemExit(f"paperclip_candidate_pull_policy_mismatch:{actual.get('pull_policy')}")
+
+          if candidate != expected:
+              keys = sorted(set(candidate) | set(expected))
+              changed = [key for key in keys if candidate.get(key) != expected.get(key)]
+              raise SystemExit(f"paperclip_candidate_unexpected_render_delta:{changed}")
+
+          print("WANDORA_PAPERCLIP_V9161_PROMOTION_COMPOSE_OK")
+          PY
 
       - name: ADR 0299 operator helper static qualification
         shell: bash
