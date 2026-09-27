@@ -1,3 +1,15 @@
+## Latest continuity checkpoint — ADR 0309 canonical V2 remediation
+
+ADR 0309 now treats the current VPS `production-rollback-freeze-v2.sh` as **QUARANTINED / DO NOT EXECUTE**. Retained preparation evidence proved stale V1 terminal markers before the later precheck edit, while shared broker `session_capacity` currently prevents independent tail/`bash -n` validation without an unjustified restart.
+
+The canonical V2 source is repository-backed at `scripts/operations/production-rollback-freeze-v2.sh`, derived from the qualified V1 pattern with current Paperclip v916.1/Core `2c214223...`/OA0.5.0 anchors, `--precheck-only`, exact image/revision/Compose guards and V2-only root/receipt/error/precheck/terminal markers. Semantic Fast Read CI validates syntax/static guardrails and exact Paperclip v916.1 embedded-PostgreSQL contracts.
+
+No VPS write, broker restart, root precheck, rollback capture, secret metadata read, activation, provider/customer/outbound effect occurred in this remediation.
+
+Next: wait for exact-head CI. After GREEN, separately review/authorize exact-byte staging to replace the quarantined workspace copy. Root `--precheck-only` remains another separate authorization.
+
+Canonical detail: `docs/decisions/0309-current-rollback-custody-precheck-owner-browser-trigger-preparation-v1.md`.
+
 ## Latest continuity checkpoint — ADR 0309 current rollback/custody precheck + owner-browser trigger prepared
 
 ADR 0309 is **PREPARED / ROOT PRECHECK NOT EXECUTED / ROLLBACK NOT CAPTURED / HUMAN FAST READ NOT EXECUTED / NO PRODUCTION EFFECT**. Its entry head `2b54668dfe85a9495c6a38c9d409f2deeb949a85` completed **17/17 workflows GREEN**.

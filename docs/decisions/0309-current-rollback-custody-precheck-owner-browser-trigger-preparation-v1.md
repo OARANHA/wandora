@@ -2,7 +2,7 @@
 
 Date: 2026-09-27
 
-Status: **PREPARED / ENTRY HEAD 17/17 GREEN / ROOT PRECHECK NOT EXECUTED / ROLLBACK NOT CAPTURED / HUMAN FAST READ NOT EXECUTED / NO PRODUCTION EFFECT**
+Status: **PREPARED / CANONICAL REPO V2 ADDED / WORKSPACE COPY QUARANTINED / ROOT PRECHECK NOT EXECUTED / ROLLBACK NOT CAPTURED / HUMAN FAST READ NOT EXECUTED / NO PRODUCTION EFFECT**
 
 ## Objective
 
@@ -207,6 +207,25 @@ The three ADR 0308 gaps are now separated into executable boundaries:
 3. **current rollback capture** — prepared through the same ADR 0299 mechanism, but requires a separate later decision/review/authorization after the precheck is GREEN.
 
 Production attestation remains blocked.
+
+## Post-preparation adversarial reconciliation — workspace helper quarantined
+
+A state-first audit found a material reproducibility gap in the workspace-only V2:
+
+- a retained pre-`--precheck-only` Git diff proves that staged V2 still contained two `ROLLBACK_FREEZE_V1_OK` terminal markers at that point;
+- the later edit is proven to have added `--precheck-only`, but the shared execution broker now rejects new process sessions with `BROKER_DENIED: session_capacity` on both operator targets;
+- governed `read_file` returns the first 400 lines only, so the current tail cannot be independently re-read;
+- infrastructure was not restarted merely to recover convenience.
+
+Therefore the current VPS copy is **QUARANTINED / DO NOT EXECUTE**. Documentation intent is not proof of the current tail bytes.
+
+The remediation is repository-only. `scripts/operations/production-rollback-freeze-v2.sh` becomes the canonical V2 source, deterministically derived from the qualified V1 pattern with current anchors, `--precheck-only`, V2-only receipt/root/error/terminal markers, exact image/revision guards and CI validation against pinned Paperclip v2026.916.1 source.
+
+A future host-staging effect must replace the quarantined workspace copy with the exact CI-qualified repository bytes and independently prove identity before any root call.
+
+Final narrowed adversarial review for this repository-only remediation returned `proceed_fast=0.66 / deep_review=0.29 / split_task=0.04 / block=0.01`.
+
+No VPS write or production effect is included in this remediation.
 
 ## Next
 

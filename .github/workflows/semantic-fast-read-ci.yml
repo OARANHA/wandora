@@ -18,11 +18,14 @@ on:
       - 'integrations/paperclip/plugins/organization-adapter-v1/**'
       - '.github/workflows/semantic-fast-read-ci.yml'
       - 'scripts/operations/production-rollback-freeze-v1.sh'
+      - 'scripts/operations/production-rollback-freeze-v2.sh'
       - 'scripts/operations/prepare-postgres-18-1-recovery-image-v1.sh'
       - 'docs/decisions/0299-production-rollback-freeze-secret-metadata-readback-v1.md'
+      - 'docs/decisions/0309-current-rollback-custody-precheck-owner-browser-trigger-preparation-v1.md'
       - 'docs/decisions/0300-postgresql-18-1-recovery-image-acquisition-v1.md'
       - 'docs/operations/postgresql-18-1-recovery-image-acquisition-v1.md'
       - 'docs/operations/production-rollback-freeze-secret-metadata-readback-v1.md'
+      - 'docs/operations/current-production-rollback-freeze-secret-metadata-readback-v2.md'
       - 'docs/decisions/0277-semantic-fast-read-intent-disposable-paperclip-attestation-v1.md'
       - 'docs/CANONICAL_STATE.md'
       - 'docs/decisions/0295-semantic-fast-read-production-convergence-artifact-activation-contract-v1.md'
@@ -47,11 +50,14 @@ on:
       - 'integrations/paperclip/plugins/organization-adapter-v1/**'
       - '.github/workflows/semantic-fast-read-ci.yml'
       - 'scripts/operations/production-rollback-freeze-v1.sh'
+      - 'scripts/operations/production-rollback-freeze-v2.sh'
       - 'scripts/operations/prepare-postgres-18-1-recovery-image-v1.sh'
       - 'docs/decisions/0299-production-rollback-freeze-secret-metadata-readback-v1.md'
+      - 'docs/decisions/0309-current-rollback-custody-precheck-owner-browser-trigger-preparation-v1.md'
       - 'docs/decisions/0300-postgresql-18-1-recovery-image-acquisition-v1.md'
       - 'docs/operations/postgresql-18-1-recovery-image-acquisition-v1.md'
       - 'docs/operations/production-rollback-freeze-secret-metadata-readback-v1.md'
+      - 'docs/operations/current-production-rollback-freeze-secret-metadata-readback-v2.md'
       - 'docs/decisions/0277-semantic-fast-read-intent-disposable-paperclip-attestation-v1.md'
       - 'docs/CANONICAL_STATE.md'
       - 'docs/decisions/0295-semantic-fast-read-production-convergence-artifact-activation-contract-v1.md'
@@ -239,6 +245,69 @@ jobs:
           print('WANDORA_ADR0299_OPERATOR_HELPER_STATIC_OK')
           PY
 
+      - name: ADR 0309 canonical V2 rollback helper static qualification
+        shell: bash
+        run: |
+          set -euo pipefail
+          helper=scripts/operations/production-rollback-freeze-v2.sh
+          bash -n "$helper"
+          python3 - "$helper" <<'PY'
+          from pathlib import Path
+          import sys
+
+          source = Path(sys.argv[1]).read_text()
+          required = [
+              '[[ "$1" == "--precheck-only" ]]',
+              'PC_IMAGE="wandora/paperclip:v2026.916.1"',
+              'PC_IMAGE_ID="sha256:7b72d43e87d54fcb9aa48b665150e062750c0cacb270e069f94297d58caa91e5"',
+              'PC_COMMIT="d554c4789ed3930f8a53ac9fdf6503b3187097da"',
+              'CORE_IMAGE="wandora/core:organization-adapter-candidate-2c2142237c9c"',
+              'CORE_IMAGE_ID="sha256:d3ed5494c03c0720419387befc54f6f6cb124e5407fc619150ecf3dde03dfed7"',
+              'CORE_REVISION="2c2142237c9cccc1f7a90d6ae056cd12cc5f4754"',
+              'OA_VERSION="0.5.0"',
+              'f4e733613e72e771eb18361dbdbf420c810c5b8bbe31361a64040a2081cc2ae2/package',
+              'compose.semantic-fast-read-candidate.yaml',
+              'semantic-fast-read gates-OFF overlay missing',
+              'agent runtime model overlay missing',
+              'semantic-fast-read custody overlay is live',
+              'semantic-fast-read attestation overlay is live',
+              'production-rollback-freeze-v2.metadata',
+              'ROLLBACK_FREEZE_V2_PRECHECK_OK',
+              'ROLLBACK_FREEZE_V2_OK',
+              'pg18_live_dump probe /dev/null',
+              '--network none',
+              '--exit-on-error',
+              "! -path './paperclip/master.key'",
+              'post_drain_proxy=',
+              'target.mode !== "embedded-postgres"',
+              'target.port !== 54329',
+              'SHOW data_directory',
+          ]
+          missing = [item for item in required if item not in source]
+          if missing:
+              raise SystemExit(f"adr0309_v2_helper_missing:{missing}")
+
+          forbidden = [
+              'docker pull', 'target_agent_', 'eval ', 'sudo ',
+              'resolveMigrationConnection', 'export PGDATABASE="$db_url"',
+              'pg_isready -U postgres -d postgres',
+              'ROLLBACK_FREEZE_V1_OK',
+              'production-rollback-freeze-v1.metadata',
+          ]
+          present = [item for item in forbidden if item in source]
+          if present:
+              raise SystemExit(f"adr0309_v2_helper_forbidden:{present}")
+
+          precheck = source.index('ROLLBACK_FREEZE_V2_PRECHECK_OK')
+          first_write = source.index('# First write begins here')
+          if precheck > first_write:
+              raise SystemExit('adr0309_precheck_after_first_write')
+          if source.count('ROLLBACK_FREEZE_V2_OK') != 2:
+              raise SystemExit('adr0309_v2_terminal_marker_count')
+
+          print("WANDORA_ADR0309_CANONICAL_V2_HELPER_STATIC_OK")
+          PY
+
       - name: ADR 0300 PostgreSQL 18.1 recovery image helper static qualification
         shell: bash
         run: |
@@ -337,6 +406,40 @@ jobs:
               raise SystemExit("adr0299_helper_data_dir_guard_missing")
 
           print("WANDORA_ADR0299_EMBEDDED_POSTGRES_CONTRACT_OK")
+          PY
+
+      - name: ADR 0309 canonical V2 pinned Paperclip v916.1 contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          upstream = Path(".paperclip/cli/src/commands/db-backup.ts").read_text()
+          backup_lib = Path(".paperclip/packages/db/src/backup-lib.ts").read_text()
+          adapter_store = Path(".paperclip/server/src/services/adapter-plugin-store.ts").read_text()
+          home_paths = Path(".paperclip/packages/shared/src/home-paths.ts").read_text()
+          helper = Path("scripts/operations/production-rollback-freeze-v2.sh").read_text()
+
+          upstream_contract = 'postgres://paperclip:paperclip@127.0.0.1:${port}/paperclip'
+          helper_contract = 'postgres://paperclip:paperclip@127.0.0.1:${target.port}/paperclip'
+
+          if upstream_contract not in upstream:
+              raise SystemExit("adr0309_upstream_embedded_connection_contract_missing")
+          if 'source: `embedded-postgres@${port}`' not in upstream:
+              raise SystemExit("adr0309_upstream_embedded_source_contract_missing")
+          if backup_lib.count('--dbname=${opts.connectionString}') < 2:
+              raise SystemExit("adr0309_upstream_dbname_connection_contract_missing")
+          if 'path.join(paperclipDir, "adapter-plugins.json")' not in adapter_store:
+              raise SystemExit("adr0309_upstream_adapter_registry_contract_missing")
+          if 'resolvePaperclipHomeDir()' not in adapter_store:
+              raise SystemExit("adr0309_upstream_adapter_home_resolver_missing")
+          if 'process.env.PAPERCLIP_HOME?.trim()' not in home_paths:
+              raise SystemExit("adr0309_upstream_paperclip_home_env_contract_missing")
+          if helper_contract not in helper:
+              raise SystemExit("adr0309_helper_embedded_connection_contract_missing")
+
+          print("WANDORA_ADR0309_CANONICAL_V2_PAPERCLIP_CONTRACT_OK")
           PY
 
       - name: Compose qualified Paperclip Fast Read provider deltas

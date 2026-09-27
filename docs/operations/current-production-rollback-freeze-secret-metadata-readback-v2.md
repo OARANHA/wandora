@@ -1,12 +1,22 @@
 # Current Production Rollback Freeze + Secret Metadata Readback V2 — Preparation
 
-Status: **PREPARED / NOT AUTHORIZED FOR ROOT EXECUTION**
+Status: **CANONICAL REPO V2 PREPARED / CURRENT WORKSPACE COPY QUARANTINED / NOT AUTHORIZED FOR ROOT EXECUTION**
 
 This runbook adapts the already-qualified ADR 0299 mechanism to the current Semantic Fast Read baseline. It does not introduce a second backup or secret subsystem.
 
 Operator workspace helper:
 
 `/opt/wandora/ops-workspace/production-rollback-freeze-v2.sh`
+
+## Canonical-source correction
+
+The current VPS workspace copy must not be executed merely because it is named V2. Retained preparation evidence showed stale V1 terminal markers before the later precheck edit, while shared broker `session_capacity` prevents an independent current tail/syntax readback without an unjustified restart.
+
+Canonical source is now:
+
+`scripts/operations/production-rollback-freeze-v2.sh`
+
+Only exact bytes from a GREEN repository head may later replace the quarantined workspace copy. Staging/replacement is a separate effect requiring its own decision/review/authorization. After staging, independently validate identity and syntax before root execution.
 
 ## Current pinned anchors
 

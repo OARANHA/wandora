@@ -1,3 +1,17 @@
+## 2026-09-27 — ADR 0309 canonical V2 repository remediation
+
+Status: **CANONICAL REPO V2 ADDED / WORKSPACE COPY QUARANTINED / NO ROOT EXECUTION / NO PRODUCTION EFFECT**.
+
+A retained preparation diff proved stale V1 terminal markers in the workspace-only V2 before the later `--precheck-only` edit. Shared execution-broker `session_capacity` blocks both operator targets from independently reading the current tail or running post-edit `bash -n` without restarting infrastructure; that restart was refused.
+
+The safe remediation is repository-only. `scripts/operations/production-rollback-freeze-v2.sh` is the canonical V2 source and Semantic Fast Read CI validates its syntax, V2-only markers/current exact runtime guards, precheck-before-first-write placement and pinned Paperclip v2026.916.1 embedded-PostgreSQL contract. The current VPS copy is quarantined until a later authorized exact-byte staging operation.
+
+Final narrowed adversarial review: `proceed_fast=0.66 / deep_review=0.29 / split_task=0.04 / block=0.01`.
+
+No VPS write, backup, root precheck, secret read, container/Compose/gate mutation, provider/model/VendaERP call, customer Fast Read or outbound occurred.
+
+Next: exact-head CI -> separately reviewed/authorized canonical-byte staging -> separately reviewed/authorized root `--precheck-only`.
+
 ## 2026-09-27 — ADR 0309 Current Rollback/Custody Precheck + Owner Browser Trigger Preparation V1
 
 Status: **PREPARED / ENTRY HEAD 17/17 GREEN / ROOT PRECHECK NOT EXECUTED / ROLLBACK NOT CAPTURED / HUMAN FAST READ NOT EXECUTED / NO PRODUCTION EFFECT**.
