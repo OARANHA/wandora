@@ -19,6 +19,8 @@ on:
       - '.github/workflows/semantic-fast-read-ci.yml'
       - 'scripts/operations/production-rollback-freeze-v1.sh'
       - 'scripts/operations/production-rollback-freeze-v2.sh'
+      - 'scripts/operations/managed-admin-production-rollback-freeze-v2-precheck.sh'
+      - 'scripts/operations/verify-managed-admin-production-rollback-freeze-v2-precheck.mjs'
       - 'scripts/operations/prepare-postgres-18-1-recovery-image-v1.sh'
       - 'docs/decisions/0299-production-rollback-freeze-secret-metadata-readback-v1.md'
       - 'docs/decisions/0309-current-rollback-custody-precheck-owner-browser-trigger-preparation-v1.md'
@@ -51,6 +53,8 @@ on:
       - '.github/workflows/semantic-fast-read-ci.yml'
       - 'scripts/operations/production-rollback-freeze-v1.sh'
       - 'scripts/operations/production-rollback-freeze-v2.sh'
+      - 'scripts/operations/managed-admin-production-rollback-freeze-v2-precheck.sh'
+      - 'scripts/operations/verify-managed-admin-production-rollback-freeze-v2-precheck.mjs'
       - 'scripts/operations/prepare-postgres-18-1-recovery-image-v1.sh'
       - 'docs/decisions/0299-production-rollback-freeze-secret-metadata-readback-v1.md'
       - 'docs/decisions/0309-current-rollback-custody-precheck-owner-browser-trigger-preparation-v1.md'
@@ -307,6 +311,23 @@ jobs:
 
           print("WANDORA_ADR0309_CANONICAL_V2_HELPER_STATIC_OK")
           PY
+
+      - name: ADR 0310 managed-admin V2 precheck entrypoint qualification
+        shell: bash
+        run: |
+          set -euo pipefail
+          entrypoint=scripts/operations/managed-admin-production-rollback-freeze-v2-precheck.sh
+          bash -n "$entrypoint"
+          node scripts/operations/verify-managed-admin-production-rollback-freeze-v2-precheck.mjs
+
+          set +e
+          rejection="$(bash "$entrypoint" unexpected 2>&1)"
+          status=$?
+          set -e
+          test "$status" -ne 0
+          grep -Fq 'caller arguments are forbidden' <<<"$rejection"
+
+          printf 'WANDORA_ADR0310_MANAGED_ADMIN_PRECHECK_CI_OK\n'
 
       - name: ADR 0300 PostgreSQL 18.1 recovery image helper static qualification
         shell: bash
