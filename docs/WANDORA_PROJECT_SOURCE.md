@@ -1,3 +1,13 @@
+## 2026-09-26 — ADR 0299 continuation — Task Drain recovered; operator custody still blocked
+
+Status: **PARTIAL / OPERATOR-LOCAL EXECUTION REQUIRED / NO BACKUP CREATED / NO ACTIVATION / NO CUSTOMER EFFECT**.
+
+Fresh recheck at PR #369 pre-documentation head `4f461ae3bcdffa7ef20b47c3f8be60b9c835f068` found **17/17 workflows GREEN** and confirmed the frozen ADR 0295 Paperclip artifact `10914008713` remains available/non-expired. Task Drain transport recovered and now reads `OFF / activeRuns=0 / pendingWakes=0 / quiescent=true`. Core, Paperclip, Organization Adapter and Messaging Gateway remain on the same rollback anchors; Human Send/outbound remain OFF and the Semantic/Fast Read overlays remain absent.
+
+The remaining blocker is strictly operator custody: both exposed production targets deny the protected backup root `/home/wandora-admin/backups`, while Core secret metadata remains behind `SECRET_PATH_DENIED`. No authorized capability exposed to this session can create the protected rollback bundle and metadata-only secret receipt without violating ADR 0299's runbook. A fresh JEV adversarial review returned `block=0.99`.
+
+No backup, deploy, promotion, restart, provider/model/ERP call, customer work, outbound or Task Drain mutation occurred. Continue ADR 0299 through the existing operator-local runbook; do not rerun ADR 0298 until `ROLLBACK_FREEZE_V1_OK` is independently validated.
+
 ## 2026-09-26 — ADR 0299 Production Rollback Freeze + Secret Metadata Readback V1 — partial operator checkpoint
 
 Status: **PARTIAL / OPERATOR-LOCAL EXECUTION REQUIRED / NO BACKUP CREATED / NO ACTIVATION / NO CUSTOMER EFFECT**.
