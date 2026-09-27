@@ -205,3 +205,27 @@ The correction keeps the slice fail-closed:
 A dedicated CI gate now reads the pinned production Paperclip `db-backup.ts` from commit `dffc2b3...` and requires the helper's embedded connection contract to match it.
 
 Status remains **PARTIAL / NO QUALIFIED ROLLBACK BUNDLE YET / NO ACTIVATION / NO CUSTOMER EFFECT** until the corrected exact head is CI GREEN and the operator-local helper completes with `ROLLBACK_FREEZE_V1_OK`.
+
+
+### 2026-09-27 — continuation: PostgreSQL client connection transport corrected before first write
+
+A manually authorized execution of the exact helper blob `f207f7cf69a66fc7cc7a86acdd5eb0ae86da4833` stopped during the PostgreSQL 18.1 pre-effect scalar read with:
+
+```text
+psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+```
+
+Fresh reconciliation after the failure proved:
+
+- `production-rollback-freeze-v1.metadata` is still absent;
+- Task Drain remains `draining=false`, `activeRuns=0`, `pendingWakes=0`, `quiescent=true`;
+- the normal production container set remains unchanged;
+- the failure occurred before `# First write begins here`, so no qualified rollback bundle or persistent ADR 0299 write was created.
+
+The defect was in the helper's PostgreSQL client transport, not in the Paperclip embedded database. The helper placed the connection URI in `PGDATABASE`; the observed client instead fell back to the default local Unix socket/5432 path.
+
+Pinned Paperclip v2026.916.0 source at `dffc2b3ca1b9e88fa21cb17493083e682dffd1ca` proves its backup/restore library invokes both `pg_dump` and `psql` using `--dbname=<connectionString>`. PostgreSQL 18 documents `--dbname` as accepting a connection string. The corrected helper therefore preserves the exact already-qualified provider-local URI but passes it through `--dbname` inside the disposable PostgreSQL client process. The URI is never printed or persisted.
+
+The Semantic Fast Read CI gate is updated simultaneously so it no longer enforces the failed `PGDATABASE` assumption and instead verifies both the helper's three `--dbname="$db_url"` uses and the pinned Paperclip `backup-lib.ts` connection mechanism.
+
+Status remains **PARTIAL / NO QUALIFIED ROLLBACK BUNDLE YET / NO ACTIVATION / NO CUSTOMER EFFECT**. Do not rerun the helper until this corrected exact PR head is CI GREEN, rematerialized to the operator workspace, hash-verified, and a fresh adversarial review passes.
