@@ -1,3 +1,15 @@
+## Latest continuity checkpoint — ADR 0305 Core compatibility convergence executed
+
+PR #369 production Core compatibility convergence is complete. The exact post-gates Core candidate `wandora/core:organization-adapter-candidate-2c2142237c9c` / manifest `sha256:d3ed5494c03c0720419387befc54f6f6cb124e5407fc619150ecf3dde03dfed7` is live and healthy. Active Core Compose provenance now includes canonical `compose.semantic-fast-read.yaml` and excludes `compose.semantic-fast-read-custody.yaml`.
+
+Effect state remains intentionally inert: Fast Read execution OFF, Semantic Fast Read OFF, Semantic Selector OFF, Human Send OFF, Messaging Gateway outbound OFF. No TypeSafe/Fast Read intent custody mount is active. Mastra supervised runtime and Organization Adapter remain enabled.
+
+Paperclip remains v2026.916.1; Organization Adapter remains exactly one 0.5.0 plugin, ready, same plugin id; Task Drain remains false/0/0/quiescent. No provider/model/VendaERP/WhatsApp/customer/outbound effect occurred.
+
+Do **not** repeat ADR 0303, ADR 0304 or ADR 0305 promotions merely because documentation commits move the PR head. Any next Semantic Fast Read activation slice must start with fresh repository/CI/runtime reconciliation and its own decision + second adversarial review + explicit effect authorization.
+
+Canonical execution detail: `docs/decisions/0305-core-semantic-fast-read-compatibility-convergence-production-execution-v1.md`.
+
 ## 2026-09-27 — ADR 0302 Remote-Ops Multi-VPS Baseline Production Rollout V1
 
 Status: **COMPLETE / DEPLOYED / VALIDATED / NO TARGET AUTHORITY WIDENING**.
