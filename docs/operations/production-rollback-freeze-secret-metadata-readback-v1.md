@@ -126,3 +126,16 @@ A new agent/chat must:
 6. then start a **new Immediate Pre-Mutation Attestation + Effect Authorization** from fresh state.
 
 No production promotion is authorized by this runbook.
+
+
+## Qualified completion — 2026-09-27
+
+This runbook completed successfully against PR #369 head `c85d27b06afed51a157d48dfd26ffc8b23508767` with helper blob `631a540c97ab320932fe0a4d1683e0a31049c2f4`.
+
+Qualified receipt: `/opt/wandora/ops-workspace/production-rollback-freeze-v1.metadata`.
+
+Qualified rollback root: `/home/wandora-admin/backups/paperclip-v9161-fast-read-rollback-freeze-v1-20260927T085922932680245Z`.
+
+Independent validation confirmed the official backup, disposable restore, schema equality, Task Drain quiescence and no activation/provider/customer/outbound effect. Protected recovery artifacts were physically rechecked through a root read-only metadata path without reading secret contents.
+
+**Do not rerun this helper merely to reconfirm success.** Treat the receipt and canonical checkpoint as the recovery-freeze evidence for this slice. Any future mutation must begin from a new **Immediate Pre-Mutation Attestation + Effect Authorization** with fresh runtime evidence.

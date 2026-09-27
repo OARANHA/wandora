@@ -293,3 +293,36 @@ The corrected verifier is therefore intentionally narrow:
 - continue preserving the `-- Dumped by pg_dump version ...` line and every SQL/schema line.
 
 This is verifier hardening, not a broader normalization policy. Status remains **PARTIAL / CLEANED / NO QUALIFIED ROLLBACK BUNDLE YET / NO ACTIVATION / NO CUSTOMER EFFECT** until the corrected exact head is fully GREEN, rematerialized, fresh-prechecked and successfully completes with `ROLLBACK_FREEZE_V1_OK`.
+
+
+### 2026-09-27 — completion: qualified production rollback freeze
+
+ADR 0299 is now **COMPLETE / QUALIFIED ROLLBACK BUNDLE / NO ACTIVATION / NO PROVIDER CALL / NO CUSTOMER EFFECT / NO OUTBOUND EFFECT**.
+
+The exact PR #369 head `c85d27b06afed51a157d48dfd26ffc8b23508767` was **17/17 GREEN** before execution. The exact helper blob `631a540c97ab320932fe0a4d1683e0a31049c2f4` was rematerialized to the operator workspace and hash-verified before the manually authorized root execution.
+
+The successful run stamp was `20260927T085922932680245Z`. The helper emitted `ROLLBACK_FREEZE_V1_OK` and safe receipt `/opt/wandora/ops-workspace/production-rollback-freeze-v1.metadata`.
+
+Independent receipt validation proved:
+
+- official Paperclip backup created and gzip-valid;
+- disposable PostgreSQL 18.1 restore succeeded;
+- normalized restored schema equals the live schema;
+- exactly one Organization Adapter 0.3.1 remained ready;
+- Task Drain remained quiescent;
+- secret evidence remained metadata-only;
+- `activation_performed=false`;
+- `provider_call_performed=false`;
+- `customer_effect=false`;
+- `outbound_effect=false`.
+
+Fresh post-run reconciliation proved the normal seven-container production set remained healthy and no disposable restore container remained. A root read-only physical verification of the protected rollback root and explicitly named non-secret recovery artifacts completed successfully without reading secret contents. The qualified rollback root is:
+
+`/home/wandora-admin/backups/paperclip-v9161-fast-read-rollback-freeze-v1-20260927T085922932680245Z`
+
+This ADR authorizes **no promotion or activation**. The next production slice is a fresh **Immediate Pre-Mutation Attestation + Effect Authorization**.
+
+Two follow-up governance slices are registered separately for later work and do not change this ADR's completion state:
+
+- **Remote-Ops Multi-VPS Capability Baseline V1** — reusable governed onboarding/capability presets for Wandora, MedicsPro/28server and future VPS targets, without defaulting to generic root shell authority;
+- **Operator Chat Minimal Disclosure Policy V1** — chat as concise human control plane, while detailed raw evidence remains in repository/runtime unless explicitly requested or required for a human decision.

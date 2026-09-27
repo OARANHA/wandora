@@ -1,3 +1,23 @@
+## 2026-09-27 — ADR 0299 Production Rollback Freeze + Secret Metadata Readback V1
+
+Status: **COMPLETE / QUALIFIED ROLLBACK BUNDLE / NO ACTIVATION / NO PROVIDER CALL / NO CUSTOMER EFFECT / NO OUTBOUND EFFECT**.
+
+PR #369 head `c85d27b06afed51a157d48dfd26ffc8b23508767` was 17/17 GREEN before execution. Exact helper blob `631a540c97ab320932fe0a4d1683e0a31049c2f4` was rematerialized and hash-verified. The manually authorized run completed with `ROLLBACK_FREEZE_V1_OK`.
+
+Safe receipt: `/opt/wandora/ops-workspace/production-rollback-freeze-v1.metadata`.
+
+Qualified rollback root: `/home/wandora-admin/backups/paperclip-v9161-fast-read-rollback-freeze-v1-20260927T085922932680245Z`.
+
+Independent readback proved official backup creation/gzip validity, PostgreSQL 18.1 disposable restore, schema equality, OA 0.3.1 ready, Task Drain quiescent, secret metadata-only evidence and all four effect flags false. Fresh post-run reconciliation preserved the normal seven-container healthy production set. A root read-only physical check of the protected bundle and selected non-secret recovery artifacts completed successfully without reading secret contents.
+
+ADR 0299 is closed. **Do not rerun it merely to reconfirm success.** No production promotion is authorized by this checkpoint.
+
+Next production slice: **Immediate Pre-Mutation Attestation + Effect Authorization** from fresh state.
+
+Follow-up governance backlog, not part of the production mutation path:
+- **Remote-Ops Multi-VPS Capability Baseline V1** — reusable governed presets/capability validation for Wandora, MedicsPro/28server and future VPS targets;
+- **Operator Chat Minimal Disclosure Policy V1** — concise chat summaries by default; detailed raw operational evidence remains in repository/runtime unless explicitly requested or required for a human decision.
+
 ## 2026-09-27 — ADR 0300 PostgreSQL 18.1 Recovery Image Acquisition V1
 
 Status: **COMPLETE / QUALIFIED LOCAL RECOVERY IMAGE / NO CUSTOMER EFFECT**.
