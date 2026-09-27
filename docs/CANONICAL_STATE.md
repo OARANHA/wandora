@@ -1,3 +1,17 @@
+## 2026-09-27 — ADR 0301 Remote-Ops Multi-VPS Capability Baseline + Minimal Disclosure V1
+
+Status: **QUALIFIED / REMOTE-OPS PR #40 CI GREEN / CODE ONLY / NOT DEPLOYED / NO PRODUCTION EFFECT**.
+
+Wandora PR #369 was reconciled at exact pre-checkpoint head `21c83b0ecc15eb5c616266eb7ff96029c310a6e7` with **17/17 workflows GREEN**. Remote-Ops-MCP `main` was `f2b94f3efe70082d42b45425ddfd568e6a0c72cd`; Remote-Ops PR #40 is open/draft/mergeable at exact head `4a2861aa261363a57bfa6797a6bce0284a2a6826`, and CI run `36310743917` completed GREEN.
+
+The central multi-VPS authority remains the existing Remote-Ops control plane hosted in Wandora infrastructure. Wandora, MedicsPro/28server and future VPSs are independent Agent Mesh devices/targets with independent authority profiles; no target inherits Wandora application/container authority by default. Existing Target Registry, prepare/apply approvals, brokers/proxies and presets are reused; no second registry, lifecycle, secret store or orchestration subsystem was created.
+
+Operator chat is now qualified as summary-first in code: `target_status` defaults to a bounded capability summary while exact allowlists remain explicitly available through `detail=full`. This changes presentation only; authorization, redaction, audit and runtime evidence boundaries remain intact.
+
+No Remote-Ops deploy, pairing, live target mutation, permission widening, VPS mutation, provider call, customer work or outbound effect occurred. Remote-Ops merge/deploy remains a separate future reviewed effect. Semantic Fast Read production activation remains separately gated by a fresh Immediate Pre-Mutation Attestation + Effect Authorization.
+
+Canonical detail: `docs/decisions/0301-remote-ops-multi-vps-capability-baseline-minimal-disclosure-v1.md`.
+
 ## 2026-09-27 — ADR 0299 Production Rollback Freeze + Secret Metadata Readback V1
 
 Status: **COMPLETE / QUALIFIED ROLLBACK BUNDLE / NO ACTIVATION / NO PROVIDER CALL / NO CUSTOMER EFFECT / NO OUTBOUND EFFECT**.
