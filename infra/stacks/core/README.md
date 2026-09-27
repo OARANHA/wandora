@@ -188,3 +188,26 @@ Fresh metadata-only verification recorded all three as regular files owned by `w
 **Custody completion is not activation.** The running Core still does not include `compose.semantic-fast-read.yaml` or `compose.semantic-fast-read-custody.yaml`; the two new files are not mounted into the live container and all Semantic/Fast Read/Human Send effects remain off.
 
 Do not use this checkpoint as pre-mutation authorization. The next production slice must freshly capture rollback readiness, Task Drain/quiescence, exact live component state and exact candidate-artifact identity immediately adjacent to the proposed mutation.
+
+## Bounded Semantic Fast Read attestation contract — ADR 0306
+
+`compose.semantic-fast-read-attestation.yaml` is an **attestation-only effect override**. It is not part of the normal live composition and it is not customer-rollout configuration.
+
+When a future fresh production decision explicitly authorizes one bounded Human Fast Read attestation, the operator must start from the exact live Core Compose provenance and append, in order:
+
+1. the existing `compose.semantic-fast-read.yaml` gates-OFF contract;
+2. `compose.semantic-fast-read-custody.yaml` for the already-qualified TypeSafe/System One and `wfri1` read-only mounts;
+3. `compose.semantic-fast-read-attestation.yaml` **last**.
+
+The final overlay changes only:
+
+```text
+WANDORA_FAST_READ_EXECUTION_ENABLED=true
+WANDORA_SEMANTIC_FAST_READ_ENABLED=true
+WANDORA_SEMANTIC_SELECTOR_ENABLED=true
+WANDORA_HUMAN_SEND_PROPOSAL_ENABLED=false
+```
+
+It adds no secret, volume, image, build, network or port. Mistral continues to use the existing platform model credential from `compose.agent-runtime-model.yaml`. Messaging Gateway outbound and WhatsApp are outside this overlay and must remain OFF/absent.
+
+Do not apply this overlay from historical evidence. The future execution requires fresh rollback/runtime/custody/Task Drain reconciliation, an exact bounded effect decision and a second adversarial review immediately before mutation. The full future window/close contract is in `docs/operations/semantic-fast-read-bounded-attestation-v1.md`.
