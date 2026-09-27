@@ -1,6 +1,6 @@
 # Paperclip v2026.916.1 Fast Read Production Promotion V1
 
-Status: **QUALIFIED PROCEDURE / NOT YET EXECUTED**
+Status: **EXECUTED / GREEN on 2026-09-27 — Paperclip v2026.916.1 live; OA remains 0.3.1; semantic/outbound effects OFF**
 
 ## Scope
 
@@ -186,3 +186,29 @@ Successful Paperclip 916.1 promotion does **not** authorize:
 - customer work.
 
 Those remain later separately reviewed effects.
+
+
+## Execution result — ADR 0303
+
+The procedure completed GREEN on 2026-09-27.
+
+Production result:
+
+- Paperclip: `wandora/paperclip:v2026.916.1`;
+- OCI manifest/image ID: `sha256:7b72d43e87d54fcb9aa48b665150e062750c0cacb270e069f94297d58caa91e5`;
+- source commit: `d554c4789ed3930f8a53ac9fdf6503b3187097da`;
+- health: `status=ok` / Docker healthy;
+- restart count: 0;
+- startup: existing embedded PostgreSQL reused, `Migrations already applied`;
+- startup orphan-run reap: 0;
+- Organization Adapter: exactly one `0.3.1`, ready, no error;
+- Task Drain: `false/0/0/quiescent`;
+- Core/Gateway: unchanged, healthy, restart 0;
+- Human Send: OFF;
+- Gateway outbound: OFF.
+
+The stop checkpoint was reconciled before recreate. No blind retry occurred.
+
+No Organization Adapter 0.5.0 promotion, Core promotion, Semantic Fast Read activation, Semantic Selector activation, provider call, VendaERP call, customer work or outbound effect was part of this execution.
+
+See ADR 0303 for the complete production evidence and next-slice boundary.
