@@ -130,27 +130,24 @@ paperclip_db_url() {
     --import /app/server/node_modules/tsx/dist/loader.mjs \
     --input-type=module \
     -e '
-      import fs from "node:fs";
-      import path from "node:path";
       import { resolveDatabaseTarget } from "/app/packages/db/src/runtime-config.ts";
-      import { resolveMigrationConnection } from "/app/packages/db/src/migration-runtime.ts";
 
       const target = resolveDatabaseTarget();
-      if (target.mode !== "embedded-postgres") {
-        throw new Error("unexpected_non_embedded_database_mode");
-      }
-      const pidFile = path.resolve(target.dataDir, "postmaster.pid");
-      if (!fs.existsSync(pidFile)) throw new Error("embedded_postmaster_pid_missing");
-      const lines = fs.readFileSync(pidFile, "utf8").split("\n");
-      const pid = Number(lines[0]?.trim());
-      const port = Number(lines[3]?.trim());
-      if (!Number.isInteger(pid) || pid <= 0) throw new Error("embedded_postmaster_pid_invalid");
-      process.kill(pid, 0);
-      if (!Number.isInteger(port) || port !== target.port) throw new Error("embedded_postmaster_port_mismatch");
+      if (target.mode !== "postgres") throw new Error("unexpected_database_mode");
+      if (target.source !== "DATABASE_URL") throw new Error("unexpected_database_source");
+      if (!target.connectionString) throw new Error("database_connection_unavailable");
 
-      const connection = await resolveMigrationConnection();
-      if (!connection?.connectionString) throw new Error("database_connection_unavailable");
-      process.stdout.write(connection.connectionString);
+      const url = new URL(target.connectionString);
+      if (url.protocol !== "postgres:" && url.protocol !== "postgresql:") {
+        throw new Error("unexpected_database_protocol");
+      }
+      if (url.hostname !== "127.0.0.1" && url.hostname !== "localhost") {
+        throw new Error("database_not_loopback");
+      }
+      if ((url.port || "5432") !== "54329") throw new Error("unexpected_database_port");
+      if (url.pathname !== "/paperclip") throw new Error("unexpected_database_name");
+
+      process.stdout.write(target.connectionString);
     '
 }
 
@@ -181,7 +178,7 @@ pg18_live_dump() {
         -ceu '
           db_url="$(cat)"
           test -n "$db_url"
-          exec pg_dump --dbname="$db_url" "$@"
+          export PGDATABASE="$db_url"\n        unset db_url\n        exec pg_dump "$@"
         ' -- "${pg_args[@]}" >/dev/null
     return
   fi
@@ -194,7 +191,7 @@ pg18_live_dump() {
       -ceu '
         db_url="$(cat)"
         test -n "$db_url"
-        exec pg_dump --dbname="$db_url" "$@"
+        export PGDATABASE="$db_url"\n        unset db_url\n        exec pg_dump "$@"
       ' -- "${pg_args[@]}" >"${output}"
 }
 
@@ -204,7 +201,7 @@ pg18_live_scalar() {
     docker run --rm -i       --network "container:${PC}"       --entrypoint /bin/sh       "${POSTGRES_CLIENT_IMAGE}"       -ceu '
         db_url="$(cat)"
         test -n "$db_url"
-        exec psql --dbname="$db_url" --no-psqlrc --tuples-only --no-align --command "$1"
+        export PGDATABASE="$db_url"\n        unset db_url\n        exec psql --no-psqlrc --tuples-only --no-align --command "$1"
       ' -- "$sql"
 }
 
