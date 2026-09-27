@@ -5922,3 +5922,22 @@ Archive inspection proves the OCI chain `manifest sha256:7b72d43e87d54fcb9aa48b6
 For this frozen candidate, identity validation is the exact archive checksums plus the internal manifest->config digest relation; post-load `.Id` equality alone is not a portable verifier across image-store semantics.
 
 Live Paperclip remained `wandora/paperclip:v2026.916.0`, healthy/restart 0, and Task Drain remained OFF/0/0/quiescent during reconciliation. No promotion was authorized by this checkpoint. Next: fresh Immediate Pre-Mutation Attestation + adversarial review for exactly one compatibility effect — Paperclip 916.1 promotion with Organization Adapter 0.3.1 and all semantic/Human Send/Gateway outbound/WhatsApp effects OFF.
+
+
+## 2026-09-27 — ADR 0303 Paperclip v2026.916.1 production promotion
+
+Status: **GREEN / PAPERCLIP 916.1 LIVE / OA 0.3.1 PRESERVED / SEMANTIC+OUTBOUND EFFECTS OFF**.
+
+Exact execution head before mutation was `a31ba64598d20e0f0162bb515b706e2178577e7e` with **17/17 GREEN**. The qualified Compose render emitted `WANDORA_PAPERCLIP_V9161_PROMOTION_COMPOSE_OK`.
+
+Production Paperclip is now `wandora/paperclip:v2026.916.1`, container `b58e2f20580ac89a32d8a3fb6670e759f94b668f3c49e799337176f029da2512`, OCI manifest/image ID `sha256:7b72d43e87d54fcb9aa48b665150e062750c0cacb270e069f94297d58caa91e5`, healthy/restart 0, API `status=ok`, source commit `d554c4789ed3930f8a53ac9fdf6503b3187097da`.
+
+The frozen ADR 0295 candidate identity remains: raw archive SHA-256 `a91f96feff4dbb8161d182e350fc3e2ca1d0d6784cfa9179fdaa20a200e7ce97`, compressed SHA-256 `69c962c79375446060af12fc9240385987790f4d11a3528cbb7a6ad745e98269`, manifest `7b72d43e...` -> config `e05f1604...`.
+
+Startup reused the existing embedded PostgreSQL cluster and reported `Migrations already applied`. Startup orphaned heartbeat-run reap was 0. Exactly one `wandora.organization-adapter-v1@0.3.1` remains ready with `lastError=null`. Task Drain remains `draining=false, activeRuns=0, pendingWakes=0, quiescent=true`.
+
+Core and Messaging Gateway were not recreated and remain healthy/restart 0 on their prior images. Core last startup still reports `humanSendProposal=false`; Gateway last startup still reports `outboundEnabled=false`. No Semantic Fast Read/Selector activation, Organization Adapter 0.5.0 promotion, Core promotion, provider/model/VendaERP call, customer work or outbound effect occurred.
+
+ADR 0299 qualified rollback receipt/root remain the recovery anchor. No next mutation is authorized by implication.
+
+Next separately reviewed slice: **Organization Adapter 0.5.0 Production Promotion — compatibility convergence only / all semantic and outbound gates OFF**.
