@@ -1,3 +1,21 @@
+## 2026-09-27 — ADR 0308 Immediate Pre-Mutation Evidence Gap Closure V1
+
+Status: **PARTIAL / 2 OF 5 GAPS CLOSED / PRODUCTION ATTESTATION STILL BLOCKED / READ-ONLY / NO PRODUCTION EFFECT**.
+
+PR #369 entry head `0274534722f23cb5a7df472885726d2a03f7aac5` completed **17/17 workflows GREEN**. Production remains healthy/inert on Core `2c214223...`, Paperclip v2026.916.1, exactly one OA 0.5.0 ready, Task Drain false/0/0/quiescent, Human Send OFF and Gateway outbound OFF.
+
+Fresh governed policy-test closes the exact VendaERP authorization gap: 28PRO Ana + Connection `8e2c23f4-73f5-444a-8647-71428819ea91` + Catalog Entry `165fcdca-8021-41dd-90e5-f0f143adeac3` + `vendaerp_search_products {pageSize:5,skip:0}` returned `allow / allow_profile`, effective profile `259a5449-58ba-4d59-9774-92612e3caa91`, no temporary matched policy and no audit/rate-limit consumption.
+
+Fresh runtime plus exact Paperclip v2026.916.1 source closes the Ana-state gap: although Ana currently reports `error / wandora_execution_failed_422`, Paperclip explicitly includes `error` among invokable statuses and blocks only paused/terminated/pending_approval; her org chain is healthy. No recovery or wake was executed.
+
+Three gaps remain and keep production activation blocked: fresh metadata-only TypeSafe/`wfri1`/Mistral readback is not available through the current authorized operator boundary; the operator context has no legitimate current 28PRO owner/admin Human Fast Read Bearer and must not impersonate one; and the existing `ROLLBACK_FREEZE_V1_OK` receipt anchors the older v916.0/Core-f322/OA0.3.1 state rather than current v916.1/Core-2c214/OA0.5.0.
+
+Second adversarial review returned **block=0.92 / deep_review=0.08**. No production deploy, Compose/container/secret/Task Drain/policy mutation, provider/model/VendaERP call, customer Fast Read, Human Send, WhatsApp or outbound occurred.
+
+Next: close only those three remaining gaps through existing authority, then start a brand-new Immediate Pre-Mutation Attestation + Effect Authorization. ADR 0308 is not an activation authorization.
+
+Canonical detail: `docs/decisions/0308-immediate-pre-mutation-evidence-gap-closure-v1.md`.
+
 ## 2026-09-27 — ADR 0307 Immediate Pre-Mutation Attestation + Effect Authorization V1
 
 Status: **BLOCKED / NO MUTATION / NO PRODUCTION EFFECT**.

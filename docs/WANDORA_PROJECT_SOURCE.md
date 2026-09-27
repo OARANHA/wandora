@@ -1,3 +1,17 @@
+## Latest continuity checkpoint — ADR 0308 evidence gap closure partial
+
+ADR 0308 is **PARTIAL / 2 OF 5 GAPS CLOSED / PRODUCTION ATTESTATION STILL BLOCKED / READ-ONLY / NO PRODUCTION EFFECT**. PR #369 entry head `0274534722f23cb5a7df472885726d2a03f7aac5` completed 17/17 GREEN.
+
+Fresh governed Paperclip policy-test now proves the exact 28PRO Ana + VendaERP Connection `8e2c23f4...` + Catalog Entry `165fcdca...` + `vendaerp_search_products {pageSize:5,skip:0}` authorization is `allow / allow_profile`, with no audit event or rate-limit consumption. Exact Paperclip v2026.916.1 source also proves agent status `error` is explicitly invokable; only `paused`, `terminated` and `pending_approval` block invocation. Ana remains org-chain healthy, so her prior `wandora_execution_failed_422` is not itself a lifecycle blocker.
+
+Three mandatory gaps remain: no fresh metadata-only readback of TypeSafe/`wfri1`/Mistral through the currently authorized operator boundary; no legitimate current owner/admin Human Fast Read bearer in the operator context; and the existing `ROLLBACK_FREEZE_V1_OK` receipt anchors v916.0/Core-f322/OA0.3.1 rather than the current v916.1/Core-2c214/OA0.5.0 state. Creating a fresh protected rollback capture remains a separate effect and was not performed.
+
+Second adversarial review returned **block=0.92 / deep_review=0.08**. No deploy, container/Compose/secret/Task Drain/policy mutation, provider/model/VendaERP call, customer effect or outbound occurred.
+
+Next: close only those three remaining gaps through existing authority; do not widen Remote-Ops or create a second backup/secret subsystem. Then start a new fresh Immediate Pre-Mutation Attestation + Effect Authorization.
+
+Canonical detail: `docs/decisions/0308-immediate-pre-mutation-evidence-gap-closure-v1.md`.
+
 ## Latest continuity checkpoint — ADR 0307 Immediate Pre-Mutation Attestation blocked before mutation
 
 ADR 0307 is **BLOCKED / NO MUTATION / NO PRODUCTION EFFECT**. Fresh reconciliation confirmed PR #369 source head `fc41d10888d67771d9b2b2c6dd465f2c17f725a2` at 17/17 GREEN and the ADR 0305/0306 runtime baseline still inert: Core `2c214223...` healthy with Fast Read/Semantic gates OFF and no custody/attestation overlay, Paperclip v2026.916.1 healthy, exactly one OA 0.5.0 ready, Task Drain false/0/0/quiescent, Gateway outbound OFF and Human Send OFF.
