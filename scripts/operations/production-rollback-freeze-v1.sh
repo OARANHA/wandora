@@ -140,21 +140,45 @@ paperclip_db_url() {
       import { resolveDatabaseTarget } from "/app/packages/db/src/runtime-config.ts";
 
       const target = resolveDatabaseTarget();
-      if (target.mode !== "postgres") throw new Error("unexpected_database_mode");
-      if (target.source !== "DATABASE_URL") throw new Error("unexpected_database_source");
-      if (!target.connectionString) throw new Error("database_connection_unavailable");
+      if (target.mode !== "embedded-postgres") throw new Error("unexpected_database_mode");
+      if (target.port !== 54329) throw new Error("unexpected_database_port");
+      if (target.source !== `embedded-postgres@${target.port}`) {
+        throw new Error("unexpected_database_source");
+      }
+      if (!target.dataDir) throw new Error("database_data_dir_unavailable");
 
-      const url = new URL(target.connectionString);
-      if (url.protocol !== "postgres:" && url.protocol !== "postgresql:") {
-        throw new Error("unexpected_database_protocol");
-      }
-      if (url.hostname !== "127.0.0.1" && url.hostname !== "localhost") {
-        throw new Error("database_not_loopback");
-      }
+      // Keep exact parity with Paperclip v2026.916.0 db:backup embedded-postgres
+      // resolution. These are provider-local fixed embedded credentials, not a
+      // Wandora-owned secret or externally routable database credential.
+      const connectionString =
+        `postgres://paperclip:paperclip@127.0.0.1:${target.port}/paperclip`;
+
+      const url = new URL(connectionString);
+      if (url.protocol !== "postgres:") throw new Error("unexpected_database_protocol");
+      if (url.hostname !== "127.0.0.1") throw new Error("database_not_loopback");
       if ((url.port || "5432") !== "54329") throw new Error("unexpected_database_port");
       if (url.pathname !== "/paperclip") throw new Error("unexpected_database_name");
 
-      process.stdout.write(target.connectionString);
+      process.stdout.write(connectionString);
+    '
+}
+
+paperclip_db_data_dir() {
+  docker exec "${PC}" \
+    node \
+    --import /app/server/node_modules/tsx/dist/loader.mjs \
+    --input-type=module \
+    -e '
+      import { resolveDatabaseTarget } from "/app/packages/db/src/runtime-config.ts";
+
+      const target = resolveDatabaseTarget();
+      if (target.mode !== "embedded-postgres") throw new Error("unexpected_database_mode");
+      if (target.port !== 54329) throw new Error("unexpected_database_port");
+      if (target.source !== `embedded-postgres@${target.port}`) {
+        throw new Error("unexpected_database_source");
+      }
+      if (!target.dataDir) throw new Error("database_data_dir_unavailable");
+      process.stdout.write(target.dataDir);
     '
 }
 
@@ -297,6 +321,11 @@ expected_paperclip_compose="${PAPERCLIP_COMPOSE},${PAPERCLIP_BRIDGE_COMPOSE}"
 server_version="$(pg18_live_scalar 'SHOW server_version' | tr -d '[:space:]')"
 [[ "${server_version}" == "18.1"* ]] ||
   fail "live PostgreSQL server is not 18.1"
+
+expected_data_dir="$(paperclip_db_data_dir)"
+actual_data_dir="$(pg18_live_scalar 'SHOW data_directory' | xargs)"
+[[ -n "${expected_data_dir}" && "${actual_data_dir}" == "${expected_data_dir}" ]] ||
+  fail "live PostgreSQL data_directory does not match Paperclip embedded target"
 
 # The same PostgreSQL 18.1 client that will create the freeze must prove a
 # schema-only read before any backup file/directory is created.

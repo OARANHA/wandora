@@ -98,9 +98,17 @@ jobs:
               'receipt appeared concurrently; refusing overwrite',
               'receipt_published=true',
               'temporary receipt cleanup failed after publication',
+              'unexpected_database_mode',
               'unexpected_database_source',
               'database_not_loopback',
               'unexpected_database_port',
+              'target.mode !== "embedded-postgres"',
+              'target.port !== 54329',
+              'embedded-postgres@${target.port}',
+              'postgres://paperclip:paperclip@127.0.0.1:${target.port}/paperclip',
+              'paperclip_db_data_dir',
+              "SHOW data_directory",
+              'live PostgreSQL data_directory does not match Paperclip embedded target',
               'export PGDATABASE="$db_url"',
               'fromjson | select(.ok == true and .operation == "task-drain-status") | .result',
               'POSTGRES_CLIENT_INDEX_DIGEST="sha256:1090bc3a8ccfb0b55f78a494d76f8d603434f7e4553543d6e807bc7bd6bbd17f"',
@@ -193,6 +201,39 @@ jobs:
           ref: d554c4789ed3930f8a53ac9fdf6503b3187097da
           path: .paperclip
           persist-credentials: false
+          fetch-depth: 2
+
+      - name: ADR 0299 pinned production embedded PostgreSQL contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          production_commit=dffc2b3ca1b9e88fa21cb17493083e682dffd1ca
+          git -C .paperclip cat-file -e "${production_commit}^{commit}"
+          git -C .paperclip show "${production_commit}:cli/src/commands/db-backup.ts" > /tmp/paperclip-production-db-backup.ts
+          python3 - <<'PY'
+          from pathlib import Path
+
+          upstream = Path("/tmp/paperclip-production-db-backup.ts").read_text()
+          helper = Path("scripts/operations/production-rollback-freeze-v1.sh").read_text()
+
+          upstream_contract = 'postgres://paperclip:paperclip@127.0.0.1:${port}/paperclip'
+          helper_contract = 'postgres://paperclip:paperclip@127.0.0.1:${target.port}/paperclip'
+
+          if upstream_contract not in upstream:
+              raise SystemExit("adr0299_upstream_embedded_connection_contract_missing")
+          if 'source: `embedded-postgres@${port}`' not in upstream:
+              raise SystemExit("adr0299_upstream_embedded_source_contract_missing")
+          if helper_contract not in helper:
+              raise SystemExit("adr0299_helper_embedded_connection_contract_missing")
+          if 'target.mode !== "embedded-postgres"' not in helper:
+              raise SystemExit("adr0299_helper_embedded_mode_guard_missing")
+          if 'target.port !== 54329' not in helper:
+              raise SystemExit("adr0299_helper_embedded_port_guard_missing")
+          if "SHOW data_directory" not in helper:
+              raise SystemExit("adr0299_helper_data_dir_guard_missing")
+
+          print("WANDORA_ADR0299_EMBEDDED_POSTGRES_CONTRACT_OK")
+          PY
 
       - name: Compose qualified Paperclip Fast Read provider deltas
         shell: bash

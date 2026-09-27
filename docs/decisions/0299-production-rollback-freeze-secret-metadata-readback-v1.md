@@ -171,3 +171,37 @@ No allowlist was widened, no shell/sudo path was used, no substitute custody und
 A fresh independent JEV guard review of the proposed first write returned **deny=1.00**. The deterministic decision therefore remains **STOP BEFORE FIRST BACKUP WRITE**.
 
 Status remains **PARTIAL / NO BACKUP CREATED / NO ACTIVATION / NO CUSTOMER EFFECT**. Continue only when an authorized operator-local boundary exists for the exact ADR 0299 runbook; do not improvise or reopen ADR 0298 before a safe receipt ends in `ROLLBACK_FREEZE_V1_OK`.
+
+
+### 2026-09-27 — continuation: embedded PostgreSQL resolver mismatch found before first write
+
+After ADR 0300 completed and the exact local PostgreSQL 18.1 recovery image was independently proven, the exact ADR 0299 helper from `8d1e9558a82af39888a7144e7d3c12aeb130a52c` was executed again.
+
+The attempt stopped during the fresh pre-effect database check with:
+
+```text
+Error: unexpected_database_mode
+```
+
+Repository/runtime source reconciliation proved this is a helper assumption defect, not a production database defect:
+
+- live Paperclip source `packages/db/src/runtime-config.ts` resolves the current database as `mode="embedded-postgres"`;
+- the current Paperclip server uses its embedded PostgreSQL lifecycle and expected port 54329;
+- pinned production source `dffc2b3ca1b9e88fa21cb17493083e682dffd1ca` `cli/src/commands/db-backup.ts` resolves embedded PostgreSQL to the fixed provider-local loopback connection contract for user/database `paperclip` at `127.0.0.1:<embeddedPostgresPort>`;
+- ADRs 0129/0130 already classify the live database as the embedded Paperclip DB.
+
+The failing call occurs before `# First write begins here`. The safe ADR 0299 receipt remains absent, and no rollback bundle is accepted from this attempt.
+
+The correction keeps the slice fail-closed:
+
+- require `resolveDatabaseTarget().mode === "embedded-postgres"`;
+- require source `embedded-postgres@54329`;
+- require port 54329;
+- construct exactly the same loopback embedded connection contract used by Paperclip v2026.916.0 `db:backup`;
+- compare live `SHOW data_directory` to Paperclip's resolved embedded `dataDir`;
+- keep `resolveMigrationConnection` forbidden because it can adopt/start an embedded cluster and is not a read-only production resolver;
+- keep schema-only PostgreSQL 18.1 proof before the first write.
+
+A dedicated CI gate now reads the pinned production Paperclip `db-backup.ts` from commit `dffc2b3...` and requires the helper's embedded connection contract to match it.
+
+Status remains **PARTIAL / NO QUALIFIED ROLLBACK BUNDLE YET / NO ACTIVATION / NO CUSTOMER EFFECT** until the corrected exact head is CI GREEN and the operator-local helper completes with `ROLLBACK_FREEZE_V1_OK`.

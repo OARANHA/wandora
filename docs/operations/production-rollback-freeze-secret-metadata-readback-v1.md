@@ -42,7 +42,7 @@ Using the existing operator authority:
 7. Messaging Gateway must remain healthy/restart 0 and `WANDORA_GATEWAY_OUTBOUND_ENABLED=false`.
 8. Metadata-only `stat` the TypeSafe Core key, `wfri1` HMAC and existing Mistral key. Require regular non-symlink files, `wandora-admin:wandora-ops`, mode `0640`.
 9. Require a **pre-existing local** `postgres:18.1` image qualified by the separate PostgreSQL 18.1 recovery-image acquisition slice. Its local `RepoDigests` must include official index digest `postgres@sha256:1090bc3a8ccfb0b55f78a494d76f8d603434f7e4553543d6e807bc7bd6bbd17f` and platform must be `linux/amd64`. If absent or mismatched, STOP; do not pull or retag it as part of this slice.
-10. Prove a PostgreSQL 18.1 schema-only read against the live embedded Paperclip DB before any backup write. DB credentials may be consumed only through Paperclip's existing runtime connection resolver and an in-memory pipe; do not print or persist them.
+10. Prove the live Paperclip target resolves as `embedded-postgres@54329`, construct exactly the provider-local loopback connection contract used by pinned Paperclip v2026.916.0 `db:backup`, require live `SHOW data_directory` to equal Paperclip's resolved embedded `dataDir`, and then prove a PostgreSQL 18.1 schema-only read before any backup write. Do not use `resolveMigrationConnection` because it may adopt/start an embedded cluster. The connection string may exist only in the in-memory pipe; do not print or persist it.
 
 ## Recovery bundle
 
