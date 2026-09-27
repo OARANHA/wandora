@@ -1,10 +1,12 @@
-## Latest continuity checkpoint — ADR 0306 attestation activation contract implemented; CI pending
+## Latest continuity checkpoint — ADR 0306 bounded attestation activation contract qualified
 
-ADR 0306 adds only the missing versioned **Semantic Fast Read bounded-attestation effect contract**. The new `compose.semantic-fast-read-attestation.yaml` can later override exactly Fast Read Execution, Semantic Fast Read and Semantic Selector to ON while keeping Human Send OFF, but this file has **not** been applied to production.
+ADR 0306 is **QUALIFIED / 17/17 PR WORKFLOWS GREEN / CODE+CI ONLY / NO PRODUCTION EFFECT**. It adds only the missing versioned **Semantic Fast Read bounded-attestation effect contract**. The new `compose.semantic-fast-read-attestation.yaml` can later override exactly Fast Read Execution, Semantic Fast Read and Semantic Selector to ON while keeping Human Send OFF, but this file has **not** been applied to production.
 
 Production remains exactly on the ADR 0305 compatibility baseline: Core `2c214223...` healthy with the gates-OFF overlay active and custody/attestation overlays absent; Paperclip v2026.916.1 healthy; exactly one Organization Adapter 0.5.0 ready; Messaging Gateway outbound OFF; Task Drain false/0/0/quiescent. No provider/model/VendaERP/WhatsApp/customer/outbound effect occurred.
 
-This checkpoint is **CODE/CI ONLY**. Do not use ADR 0306 as production authorization. After exact-head CI becomes GREEN, the next production slice remains a fresh **Immediate Pre-Mutation Attestation + Effect Authorization** for exactly one owner/admin Human Fast Read attestation.
+Qualification head `8a4e58877dcc845ba47332949285c764fc2d940d` completed **17/17 GREEN**. Core CI emitted `SEMANTIC_FAST_READ_BOUNDED_ATTESTATION_CONTRACT_V1_OK`.
+
+This checkpoint is **CODE/CI ONLY**. Do not use ADR 0306 as production authorization. The next production slice is a fresh **Immediate Pre-Mutation Attestation + Effect Authorization** for exactly one owner/admin Human Fast Read attestation.
 
 Canonical detail: `docs/decisions/0306-semantic-fast-read-bounded-attestation-activation-contract-v1.md`.
 
