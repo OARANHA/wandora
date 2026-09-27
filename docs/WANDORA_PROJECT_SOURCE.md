@@ -1,3 +1,17 @@
+## Latest continuity checkpoint — ADR 0309 canonical V2 staged exact-bytes
+
+The canonical V2 helper has now been staged to `/opt/wandora/ops-workspace/production-rollback-freeze-v2.sh` from exact PR #369 head `11cda265e15e75ee03492326a3b9bbf64bfd8d9b`, after that head completed **17/17 workflows GREEN**.
+
+The pre-staging host file was independently proven non-canonical at Git blob `4058eaf32e46de69e23a1866ba64878491bf642e`. The staged file now hashes with `git hash-object --no-filters` to `849a05971d5f2526b6e8829d5315b4678f169315`, exactly matching the canonical repository blob, and a non-root `bash -n` exits 0.
+
+Staging reused only the existing governed `wandora-agent` workspace-write boundary; no Remote-Ops authority or subsystem was added. Fresh post-readback kept the same seven production containers healthy and Task Drain false/0/0/quiescent. No V2 receipt exists.
+
+**No root execution occurred.** `--precheck-only` was not run, rollback was not captured, no secret value was read, and no production/customer/provider/outbound effect occurred.
+
+Next: a separate fresh decision + second adversarial review + explicit authorization is required for exactly the root `--precheck-only` operation. Full rollback capture remains another later effect.
+
+Canonical detail: `docs/decisions/0309-current-rollback-custody-precheck-owner-browser-trigger-preparation-v1.md`.
+
 ## Latest continuity checkpoint — ADR 0309 canonical V2 remediation
 
 ADR 0309 now treats the current VPS `production-rollback-freeze-v2.sh` as **QUARANTINED / DO NOT EXECUTE**. Retained preparation evidence proved stale V1 terminal markers before the later precheck edit, while shared broker `session_capacity` currently prevents independent tail/`bash -n` validation without an unjustified restart.

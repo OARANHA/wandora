@@ -1,8 +1,22 @@
 # Current Production Rollback Freeze + Secret Metadata Readback V2 — Preparation
 
-Status: **CANONICAL REPO V2 PREPARED / CURRENT WORKSPACE COPY QUARANTINED / NOT AUTHORIZED FOR ROOT EXECUTION**
+Status: **CANONICAL V2 STAGED EXACT-BYTES / BASH-N GREEN / NOT AUTHORIZED FOR ROOT EXECUTION**
 
 This runbook adapts the already-qualified ADR 0299 mechanism to the current Semantic Fast Read baseline. It does not introduce a second backup or secret subsystem.
+
+## Exact-byte host staging checkpoint
+
+On 2026-09-27, after PR #369 exact source head `11cda265e15e75ee03492326a3b9bbf64bfd8d9b` completed 17/17 workflows GREEN, the quarantined workspace copy was replaced through the existing governed `wandora-agent` workspace-write boundary.
+
+Identity proof:
+
+- pre-staging host blob: `4058eaf32e46de69e23a1866ba64878491bf642e`;
+- canonical GitHub blob: `849a05971d5f2526b6e8829d5315b4678f169315`;
+- post-staging host blob: `849a05971d5f2526b6e8829d5315b4678f169315`;
+- post-staging non-root `bash -n`: exit 0.
+
+No V2 receipt exists and no helper mode was executed. Root `--precheck-only` remains **NOT AUTHORIZED by this checkpoint**.
+
 
 Operator workspace helper:
 

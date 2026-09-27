@@ -2,7 +2,7 @@
 
 Date: 2026-09-27
 
-Status: **PREPARED / CANONICAL REPO V2 ADDED / WORKSPACE COPY QUARANTINED / ROOT PRECHECK NOT EXECUTED / ROLLBACK NOT CAPTURED / HUMAN FAST READ NOT EXECUTED / NO PRODUCTION EFFECT**
+Status: **PREPARED / CANONICAL V2 STAGED EXACT-BYTES / BASH-N GREEN / ROOT PRECHECK NOT EXECUTED / ROLLBACK NOT CAPTURED / HUMAN FAST READ NOT EXECUTED / NO PRODUCTION EFFECT**
 
 ## Objective
 
@@ -226,6 +226,46 @@ A future host-staging effect must replace the quarantined workspace copy with th
 Final narrowed adversarial review for this repository-only remediation returned `proceed_fast=0.66 / deep_review=0.29 / split_task=0.04 / block=0.01`.
 
 No VPS write or production effect is included in this remediation.
+
+## Canonical V2 host staging checkpoint — exact bytes / no root execution
+
+Fresh reconciliation immediately before staging proved:
+
+- `main = 8d6a65f519de5c1c49607314b49968af608c7164`;
+- PR #369 remained open / draft / mergeable at exact source head `11cda265e15e75ee03492326a3b9bbf64bfd8d9b`;
+- all 17 workflows for that exact head completed successfully;
+- Semantic Fast Read CI run `36335619133` completed GREEN, including `ADR 0309 canonical V2 rollback helper static qualification` and the pinned Paperclip v916.1 contract;
+- production remained inert and healthy on Paperclip v2026.916.1, Core `2c214223...`, exactly one Organization Adapter 0.5.0 ready, Task Drain false/0/0/quiescent, Human Send OFF and Gateway outbound OFF.
+
+Capability Authority / Reuse Gate found no missing subsystem. The already-governed `wandora-agent` target permits atomic writes inside `/opt/wandora/ops-workspace`, so staging reused that existing boundary without allowlist, target-authority, broker, Docker or root expansion.
+
+Immediately before staging, governed `git hash-object --no-filters` proved the quarantined host copy was still non-canonical:
+
+`4058eaf32e46de69e23a1866ba64878491bf642e`.
+
+The exact repository source at the GREEN head has Git blob:
+
+`849a05971d5f2526b6e8829d5315b4678f169315`.
+
+The second adversarial review for the bounded staging action returned `allow` with probabilities `allow=0.70 / confirm=0.23 / review=0.04 / deny=0.03`. The operator request explicitly scoped this continuation through the safe staging limit.
+
+Execution then replaced only:
+
+`/opt/wandora/ops-workspace/production-rollback-freeze-v2.sh`
+
+using the exact GitHub file bytes from source head `11cda265...`.
+
+Independent post-write validation proved:
+
+- host `git hash-object --no-filters` = `849a05971d5f2526b6e8829d5315b4678f169315`, exactly matching the canonical GitHub blob;
+- non-root `bash -n /opt/wandora/ops-workspace/production-rollback-freeze-v2.sh` exited 0;
+- no `production-rollback-freeze-v2.metadata` receipt exists;
+- the same seven production containers remained present and healthy with the same identities observed before staging;
+- Task Drain remained `draining=false / activeRuns=0 / pendingWakes=0 / quiescent=true`.
+
+No helper mode was executed. In particular, no `sudo`, no `--precheck-only`, no no-argument rollback capture, no protected rollback-root creation, no secret read, no Compose/container/gate mutation, no provider/model/VendaERP call, no customer work and no outbound effect occurred.
+
+The former host-byte quarantine is therefore closed **only for file identity and syntax**. This checkpoint does not authorize root execution.
 
 ## Next
 

@@ -1,3 +1,17 @@
+## 2026-09-27 — ADR 0309 canonical V2 exact-byte host staging complete
+
+Status: **CANONICAL V2 STAGED EXACT-BYTES / BASH-N GREEN / NO ROOT EXECUTION / NO PRODUCTION EFFECT**.
+
+Fresh GitHub reconciliation kept `main@8d6a65f519de5c1c49607314b49968af608c7164` and PR #369 open/draft/mergeable at exact source head `11cda265e15e75ee03492326a3b9bbf64bfd8d9b`, with **17/17 workflows GREEN**. Semantic Fast Read CI run `36335619133` included the successful ADR 0309 canonical V2 static qualification.
+
+The quarantined host copy still hashed to Git blob `4058eaf32e46de69e23a1866ba64878491bf642e` before staging. Reusing only the existing governed `wandora-agent` workspace-write boundary, it was atomically replaced from the canonical repository source. Post-write `git hash-object --no-filters` is exactly `849a05971d5f2526b6e8829d5315b4678f169315`, matching the GitHub blob, and non-root `bash -n` exits 0.
+
+Post-staging runtime remained inert: the same seven containers stayed healthy/identical, Task Drain remained false/0/0/quiescent, and no V2 receipt exists. No root helper call, `--precheck-only`, rollback capture, secret read, Compose/container/gate mutation, provider/model/VendaERP call, customer work or outbound effect occurred.
+
+Second adversarial review for the bounded staging effect returned `allow=0.70 / confirm=0.23 / review=0.04 / deny=0.03`. ADR 0168 remains satisfied; no capability or authority was widened.
+
+Next: start a **new fresh decision + second adversarial review + explicit authorization for root `--precheck-only` only**. Do not infer that authorization from this staging checkpoint.
+
 ## 2026-09-27 — ADR 0309 canonical V2 repository remediation
 
 Status: **CANONICAL REPO V2 ADDED / WORKSPACE COPY QUARANTINED / NO ROOT EXECUTION / NO PRODUCTION EFFECT**.
