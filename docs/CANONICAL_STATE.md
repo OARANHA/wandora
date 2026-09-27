@@ -1,3 +1,19 @@
+## 2026-09-27 — ADR 0302 Remote-Ops Multi-VPS Baseline Production Rollout V1
+
+Status: **COMPLETE / DEPLOYED / VALIDATED / NO TARGET AUTHORITY WIDENING**.
+
+Remote-Ops-MCP PR #40 was merged to `main` as exact SHA `f408ed420dc8e104c6b105e31d8b093a624523e6`. Post-merge CI run `36312085556` and Container publish run `36312085671` both completed GREEN. The immutable production candidate `ghcr.io/oaranha/remote-ops-mcp:sha-f408ed4` was published with manifest-list digest `sha256:b7b904ea725f600801b9713a8ad9eb6dfd7ccccc06fd0809a2bfa459aa1ba129`; the previous live revision remains available as immutable rollback tag `sha-ffe32f6`.
+
+The production effect was intentionally narrow: only the central `remote-ops-mcp` service/container was recreated, with `--no-deps --force-recreate`; no target creation/update, Agent Mesh pairing, permission widening or application-container mutation was included. JEV guard review returned `confirm=0.96`, and the exact managed-admin action was explicitly approved by the user.
+
+A first approval expired before execution and was rejected. The second apply call returned an internal transport failure; following state-first continuity, the action was not repeated blindly. Immediate runtime reconciliation proved the effect had completed successfully.
+
+Post-deploy runtime is healthy on image `ghcr.io/oaranha/remote-ops-mcp:sha-f408ed4`, OCI revision `f408ed420dc8e104c6b105e31d8b093a624523e6`, runtime image manifest `sha256:232114d1a90d3554e4a723e0dbca537f2c1867c21bac5224f3ce5d8192e868f2`, restart count 0. All eight pre-existing targets reloaded. Live `target_status` is now summary-first, and `medicspro-agent` remains independently scoped with zero Docker read/exec/action authority.
+
+No provider/model/VendaERP call, customer work or outbound effect occurred. Semantic Fast Read production activation remains separately gated.
+
+Canonical detail: `docs/decisions/0302-remote-ops-multi-vps-baseline-production-rollout-v1.md`.
+
 ## 2026-09-27 — ADR 0301 Remote-Ops Multi-VPS Capability Baseline + Minimal Disclosure V1
 
 Status: **QUALIFIED / REMOTE-OPS PR #40 CI GREEN / CODE ONLY / NOT DEPLOYED / NO PRODUCTION EFFECT**.
