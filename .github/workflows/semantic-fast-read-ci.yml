@@ -109,7 +109,7 @@ jobs:
               'paperclip_db_data_dir',
               "SHOW data_directory",
               'live PostgreSQL data_directory does not match Paperclip embedded target',
-              'export PGDATABASE="$db_url"',
+              '--dbname="$db_url"',
               'fromjson | select(.ok == true and .operation == "task-drain-status") | .result',
               'POSTGRES_CLIENT_INDEX_DIGEST="sha256:1090bc3a8ccfb0b55f78a494d76f8d603434f7e4553543d6e807bc7bd6bbd17f"',
               'POSTGRES_CLIENT_PLATFORM="linux/amd64"',
@@ -126,10 +126,13 @@ jobs:
 
           forbidden = [
               'docker pull', 'target_agent_', 'eval ', 'sudo ',
-              'resolveMigrationConnection', '--dbname="$db_url"',
+              'resolveMigrationConnection', 'export PGDATABASE="$db_url"',
           ]
           if r'\\n        unset db_url' in source:
               raise SystemExit('adr0299_literal_newline_escape')
+
+          if source.count('--dbname="$db_url"') != 3:
+              raise SystemExit('adr0299_dbname_connection_string_count')
 
           present = [item for item in forbidden if item in source]
           if present:
@@ -210,10 +213,12 @@ jobs:
           production_commit=dffc2b3ca1b9e88fa21cb17493083e682dffd1ca
           git -C .paperclip cat-file -e "${production_commit}^{commit}"
           git -C .paperclip show "${production_commit}:cli/src/commands/db-backup.ts" > /tmp/paperclip-production-db-backup.ts
+          git -C .paperclip show "${production_commit}:packages/db/src/backup-lib.ts" > /tmp/paperclip-production-backup-lib.ts
           python3 - <<'PY'
           from pathlib import Path
 
           upstream = Path("/tmp/paperclip-production-db-backup.ts").read_text()
+          backup_lib = Path("/tmp/paperclip-production-backup-lib.ts").read_text()
           helper = Path("scripts/operations/production-rollback-freeze-v1.sh").read_text()
 
           upstream_contract = 'postgres://paperclip:paperclip@127.0.0.1:${port}/paperclip'
@@ -223,6 +228,8 @@ jobs:
               raise SystemExit("adr0299_upstream_embedded_connection_contract_missing")
           if 'source: `embedded-postgres@${port}`' not in upstream:
               raise SystemExit("adr0299_upstream_embedded_source_contract_missing")
+          if backup_lib.count('--dbname=${opts.connectionString}') < 2:
+              raise SystemExit("adr0299_upstream_dbname_connection_contract_missing")
           if helper_contract not in helper:
               raise SystemExit("adr0299_helper_embedded_connection_contract_missing")
           if 'target.mode !== "embedded-postgres"' not in helper:
