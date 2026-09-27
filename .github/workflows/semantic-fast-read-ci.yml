@@ -17,6 +17,9 @@ on:
       - 'integrations/paperclip/adapters/wandora-mastra-v1/**'
       - 'integrations/paperclip/plugins/organization-adapter-v1/**'
       - '.github/workflows/semantic-fast-read-ci.yml'
+      - 'scripts/operations/production-rollback-freeze-v1.sh'
+      - 'docs/decisions/0299-production-rollback-freeze-secret-metadata-readback-v1.md'
+      - 'docs/operations/production-rollback-freeze-secret-metadata-readback-v1.md'
       - 'docs/decisions/0277-semantic-fast-read-intent-disposable-paperclip-attestation-v1.md'
       - 'docs/CANONICAL_STATE.md'
       - 'docs/WANDORA_PROJECT_SOURCE.md'
@@ -37,6 +40,9 @@ on:
       - 'integrations/paperclip/adapters/wandora-mastra-v1/**'
       - 'integrations/paperclip/plugins/organization-adapter-v1/**'
       - '.github/workflows/semantic-fast-read-ci.yml'
+      - 'scripts/operations/production-rollback-freeze-v1.sh'
+      - 'docs/decisions/0299-production-rollback-freeze-secret-metadata-readback-v1.md'
+      - 'docs/operations/production-rollback-freeze-secret-metadata-readback-v1.md'
       - 'docs/decisions/0277-semantic-fast-read-intent-disposable-paperclip-attestation-v1.md'
       - 'docs/CANONICAL_STATE.md'
       - 'docs/WANDORA_PROJECT_SOURCE.md'
@@ -58,6 +64,53 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+
+      - name: ADR 0299 operator helper static qualification
+        shell: bash
+        run: |
+          set -euo pipefail
+          helper=scripts/operations/production-rollback-freeze-v1.sh
+          bash -n "$helper"
+          python3 - "$helper" <<'PY'
+          from pathlib import Path
+          import sys
+
+          source = Path(sys.argv[1]).read_text()
+          required = [
+              '[[ "$#" -eq 0 ]]',
+              '[[ "${EUID}" -eq 0 ]]',
+              '/home/wandora-admin/backups',
+              'production-rollback-freeze-v1.metadata',
+              'pg18_live_dump probe /dev/null',
+              '--network none',
+              '--exit-on-error',
+              "! -path './paperclip/master.key'",
+              'post_drain_proxy=',
+              'restore_created=true',
+              'parent_created=true',
+              'ROLLBACK_FREEZE_V1_OK',
+          ]
+          missing = [item for item in required if item not in source]
+          if missing:
+              raise SystemExit(f"adr0299_helper_missing:{missing}")
+
+          forbidden = ['docker pull', 'target_agent_', 'eval ', 'sudo ']
+          present = [item for item in forbidden if item in source]
+          if present:
+              raise SystemExit(f"adr0299_helper_forbidden:{present}")
+
+          precheck = source.index('pg18_live_dump probe /dev/null')
+          first_write = source.index('# First write begins here')
+          if precheck > first_write:
+              raise SystemExit('adr0299_schema_probe_after_first_write')
+
+          receipt = source[source.index('# Safe MCP-readable receipt'):]
+          for forbidden_receipt in ('postgres18_image_id', 'postgres_server_version', 'master.key'):
+              if forbidden_receipt in receipt:
+                  raise SystemExit(f"adr0299_receipt_forbidden:{forbidden_receipt}")
+
+          print('WANDORA_ADR0299_OPERATOR_HELPER_STATIC_OK')
+          PY
 
       - name: Checkout pinned Paperclip source
         uses: actions/checkout@v4
