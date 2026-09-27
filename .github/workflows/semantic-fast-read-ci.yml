@@ -90,13 +90,20 @@ jobs:
               'parent_created=true',
               'rollback root appeared concurrently',
               'receipt appeared concurrently; refusing overwrite',
+              'unexpected_database_source',
+              'database_not_loopback',
+              'unexpected_database_port',
+              'export PGDATABASE="$db_url"',
               'ROLLBACK_FREEZE_V1_OK',
           ]
           missing = [item for item in required if item not in source]
           if missing:
               raise SystemExit(f"adr0299_helper_missing:{missing}")
 
-          forbidden = ['docker pull', 'target_agent_', 'eval ', 'sudo ']
+          forbidden = [
+              'docker pull', 'target_agent_', 'eval ', 'sudo ',
+              'resolveMigrationConnection', '--dbname="$db_url"',
+          ]
           present = [item for item in forbidden if item in source]
           if present:
               raise SystemExit(f"adr0299_helper_forbidden:{present}")
