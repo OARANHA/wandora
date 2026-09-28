@@ -2,13 +2,13 @@
 
 Date: 2026-09-27
 
-Status: **BLOCKED BEFORE ROOT MUTATION / CAPABILITY NOT DEPLOYED / ROOT PRECHECK NOT EXECUTED / NO PRODUCTION EFFECT**
+Status: **CAPABILITY DEPLOYED / VALIDATED / ROOT PRECHECK NOT EXECUTED / NO CUSTOMER OR PROVIDER EFFECT**
 
 ## Objective
 
 Deploy only the already-qualified ADR 0310 managed-admin capability for the canonical Rollback Freeze V2 precheck, while preserving the existing Remote-Ops authority boundary and stopping before any root precheck execution.
 
-This checkpoint records fresh evidence that changed two assumptions from the handoff and the resulting fail-closed stop.
+This ADR preserves the earlier fail-closed checkpoints below for auditability. The latest continuation closes capability deployment and validation while keeping root precheck execution as a separate authorization slice.
 
 ## REAL NOW
 
@@ -197,3 +197,110 @@ Current status remains:
 No root-owned capability file, dynamic registry, broker unit, service, control-plane container, Fast Read gate, provider, customer or outbound state changed in this continuation.
 
 Next continuation must start fresh and use an execution context where the existing governed managed-admin apply path is permitted to obtain/review the exact dynamic registry bytes. Only then may it define the exact minimal target+broker diff, run a fresh second adversarial review, obtain a new explicit approval, deploy/validate the capability only, and stop again before root precheck.
+
+
+## Final continuation checkpoint — capability deployed and validated
+
+Fresh continuation reconciled the exact live state before mutation:
+
+- Wandora PR #369 source head before this documentation commit was `033eeeea46d91037f2ed990ba489d1534ee5241d`, open/draft/mergeable, with **17/17 workflows GREEN**;
+- Remote-Ops source/runtime remained aligned at `f408ed420dc8e104c6b105e31d8b093a624523e6` / `ghcr.io/oaranha/remote-ops-mcp:sha-f408ed4`;
+- seven Wandora containers remained running and healthy;
+- `wandora-ops-agent.service` remained active with restart count 0;
+- no root precheck, rollback capture, Fast Read activation, provider call, VendaERP/customer work or outbound effect occurred.
+
+### Exact dynamic-registry readback and minimal diff
+
+The existing governed managed-admin boundary successfully copied the protected live `runtime/data/dynamic-targets.json` into the operator workspace for review.
+
+The exact live `wandora-managed-admin` object was then read and proved to be dynamic. The reviewed candidate changed only:
+
+`wandora-managed-admin.allowedAdminPrograms += ["wandora-rollback-freeze-v2-precheck"]`
+
+Validation of the candidate proved:
+
+- added = exactly `wandora-rollback-freeze-v2-precheck`;
+- removed = none;
+- occurrence = only `wandora-managed-admin`;
+- removing that one entry returns the candidate semantically to the exact live registry (`exact_after_revert=true`);
+- no static target, other dynamic target, path, service, Docker, process or semantic-capability authority changed.
+
+A metadata-preserving `cp -a` review copy proved the pre-mutation live registry metadata was `wandora-admin:wandora-ops` mode `0600`.
+
+Current Remote-Ops source proved that `target_agent_apply` rebuilds a dynamic target from a preset before calling `loadRegistry()`, so it was explicitly rejected for this custom diff. Current startup source also proved `loadRegistry()` runs at control-plane startup; therefore the later `remote-ops-mcp` restart was the justified reload mechanism for the manually reviewed dynamic registry.
+
+### Second adversarial review
+
+The exact production package was reviewed before execution:
+
+1. install the canonical dedicated entrypoint as root-owned mode `0755`;
+2. install the canonical V2 helper as root-owned mode `0750`;
+3. install one systemd drop-in adding only `wandora-rollback-freeze-v2-precheck` to broker `WANDORA_ADMIN_PROGRAMS`;
+4. install the reviewed dynamic registry candidate as `wandora-admin:wandora-ops` mode `0600`;
+5. `systemctl daemon-reload`;
+6. restart only `wandora-ops-admin-broker.service`;
+7. restart only `remote-ops-mcp` so startup `loadRegistry()` consumes the reviewed dynamic registry.
+
+The second adversarial review returned `confirm=0.80` with confidence `0.73`. No new subsystem, state machine, service, generic root shell or interpreter authority was introduced.
+
+### Governed deployment result
+
+All four file/config mutations completed with `exit_code=0` through fresh explicitly confirmed managed-admin approvals:
+
+- `/usr/local/sbin/wandora-rollback-freeze-v2-precheck` installed with `root:root 0755`;
+- `/usr/local/libexec/wandora/production-rollback-freeze-v2.sh` installed with `root:root 0750`;
+- `/etc/systemd/system/wandora-ops-admin-broker.service.d/40-wandora-rollback-freeze-v2-precheck.conf` installed with `root:root 0644`;
+- live `dynamic-targets.json` installed with explicit `wandora-admin:wandora-ops 0600`.
+
+`systemctl daemon-reload` completed with exit 0.
+
+The admin-broker restart call returned a transport-side `managed_admin_broker_disconnected` error. State-first readback proved the restart had nevertheless completed and therefore it was **not retried**:
+
+- old PID = `1705829`;
+- new PID = `1765513`;
+- new start time = `2026-09-28 01:53:11 UTC`;
+- `DropInPaths=/etc/systemd/system/wandora-ops-admin-broker.service.d/40-wandora-rollback-freeze-v2-precheck.conf`;
+- effective `WANDORA_ADMIN_PROGRAMS` is the prior exact list plus only `wandora-rollback-freeze-v2-precheck`.
+
+The `remote-ops-mcp` restart similarly returned an internal client/tool error. State-first readback proved the restart had completed and therefore it was **not retried**:
+
+- container remained running and healthy;
+- `StartedAt=2026-09-28T01:54:01.625511967Z`;
+- effective `wandora-managed-admin.allowedAdminPrograms` now contains `wandora-rollback-freeze-v2-precheck`.
+
+### Final validation
+
+A fresh governed root read used only `git hash-object --no-filters`; it did **not** execute either installed file.
+
+Live hashes are exactly:
+
+- entrypoint = `97b6962858aee3ea8c5577d7bd480502637bb4b2`;
+- helper = `849a05971d5f2526b6e8829d5315b4678f169315`.
+
+These exactly match the qualified ADR 0310 repository blobs.
+
+Remote-Ops managed-admin policy remains fail-closed:
+
+- explicit `MANAGED_ADMIN_HARD_DENY` still contains `bash, sh, dash, zsh, fish, sudo, su, pkexec, python, python3, node, perl, ruby, php`;
+- `env` is not in that constant but remains denied-by-default because it is absent from both effective administrative allowlists;
+- no generic shell/interpreter was added to root authority.
+
+Runtime validation remained healthy:
+
+- `wandora-ops-admin-broker.service` active/running on the new PID;
+- `wandora-ops-exec-broker.service` active/running;
+- `wandora-ops-agent.service` active/running with restart count 0;
+- `remote-ops-mcp` healthy after reload;
+- all seven Wandora containers healthy.
+
+A separate attempt to restart the non-root execution broker only to clear retained completed sessions was rejected by the OS with `Interactive authentication required`; no effect occurred and the service remained active. This is an execution-session housekeeping issue, not a deployment blocker.
+
+### Final state and next boundary
+
+**CAPABILITY DEPLOYED / VALIDATED / ROOT PRECHECK NOT EXECUTED / NO CUSTOMER OR PROVIDER EFFECT.**
+
+This ADR does **not** authorize execution of `wandora-rollback-freeze-v2-precheck`.
+
+The next slice is a separate **Canonical Rollback V2 Root Precheck Execution** and must begin from fresh REAL NOW reconciliation, a new decision, a new second adversarial review, a fresh `host_admin_prepare`, a new `adm_...`, explicit human `APPROVE adm_...`, and `host_admin_apply`.
+
+Do not reuse any approval from this deployment slice.
