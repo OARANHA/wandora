@@ -1,26 +1,42 @@
-## Persistent capture managed-admin capability qualification checkpoint — ADR 0314
+## Persistent capture managed-admin capability deployment checkpoint — ADR 0314
 
-The dedicated persistent-capture authority is now **qualified in code+CI only** and is **not deployed**.
+The dedicated persistent-capture authority is now **deployed and validated as a capability only**. Persistent capture itself remains **not prepared and not executed**.
 
-Qualified program contract:
+Governed program contract:
 
 `wandora-rollback-freeze-v2-capture`
 
-Repository entrypoint:
+Live entrypoint:
 
-`scripts/operations/managed-admin-production-rollback-freeze-v2-capture.sh`
+`/usr/local/sbin/wandora-rollback-freeze-v2-capture`
 
-The entrypoint accepts zero caller args, pins itself to `/usr/local/sbin/wandora-rollback-freeze-v2-capture`, reuses the existing root-owned helper at `/usr/local/libexec/wandora/production-rollback-freeze-v2.sh`, requires the helper Git blob `849a05971d5f2526b6e8829d5315b4678f169315`, validates ownership/mode/non-symlink state and syntax, and executes only the helper's zero-argument persistent mode.
+Qualified/live entrypoint Git blob:
+
+`f693cc0f0e34258fcdf10d7616f92f1ff1d48758`
+
+The entrypoint accepts zero caller args, pins itself to the live path above, reuses the existing root-owned helper at `/usr/local/libexec/wandora/production-rollback-freeze-v2.sh`, requires helper Git blob `849a05971d5f2526b6e8829d5315b4678f169315`, validates ownership/mode/non-symlink state and syntax, and executes only the helper's zero-argument persistent mode.
+
+Deployment evidence:
+
+- live wrapper = `root:root 0755`, exact qualified blob;
+- broker drop-in = `root:root 0644`, blob `7bcda5c69048190b242d2895a206d96537be0a3c`;
+- fresh protected live-registry snapshot matched the prior reviewed snapshot byte-for-byte;
+- deployed candidate changed only `wandora-managed-admin.allowedAdminPrograms` by adding the dedicated capture program;
+- registry installed as `wandora-admin:wandora-ops 0600`;
+- `systemctl daemon-reload` succeeded;
+- state-first readback proved the admin broker restarted to PID `2368034` and is active/running;
+- state-first readback proved `remote-ops-mcp` restarted, is healthy on unchanged image `sha-f408ed4`, and the live target exposes the capture program;
+- Task Drain remains false/0/0/quiescent.
 
 Do not add generic shell/interpreter authority. Do not directly allowlist the helper. Do not install a second helper copy.
 
-Qualification head `f3d1e923ace58da7abd8f04f55834867cbe9f2bb` completed 17/17 workflows GREEN. No live registry/broker authority changed and persistent capture remains unexecuted.
+**STOP HERE for ADR 0314.** Do not call `host_admin_prepare` for `wandora-rollback-freeze-v2-capture` from this deployment checkpoint. No capture approval was created, no persistent capture ran, and no V2 receipt exists from this slice.
 
-Before deployment, fresh-reconcile exact head/CI/runtime and exact live registry/broker state, then deploy only the named entrypoint + the same single program name in target and broker allowlists. After validation, **stop before persistent-capture prepare**.
+Before persistent capture, start a new **Canonical Rollback V2 Persistent Capture Execution** slice with fresh repo/CI/runtime reconciliation, new decision, new second adversarial review, new `host_admin_prepare`, explicit new human approval, exactly one apply, and state-first validation.
 
 # Current Production Rollback Freeze + Secret Metadata Readback V2 — Preparation
 
-Status: **PERSISTENT CAPTURE BLOCKED BEFORE PREPARE / ROOT PRECHECK GREEN / ROLLBACK NOT CAPTURED / ACTIVATION NOT AUTHORIZED**
+Status: **PERSISTENT-CAPTURE CAPABILITY DEPLOYED + VALIDATED / ROOT PRECHECK GREEN / ROLLBACK NOT CAPTURED / ACTIVATION NOT AUTHORIZED**
 
 
 ## Persistent capture reconciliation checkpoint — ADR 0313

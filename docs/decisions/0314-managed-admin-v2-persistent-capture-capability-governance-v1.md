@@ -2,7 +2,7 @@
 
 Date: 2026-09-28
 
-Status: **CODE+CI QUALIFIED / DEPLOYMENT STAGED / CAPABILITY NOT DEPLOYED / PRIVILEGED INSTALL PREPARE BLOCKED BEFORE MCP / PERSISTENT CAPTURE NOT EXECUTED / NO PRODUCTION EFFECT**
+Status: **CODE+CI QUALIFIED / CAPABILITY DEPLOYED + VALIDATED / PERSISTENT CAPTURE NOT PREPARED OR EXECUTED / NO FAST READ/PROVIDER/CUSTOMER/OUTBOUND EFFECT**
 
 ## Objective
 
@@ -121,17 +121,26 @@ Qualified repository blobs at that head:
 
 ## Production effect validation
 
-No capability deployment occurred.
+Capability deployment is complete. Persistent capture remains **unprepared and unexecuted**.
 
-No live target registry changed.
+Validated production effects are limited to the qualified authority deployment:
 
-No broker allowlist changed.
+- `/usr/local/sbin/wandora-rollback-freeze-v2-capture` is installed `root:root 0755` and hashes to qualified Git blob `f693cc0f0e34258fcdf10d7616f92f1ff1d48758`;
+- broker drop-in `50-wandora-rollback-freeze-v2-capture.conf` is installed `root:root 0644` and hashes to `7bcda5c69048190b242d2895a206d96537be0a3c`;
+- a fresh protected live-registry snapshot was copied through managed-admin and then converted only into a review copy; it was byte-for-byte identical to the prior reviewed live snapshot;
+- the staged registry candidate differed semantically from that fresh live snapshot only by one entry: `wandora-rollback-freeze-v2-capture` in `wandora-managed-admin.allowedAdminPrograms`;
+- the candidate registry was installed as `wandora-admin:wandora-ops 0600`;
+- `systemctl daemon-reload` returned exit code 0;
+- the admin broker restart disconnected the caller, but state-first readback proved the effect had already occurred: the service is active/running on new PID `2368034` instead of `1765513`, with zero service restarts recorded;
+- the first prepared Remote-Ops restart approval expired and state-first readback proved no effect; a later fresh approval was used once, the tool returned an internal error, and state-first readback proved the container had in fact restarted;
+- post-restart `remote-ops-mcp` is healthy on the unchanged image `ghcr.io/oaranha/remote-ops-mcp:sha-f408ed4`;
+- live `target_status(wandora-managed-admin, full)` now exposes `wandora-rollback-freeze-v2-capture` alongside the precheck program;
+- the admin broker and ops agent remain active/running;
+- Paperclip Task Drain remains `draining=false / activeRuns=0 / pendingWakes=0 / quiescent=true`.
 
-No root-owned capture entrypoint was installed.
+No `host_admin_prepare` was issued with program `wandora-rollback-freeze-v2-capture`.
 
-No `host_admin_prepare` or `host_admin_apply` for persistent capture occurred.
-
-No rollback capture or V2 receipt was created.
+No persistent-capture approval exists from this slice, the capture program was not executed, and no V2 rollback receipt was created by this deployment.
 
 No Fast Read/Semantic Selector/Human Send/Gateway outbound gate was enabled.
 
@@ -171,19 +180,54 @@ However, the outer tool-security boundary blocked the attempt to create that pri
 
 No alternative `cp/chmod`, shell, interpreter or other mechanism was used to bypass that external safety boundary.
 
+## Capability deployment execution checkpoint — 2026-09-28
+
+The deployment-only sub-slice was executed through the existing managed-admin approval path after fresh runtime reconciliation and a second adversarial review.
+
+Protected deployment approvals/effects were kept separate:
+
+- wrapper install: `adm_a2626d30bb2a2a3973e5a2cb`;
+- broker drop-in install: `adm_ed7afe1599dcd7d4d6134c81`;
+- protected live-registry snapshot copy: `adm_886d5356105a4eea862aca2a`;
+- review-copy normalization of that snapshot: `adm_b773fcfd5c0358e0565de7b4`;
+- reviewed dynamic-registry install: `adm_08f56dc1a2903b7c8241d25d`;
+- `systemctl daemon-reload`: `adm_766956e040141c42746c03cb`;
+- admin-broker restart: `adm_86512f50e21317c28f48931d`;
+- successful control-plane restart authorization used for the observed restart: `adm_32a50a61878dc80085aedee5`.
+
+The earlier prepared control-plane restart approval `adm_025202919284f98542b4e61d` expired before application; state-first readback proved it had not executed, so it was not treated as an effect.
+
+Transport/tool failures around both restarts were handled state-first. Neither effect was blindly retried after readback proved it had already happened.
+
+Final runtime readback:
+
+- Remote-Ops MCP health = `status=ok`, version `2.0.0-dev`, OAuth mode, non-mock;
+- `remote-ops-mcp` = running/healthy on unchanged image `sha-f408ed4`;
+- `wandora-managed-admin.allowedAdminPrograms` includes exactly the existing baseline, `wandora-rollback-freeze-v2-precheck`, and `wandora-rollback-freeze-v2-capture`;
+- admin broker = active/running, PID `2368034`;
+- ops agent = active/running, PID `1705827`;
+- seven Wandora containers = running, with production services healthy;
+- Task Drain = false/0/0/quiescent.
+
+A final read of the admin-broker journal returned no entries, so no claim is made from logs about environment contents. Broker-side deployment evidence is instead the exact installed drop-in + successful daemon-reload + observed broker process replacement. The capture program itself was deliberately not prepared or executed as a test.
+
+The ADR 0314 deployment boundary is therefore complete without crossing into persistent capture.
+
 ## Next boundary
 
-The next sub-slice is **deployment of the already-qualified capability only**.
+ADR 0314 capability deployment is complete and the HARD STOP is now the governing boundary.
 
-Before deployment:
+Do **not** call `host_admin_prepare` with program `wandora-rollback-freeze-v2-capture` as part of ADR 0314.
 
-1. reconcile the exact new head/CI and live runtime again;
-2. stage/read back the exact qualified entrypoint bytes;
-3. obtain fresh exact dynamic-registry and broker effective-authority evidence;
-4. define the minimal diff: install only the new entrypoint and add only `wandora-rollback-freeze-v2-capture` to the target and broker program allowlists;
-5. run a fresh second adversarial review;
-6. use only the existing managed-admin approval path for those deployment effects;
-7. validate hashes/modes/allowlists/services/runtime;
-8. **STOP before any `host_admin_prepare` for persistent capture**.
+Persistent capture is a new, separate **Canonical Rollback V2 Persistent Capture Execution** slice and must restart from fresh:
 
-Persistent capture remains a later separate slice with fresh reconciliation, decision, second adversarial review and explicit human approval.
+1. REAL NOW reconciliation of repository/PR/CI/runtime;
+2. exact wrapper/helper/target/broker evidence appropriate to that slice;
+3. confirmation that Task Drain and production gates remain on the intended baseline;
+4. a new decision and new second adversarial review for the capture effect itself;
+5. a new `host_admin_prepare`;
+6. new explicit human `APPROVE adm_...`;
+7. exactly one `host_admin_apply`;
+8. state-first validation and safe receipt readback before any later activation decision.
+
+Do not reuse any ADR 0314 deployment approval for capture.

@@ -1,14 +1,18 @@
-## Latest checkpoint — ADR 0314 bounded persistent-capture authority code+CI qualified
+## Latest checkpoint — ADR 0314 persistent-capture managed-admin capability deployed
 
-Status: **CODE+CI QUALIFIED / CAPABILITY NOT DEPLOYED / PERSISTENT CAPTURE NOT EXECUTED / NO PRODUCTION EFFECT**.
+Status: **CAPABILITY DEPLOYED + VALIDATED / PERSISTENT CAPTURE NOT PREPARED OR EXECUTED / NO FAST READ/PROVIDER/CUSTOMER/OUTBOUND EFFECT**.
 
-After state-first recovery from the chat interruption, PR #369 qualification head `f3d1e923ace58da7abd8f04f55834867cbe9f2bb` is confirmed **17/17 workflows GREEN**. The Reuse Gate retained Remote-Ops as operational authority and rejected both generic root shell authority and any new approval/broker subsystem.
+PR #369 remained open/draft/mergeable at pre-deployment documentation head `d8312cecda8e9c475c3c46b5d2ec04fb275d1bb3`, with 17/17 workflows GREEN. ADR 0314 then completed only the previously qualified capability deployment.
 
-The qualified minimal contract is one Wandora-owned zero-argument program, `wandora-rollback-freeze-v2-capture`, reusing the already-installed root-owned canonical helper at `/usr/local/libexec/wandora/production-rollback-freeze-v2.sh`. It pins helper Git blob `849a05971d5f2526b6e8829d5315b4678f169315`, validates root ownership/non-symlink modes and `bash -n`, then executes only the helper with zero args. Caller-supplied paths/env/argv are forbidden.
+The existing Remote-Ops managed-admin chain remains the operational authority. Production now contains the qualified zero-argument wrapper `/usr/local/sbin/wandora-rollback-freeze-v2-capture` at exact blob `f693cc0f0e34258fcdf10d7616f92f1ff1d48758`, `root:root 0755`. The broker drop-in is exact blob `7bcda5c69048190b242d2895a206d96537be0a3c`, `root:root 0644`.
 
-The dedicated ADR 0314 CI gate is GREEN and the complete qualification head is 17/17 GREEN. No capability deployment, target/broker allowlist change, root capture program installation, persistent-capture prepare/apply, rollback receipt, provider/model/VendaERP/customer/WhatsApp/outbound effect occurred.
+A fresh protected live-registry snapshot was proven byte-for-byte identical to the prior reviewed snapshot. The deployed registry candidate contained exactly one semantic delta: add `wandora-rollback-freeze-v2-capture` to `wandora-managed-admin.allowedAdminPrograms`. After daemon-reload plus the bounded broker/control-plane restarts, the live target now exposes both dedicated rollback programs.
 
-Next: capability deployment only, with fresh reconciliation + exact-byte staging/readback + live registry/broker diff + new second adversarial review. After deployment/validation, stop before any `host_admin_prepare` for persistent capture.
+State-first recovery was used for ambiguous restart results: the admin broker is active on new PID `2368034`, `remote-ops-mcp` is healthy on unchanged `sha-f408ed4`, the ops agent remains active, all seven containers remain running/healthy, and Task Drain remains false/0/0/quiescent.
+
+**HARD STOP:** ADR 0314 did not call `host_admin_prepare` for `wandora-rollback-freeze-v2-capture`, did not create a capture approval, did not execute the capture program, and did not create a V2 receipt or enable Fast Read/Semantic Selector/Human Send/Gateway outbound/provider/customer effects.
+
+Next: **Canonical Rollback V2 Persistent Capture Execution** is a separate slice. Reconcile fresh, make a new decision, run a new second adversarial review, and require a new explicit managed-admin approval for the capture effect. Do not reuse deployment approvals.
 
 Canonical detail: `docs/decisions/0314-managed-admin-v2-persistent-capture-capability-governance-v1.md`.
 

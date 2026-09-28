@@ -1,14 +1,20 @@
 ## 2026-09-28 — ADR 0314 Managed-Admin V2 Persistent Capture Capability Governance V1
 
-Status: **CODE+CI QUALIFIED / CAPABILITY NOT DEPLOYED / PERSISTENT CAPTURE NOT EXECUTED / NO PRODUCTION EFFECT**.
+Status: **CAPABILITY DEPLOYED + VALIDATED / PERSISTENT CAPTURE NOT PREPARED OR EXECUTED / NO FAST READ/PROVIDER/CUSTOMER/OUTBOUND EFFECT**.
 
-Fresh state-first reconciliation after the chat interruption confirmed PR #369 at qualification head `f3d1e923ace58da7abd8f04f55834867cbe9f2bb` completed **17/17 workflows GREEN**, with zero failures. Remote-Ops source/live remain aligned at `f408ed420dc8e104c6b105e31d8b093a624523e6`; seven Wandora containers remain healthy; Paperclip remains v2026.916.1; Core remains `2c214223...`; exactly one Organization Adapter 0.5.0 is ready; Task Drain remains false/0/0/quiescent; Fast Read/Semantic Fast Read/Human Send/Gateway outbound remain OFF.
+PR #369 remained open/draft/mergeable at pre-deployment documentation head `d8312cecda8e9c475c3c46b5d2ec04fb275d1bb3`, whose 17/17 workflows were GREEN. The capability deployment then reused the existing Remote-Ops `host.managed_admin` boundary; no new broker, approval subsystem, generic root shell authority or provider implementation was introduced.
 
-Capability Authority / Reuse Gate proved no new Remote-Ops subsystem or approval mechanism is needed. The existing `host.managed_admin` prepare/apply + signed one-use ticket + root broker boundary is reused. The only qualified new surface is a Wandora-owned named zero-argument entrypoint, `wandora-rollback-freeze-v2-capture`, which pins the already-installed canonical helper `/usr/local/libexec/wandora/production-rollback-freeze-v2.sh` at Git blob `849a05971d5f2526b6e8829d5315b4678f169315`, validates ownership/mode/syntax and executes only the helper's no-argument mode.
+Production now has the qualified zero-argument program `/usr/local/sbin/wandora-rollback-freeze-v2-capture` installed `root:root 0755` at Git blob `f693cc0f0e34258fcdf10d7616f92f1ff1d48758`. The broker drop-in is installed `root:root 0644` at blob `7bcda5c69048190b242d2895a206d96537be0a3c`.
 
-Repository qualification added the entrypoint and a static verifier and wired them into GitHub-hosted Semantic Fast Read CI. The dedicated ADR 0314 gate and the full qualification head are GREEN. No live target/broker allowlist changed, no root capture entrypoint was installed, no approval/apply occurred, and no rollback/provider/customer/outbound effect occurred.
+A fresh protected live-registry snapshot matched the prior reviewed snapshot byte-for-byte. The deployed candidate differed semantically only by adding `wandora-rollback-freeze-v2-capture` to `wandora-managed-admin.allowedAdminPrograms` and was installed as `wandora-admin:wandora-ops 0600`.
 
-Next: a separate capability-deployment sub-slice must fresh-reconcile, review exact staged bytes and live registry/broker authority, deploy only the named entrypoint + the two minimal allowlist additions, validate, and **stop before any persistent-capture `host_admin_prepare`**.
+`systemctl daemon-reload` succeeded. The admin-broker restart returned a disconnect but state-first readback proved the service had already moved from PID `1765513` to `2368034` and remained active/running. The Remote-Ops control-plane restart likewise returned a tool error after the effect; state-first readback proved `remote-ops-mcp` restarted and is healthy on unchanged image `ghcr.io/oaranha/remote-ops-mcp:sha-f408ed4`.
+
+Final live target readback now exposes `wandora-rollback-freeze-v2-capture` alongside `wandora-rollback-freeze-v2-precheck`. Remote-Ops health is OK; the ops agent and admin broker are active; seven Wandora containers are running/healthy; Task Drain remains `false / 0 / 0 / quiescent=true`.
+
+**Hard stop:** no `host_admin_prepare` was issued for the capture program, no persistent-capture approval exists from this slice, the program was not executed, and no V2 receipt, Fast Read activation, provider/model/VendaERP/customer/WhatsApp/outbound effect occurred.
+
+Next: start **Canonical Rollback V2 Persistent Capture Execution** only as a fresh separate slice with new REAL NOW reconciliation, decision, second adversarial review and explicit new managed-admin approval. Do not reuse ADR 0314 deployment approvals.
 
 Canonical detail: `docs/decisions/0314-managed-admin-v2-persistent-capture-capability-governance-v1.md`.
 
