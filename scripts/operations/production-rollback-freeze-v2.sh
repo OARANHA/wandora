@@ -90,8 +90,8 @@ cleanup() {
 }
 trap cleanup EXIT
 
-if [[ -e "${RECEIPT}" || -L "${RECEIPT}" ]]; then
-  fail "receipt already exists; reconcile it before any rerun: ${RECEIPT}"
+if [[ "${precheck_only}" != "true" && ( -e "${RECEIPT}" || -L "${RECEIPT}" ) ]]; then
+  fail "receipt already exists; reconcile it before any capture rerun: ${RECEIPT}"
 fi
 
 container_field() {
