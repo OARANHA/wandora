@@ -4,7 +4,7 @@ import fs from "node:fs";
 
 const helperPath = "scripts/operations/production-rollback-freeze-v2.sh";
 const entrypointPath = "scripts/operations/managed-admin-production-rollback-freeze-v2-precheck.sh";
-const expectedBlob = "849a05971d5f2526b6e8829d5315b4678f169315";
+const expectedBlob = "a48812427b050383def5ba410f333e4b72987744";
 
 const helper = fs.readFileSync(helperPath);
 const gitBlob = crypto
@@ -60,6 +60,10 @@ if ((source.match(/\bexec\b/g) ?? []).length !== 1) {
 
 if ((source.match(/--precheck-only/g) ?? []).length !== 2) {
   throw new Error("managed_admin_precheck_only_marker_count");
+}
+
+if (!helper.includes(Buffer.from("if [[ \"${precheck_only}\" != \"true\" && ( -e \"${RECEIPT}\" || -L \"${RECEIPT}\" ) ]]; then", "utf8"))) {
+  throw new Error("canonical_helper_receipt_guard_not_capture_only");
 }
 
 if (!helper.includes(Buffer.from("ROLLBACK_FREEZE_V2_PRECHECK_OK", "utf8"))) {
