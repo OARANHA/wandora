@@ -31,11 +31,11 @@ This deployment **does not authorize or imply root precheck execution**. Before 
 
 ADR 0310 qualified the narrow execution contract; ADR 0311 has now **deployed and validated it**.
 
-Future governed program:
+Governed live program:
 
 `/usr/local/sbin/wandora-rollback-freeze-v2-precheck`
 
-Future root-owned exact helper copy:
+Live root-owned exact helper copy:
 
 `/usr/local/libexec/wandora/production-rollback-freeze-v2.sh`
 
