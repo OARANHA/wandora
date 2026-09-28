@@ -155,6 +155,20 @@ jobs:
           }, data
           PY
           echo "WANDORA_WEB_CUSTOMER_WORK_BRIDGE_V1_OK"
+          FAST_READ_PATH='/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/digital-employees/30000000-0000-0000-0000-0000000000a1/fast-read'
+          FAST_READ_RESPONSE="$(curl -fsS -X POST             -H 'Authorization: Bearer ci-token'             -H 'Cookie: browser-session=must-not-cross'             -H 'Content-Type: application/json'             --data '{"request":"Qual é o preço do produto PREMIUM PLUS?"}'             "${WEB_BASE_URL}${FAST_READ_PATH}")"
+          python3 - "$FAST_READ_RESPONSE" "$FAST_READ_PATH" <<'PY'
+          import json, sys
+          data = json.loads(sys.argv[1])
+          assert data['auth'] == 'Bearer ci-token', data
+          assert data['cookie'] == '', data
+          assert data['method'] == 'POST', data
+          assert data['path'] == sys.argv[2], data
+          assert data['idempotency'] == '', data
+          assert json.loads(data['body']) == {'request': 'Qual é o preço do produto PREMIUM PLUS?'}, data
+          PY
+          test "$(curl -sS -o /dev/null -w '%{http_code}' "${WEB_BASE_URL}${FAST_READ_PATH}/again")" = "404"
+          echo "WANDORA_WEB_FAST_READ_BRIDGE_V1_OK"
           DEVELOPMENT_PATH='/api/v1/organizations/3ddc8ca6-8961-4ad3-99e0-d7f869249a61/digital-employees/30000000-0000-0000-0000-0000000000a1/development'
           DEVELOPMENT_GET_RESPONSE="$(curl -fsS             -H 'Authorization: Bearer ci-token'             -H 'Cookie: browser-session=must-not-cross'             "${WEB_BASE_URL}${DEVELOPMENT_PATH}")"
           python3 - "$DEVELOPMENT_GET_RESPONSE" "$DEVELOPMENT_PATH" <<'PY'
