@@ -275,3 +275,12 @@ Before any activation:
 5. then start a new Immediate Pre-Mutation Attestation + Effect Authorization.
 
 Do not reuse ADR 0309 as activation authority.
+
+
+## Post-capture precheck revalidation source fix — ADR 0318
+
+A governed precheck attempt after the successful V2 capture exposed a source-contract defect: the canonical helper rejected an existing `production-rollback-freeze-v2.metadata` receipt before entering `--precheck-only`, making the documented freshness precheck non-rerunnable after capture.
+
+PR #369 now contains the minimal reuse-gate fix: an existing receipt blocks only persistent capture mode; `--precheck-only` keeps the same read-only checks and exits before `First write begins here`. The new canonical helper Git blob is `a48812427b050383def5ba410f333e4b72987744`; both existing managed-admin entrypoints and their verifiers are repinned to that exact blob, with a regression assertion for the capture-only receipt guard.
+
+This checkpoint is source-only. Production still requires a separate GREEN exact-head qualification and separately authorized deployment before the governed precheck may be rerun. No activation or Human Fast Read is authorized here.
