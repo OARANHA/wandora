@@ -1,3 +1,36 @@
+## Persistent capture execution checkpoint — ADR 0315
+
+Status: **PERSISTENT CAPTURE EXECUTED + VALIDATED / ROLLBACK V2 READY / ACTIVATION NOT AUTHORIZED**.
+
+Fresh pre-capture reconciliation closed GREEN on PR #369 exact head `22613dcb92d913649d4c5ae79583ce11b6c67d07` with 17/17 workflows successful, runtime healthy/inert and Task Drain false/0/0/quiescent.
+
+The governed zero-argument program `wandora-rollback-freeze-v2-capture` was prepared under fresh approval `adm_cccf18ab2668c5e094cee2be`, explicitly approved by the human and applied exactly once. It returned `exit_code=0`, no timeout and `ROLLBACK_FREEZE_V2_OK`.
+
+Safe receipt:
+
+`/opt/wandora/ops-workspace/production-rollback-freeze-v2.metadata`
+
+Validated receipt facts include:
+
+- protected rollback root recorded;
+- Paperclip v2026.916.1 and exact source/Compose anchors captured;
+- Core `2c214223...` and exact Compose anchors captured;
+- one Organization Adapter 0.5.0 / ready captured;
+- Task Drain captured quiescent;
+- semantic Fast Read gates captured OFF;
+- official Paperclip backup created and gzip-valid;
+- disposable PostgreSQL restore succeeded and schema equality passed;
+- TypeSafe, `wfri1` and Mistral custody captured as metadata only (`wandora-admin:wandora-ops 0640 regular file`);
+- `activation_performed=false`;
+- `provider_call_performed=false`;
+- `customer_effect=false`;
+- `outbound_effect=false`;
+- terminal marker `ROLLBACK_FREEZE_V2_OK`.
+
+Fresh post-capture readback kept all seven containers healthy, OA 0.5.0 ready, Task Drain false/0/0/quiescent, admin broker and ops agent active, Core Fast Read/Semantic Fast Read/Human Send OFF and Gateway outbound OFF.
+
+**STOP HERE.** This rollback capture does not authorize Semantic Fast Read or any later production effect. The next activation-oriented slice must start from a fresh immediate pre-mutation attestation and separate decision/review/authorization. Do not reuse `adm_cccf18ab2668c5e094cee2be`.
+
 ## Persistent capture managed-admin capability deployment checkpoint — ADR 0314
 
 The dedicated persistent-capture authority is now **deployed and validated as a capability only**. Persistent capture itself remains **not prepared and not executed**.
