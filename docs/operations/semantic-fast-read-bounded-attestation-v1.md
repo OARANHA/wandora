@@ -38,6 +38,24 @@ The existing Mistral platform credential continues to come only from `compose.ag
 
 Messaging Gateway outbound and WhatsApp Fast Read are not part of this Core overlay and must remain OFF/absent throughout the window.
 
+## Core image identity hard gate — ADR 0317
+
+A successful `docker compose ... config --quiet` proves syntax/interpolation only. It is **not** proof that the resolved Core image still matches production when `compose.yaml` contains an optional fallback.
+
+Before any future attestation `up`:
+
+1. capture the exact live Core image tag, image digest and revision from fresh runtime evidence;
+2. explicitly set `WANDORA_CORE_IMAGE` in the non-secret operator render input to that exact live tag;
+3. never rely on the `wandora/core:private-runtime-v1` fallback;
+4. run the full exact-chain `config --quiet`;
+5. separately run an image-only render such as `config --images` and require the resolved Core image to equal the freshly captured live image exactly;
+6. only then freeze the `up` mutation;
+7. immediately after recreation, re-read Core tag/digest/revision before any browser-owned Human Fast Read.
+
+If the resolved or running image differs at any point, the window is invalid: do not execute the browser request and close immediately to the exact pre-attestation composition.
+
+Do not read/copy the protected live environment file merely to recover this pin; use fresh safe runtime image identity plus a non-secret operator render input.
+
 ## Fresh pre-mutation gate
 
 Before any future production mutation, capture fresh evidence for all of the following:

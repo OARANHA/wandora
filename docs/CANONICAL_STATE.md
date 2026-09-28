@@ -1,3 +1,18 @@
+## 2026-09-28 — ADR 0317 Semantic Fast Read bounded attestation attempt aborted and baseline restored
+
+Status: **FAIL-CLOSED / INVALID WINDOW CLOSED / BASELINE RESTORED / NO HUMAN FAST READ**.
+
+The first ADR 0316 bounded opening mutation executed once after explicit approval, but immediate post-recreation validation found Core had resolved to the base Compose fallback image `wandora/core:private-runtime-v1` instead of the pre-attestation production candidate `wandora/core:organization-adapter-candidate-2c2142237c9c`. The cause was a missing explicit `WANDORA_CORE_IMAGE` pin in the temporary non-secret render environment; `config --quiet` had proven parse/interpolation but not resolved image identity.
+
+No browser Human Fast Read was executed. The attempt was declared invalid and the mandatory close was separately reviewed/approved. Core was restored to the exact candidate image/digest/revision and pre-attestation Compose chain ending at `compose.semantic-fast-read.yaml`, with custody/attestation removed, TypeSafe/`wfri1` mounts absent, Fast Read/Semantic/Human Send OFF, Task Drain quiescent, Paperclip/OA intact and Gateway outbound OFF.
+
+Permanent guard: future attempts must explicitly pin the freshly captured live `WANDORA_CORE_IMAGE`, prove the resolved image (not only `config --quiet`) before `up`, and re-read tag/digest/revision before any browser action.
+
+Canonical detail: `docs/decisions/0317-semantic-fast-read-bounded-production-attestation-attempt-v1.md`.
+
+**Next boundary:** new chat/slice only, starting from fresh REAL NOW. No ADR 0317 approval may be reused.
+
+
 ## 2026-09-28 — ADR 0315 Canonical Rollback V2 Persistent Capture Execution V2
 
 Status: **PERSISTENT CAPTURE EXECUTED + VALIDATED / ROLLBACK V2 READY / ACTIVATION NOT AUTHORIZED / NO PROVIDER/CUSTOMER/OUTBOUND EFFECT**.
