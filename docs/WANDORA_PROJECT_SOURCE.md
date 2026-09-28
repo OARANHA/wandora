@@ -1,3 +1,21 @@
+## Latest continuity checkpoint — ADR 0311 managed-admin V2 precheck capability deployment blocked before root mutation
+
+ADR 0311 is **BLOCKED BEFORE ROOT MUTATION / CAPABILITY NOT DEPLOYED / ROOT PRECHECK NOT EXECUTED / NO PRODUCTION EFFECT**.
+
+Fresh reconciliation kept PR #369 open/draft/mergeable and 17/17 GREEN at pre-checkpoint head `d21a014f52e1212a4e147e0ef59874e6f8c3c2aa`, with Remote-Ops repository/runtime still aligned at `f408ed420dc8e104c6b105e31d8b093a624523e6` / `ghcr.io/oaranha/remote-ops-mcp:sha-f408ed4`. Production remains healthy/inert on Paperclip v2026.916.1, Core `2c214223...` and Task Drain false/0/0/quiescent.
+
+The exact ADR 0310 entrypoint/helper bytes were staged in the existing operator workspace and independently matched Git blobs `97b6962858aee3ea8c5577d7bd480502637bb4b2` and `849a05971d5f2526b6e8829d5315b4678f169315`.
+
+Fresh runtime evidence changed the handoff assumption: the live static `targets.json` does not contain `wandora-managed-admin`; current provider source plus effective registry prove it is supplied by the dynamic registry. Do not mutate the static registry for that target. Current provider source also proves `env` is deny-by-default through the administrative allowlists but is not present in `MANAGED_ADMIN_HARD_DENY`; do not silently call that an explicit provider hard-deny.
+
+The second adversarial review of a read-only root copy of `dynamic-targets.json` returned `confirm=0.94`. After explicit human approval, `host_admin_apply` was blocked by the ChatGPT/OpenAI client security layer. State-first readback proved the destination copy was absent, so no observable root effect occurred and the operation was not retried or bypassed.
+
+No root-owned capability files were installed, neither administrative allowlist was changed, no service/control-plane reload for this capability occurred, and no precheck/capture/activation/provider/customer/outbound effect occurred.
+
+Next: resume from fresh state in an execution context where the existing governed managed-admin apply path is permitted; read exact dynamic-registry + broker configuration, reconcile the explicit `env` hard-deny requirement, review the exact minimal mutation, deploy/validate capability only, then stop before root precheck.
+
+Canonical detail: `docs/decisions/0311-managed-admin-v2-precheck-capability-deployment-v1.md`.
+
 ## Latest continuity checkpoint — ADR 0310 managed-admin V2 precheck capability governance
 
 ADR 0310 is **QUALIFIED / CODE+CI ONLY / CAPABILITY NOT DEPLOYED / ROOT PRECHECK NOT EXECUTED / NO PRODUCTION EFFECT**.
