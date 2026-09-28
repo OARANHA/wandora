@@ -1,6 +1,22 @@
 # Current Production Rollback Freeze + Secret Metadata Readback V2 — Preparation
 
-Status: **ROOT PRECHECK EXECUTED GREEN / ROLLBACK NOT CAPTURED / ACTIVATION NOT AUTHORIZED**
+Status: **PERSISTENT CAPTURE BLOCKED BEFORE PREPARE / ROOT PRECHECK GREEN / ROLLBACK NOT CAPTURED / ACTIVATION NOT AUTHORIZED**
+
+
+## Persistent capture reconciliation checkpoint — ADR 0313
+
+Fresh reconciliation found the repository, CI and runtime anchors GREEN, but persistent capture is **blocked before prepare** by the governed root authority boundary.
+
+The exact canonical helper and staged workspace copy still hash to `849a05971d5f2526b6e8829d5315b4678f169315`; fresh `bash -n` exits 0; the V2 receipt is absent; seven Wandora containers are healthy; Paperclip/Core/OA/Task Drain/gates/outbound remain on the pinned inert baseline.
+
+The current `wandora-managed-admin` administrative allowlist contains `wandora-rollback-freeze-v2-precheck` but does not contain a dedicated persistent-capture program or generic `bash`/`sh`. The precheck entrypoint is intentionally fixed to `--precheck-only`, so it cannot be reused for no-argument capture.
+
+Do not use generic shell/sudo/Docker/SSH/interpreter authority as a substitute. No `host_admin_prepare`, approval or apply was issued in ADR 0313.
+
+A fresh JEV second adversarial review returned `block=0.98`, confidence `0.97`.
+
+Before persistent capture can resume, complete a separate **Managed-Admin V2 Persistent Capture Capability Governance V1 — CAPABILITY ONLY / NO CAPTURE** and deploy/validate only the minimum named authority required. Then restart the capture slice from fresh state with a new decision, review and explicit approval.
+
 
 This runbook adapts the already-qualified ADR 0299 mechanism to the current Semantic Fast Read baseline. It does not introduce a second backup or secret subsystem.
 

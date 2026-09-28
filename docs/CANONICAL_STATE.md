@@ -1,3 +1,13 @@
+## 2026-09-27 — ADR 0313 Canonical Rollback V2 Persistent Capture Execution V1
+
+Status: **BLOCKED BEFORE PREPARE / DEDICATED PERSISTENT-CAPTURE AUTHORITY ABSENT / ROLLBACK NOT CAPTURED / NO PRODUCTION EFFECT**.
+
+Fresh repo/CI/runtime reconciliation is GREEN, the canonical V2 helper remains exact and syntactically valid, and the receipt remains absent. However, the effective `wandora-managed-admin` authority exposes only the dedicated ADR 0310/0311 precheck program; there is no dedicated persistent-capture program and generic root shell authority is outside the accepted boundary.
+
+Capability Authority / Reuse Gate therefore blocks capture before `host_admin_prepare`. Fresh JEV second review returned `block=0.98` with confidence `0.97`. No approval or production effect occurred.
+
+Next: qualify/deploy the narrowest managed-admin persistent-capture capability in a separate **CAPABILITY ONLY / NO CAPTURE** slice, then restart capture execution from fresh state.
+
 ## 2026-09-27 — ADR 0312 Canonical Rollback V2 Root Precheck Execution
 
 Status: **ROOT PRECHECK EXECUTED / GREEN / ROLLBACK NOT CAPTURED / ACTIVATION NOT AUTHORIZED**.

@@ -1,3 +1,19 @@
+## Latest checkpoint — ADR 0313 persistent Rollback V2 capture blocked before prepare
+
+Status: **BLOCKED BEFORE PREPARE / DEDICATED PERSISTENT-CAPTURE AUTHORITY ABSENT / ROLLBACK NOT CAPTURED / NO PRODUCTION EFFECT**.
+
+Fresh reconciliation kept PR #369 open/draft/mergeable at exact head `170db931f4ae59409a354d6cc59ec50b23143716` with **17/17 workflows GREEN**, main at `8d6a65f...`, Remote-Ops source/live aligned at `f408ed420...`, all seven Wandora containers healthy, Paperclip v2026.916.1, Core `2c214223...`, exactly one OA 0.5.0 ready, Task Drain false/0/0/quiescent, Semantic/Fast Read/Selector/Human Send OFF and Gateway outbound OFF.
+
+The canonical V2 helper still matches Git blob `849a05971d5f2526b6e8829d5315b4678f169315`, fresh `bash -n` is GREEN and the V2 receipt remains absent.
+
+The Reuse Gate found a real execution-authority gap: `wandora-managed-admin` allows the dedicated precheck program only. Neither the effective admin allowlist nor the current repository exposes a dedicated persistent-capture program, while generic `bash`/`sh` root authority remains outside the accepted boundary. The deployed precheck capability is fixed to `--precheck-only` and cannot reach the first-write boundary.
+
+A fresh second adversarial JEV review returned **block=0.98**, confidence **0.97**. No prepare/approval/apply or production/customer/provider/outbound effect occurred.
+
+Next: **Managed-Admin V2 Persistent Capture Capability Governance V1 — CAPABILITY ONLY / NO CAPTURE**. Do not widen generic root shell authority and do not reuse the ADR 0312 approval.
+
+Canonical detail: `docs/decisions/0313-canonical-rollback-v2-persistent-capture-execution-v1.md`.
+
 ## Latest checkpoint — ADR 0312 canonical Rollback V2 root precheck executed GREEN
 
 Status: **ROOT PRECHECK EXECUTED / GREEN / ROLLBACK NOT CAPTURED / ACTIVATION NOT AUTHORIZED**.
