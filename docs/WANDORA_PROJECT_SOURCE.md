@@ -1,3 +1,21 @@
+## Latest checkpoint — ADR 0315 Canonical Rollback V2 persistent capture executed GREEN
+
+Status: **PERSISTENT CAPTURE EXECUTED + VALIDATED / ROLLBACK V2 READY / ACTIVATION NOT AUTHORIZED / NO PROVIDER/CUSTOMER/OUTBOUND EFFECT**.
+
+Fresh REAL NOW reconciliation proved PR #369 open/draft/mergeable at exact pre-capture head `22613dcb92d913649d4c5ae79583ce11b6c67d07`, with **17/17 workflows GREEN**, zero pending/failing runs and no rerun. Remote-Ops remained healthy on `sha-f408ed4`; seven Wandora containers were healthy; Paperclip stayed v2026.916.1; Core stayed `2c214223...`; exactly one Organization Adapter 0.5.0 was ready; Task Drain was false/0/0/quiescent; Fast Read/Semantic Fast Read/Human Send/Gateway outbound remained OFF.
+
+Capability Authority / Reuse Gate reused the existing ADR 0314 named zero-argument managed-admin program `wandora-rollback-freeze-v2-capture`; no generic shell, new backup subsystem, secret manager, lifecycle/orchestration capability or provider implementation was introduced. Fresh JEV 1.13.0 second adversarial review returned `confirm=0.86`, `deny=0.09`, confidence `0.81`.
+
+Fresh one-use approval `adm_cccf18ab2668c5e094cee2be` was explicitly approved by the human and applied exactly once. Execution returned `exit_code=0`, no timeout, duration 39363 ms and terminal marker `ROLLBACK_FREEZE_V2_OK`. No retry occurred.
+
+Independent safe receipt readback at `/opt/wandora/ops-workspace/production-rollback-freeze-v2.metadata` proves the rollback root, exact Paperclip/Core/OA/Compose anchors, official Paperclip backup + gzip validation, disposable PostgreSQL restore and schema equality, metadata-only TypeSafe/`wfri1`/Mistral custody, and `activation_performed=false / provider_call_performed=false / customer_effect=false / outbound_effect=false`.
+
+Post-capture state remains healthy and inert: the same seven containers are running/healthy, OA remains 0.5.0 ready, Task Drain remains false/0/0/quiescent, Core Fast Read/Semantic Fast Read/Human Send remain OFF, Gateway outbound remains OFF, and admin broker/ops agent remain active without restart.
+
+**HARD STOP:** rollback capture is now ready, but no Semantic Fast Read or other production activation is authorized by this slice. Any activation requires a new fresh immediate pre-mutation attestation, new decision, new second adversarial review and separate effect authorization. Do not reuse the capture approval.
+
+Canonical detail: `docs/decisions/0315-canonical-rollback-v2-persistent-capture-execution-v2.md`.
+
 ## Latest checkpoint — ADR 0314 persistent-capture managed-admin capability deployed
 
 Status: **CAPABILITY DEPLOYED + VALIDATED / PERSISTENT CAPTURE NOT PREPARED OR EXECUTED / NO FAST READ/PROVIDER/CUSTOMER/OUTBOUND EFFECT**.
