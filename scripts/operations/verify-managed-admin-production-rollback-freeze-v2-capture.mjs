@@ -9,7 +9,7 @@ const expectedBlob = "849a05971d5f2526b6e8829d5315b4678f169315";
 const helper = fs.readFileSync(helperPath);
 const gitBlob = crypto
   .createHash("sha1")
-  .update(Buffer.from(`blob ${helper.length}\\0`, "utf8"))
+  .update(Buffer.from(`blob ${helper.length}\0`, "utf8"))
   .update(helper)
   .digest("hex");
 
@@ -56,11 +56,11 @@ if (present.length) {
   throw new Error(`managed_admin_capture_entrypoint_forbidden:${JSON.stringify(present)}`);
 }
 
-if ((source.match(/\\bexec\\b/g) ?? []).length !== 1) {
+if ((source.match(/\bexec\b/g) ?? []).length !== 1) {
   throw new Error("managed_admin_capture_entrypoint_exec_count");
 }
 
-if ((source.match(/\/usr\/bin\/bash "\\$HELPER"/g) ?? []).length !== 2) {
+if ((source.match(/\/usr\/bin\/bash "\$HELPER"/g) ?? []).length !== 2) {
   throw new Error("managed_admin_capture_helper_bash_reference_count");
 }
 
