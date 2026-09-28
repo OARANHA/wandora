@@ -60,7 +60,7 @@ if ((source.match(/\bexec\b/g) ?? []).length !== 1) {
   throw new Error("managed_admin_capture_entrypoint_exec_count");
 }
 
-if ((source.match(/\/usr\/bin\/bash "\$HELPER"/g) ?? []).length !== 2) {
+if ((source.match(/\/usr\/bin\/bash "\$HELPER"/g) ?? []).length !== 1) {
   throw new Error("managed_admin_capture_helper_bash_reference_count");
 }
 
