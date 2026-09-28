@@ -1,3 +1,17 @@
+## 2026-09-28 — ADR 0314 Managed-Admin V2 Persistent Capture Capability Governance V1
+
+Status: **CODE+CI QUALIFIED / CAPABILITY NOT DEPLOYED / PERSISTENT CAPTURE NOT EXECUTED / NO PRODUCTION EFFECT**.
+
+Fresh state-first reconciliation after the chat interruption confirmed PR #369 at qualification head `f3d1e923ace58da7abd8f04f55834867cbe9f2bb` completed **17/17 workflows GREEN**, with zero failures. Remote-Ops source/live remain aligned at `f408ed420dc8e104c6b105e31d8b093a624523e6`; seven Wandora containers remain healthy; Paperclip remains v2026.916.1; Core remains `2c214223...`; exactly one Organization Adapter 0.5.0 is ready; Task Drain remains false/0/0/quiescent; Fast Read/Semantic Fast Read/Human Send/Gateway outbound remain OFF.
+
+Capability Authority / Reuse Gate proved no new Remote-Ops subsystem or approval mechanism is needed. The existing `host.managed_admin` prepare/apply + signed one-use ticket + root broker boundary is reused. The only qualified new surface is a Wandora-owned named zero-argument entrypoint, `wandora-rollback-freeze-v2-capture`, which pins the already-installed canonical helper `/usr/local/libexec/wandora/production-rollback-freeze-v2.sh` at Git blob `849a05971d5f2526b6e8829d5315b4678f169315`, validates ownership/mode/syntax and executes only the helper's no-argument mode.
+
+Repository qualification added the entrypoint and a static verifier and wired them into GitHub-hosted Semantic Fast Read CI. The dedicated ADR 0314 gate and the full qualification head are GREEN. No live target/broker allowlist changed, no root capture entrypoint was installed, no approval/apply occurred, and no rollback/provider/customer/outbound effect occurred.
+
+Next: a separate capability-deployment sub-slice must fresh-reconcile, review exact staged bytes and live registry/broker authority, deploy only the named entrypoint + the two minimal allowlist additions, validate, and **stop before any persistent-capture `host_admin_prepare`**.
+
+Canonical detail: `docs/decisions/0314-managed-admin-v2-persistent-capture-capability-governance-v1.md`.
+
 ## 2026-09-27 — ADR 0313 Canonical Rollback V2 Persistent Capture Execution V1
 
 Status: **BLOCKED BEFORE PREPARE / DEDICATED PERSISTENT-CAPTURE AUTHORITY ABSENT / ROLLBACK NOT CAPTURED / NO PRODUCTION EFFECT**.
