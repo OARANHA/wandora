@@ -1,3 +1,31 @@
+## 2026-09-27 — ADR 0311 managed-admin V2 precheck capability deployed and validated
+
+Status: **CAPABILITY DEPLOYED / VALIDATED / ROOT PRECHECK NOT EXECUTED / NO CUSTOMER OR PROVIDER EFFECT**.
+
+Fresh continuation on PR #369 reconciled source/runtime, obtained the exact protected dynamic registry through the existing governed managed-admin boundary, and proved that the only required target change was adding `wandora-rollback-freeze-v2-precheck` to `wandora-managed-admin.allowedAdminPrograms`. The reviewed candidate changed no other target field or target and reverted semantically to the exact live registry when that one entry was removed.
+
+Remote-Ops source at `f408ed420dc8e104c6b105e31d8b093a624523e6` proved `target_agent_apply` would rebuild the target from a preset, so preset reapplication was rejected. The same source proved `loadRegistry()` runs at control-plane startup, making a bounded `remote-ops-mcp` restart the correct reload for the custom reviewed dynamic-registry diff.
+
+After a second adversarial review (`confirm=0.80`, confidence `0.73`) and fresh explicit approvals, production deployment installed:
+
+- dedicated entrypoint `/usr/local/sbin/wandora-rollback-freeze-v2-precheck` via root-owned `0755` install;
+- exact canonical helper `/usr/local/libexec/wandora/production-rollback-freeze-v2.sh` via root-owned `0750` install;
+- one broker drop-in adding only the dedicated program to `WANDORA_ADMIN_PROGRAMS`;
+- the reviewed dynamic registry as `wandora-admin:wandora-ops 0600`.
+
+`systemctl daemon-reload` succeeded. Transport-side errors during the admin-broker and control-plane restart calls were reconciled state-first rather than blindly retried. Readback proved the admin broker restarted to PID `1765513`, loaded the exact drop-in and effective admin-program addition; `remote-ops-mcp` restarted at `2026-09-28T01:54:01.625511967Z`, remained healthy, and exposes the new target authority.
+
+Final governed live hash readback, without executing either script, is exact:
+
+- entrypoint `97b6962858aee3ea8c5577d7bd480502637bb4b2`;
+- helper `849a05971d5f2526b6e8829d5315b4678f169315`.
+
+Managed-admin hard-denies remain unchanged for generic shells/interpreters; `env` remains denied-by-default because it is absent from the administrative allowlists. All seven Wandora containers remained healthy; agent/admin/exec brokers remained active. No root precheck, rollback capture, Fast Read activation, provider/VendaERP/customer work or outbound effect occurred.
+
+Next boundary: **Canonical Rollback V2 Root Precheck Execution** is a new slice requiring fresh REAL NOW reconciliation, new decision, second adversarial review and new explicit managed-admin approval. Deployment approvals from ADR 0311 must not be reused.
+
+Canonical detail: `docs/decisions/0311-managed-admin-v2-precheck-capability-deployment-v1.md`.
+
 ## 2026-09-27 — ADR 0310 managed-admin root capability governance for canonical Rollback V2 precheck
 
 Status: **QUALIFIED / CODE+CI ONLY / CAPABILITY NOT DEPLOYED / ROOT PRECHECK NOT EXECUTED / NO PRODUCTION EFFECT**.
