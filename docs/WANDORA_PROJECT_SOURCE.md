@@ -1,3 +1,17 @@
+## Latest checkpoint — ADR 0321 Semantic Fast Read browser 404 Web bridge gap
+
+Status: **FAIL-CLOSED / BASELINE RESTORED / ROOT CAUSE PROVEN / WEB-ONLY FIX IMPLEMENTED + WEB CI GREEN / NO PRODUCTION PROMOTION**.
+
+Exactly one owner/admin browser Fast Read request was executed during the bounded attestation and returned HTTP 404. The mandatory close was then freshly approved and executed; Core is back on the exact gates-OFF baseline, custody/attestation mounts are absent, Human Send and Gateway outbound remain OFF, Task Drain is quiescent, and Paperclip is unchanged.
+
+Production Web access logs plus the exact deployed Web revision proved the request never reached Core: `apps/web/nginx.conf` lacked the UUID-scoped `/digital-employees/{id}/fast-read` allowlist and the request fell through to the explicit `location /api/ { return 404; }` boundary. Therefore this attempt made no TypeSafe/Mistral/Paperclip/VendaERP call.
+
+PR #369 now contains the narrow Web-only repair and isolated bridge test. Code commits `7789467b0c2115dcb9614d1201ccfa1516a68c49` and `9a3e8ce416f9e181bca19bf392c636a5a733e4e4` add exactly one Fast Read proxy rule and Web CI coverage; the Web bridge verifier is GREEN. Production Web remains unchanged.
+
+**Next boundary:** complete final exact-head CI, then separately qualify/promote only the reviewed Web artifact before any new bounded attestation. No approval from the failed attempt may be reused.
+
+Canonical detail: `docs/decisions/0321-semantic-fast-read-browser-404-web-bridge-gap-v1.md`.
+
 ## 2026-09-28 — ADR 0317 Semantic Fast Read bounded attestation attempt aborted and baseline restored
 
 Status: **FAIL-CLOSED / INVALID WINDOW CLOSED / BASELINE RESTORED / NO HUMAN FAST READ**.
