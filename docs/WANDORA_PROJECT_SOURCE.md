@@ -1,3 +1,13 @@
+## Latest checkpoint — ADR 0311 managed-admin V2 precheck capability deployed
+
+Status: **DEPLOYED + VALIDATED / ROOT PRECHECK NOT EXECUTED**.
+
+The dedicated governed root program `wandora-rollback-freeze-v2-precheck` is now live behind the existing Remote-Ops managed-admin boundary. The effective target and admin broker each add only that named program; generic shell/interpreter authority remains denied. Live installed hashes match the ADR 0310 qualified blobs exactly: entrypoint `97b6962858aee3ea8c5577d7bd480502637bb4b2`, helper `849a05971d5f2526b6e8829d5315b4678f169315`.
+
+The protected dynamic registry was reviewed before mutation; no preset-based target recreation was used. `remote-ops-mcp` was restarted only because current source loads the registry through `loadRegistry()` at startup. State-first readback after ambiguous restart responses proved the admin broker and control plane both applied the intended state and remained healthy. Seven Wandora containers remain healthy.
+
+**Do not execute the precheck from this checkpoint.** The next slice is separately authorized **Canonical Rollback V2 Root Precheck Execution** with fresh reconciliation, second adversarial review and a new `adm_...` approval. See ADR 0311 for full evidence.
+
 ## Latest continuity checkpoint — ADR 0311 managed-admin V2 precheck capability deployment blocked before root mutation
 
 ADR 0311 is **BLOCKED BEFORE ROOT MUTATION / CAPABILITY NOT DEPLOYED / ROOT PRECHECK NOT EXECUTED / NO PRODUCTION EFFECT**.
