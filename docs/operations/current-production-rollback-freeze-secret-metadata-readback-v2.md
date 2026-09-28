@@ -1,8 +1,47 @@
 # Current Production Rollback Freeze + Secret Metadata Readback V2 — Preparation
 
-Status: **CANONICAL V2 STAGED / MANAGED-ADMIN PRECHECK CAPABILITY DEPLOYED+VALIDATED / ROOT PRECHECK NOT EXECUTED OR AUTHORIZED BY THIS CHECKPOINT**
+Status: **ROOT PRECHECK EXECUTED GREEN / ROLLBACK NOT CAPTURED / ACTIVATION NOT AUTHORIZED**
 
 This runbook adapts the already-qualified ADR 0299 mechanism to the current Semantic Fast Read baseline. It does not introduce a second backup or secret subsystem.
+
+## Root precheck execution checkpoint — ADR 0312
+
+The separately authorized canonical root precheck has now executed exactly once through the dedicated governed managed-admin program:
+
+`wandora-rollback-freeze-v2-precheck`
+
+Fresh approval:
+
+`adm_754da3e28ac55462fcf60074`
+
+The human explicitly supplied the exact required confirmation. The governed apply returned:
+
+- `executed=true`;
+- `exit_code=0`;
+- `timed_out=false`;
+- terminal marker `ROLLBACK_FREEZE_V2_PRECHECK_OK`.
+
+Safe precheck output matched the current pinned runtime anchors and metadata-only custody expectations. It also emitted:
+
+- `activation_performed=false`;
+- `provider_call_performed=false`;
+- `customer_effect=false`;
+- `outbound_effect=false`.
+
+Post-execution readback proved:
+
+- no `production-rollback-freeze-v2.metadata` exists in the operator workspace;
+- the same seven Wandora containers remain healthy;
+- Paperclip/Core/Gateway identities, start times and restart counts are unchanged;
+- Organization Adapter remains exactly `0.5.0 ready`;
+- Task Drain remains `false / 0 / 0 / quiescent=true`;
+- the managed-admin broker remains active/running without restart.
+
+Rollback-root creation was not reached by this invocation. The exact dedicated entrypoint supplies only `--precheck-only`; the canonical helper prints `ROLLBACK_FREEZE_V2_PRECHECK_OK` and exits 0 before its explicit `First write begins here` boundary. Parent/root creation is below that boundary.
+
+No extra root/filesystem authority was opened merely to probe the protected backup directory.
+
+**This GREEN precheck does not authorize persistent rollback capture.** The next slice must be a separate **Canonical Rollback V2 Persistent Capture Execution** with fresh reconciliation, decision, second adversarial review and new explicit authorization. Do not reuse the ADR 0312 approval.
 
 ## Managed-admin capability deployment checkpoint
 
