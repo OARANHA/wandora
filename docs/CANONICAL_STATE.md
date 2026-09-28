@@ -1,3 +1,19 @@
+## 2026-09-27 — ADR 0312 Canonical Rollback V2 Root Precheck Execution
+
+Status: **ROOT PRECHECK EXECUTED / GREEN / ROLLBACK NOT CAPTURED / ACTIVATION NOT AUTHORIZED**.
+
+Fresh reconciliation kept PR #369 open/draft/mergeable at source head `3f309cd4e70572a76d0e4f9cbbc35eddfd39f912` with **17/17 workflows GREEN**. Remote-Ops remained source/live aligned at `f408ed420dc8e104c6b105e31d8b093a624523e6`; seven Wandora containers remained healthy; Paperclip remained v2026.916.1; Core remained `wandora/core:organization-adapter-candidate-2c2142237c9c`; Organization Adapter was exactly 0.5.0 ready; Task Drain remained false/0/0/quiescent; Core Fast Read/Semantic Fast Read/Human Send remained OFF; Gateway outbound remained OFF.
+
+A fresh JEV guard returned `confirm=0.74` with confidence `0.65`. The already-deployed dedicated program `wandora-rollback-freeze-v2-precheck` was prepared under fresh approval `adm_754da3e28ac55462fcf60074`, explicitly approved, and executed exactly once with zero caller arguments.
+
+The governed apply returned `exit_code=0`, no timeout, and `ROLLBACK_FREEZE_V2_PRECHECK_OK`. Safe output confirmed current Paperclip/Core/OA/Compose anchors, metadata-only TypeSafe/`wfri1`/Mistral custody, and `activation_performed=false`, `provider_call_performed=false`, `customer_effect=false`, `outbound_effect=false`.
+
+Post-readback kept all runtime identities healthy/unchanged and proved `production-rollback-freeze-v2.metadata` absent. The exact precheck branch exits before the helper's explicit first-write boundary, so rollback-parent/root creation was not reached by this invocation. No additional root/filesystem authority was introduced merely to inspect the protected backup path.
+
+This checkpoint does not authorize persistent rollback capture or any activation. The next slice is **Canonical Rollback V2 Persistent Capture Execution**, requiring fresh state, a new decision, a new second adversarial review and new explicit authorization.
+
+Canonical detail: `docs/decisions/0312-canonical-rollback-v2-root-precheck-execution-v1.md`.
+
 ## 2026-09-27 — ADR 0311 managed-admin V2 precheck capability deployed and validated
 
 Status: **CAPABILITY DEPLOYED / VALIDATED / ROOT PRECHECK NOT EXECUTED / NO CUSTOMER OR PROVIDER EFFECT**.
