@@ -8,7 +8,7 @@ The protected dynamic registry was reviewed before mutation; no preset-based tar
 
 **Do not execute the precheck from this checkpoint.** The next slice is separately authorized **Canonical Rollback V2 Root Precheck Execution** with fresh reconciliation, second adversarial review and a new `adm_...` approval. See ADR 0311 for full evidence.
 
-## Latest continuity checkpoint — ADR 0311 managed-admin V2 precheck capability deployment blocked before root mutation
+## Historical continuity checkpoint — ADR 0311 blocked before capability deployment
 
 ADR 0311 is **BLOCKED BEFORE ROOT MUTATION / CAPABILITY NOT DEPLOYED / ROOT PRECHECK NOT EXECUTED / NO PRODUCTION EFFECT**.
 
