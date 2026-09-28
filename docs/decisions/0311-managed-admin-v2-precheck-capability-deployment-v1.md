@@ -166,3 +166,34 @@ Resume only from fresh state.
 9. **STOP before executing `wandora-rollback-freeze-v2-precheck`.**
 
 The later **Canonical Rollback V2 Root Precheck Execution** remains a separate slice and authorization.
+
+
+## Continuation checkpoint — second governed apply blocked; broker readback closed
+
+Fresh reconciliation on PR #369 head `c96b834346d6e7cbad75e0e0153caf62485fdddf` completed **17/17 workflows GREEN** with zero failures. Remote-Ops repository/runtime remained aligned at `f408ed420dc8e104c6b105e31d8b093a624523e6` / `ghcr.io/oaranha/remote-ops-mcp:sha-f408ed4`; the seven Wandora containers remained healthy and Task Drain remained `false / activeRuns=0 / pendingWakes=0 / quiescent=true`.
+
+The staged ADR 0310 bytes were revalidated immediately before any root action:
+
+- entrypoint Git blob: `97b6962858aee3ea8c5577d7bd480502637bb4b2`;
+- helper Git blob: `849a05971d5f2526b6e8829d5315b4678f169315`;
+- non-root `bash -n` over both staged files: exit 0.
+
+A fresh second adversarial review approved only a readback copy of the protected dynamic registry + broker unit subject to explicit confirmation (`confirm=0.92`, confidence `0.91`). The human explicitly approved `adm_e3590d1ca1228bf15561a123` for exactly that copy. The subsequent `host_admin_apply` was again blocked by the ChatGPT/OpenAI client security layer before a successful Remote-Ops result was returned.
+
+State-first recovery immediately proved the intended review copies were still absent from `/opt/wandora/ops-workspace/adr0310-capability-deployment/`. Therefore there is no observable root effect and the approval must not be reused or blindly retried.
+
+One part of the readback gap was then closed without root authority: the already-allowlisted non-root execution broker ran `systemctl cat wandora-ops-admin-broker.service`. The live unit proves `WANDORA_ADMIN_PROGRAMS` is exactly the current managed-admin default program set and does **not** include `wandora-rollback-freeze-v2-precheck`. The broker is still root/ops-mcp, `shell=false` in provider implementation, active/running and restart count 0. The effective `wandora-managed-admin` target likewise still exposes only the default `allowedAdminPrograms` and no dedicated precheck program.
+
+The canonical correction about `env` remains unchanged: it is not in `MANAGED_ADMIN_HARD_DENY`, but it is absent from both target and broker administrative allowlists, so it remains denied-by-default and must not be described as an explicit provider hard-deny.
+
+The remaining blocker is narrower: the exact raw `runtime/data/dynamic-targets.json` bytes are still unavailable through a governed read surface in this client context. The path is outside the ordinary `read_file` boundary, and the approved managed-admin copy path is client-blocked. Do **not** bypass that boundary with `start_process` file reads, Docker exec, generic interpreters, shell tricks, allowlist widening or a second authority mechanism.
+
+A post-failure adversarial route review returned **block=0.83 / deep_review=0.16 / proceed_fast=0.01** with confidence `0.76`. Therefore capability deployment remains blocked before the first live mutation.
+
+Current status remains:
+
+**BLOCKED BEFORE ROOT MUTATION / CAPABILITY NOT DEPLOYED / ROOT PRECHECK NOT EXECUTED / NO PRODUCTION EFFECT**.
+
+No root-owned capability file, dynamic registry, broker unit, service, control-plane container, Fast Read gate, provider, customer or outbound state changed in this continuation.
+
+Next continuation must start fresh and use an execution context where the existing governed managed-admin apply path is permitted to obtain/review the exact dynamic registry bytes. Only then may it define the exact minimal target+broker diff, run a fresh second adversarial review, obtain a new explicit approval, deploy/validate the capability only, and stop again before root precheck.
