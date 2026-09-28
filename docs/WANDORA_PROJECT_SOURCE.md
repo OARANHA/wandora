@@ -4637,3 +4637,26 @@ Important operational evidence: local-path plugin install is sensitive to filesy
 Canonical detail: `docs/decisions/0304-organization-adapter-0-5-0-production-promotion-execution-v1.md`.
 
 Next slice: reconcile repo/CI/runtime fresh, then evaluate the remaining Core compatibility convergence. Keep Semantic Fast Read, Semantic Selector, Human Send, Messaging Gateway outbound and WhatsApp Fast Read OFF until a later separately authorized activation slice.
+
+
+## 2026-09-28 — ADR 0320 Semantic Fast Read mandatory-close boundary reuse
+
+The ADR0319 close-path issue is resolved at the authority/design level without changing production.
+
+Remote-Ops already provides the durable privileged capability through `host_admin_prepare/apply`; individual `adm_...` approvals are intentionally short-lived (10 minutes), and the signed root ticket created after apply is shorter-lived still (90 seconds). Do not pre-create a close approval and expect it to survive a human browser window.
+
+For the next bounded retry:
+
+- freeze/prove the exact baseline close operation before opening;
+- keep managed-admin healthy;
+- do **not** prepare the close `adm_...` in advance;
+- after the one Human Fast Read, or immediately on any ambiguity/failure, prepare a fresh close approval for the already-frozen exact operation;
+- require exact human `APPROVE adm_...`;
+- apply immediately;
+- validate the gates-OFF baseline state-first.
+
+No new wrapper, scheduler, approval subsystem, root widening or Remote-Ops TTL change is currently justified. See `docs/decisions/0320-semantic-fast-read-mandatory-close-boundary-reuse-v1.md`.
+
+Current production baseline remains closed/inert: Core exact candidate healthy, Semantic Fast Read OFF, Human Send OFF, custody/attestation absent, Paperclip 916.1 healthy, Gateway outbound OFF and Task Drain quiescent.
+
+Next slice: **Semantic Fast Read Bounded Production Attestation Retry Preflight V1 — NO OPENING YET**.
