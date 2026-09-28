@@ -1,3 +1,17 @@
+## Latest checkpoint — ADR 0314 bounded persistent-capture authority code+CI qualified
+
+Status: **CODE+CI QUALIFIED / CAPABILITY NOT DEPLOYED / PERSISTENT CAPTURE NOT EXECUTED / NO PRODUCTION EFFECT**.
+
+After state-first recovery from the chat interruption, PR #369 qualification head `f3d1e923ace58da7abd8f04f55834867cbe9f2bb` is confirmed **17/17 workflows GREEN**. The Reuse Gate retained Remote-Ops as operational authority and rejected both generic root shell authority and any new approval/broker subsystem.
+
+The qualified minimal contract is one Wandora-owned zero-argument program, `wandora-rollback-freeze-v2-capture`, reusing the already-installed root-owned canonical helper at `/usr/local/libexec/wandora/production-rollback-freeze-v2.sh`. It pins helper Git blob `849a05971d5f2526b6e8829d5315b4678f169315`, validates root ownership/non-symlink modes and `bash -n`, then executes only the helper with zero args. Caller-supplied paths/env/argv are forbidden.
+
+The dedicated ADR 0314 CI gate is GREEN and the complete qualification head is 17/17 GREEN. No capability deployment, target/broker allowlist change, root capture program installation, persistent-capture prepare/apply, rollback receipt, provider/model/VendaERP/customer/WhatsApp/outbound effect occurred.
+
+Next: capability deployment only, with fresh reconciliation + exact-byte staging/readback + live registry/broker diff + new second adversarial review. After deployment/validation, stop before any `host_admin_prepare` for persistent capture.
+
+Canonical detail: `docs/decisions/0314-managed-admin-v2-persistent-capture-capability-governance-v1.md`.
+
 ## Latest checkpoint — ADR 0313 persistent Rollback V2 capture blocked before prepare
 
 Status: **BLOCKED BEFORE PREPARE / DEDICATED PERSISTENT-CAPTURE AUTHORITY ABSENT / ROLLBACK NOT CAPTURED / NO PRODUCTION EFFECT**.
