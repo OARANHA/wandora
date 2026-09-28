@@ -2,7 +2,7 @@
 
 Date: 2026-09-28
 
-Status: **CODE+CI QUALIFIED / CAPABILITY NOT DEPLOYED / PERSISTENT CAPTURE NOT EXECUTED / NO PRODUCTION EFFECT**
+Status: **CODE+CI QUALIFIED / DEPLOYMENT STAGED / CAPABILITY NOT DEPLOYED / PRIVILEGED INSTALL PREPARE BLOCKED BEFORE MCP / PERSISTENT CAPTURE NOT EXECUTED / NO PRODUCTION EFFECT**
 
 ## Objective
 
@@ -136,6 +136,40 @@ No rollback capture or V2 receipt was created.
 No Fast Read/Semantic Selector/Human Send/Gateway outbound gate was enabled.
 
 No provider/model/VendaERP/customer/WhatsApp/outbound effect occurred.
+
+## Deployment staging checkpoint — 2026-09-28
+
+A fresh deployment-boundary reconciliation completed before any protected production mutation:
+
+- the exact live dynamic registry was copied to the governed workspace through approved managed-admin operations and read back successfully;
+- live `wandora-managed-admin.allowedAdminPrograms` still equals the baseline plus only `wandora-rollback-freeze-v2-precheck`; persistent capture remains absent;
+- registry candidate `/opt/wandora/ops-workspace/adr0314-capability-deployment/dynamic-targets.candidate.json` was created with exactly one semantic delta: add `wandora-rollback-freeze-v2-capture` to that one target;
+- removing that one entry from the parsed candidate reproduces the parsed live registry exactly;
+- registry candidate Git blob = `0e83efd8c45e8e62c533f41810c0b0f63cd5a69f`; `jq empty` passed;
+- qualified wrapper was staged from the PR and revalidated: Git blob = `f693cc0f0e34258fcdf10d7616f92f1ff1d48758`; `bash -n` passed;
+- broker drop-in candidate `50-wandora-rollback-freeze-v2-capture.conf` was staged with Git blob `7bcda5c69048190b242d2895a206d96537be0a3c`;
+- installed Remote-Ops broker source was re-read and proves `WANDORA_ADMIN_PROGRAMS` is comma-separated, the broker checks hard-deny and allowlist, and executes `spawn(..., { shell: false })`;
+- fresh runtime readback showed admin broker active/running with PID `1765513`, zero restarts; seven containers running/healthy; Task Drain `draining=false / activeRuns=0 / pendingWakes=0 / quiescent=true`;
+- a fresh second adversarial JEV over the exact staged artifacts and deployment sequence returned `confirm=0.89`, `allow=0.05`, `deny=0.04`, `review=0.02`, confidence `0.86`.
+
+The next intended protected operation was installation of the qualified wrapper at:
+
+`/usr/local/sbin/wandora-rollback-freeze-v2-capture`
+
+with `root:root 0755` via the existing `host_admin_prepare/apply` path.
+
+However, the outer tool-security boundary blocked the attempt to create that privileged-install approval **before the MCP call executed**. Therefore:
+
+- no deployment approval id was created for the wrapper install;
+- no wrapper was installed;
+- no live registry was replaced;
+- no broker drop-in was installed;
+- no systemd daemon-reload or service/container restart occurred;
+- no persistent-capture approval was prepared;
+- Persistent Capture V2 was not executed;
+- production behavior remains unchanged.
+
+No alternative `cp/chmod`, shell, interpreter or other mechanism was used to bypass that external safety boundary.
 
 ## Next boundary
 
