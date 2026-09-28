@@ -1,3 +1,19 @@
+## 2026-09-28 — ADR 0315 Canonical Rollback V2 Persistent Capture Execution V2
+
+Status: **PERSISTENT CAPTURE EXECUTED + VALIDATED / ROLLBACK V2 READY / ACTIVATION NOT AUTHORIZED / NO PROVIDER/CUSTOMER/OUTBOUND EFFECT**.
+
+PR #369 was freshly reconciled at exact pre-capture head `22613dcb92d913649d4c5ae79583ce11b6c67d07`, open/draft/mergeable with **17/17 workflows GREEN** and no rerun. Runtime remained on the pinned inert baseline: seven containers healthy; Paperclip v2026.916.1; Core `2c214223...`; one Organization Adapter 0.5.0 ready; Task Drain false/0/0/quiescent; Core Fast Read/Semantic Fast Read/Human Send OFF; Gateway outbound OFF.
+
+The existing Remote-Ops managed-admin chain and ADR 0314 zero-argument program were reused exactly. Fresh JEV guard returned `confirm=0.86` with confidence `0.81`. Human-approved ticket `adm_cccf18ab2668c5e094cee2be` executed exactly once with `exit_code=0`, no timeout and `ROLLBACK_FREEZE_V2_OK`.
+
+The new safe receipt `/opt/wandora/ops-workspace/production-rollback-freeze-v2.metadata` independently proves the protected rollback root, exact runtime anchors, official Paperclip backup/gzip proof, disposable PostgreSQL restore/schema equality, metadata-only secret custody and all four forbidden effect flags `false`.
+
+Post-execution runtime is unchanged and healthy: same seven containers, OA 0.5.0 ready, Task Drain false/0/0/quiescent, broker/agent active with zero restart, Core activation gates OFF and Gateway outbound OFF.
+
+**Hard stop:** Rollback V2 is now captured and ready; Semantic Fast Read or any other production activation remains a separate future effect requiring fresh pre-mutation attestation and authorization.
+
+Canonical detail: `docs/decisions/0315-canonical-rollback-v2-persistent-capture-execution-v2.md`.
+
 ## 2026-09-28 — ADR 0314 Managed-Admin V2 Persistent Capture Capability Governance V1
 
 Status: **CAPABILITY DEPLOYED + VALIDATED / PERSISTENT CAPTURE NOT PREPARED OR EXECUTED / NO FAST READ/PROVIDER/CUSTOMER/OUTBOUND EFFECT**.
