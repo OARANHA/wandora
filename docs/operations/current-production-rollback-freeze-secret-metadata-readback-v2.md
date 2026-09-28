@@ -1,3 +1,23 @@
+## Persistent capture managed-admin capability qualification checkpoint — ADR 0314
+
+The dedicated persistent-capture authority is now **qualified in code+CI only** and is **not deployed**.
+
+Qualified program contract:
+
+`wandora-rollback-freeze-v2-capture`
+
+Repository entrypoint:
+
+`scripts/operations/managed-admin-production-rollback-freeze-v2-capture.sh`
+
+The entrypoint accepts zero caller args, pins itself to `/usr/local/sbin/wandora-rollback-freeze-v2-capture`, reuses the existing root-owned helper at `/usr/local/libexec/wandora/production-rollback-freeze-v2.sh`, requires the helper Git blob `849a05971d5f2526b6e8829d5315b4678f169315`, validates ownership/mode/non-symlink state and syntax, and executes only the helper's zero-argument persistent mode.
+
+Do not add generic shell/interpreter authority. Do not directly allowlist the helper. Do not install a second helper copy.
+
+Qualification head `f3d1e923ace58da7abd8f04f55834867cbe9f2bb` completed 17/17 workflows GREEN. No live registry/broker authority changed and persistent capture remains unexecuted.
+
+Before deployment, fresh-reconcile exact head/CI/runtime and exact live registry/broker state, then deploy only the named entrypoint + the same single program name in target and broker allowlists. After validation, **stop before persistent-capture prepare**.
+
 # Current Production Rollback Freeze + Secret Metadata Readback V2 — Preparation
 
 Status: **PERSISTENT CAPTURE BLOCKED BEFORE PREPARE / ROOT PRECHECK GREEN / ROLLBACK NOT CAPTURED / ACTIVATION NOT AUTHORIZED**
