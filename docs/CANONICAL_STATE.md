@@ -6188,3 +6188,18 @@ Core and Messaging Gateway were not recreated and remain healthy/restart 0 on th
 ADR 0299 qualified rollback receipt/root remain the recovery anchor. No next mutation is authorized by implication.
 
 Next separately reviewed slice: **Organization Adapter 0.5.0 Production Promotion — compatibility convergence only / all semantic and outbound gates OFF**.
+
+
+## 2026-09-28 — ADR 0320 Semantic Fast Read mandatory-close boundary reuse
+
+Status: **DECISION COMPLETE / EXISTING REMOTE-OPS BOUNDARY REUSED / NO PRODUCTION EFFECT**.
+
+ADR 0319's mandatory-close fragility is now classified correctly: the expired `adm_...` was an ephemeral approval, not the durable close capability. Production Remote-Ops source proves managed-admin approvals expire after 10 minutes and the signed root ticket created after apply expires after 90 seconds. Those lifetimes remain unchanged.
+
+The durable operational authority remains the existing `host_admin_prepare/apply` path. The next attestation retry must therefore freeze and prove the exact image-pinned baseline close command before opening, but **must not pre-create the close approval**. After the single human browser request, or immediately on any error/ambiguity, create a fresh close approval for that already-frozen exact operation, require the user's exact `APPROVE adm_...`, apply immediately, then validate the gates-OFF baseline state-first.
+
+No new wrapper, approval subsystem, scheduler, state machine, table, migration, generic root shell or Remote-Ops TTL change is justified by current evidence. A narrow wrapper remains a future fallback only if the existing fresh prepare/apply route is proven insufficient.
+
+Current reconciled baseline remains: Core `organization-adapter-candidate-2c2142237c9c` healthy with Semantic Fast Read/Human Send OFF and custody/attestation absent; Paperclip `v2026.916.1` healthy; Gateway outbound OFF; Task Drain quiescent; Rollback Freeze V2 receipt aligned. No production mutation/provider/customer/outbound effect occurred in ADR 0320.
+
+Next: **Semantic Fast Read Bounded Production Attestation Retry Preflight V1 — NO OPENING YET**. Reprove exact head/CI, rollback precheck, custody/provider qualification, overlay bytes, exact baseline/open/close Compose renders, image identity, Task Drain, effect gates and managed-admin availability before any opening.
