@@ -1,12 +1,35 @@
 # Current Production Rollback Freeze + Secret Metadata Readback V2 — Preparation
 
-Status: **CANONICAL V2 STAGED / MANAGED-ADMIN PRECHECK ENTRYPOINT CODE-QUALIFIED / CAPABILITY NOT DEPLOYED / ROOT EXECUTION NOT AUTHORIZED**
+Status: **CANONICAL V2 STAGED / MANAGED-ADMIN PRECHECK CAPABILITY DEPLOYED+VALIDATED / ROOT PRECHECK NOT EXECUTED OR AUTHORIZED BY THIS CHECKPOINT**
 
 This runbook adapts the already-qualified ADR 0299 mechanism to the current Semantic Fast Read baseline. It does not introduce a second backup or secret subsystem.
 
+## Managed-admin capability deployment checkpoint
+
+ADR 0311 completed the capability-deployment slice.
+
+Live governed program:
+
+`/usr/local/sbin/wandora-rollback-freeze-v2-precheck`
+
+Live root-owned helper:
+
+`/usr/local/libexec/wandora/production-rollback-freeze-v2.sh`
+
+Final live Git blob readback, performed with `git hash-object --no-filters` and without executing either script:
+
+- entrypoint: `97b6962858aee3ea8c5577d7bd480502637bb4b2`;
+- helper: `849a05971d5f2526b6e8829d5315b4678f169315`.
+
+The effective `wandora-managed-admin` target and `wandora-ops-admin-broker.service` now allow exactly the additional program `wandora-rollback-freeze-v2-precheck`. Generic shell/interpreter hard-denies remain unchanged. `env` remains denied-by-default because it is absent from the administrative allowlists.
+
+The dynamic registry was changed only after exact-byte review. The control plane was then restarted because current Remote-Ops source loads the dynamic registry through `loadRegistry()` at startup. Post-restart health and target readback are GREEN.
+
+This deployment **does not authorize or imply root precheck execution**. Before calling the live program, start a new slice and perform fresh state reconciliation, decision, second adversarial review, `host_admin_prepare`, new explicit `APPROVE adm_...`, and `host_admin_apply`. Do not reuse ADR 0311 deployment approvals.
+
 ## Managed-admin precheck capability status
 
-ADR 0310 qualified the narrow execution contract but **did not deploy it**.
+ADR 0310 qualified the narrow execution contract; ADR 0311 has now **deployed and validated it**.
 
 Future governed program:
 
@@ -22,7 +45,7 @@ Required helper Git blob:
 
 The dedicated program accepts no caller arguments, validates both installed files as root-owned/non-symlink, rechecks the helper Git blob and syntax, and executes only `--precheck-only`. It deliberately does not expose the helper's no-argument persistent rollback-capture mode.
 
-The current live Remote-Ops target/broker still does **not** allow this program. A separate capability-deployment slice must install the exact bytes and add only `wandora-rollback-freeze-v2-precheck` to the existing target and broker administrative-program allowlists. Generic shell/interpreter hard-denies remain unchanged.
+The current live Remote-Ops target/broker now allow exactly this additional dedicated program. Generic shell/interpreter hard-denies remain unchanged.
 
 Even after that deployment is validated, do not execute the precheck until a new fresh decision, second adversarial review, `host_admin_prepare`, new `adm_...`, explicit human `APPROVE adm_...`, and `host_admin_apply`.
 
