@@ -161,9 +161,9 @@ test('Wandora work correlation is verified and result is committed without enter
     undefined,
     undefined,
     {
-      async recordCompleted(input) {
+      recordCompleted(input) {
         telemetry.push(input);
-        return { traceId: '11111111111111111111111111111111' };
+        return new Promise<{ traceId: string }>(() => undefined);
       },
     },
     (() => {
