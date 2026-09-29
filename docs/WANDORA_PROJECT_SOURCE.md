@@ -1,3 +1,21 @@
+## Latest checkpoint — ADR 0337 Organization Adapter 0.6.1 Production Promotion Qualification V1
+
+Status: **EXECUTED / GREEN / OA 0.6.1 LIVE / OPERATIONAL READ GREEN / ALL OTHER EFFECT GATES OFF / NO SEMANTIC FAST READ ATTESTATION**.
+
+Fresh reconciliation kept `main@8d6a65f519de5c1c49607314b49968af608c7164` and PR #369 open/draft/mergeable at exact pre-documentation head `bea589e275dfcf559e22b4efe6996f12ab812fd6`, with **17/17 workflows GREEN**. Final OA CI run `36565503972` produced artifact `11031443354`, digest `sha256:d828b7439e3e3d20eeefb69226c3daf8ef6d222b3027998d78e4cd82f29cbd75`; its package `paperclip-plugin-wandora-organization-adapter-0.6.1.tgz` hashes to `80373a61f08d87772c3aab738ffa6905bddcb49c783e9574c1540247cb3b258f`. Merge ref `56d94f9138a159cffeaabf14d69373376f7d396e` is tree-equivalent to the source head.
+
+The immutable 0.6.1 bytes were independently verified before staging and again inside the Paperclip volume. The live 0.5.0 rollback package was also independently re-hashed against ADR 0304 before lifecycle mutation. OA 0.6.0 remained untouched and promotion-blocked.
+
+Paperclip-native soft uninstall/install, without `--force`, promoted exactly the new content-addressed 0.6.1 path while preserving durable plugin id `86e77fe7-c7e4-4bee-afa3-46cdad575d0c`. Final OA state is exactly one `wandora.organization-adapter-v1@0.6.1`, `ready`, `lastError=null`, `healthy=true`.
+
+Exactly one bounded production `operational-read` succeeded. It returned `runtimeHealth=ok`, the live VendaERP read-only Connection active/enabled/healthy, organization grant active, installed for Ana, and all eight mapped tools active/read-only/non-write/non-destructive/allowed by the effective profile. The projection is Paperclip-owned/cache-only and did not execute VendaERP.
+
+Post-readback: Task Drain `false/0/0/quiescent=true`; all seven containers healthy; Core Fast Read execution, Semantic Fast Read and Human Send remain OFF; Gateway outbound remains OFF; 28PRO issueCounter remains 19. No TypeSafe/Mistral/model call, customer work/request, VendaERP tool execution, WhatsApp or outbound effect occurred.
+
+**Hard stop:** the operational surface is live and legible, but this slice does not open Semantic Fast Read attestation. A future attestation preflight requires a new fresh slice/review/authorization.
+
+Canonical detail: `docs/decisions/0337-organization-adapter-0-6-1-production-promotion-qualification-v1.md`.
+
 ## Latest checkpoint — ADR 0336 Organization Adapter Operational Read Bridge Compatibility Fix V1
 
 Status: **QUALIFIED / 0.6.1 IMMUTABLE PACKAGE / 17/17 EXACT CODE-HEAD CI GREEN / PRODUCTION PROMOTION NOT STARTED / LIVE OA 0.5.0 UNCHANGED / NO PRODUCTION EFFECT**.
