@@ -55,7 +55,7 @@ export class VigiaPublicTelemetryClient implements CompletedWorkTelemetry {
 
   private async waitForTrace(traceId: string): Promise<void> {
     const path = `/v1/projects/${encodeURIComponent(this.config.projectSlug)}/traces/${traceId}`;
-    for (const delayMs of [0, 100, 250, 500, 1_000]) {
+    for (const delayMs of [0, 500, 1_000, 1_500, 2_500, 4_000]) {
       if (delayMs > 0) {
         await new Promise((resolve) => setTimeout(resolve, delayMs));
       }
