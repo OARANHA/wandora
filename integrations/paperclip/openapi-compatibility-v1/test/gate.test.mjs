@@ -63,10 +63,20 @@ test('production pins remain canonical while explicitly qualified provider candi
   assert.equal(compose.match(/PAPERCLIP_BUILD_COMMIT: (\S+)/)?.[1], manifest.sourceCommit);
   assert.equal(compose.match(/PAPERCLIP_BUILD_VERSION: (\S+)/)?.[1], manifest.providerVersion);
 
-  const candidate = json(join(
+  const blockedCandidate060 = json(join(
     root,
     'candidates/organization-adapter-v0.6.0-paperclip-v2026.916.1.json',
   ));
+  assert.equal(blockedCandidate060.pluginVersion, '0.6.0');
+  assert.equal(blockedCandidate060.productionEffect, false);
+  assert.equal(blockedCandidate060.productionPromotionAuthorized, false);
+
+  const candidate = json(join(
+    root,
+    'candidates/organization-adapter-v0.6.1-paperclip-v2026.916.1.json',
+  ));
+  assert.equal(candidate.pluginVersion, '0.6.1');
+  assert.notEqual(candidate.pluginVersion, blockedCandidate060.pluginVersion);
   assert.equal(candidate.schemaVersion, 1);
   assert.equal(candidate.kind, 'organization_adapter_candidate');
   assert.equal(candidate.productionEffect, false);
