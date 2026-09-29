@@ -72,6 +72,7 @@ node --check "$ROOT/dist/worker.js"
 TSX="$(find "$PAPERCLIP_ROOT/node_modules/.pnpm" -path '*/tsx/dist/cli.mjs' -print -quit)"
 [[ -n "$TSX" ]] || { echo 'Paperclip tsx runtime is missing' >&2; exit 1; }
 PAPERCLIP_ROOT="$PAPERCLIP_ROOT" node "$TSX" "$ROOT/scripts/validate-paperclip.ts"
+PAPERCLIP_ROOT="$PAPERCLIP_ROOT" node "$ROOT/scripts/verify-operator-read-surface.mjs"
 
 mkdir -p "$VERIFY_DIR/pack1" "$VERIFY_DIR/pack2"
 (
