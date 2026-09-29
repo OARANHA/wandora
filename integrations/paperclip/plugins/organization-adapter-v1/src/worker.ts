@@ -5,7 +5,7 @@ import { CATALOG_KEY } from './catalog.js';
 import { parseActivationWebhook, parseCapabilitiesWebhook, parseFastReadWebhook, parseReconcileWebhook, parseWorkWebhook, requireFreshTimestamp, requireHmacSecret, verifySignature } from './contract.js';
 import { ensureManagedCatalogEmployeeWork } from './work.js';
 import { waitForManagedCatalogEmployeeFastReadResult } from './fast-read.js';
-import { readManagedEmployeeIntegrationCapabilityProjection } from './integration-capability.js';
+import { readManagedEmployeeIntegrationCapabilityProjection, registerManagedEmployeeOperationalReadData } from './integration-capability.js';
 
 let pluginContext: PluginContext | null = null;
 type SecretRef = { type: 'secret_ref'; secretId: string };
@@ -34,6 +34,7 @@ const plugin = definePlugin({
   multiCompanyConfig: true,
   async setup(ctx) {
     pluginContext = ctx;
+    registerManagedEmployeeOperationalReadData(ctx);
     ctx.logger.info('wandora_organization_adapter_ready');
   },
   async onWebhook(input) {
