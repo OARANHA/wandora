@@ -1,0 +1,10 @@
+services:
+  core:
+    environment:
+      WANDORA_VIGIA_TELEMETRY_ENABLED: "true"
+      WANDORA_VIGIA_BASE_URL: "${WANDORA_VIGIA_BASE_URL:-https://vigia.wandora.com.br}"
+      WANDORA_VIGIA_PROJECT_SLUG: "${WANDORA_VIGIA_PROJECT_SLUG:?set the Vigia project slug}"
+      WANDORA_VIGIA_API_KEY_FILE: "/run/secrets/wandora/vigia.api-key"
+      WANDORA_VIGIA_REQUEST_TIMEOUT_MS: "${WANDORA_VIGIA_REQUEST_TIMEOUT_MS:-3000}"
+    volumes:
+      - "${WANDORA_VIGIA_API_KEY_FILE_HOST:?set the operator-controlled Vigia API key file}:/run/secrets/wandora/vigia.api-key:ro"
