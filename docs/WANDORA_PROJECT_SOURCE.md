@@ -1,3 +1,21 @@
+## Latest checkpoint — ADR 0341 Semantic Fast Read Custody Metadata Readback Execution V1
+
+Status: **EXECUTED ONCE / METADATA READBACK GREEN / CUSTODY CONTRACT SATISFIED / EFFECT GATES REMAIN OFF / HARD STOP**.
+
+Fresh execution-time reconciliation proved PR #369 exact pre-documentation head `50eb8b311bf193ea0e6b73c79629fe17b16339b8` was **17/17 workflows GREEN**, the installed capability still matched Git blob `d12d7033d22d35ee0601ecc96e08daffbc27aae2` as `root:root 0755` regular/non-symlink, the dedicated managed-admin authority remained intact, Task Drain was false/0/0/quiescent, Core/Paperclip/Gateway were healthy and Fast Read/Semantic/Human Send/Gateway outbound remained OFF.
+
+The first prepared approval expired before apply and was rejected with no execution. State-first readback was performed before preparing a new ticket. Fresh second adversarial review returned `confirm=0.74`, `deny=0.14`.
+
+Human-approved one-use ticket `adm_82dc65eaf9c383627bfec4eb` was applied **exactly once**. The program exited 0 in 47 ms with no timeout/stderr and returned only the three qualified metadata rows: TypeSafe/System One, `wfri1` HMAC and model-provider secret are each `wandora-admin:wandora-ops 0640 regular_file`, followed by `SEMANTIC_FAST_READ_CUSTODY_METADATA_V1_OK`.
+
+No secret value/content/hash/copy/encoding was exposed. The program has no network/provider/customer/outbound path and no mutation path. Post-execution Task Drain, component health, broker PID/restarts and all effect gates remained unchanged. No chmod/chown or corrective mutation was performed.
+
+**Hard stop:** no Semantic Fast Read, Human Fast Read, TypeSafe/JEV runtime execution, Mistral, VendaERP, Paperclip/OA mutation, Human Send or WhatsApp/outbound is authorized by this checkpoint.
+
+Next recommended slice: **fresh Semantic Fast Read bounded-attestation execution preflight/effect authorization**, with all mutable freshness gates re-read immediately adjacent to any opening effect.
+
+Canonical detail: `docs/decisions/0341-semantic-fast-read-custody-metadata-readback-execution-v1.md`.
+
 ## Latest checkpoint — ADR 0339 Semantic Fast Read Custody Metadata Readback Capability Qualification V1
 
 Status: **QUALIFIED / 17/17 EXACT-HEAD CI GREEN / CAPABILITY NOT DEPLOYED / METADATA READBACK NOT EXECUTED / NO PRODUCTION EFFECT**.
