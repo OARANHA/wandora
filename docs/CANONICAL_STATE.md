@@ -1,3 +1,21 @@
+## 2026-09-29 — ADR 0339 Semantic Fast Read Custody Metadata Readback Capability Qualification V1
+
+Status: **QUALIFIED / 17/17 EXACT-HEAD CI GREEN / CAPABILITY NOT DEPLOYED / METADATA READBACK NOT EXECUTED / NO PRODUCTION EFFECT**.
+
+Fresh reconciliation proved `main@8d6a65f519de5c1c49607314b49968af608c7164`; PR #369 remained open/draft/mergeable/not merged; entry head `f32f1169b8b181dbd5004e07c6d3d040dba912ac` was 17/17 GREEN; ADR 0339 and the dedicated custody-metadata program were absent. Production remained healthy/inert on Core `b2cffbb54089212844ef177827e7a616b1008144`, Paperclip v2026.916.1, Task Drain false/0/0/quiescent, Semantic Fast Read/Human Send OFF and custody/attestation overlays absent.
+
+Capability Authority / ADR 0168 rejected widening ordinary secret paths or granting caller-visible root `stat`/`bash`/`sh`/`sudo`. The qualified boundary is one Wandora-owned zero-argument named managed-admin entrypoint, `wandora-semantic-fast-read-custody-metadata-v1`, behind the existing Remote-Ops `host.managed_admin` + `host_admin_prepare/apply` authority. It owns no secret state and creates no new registry, lifecycle, service or approval mechanism.
+
+The entrypoint compiles exactly the three Core custody paths for TypeSafe/System One, `wfri1` HMAC and the existing Mistral/model-provider credential; requires EUID 0; requires its future installed self to be root:root 0755 regular/non-symlink; requires each secret to be regular/non-symlink `wandora-admin:wandora-ops 0640`; performs metadata-only `stat`; validates all three before success output; and emits only path/owner/group/mode/type plus `SEMANTIC_FAST_READ_CUSTODY_METADATA_V1_OK`. It never reads/copies/hashes secret values and performs no provider/network call.
+
+Initial adversarial review requested `deep_review`; the tightened all-or-nothing design then passed focused guard with `allow=0.77`, `deny=0.02`. Exact implementation head `6f2fc8f2e95475b3cbee28dd112cd8d1f54750fe` completed **17/17 workflows GREEN**; the dedicated ADR 0339 CI step passed. Completion review returned `complete=0.75`.
+
+Live `wandora-managed-admin` still lacks the new program, so no deployment or metadata readback occurred. Rollback V2 remains intentionally unchanged and retains its historical OA 0.5.0 field; ADR 0338 keeps OA rollback separate from the Core-composition attestation close.
+
+Next separately reviewed slice: **Semantic Fast Read Custody Metadata Readback Capability Deployment V1 — CAPABILITY ONLY / NO METADATA EXECUTION**. Install exact reviewed bytes, add only the named program to existing managed-admin target/broker allowlists, validate bytes/authority and hard-stop. Metadata readback execution is another later slice with fresh REAL NOW, decision, second review, fresh approval and exactly one apply.
+
+Canonical detail: `docs/decisions/0339-semantic-fast-read-custody-metadata-readback-capability-qualification-v1.md`.
+
 ## 2026-09-29 — ADR 0338 Semantic Fast Read Freshness Attestation Preflight V1
 
 Status: **QUALIFIED / READY FOR SEPARATE ATTESTATION EXECUTION / READ-ONLY FRESHNESS GREEN / NO ACTIVATION**.

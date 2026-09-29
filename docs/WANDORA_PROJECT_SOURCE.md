@@ -1,3 +1,17 @@
+## Latest checkpoint — ADR 0339 Semantic Fast Read Custody Metadata Readback Capability Qualification V1
+
+Status: **QUALIFIED / 17/17 EXACT-HEAD CI GREEN / CAPABILITY NOT DEPLOYED / METADATA READBACK NOT EXECUTED / NO PRODUCTION EFFECT**.
+
+ADR 0339 closes the code/CI qualification gap discovered after ADR 0338: the ordinary operator correctly remains denied from `/opt/wandora/stacks/core/secrets`, and the solution does not widen that boundary. A dedicated zero-argument Wandora-owned managed-admin entrypoint now defines a metadata-only contract for exactly the TypeSafe/System One, `wfri1` HMAC and existing model-provider secret paths.
+
+The contract requires future root execution only through the existing Remote-Ops managed-admin approval chain, checks root:root 0755 installed self, requires each fixed secret to be regular/non-symlink `wandora-admin:wandora-ops 0640`, emits only path/owner/group/mode/type after all three validate, and terminates with `SEMANTIC_FAST_READ_CUSTODY_METADATA_V1_OK`. Secret values are never read/copied/hashed and no caller-visible generic root `stat`, shell or interpreter capability is introduced.
+
+Exact implementation head `6f2fc8f2e95475b3cbee28dd112cd8d1f54750fe` completed 17/17 PR workflows GREEN. The dedicated ADR 0339 step inside Semantic Fast Read CI passed; completion review marked the qualification complete. Production remains unchanged: Core `b2cff...` healthy, Paperclip 916.1 healthy, Task Drain quiescent, Semantic Fast Read/Human Send/Gateway outbound OFF, custody/attestation overlays absent. The named metadata program is not live yet.
+
+Next only: **Semantic Fast Read Custody Metadata Readback Capability Deployment V1 — CAPABILITY ONLY / NO METADATA EXECUTION**. After exact bytes + allowlists are live and validated, stop. A later **Semantic Fast Read Custody Metadata Readback Execution V1** must use fresh state/review and a fresh explicit `adm_...` approval. Do not alter Rollback V2 merely to replace its historical OA 0.5.0 field with live OA 0.6.1.
+
+Canonical detail: `docs/decisions/0339-semantic-fast-read-custody-metadata-readback-capability-qualification-v1.md`.
+
 ## Latest checkpoint — ADR 0338 Semantic Fast Read Freshness Attestation Preflight V1
 
 Status: **QUALIFIED / READY FOR SEPARATE SEMANTIC FAST READ ATTESTATION EXECUTION / READ-ONLY FRESHNESS GREEN / NO ACTIVATION**.
