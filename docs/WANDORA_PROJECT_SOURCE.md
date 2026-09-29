@@ -1,3 +1,19 @@
+## Latest checkpoint — ADR 0322 Web bridge production promotion and persistent selector reconciliation
+
+Status: **WEB BRIDGE PROMOTED + SELECTOR PERSISTED / BASELINE PRESERVED / FAST READ STILL OFF / NO NEW ATTESTATION**.
+
+Fresh reconciliation on PR #369 proved exact pre-documentation source head `623555b2d623563533e6745d5b68eb0f0bcf961a` had **17/17 workflows GREEN**. The qualified Web artifact from Web CI run `36497653370` / artifact `11003604308` is live as `wandora/web:candidate-4e67366fbf5a`, OCI digest `sha256:a6a329dd3643f0c825edbfca91abc9341023b68857edf99458c65eb173a97935`, revision `4e67366fbf5a5caa9e2184cde722c3e40332c945`, healthy with restart count 0.
+
+The remaining persistence gap was closed through the existing governed managed-admin boundary only. A separately approved backup of the old Web stack `.env` was created and validated; it resolves rollback candidate `wandora/web:candidate-5108f7ce8de3`. A second fresh approval then copied the reviewed one-line staged selector into `/opt/wandora/stacks/web/.env`. Post-readback now resolves `wandora/web:candidate-4e67366fbf5a`. No `docker compose up` was executed for selector persistence, and the live Web container ID/start time/digest/revision remained unchanged.
+
+Runtime baseline remains inert: Core `2c214223...` healthy with `fastReadExecution=false`, `semanticFastRead=false`, `humanSendProposal=false`; Paperclip remains `v2026.916.1`; Gateway remains `origin-fix-94cfb4de` with outbound OFF; Task Drain remains false/0/0/quiescent.
+
+Live route proof distinguishes the reviewed exact UUID-scoped Fast Read bridge from fail-closed catch-alls: the exact route reaches Core and returns JSON 404 while Fast Read is disabled; `/fast-read/again`, generic `/api/` and `/internal/` remain Nginx 404.
+
+ADR 0321 remains historical and unchanged. **Next boundary:** a new Semantic Fast Read attestation is a separate slice requiring fresh REAL NOW, new decision, new second adversarial review and fresh one-use approvals. Do not reuse the approvals from selector persistence.
+
+Canonical detail: `docs/decisions/0322-semantic-fast-read-web-bridge-production-promotion-v1.md`.
+
 ## Latest checkpoint — ADR 0321 Semantic Fast Read browser 404 Web bridge gap
 
 Status: **FAIL-CLOSED / BASELINE RESTORED / ROOT CAUSE PROVEN / WEB-ONLY FIX IMPLEMENTED + WEB CI GREEN / NO PRODUCTION PROMOTION**.
