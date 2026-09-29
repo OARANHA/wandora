@@ -6249,3 +6249,16 @@ Implementation checkpoint before documentation: PR #369 head `025afcc5787e4ce61a
 Production still runs the older Core candidate. No production promotion is implied by CI.
 
 Next: **Core Fast Read HTTP Body Forwarding Compatibility Promotion V1 — GATES OFF / NO HUMAN FAST READ**. Reconcile fresh repository/runtime/artifact evidence, promote only the exact reviewed Core compatibility candidate while all semantic/outbound gates remain OFF, validate state-first, document, and only then consider a new bounded attestation under fresh approvals.
+
+
+## 2026-09-29 — ADR 0324 Core Fast Read HTTP body-forwarding compatibility promotion
+
+Status: **GREEN / CORRECTED CORE LIVE / ALL FAST-READ+OUTBOUND EFFECT GATES OFF**.
+
+PR #369 source head before execution was `a69b7ba232b76aaac80e991e3525d0df627e287b` with 17/17 exact-head CI GREEN. The exact candidate artifact was independently verified on-host (artifact ZIP SHA-256 `74fbcf13deaf6b4f0eef643b734b2b3864cfc698e86106c64a6f609067515e85`; Docker archive SHA-256 `976ffe25886cd7fbcb7053cc16ab3bce85b31dfaa2043c7cb5676a0ecc973018`) and loaded as `wandora/core:organization-adapter-candidate-b2cffbb54089` / image id `sha256:15a2eca7f74c4e6f7f6ea07bb461d6b711dffd0a70807a3f8e7773f6e6a27c49` / revision `b2cffbb54089212844ef177827e7a616b1008144`.
+
+Only `wandora-core` was recreated on the existing 13-file baseline composition with `--no-deps --force-recreate --no-build --pull never --wait`. Post-readback is healthy/restart 0, exact image/revision, custody+attestation absent, `fastReadExecution=false`, `semanticFastRead=false`, `humanSendProposal=false`; Gateway remains `outboundEnabled=false`; Paperclip remains healthy; Task Drain remains false/0/0/quiescent.
+
+A stable non-secret operator selector now exists at `/opt/wandora/ops-workspace/core-runtime-image.env` and resolves the baseline to the exact live candidate when passed after the protected render env-file. The protected env-file was not copied or rewritten. No Human Fast Read, TypeSafe/Mistral/Paperclip Fast Read/VendaERP call, customer work, outbound effect, migration or database mutation occurred.
+
+Next only as a fresh separately reviewed slice: **Semantic Fast Read Bounded Production Attestation V2** with fresh REAL NOW, fresh approvals and ADR 0320 mandatory-close discipline.
