@@ -1,3 +1,15 @@
+## Latest checkpoint — ADR 0327 Current-Core Rollback V2 exact-byte host deployment
+
+Status: **EXACT BYTES DEPLOYED + HASH VALIDATED / ROOT PRECHECK NOT EXECUTED / CURRENT-CORE RECEIPT ABSENT / HISTORICAL RECEIPT PRESERVED / FAST READ STILL OFF**.
+
+After PR #369 head `93c5127a0f9e7d085de9445bb3250be3fbda5b43` reached 17/17 GREEN, the qualified Rollback V2 helper and existing precheck/capture wrappers for Core `b2cff...` were staged into a new operator-workspace directory, proven by Git-blob identity and `bash -n`, then installed through the existing managed-admin `install` authority only.
+
+Installed byte identities are exact: helper `0f09289c5969cd3ddd407cc588f98648635026e3`, precheck wrapper `0574222f66180af507198f26597aa903571e6770`, capture wrapper `37a8d3468d9ff32c022e98a88706bb8450209be9`. The historical receipt remains intact; the new `b2cff...` receipt is absent. Runtime remains healthy/inert with Fast Read/Semantic/Human Send/Gateway outbound OFF and Task Drain quiescent.
+
+**Next boundary:** fresh root precheck decision + second adversarial review + new one-use approval. Do not capture yet and do not open Semantic Fast Read.
+
+Canonical detail: `docs/decisions/0327-current-core-rollback-v2-host-deployment-v1.md`.
+
 ## Latest checkpoint — ADR 0326 Current-Core Rollback V2 source requalification
 
 Status: **SOURCE QUALIFIED / 17/17 EXACT-HEAD CI GREEN / HOST DEPLOYMENT NOT STARTED / HISTORICAL RECEIPT PRESERVED / FAST READ STILL OFF**.

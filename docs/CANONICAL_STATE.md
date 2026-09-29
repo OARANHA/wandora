@@ -1,3 +1,15 @@
+## 2026-09-29 — ADR 0327 Current-Core Rollback V2 exact-byte host deployment
+
+Status: **EXACT BYTES DEPLOYED + VALIDATED / PRECHECK NOT EXECUTED / CAPTURE NOT EXECUTED / HISTORICAL RECEIPT PRESERVED**.
+
+Exact qualified bytes are now live at the existing canonical managed-admin paths for Rollback V2: helper blob `0f09289c5969cd3ddd407cc588f98648635026e3`, precheck wrapper `0574222f66180af507198f26597aa903571e6770`, capture wrapper `37a8d3468d9ff32c022e98a88706bb8450209be9`. Independent read-only root hashing matched all three installed files exactly.
+
+No registry/service/container mutation was required. Core `b2cff...` remains healthy on the gates-OFF baseline; Task Drain remains quiescent; historical V2 receipt remains untouched; current-Core receipt remains absent.
+
+Next effect: dedicated root precheck with fresh reconciliation/review/approval. Persistent capture remains a later separately approved effect. Semantic Fast Read remains prohibited.
+
+Canonical detail: `docs/decisions/0327-current-core-rollback-v2-host-deployment-v1.md`.
+
 ## 2026-09-29 — ADR 0326 Current-Core Rollback V2 source requalification
 
 Status: **SOURCE QUALIFIED / 17/17 EXACT-HEAD CI GREEN / HOST DEPLOYMENT NOT STARTED / HISTORICAL RECEIPT PRESERVED / ACTIVATION NOT AUTHORIZED**.

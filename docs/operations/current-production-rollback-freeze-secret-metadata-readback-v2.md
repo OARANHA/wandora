@@ -1,3 +1,25 @@
+## Current-Core exact-byte host deployment checkpoint — ADR 0327
+
+Status: **LIVE HELPER+WRAPPERS EXACT / ROOT PRECHECK NOT EXECUTED / CURRENT-CORE RECEIPT ABSENT / HISTORICAL RECEIPT PRESERVED**.
+
+Live qualified Git blobs:
+
+- helper: `0f09289c5969cd3ddd407cc588f98648635026e3`;
+- precheck wrapper: `0574222f66180af507198f26597aa903571e6770`;
+- capture wrapper: `37a8d3468d9ff32c022e98a88706bb8450209be9`.
+
+The files are installed at their existing canonical paths. A separate governed `git hash-object --no-filters` readback matched all three bytes exactly.
+
+Historical receipt remains:
+
+`/opt/wandora/ops-workspace/production-rollback-freeze-v2.metadata`
+
+Current-Core receipt remains absent:
+
+`/opt/wandora/ops-workspace/production-rollback-freeze-v2-b2cffbb54089212844ef177827e7a616b1008144.metadata`
+
+Do not execute the precheck until a fresh decision, second adversarial review, fresh `host_admin_prepare`, explicit approval and single apply. Do not execute capture from the same approval. Semantic Fast Read remains prohibited.
+
 ## Current-Core source requalification checkpoint — ADR 0326
 
 Status: **SOURCE QUALIFIED / 17/17 EXACT-HEAD CI GREEN / LIVE HELPER+WRAPPERS NOT YET UPDATED / HISTORICAL RECEIPT PRESERVED / ACTIVATION NOT AUTHORIZED**.
