@@ -174,3 +174,12 @@ That slice must:
 7. validate state-first and document only the allowed metadata output.
 
 No other activation or provider/customer/outbound work is authorized by this deployment.
+
+
+## Execution follow-up
+
+ADR 0341 executed the deployed custody-metadata capability exactly once after fresh state reconciliation, fresh adversarial review and explicit one-use human approval.
+
+The readback returned exactly the three ADR 0339 paths as `wandora-admin:wandora-ops 0640 regular_file` and terminated with `SEMANTIC_FAST_READ_CUSTODY_METADATA_V1_OK`. No secret value/hash/copy, permission correction, provider/customer/outbound call or Fast Read/Human Send activation occurred. Post-execution Task Drain, component health and gates remained unchanged.
+
+Canonical execution detail: `docs/decisions/0341-semantic-fast-read-custody-metadata-readback-execution-v1.md`.
