@@ -2,8 +2,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   ADAPTER_MAPPED_BUSINESS_CAPABILITIES,
+  OPERATIONAL_READ_DATA_KEY,
   normalizePaperclipOperationalSnapshot,
+  projectPaperclipOperationalRead,
   readManagedEmployeeIntegrationCapabilityProjection,
+  registerManagedEmployeeOperationalReadData,
 } from '../.test-build/integration-capability.mjs';
 
 function tool(toolName, overrides = {}) {
@@ -248,4 +251,101 @@ test('removed or non-read catalog evidence cannot create semantic support', () =
   assert.deepEqual(projection.supportedCapabilities, []);
   assert.deepEqual(projection.organizationEnabledCapabilities, []);
   assert.equal(projection.connection.readiness, 'not_ready');
+});
+
+test('operator operational read returns only mapped provider-native operational fields', () => {
+  const projection = projectPaperclipOperationalRead({
+    runtimeHealth: 'ok',
+    connections: [connection({
+      connectionId: 'must-not-leak',
+      secretRef: 'must-not-leak',
+      providerTenantId: 'must-not-leak',
+      tools: [
+        {
+          ...tool('vendaerp_search_products'),
+          catalogEntryId: 'must-not-leak',
+          providerSchema: { private: true },
+        },
+        tool('unmapped_private_tool', { isWrite: true }),
+      ],
+    })],
+  });
+
+  assert.deepEqual(projection, {
+    runtimeHealth: 'ok',
+    connections: [{
+      displayName: 'VendaERP 28PRO',
+      status: 'active',
+      enabled: true,
+      healthStatus: 'ok',
+      organizationGrantActive: true,
+      installedForAgent: true,
+      tools: [{
+        toolName: 'vendaerp_search_products',
+        status: 'active',
+        riskLevel: 'read',
+        isReadOnly: true,
+        isWrite: false,
+        isDestructive: false,
+        allowedByEffectiveProfile: true,
+      }],
+    }],
+  });
+
+  const serialized = JSON.stringify(projection);
+  for (const forbidden of ['connectionId', 'catalogEntryId', 'secretRef', 'providerTenantId', 'providerSchema']) {
+    assert.equal(serialized.includes(forbidden), false, forbidden);
+  }
+});
+
+test('operator data handler is fixed to host company scope and managed Ana', async () => {
+  let handler;
+  const calls = [];
+  const ctx = {
+    data: {
+      register(key, fn) {
+        assert.equal(key, OPERATIONAL_READ_DATA_KEY);
+        handler = fn;
+      },
+    },
+    agents: {
+      managed: {
+        async get(catalogKey, companyId) {
+          calls.push(['managed.get', catalogKey, companyId]);
+          return {
+            status: 'resolved',
+            agentId: '11111111-1111-4111-8111-111111111111',
+            agent: { id: '11111111-1111-4111-8111-111111111111' },
+          };
+        },
+      },
+    },
+    toolAccess: {
+      async readOperationalSnapshot(input) {
+        calls.push(['toolAccess.readOperationalSnapshot', input]);
+        return { runtimeHealth: 'ok', connections: [connection()] };
+      },
+    },
+  };
+
+  registerManagedEmployeeOperationalReadData(ctx);
+  assert.equal(typeof handler, 'function');
+
+  await assert.rejects(() => handler({}), /operator_operational_read_invalid_company_scope/);
+  await assert.rejects(
+    () => handler({ companyId: 'company-a', agentId: 'caller-controlled' }),
+    /operator_operational_read_invalid_company_scope/,
+  );
+
+  const result = await handler({ companyId: 'company-a' });
+  assert.equal(result.runtimeHealth, 'ok');
+  assert.equal(result.connections.length, 1);
+  assert.equal(result.connections[0].tools.some((entry) => entry.toolName === 'vendaerp_search_products'), true);
+  assert.deepEqual(calls, [
+    ['managed.get', 'ana-commercial-v1', 'company-a'],
+    ['toolAccess.readOperationalSnapshot', {
+      companyId: 'company-a',
+      agentId: '11111111-1111-4111-8111-111111111111',
+    }],
+  ]);
 });
