@@ -87,6 +87,10 @@ Before any future production mutation, capture fresh evidence for all of the fol
 9. metadata/existence of the already-qualified TypeSafe, `wfri1` and Mistral custody without reading values;
 10. exact provider/Business System authorization required by the single test request.
 
+For the current qualified 28PRO VendaERP product-read path, do **not** test `vendaerp_search_products` by tool name + arguments alone. Paperclip's effective app profile is deny-by-default and its action includes are provider-identity scoped. The fresh policy qualification must include enough Paperclip-owned identity to resolve the intended catalog action: `connectionId` or `catalogEntryId` (both are valid; a separate `applicationId` and run context are not required when the Connection/Catalog identity resolves them). Require `allow / allow_profile` with no temporary matched policy and no audit/rate-limit consumption.
+
+Treat that policy decision as authorization evidence only. Separately require the existing bounded `tools.operational.read` projection to report the intended provider path operationally ready for the selected employee: Connection active/enabled/healthy, organization grant active, installed for the agent, catalog tool active/read-only and allowed by the effective profile. Never infer install/grant reach solely from `allow_profile`.
+
 Then make an explicit bounded effect decision and run a second independent adversarial review. Historical ADR evidence cannot substitute for this fresh gate.
 
 ## Smallest useful live attestation
