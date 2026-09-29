@@ -177,3 +177,8 @@ Only after that deployment is validated may a separate slice perform:
 That later slice must start from fresh REAL NOW, run a new decision and second adversarial review, prepare the zero-argument named program through `host_admin_prepare`, require a new explicit human `APPROVE adm_...`, apply exactly once and validate state-first.
 
 Rollback V2 remains governed by ADR 0338's existing scope. It must not be rewritten merely to make its historical OA field equal live OA 0.6.1.
+
+## Deployment follow-up
+
+ADR 0340 completed the capability-only deployment on 2026-09-29. The installed program matches qualified blob `d12d7033d22d35ee0601ecc96e08daffbc27aae2`, is exposed only through the existing managed-admin target/broker allowlists, and was **not executed** during deployment. Metadata readback remains a separate future slice with fresh review and a new explicit managed-admin approval.
+

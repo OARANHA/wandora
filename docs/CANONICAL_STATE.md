@@ -6422,3 +6422,20 @@ No retry or bypass was attempted. The same native lifecycle restored the preserv
 No VendaERP, TypeSafe/System One, Mistral, Human Fast Read, customer work or outbound call occurred. No Connection/install/grant/catalog/profile/Tool Policy mutation occurred. No attestation was opened. The inactive `0.6.0` staging directory is retained only as immutable forensic/provenance evidence and must not be promoted again unchanged.
 
 Next slice/new chat: **Organization Adapter Operational Read Bridge Compatibility Fix V1 — CODE ONLY / 0.6.1 IMMUTABLE PACKAGE / NO PRODUCTION EFFECT**. Correct only the bridge-envelope compatibility with pinned-Paperclip anti-spoof coverage, assign corrected bytes a new immutable identity, complete exact-head CI/provenance, and stop before production promotion.
+
+## 2026-09-29 — ADR 0340 Semantic Fast Read custody-metadata capability deployment
+
+Status: **CAPABILITY DEPLOYED / VALIDATED / METADATA READBACK NOT EXECUTED / EFFECT GATES REMAIN OFF**.
+
+The ADR 0339 qualified program `wandora-semantic-fast-read-custody-metadata-v1` is now installed at `/usr/local/sbin/wandora-semantic-fast-read-custody-metadata-v1` with exact Git blob `d12d7033d22d35ee0601ecc96e08daffbc27aae2`, `root:root 0755`, regular and non-symlink.
+
+Deployment reused only the existing Remote-Ops managed-admin authority. The fresh dynamic target registry candidate appended exactly one program name to `wandora-managed-admin.allowedAdminPrograms`; the broker drop-in appended the same single name to effective `WANDORA_ADMIN_PROGRAMS`. No generic root `stat`, shell, interpreter or alternate privileged subsystem was introduced.
+
+Both restart calls were handled state-first after connection ambiguity and were not blindly retried. Final readback proves the admin broker active/running, `remote-ops-mcp` healthy, and the effective target/broker allowlists containing the new named capability.
+
+Production remains inert for this feature: Task Drain is false/0/0/quiescent, Core/Paperclip/Gateway are healthy, `fastReadExecution=false`, `semanticFastRead=false`, `humanSendProposal=false`, and Gateway `outboundEnabled=false`.
+
+The metadata program was **not executed**. No secret metadata/value/hash/copy, provider call, VendaERP call, customer work, Human Fast Read, Human Send, WhatsApp or outbound effect occurred.
+
+Next slice only: **Semantic Fast Read Custody Metadata Readback Execution V1**. Start from fresh REAL NOW, revalidate byte identity/allowlists and gates, run a new second adversarial review, prepare exactly the zero-argument named program through `host_admin_prepare`, require a new explicit human `APPROVE adm_...`, apply once, validate state-first and document.
+
