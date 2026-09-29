@@ -1,3 +1,17 @@
+## Latest checkpoint — ADR 0332 Paperclip VendaERP Tool Authorization Drift Reconciliation V1
+
+Status: **AUTHORIZATION DRIFT EXPLAINED / FRESH CONNECTION-SCOPED QUALIFICATION GREEN / OPERATIONAL INSTALL+GRANT READBACK REMAINS A FRESH ATTESTATION GATE / READ-ONLY / NO PROVIDER OR POLICY MUTATION**.
+
+Fresh reconciliation on PR #369 source head `853505a48e059ba658e891762ba00185cac053a2` proved **17/17 workflows GREEN**, current Core/Paperclip healthy and Task Drain quiescent.
+
+The ADR 0331 `deny_default` was reproduced only when the Paperclip policy qualification omitted the provider-owned Connection/Catalog identity. The same 28PRO Ana + `vendaerp_search_products {pageSize:5,skip:0}` returned `allow / allow_profile` when supplied either Connection `8e2c23f4-73f5-444a-8647-71428819ea91`, Catalog Entry `165fcdca-8021-41dd-90e5-f0f143adeac3`, or both. The effective profile remained `259a5449-58ba-4d59-9774-92612e3caa91`; Tool Policies remain empty and all qualification calls were non-consuming/non-auditing.
+
+Paperclip source proves the mechanism: the app profile may remain effective without Connection context, while its deny-by-default catalog-entry includes cannot match until `connectionId` or `catalogEntryId` resolves the provider-owned action. `applicationId` and run context are not required for this policy qualification when Connection/Catalog identity is supplied.
+
+No authorization mutation is required. Install + organization-grant operational reach is a separate Paperclip-owned freshness gate and was deliberately not inferred from the policy test. A future attestation preflight must re-read the existing `tools.operational.read` projection and require Connection health/readiness, active organization grant, installation for Ana and effective-profile availability before any effect.
+
+Canonical detail: `docs/decisions/0332-paperclip-vendaerp-tool-authorization-drift-reconciliation-v1.md`.
+
 ## Latest checkpoint — ADR 0327 Current-Core Rollback V2 exact-byte host deployment
 
 Status: **EXACT BYTES DEPLOYED + HASH VALIDATED / ROOT PRECHECK NOT EXECUTED / CURRENT-CORE RECEIPT ABSENT / HISTORICAL RECEIPT PRESERVED / FAST READ STILL OFF**.
