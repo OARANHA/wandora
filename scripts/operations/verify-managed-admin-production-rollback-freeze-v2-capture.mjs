@@ -4,7 +4,7 @@ import fs from "node:fs";
 
 const helperPath = "scripts/operations/production-rollback-freeze-v2.sh";
 const entrypointPath = "scripts/operations/managed-admin-production-rollback-freeze-v2-capture.sh";
-const expectedBlob = "0f09289c5969cd3ddd407cc588f98648635026e3";
+const expectedBlob = "e42cf63fda168ea3d3efd0bfc80f8d8bd4550d9d";
 
 const helper = fs.readFileSync(helperPath);
 const gitBlob = crypto
@@ -19,13 +19,13 @@ if (gitBlob !== expectedBlob) {
 
 const helperText = helper.toString("utf8");
 const currentCoreContract = [
-  'CORE_IMAGE="wandora/core:organization-adapter-candidate-b2cffbb54089"',
-  'CORE_IMAGE_ID="sha256:15a2eca7f74c4e6f7f6ea07bb461d6b711dffd0a70807a3f8e7773f6e6a27c49"',
-  'CORE_REVISION="b2cffbb54089212844ef177827e7a616b1008144"',
-  'RECEIPT="/opt/wandora/ops-workspace/production-rollback-freeze-v2-b2cffbb54089212844ef177827e7a616b1008144.metadata"',
-  'root="${BACKUP_PARENT}/paperclip-v9161-fast-read-rollback-freeze-v2-b2cffbb54089-${stamp}"',
+  'CORE_IMAGE="wandora/core:organization-adapter-candidate-e4c7c36bb109"',
+  'CORE_IMAGE_ID="sha256:ee5db7ffa1114b78670e713f374801730ab556d33a02183e19ef87742c121846"',
+  'CORE_REVISION="e4c7c36bb1091ba38d39b85fa259bae94553fc52"',
+  'RECEIPT="/opt/wandora/ops-workspace/production-rollback-freeze-v2-e4c7c36bb1091ba38d39b85fa259bae94553fc52.metadata"',
+  'root="${BACKUP_PARENT}/paperclip-v9161-fast-read-rollback-freeze-v2-e4c7c36bb109-${stamp}"',
 ];
-const missingCurrentCoreContract = currentCoreContract.filter((item) => !helperText.includes(item));
+currentCoreContract.push(\n  \'OA_VERSION="0.6.1"\',\n  \'OA_PATH="/paperclip/operator-packages/wandora-organization-adapter-v1/80373a61f08d87772c3aab738ffa6905bddcb49c783e9574c1540247cb3b258f/package"\',\n  \'VIGIA="/opt/wandora/ops-workspace/.credentials/vigia-core-production"\',\n  \'fail "Vigia overlay missing"\',\n  \'assert_regular_secret_meta "${VIGIA}" "wandora-exec"\',\n  \'safe_secret_meta_line vigia "${VIGIA}"\',\n);\nconst missingCurrentCoreContract = currentCoreContract.filter((item) => !helperText.includes(item));
 if (missingCurrentCoreContract.length) {
   throw new Error(`canonical_helper_current_core_contract_missing:${JSON.stringify(missingCurrentCoreContract)}`);
 }
@@ -34,8 +34,7 @@ const historicalOrStaleCurrentAnchors = [
   'CORE_IMAGE="wandora/core:organization-adapter-candidate-2c2142237c9c"',
   'CORE_IMAGE_ID="sha256:d3ed5494c03c0720419387befc54f6f6cb124e5407fc619150ecf3dde03dfed7"',
   'CORE_REVISION="2c2142237c9cccc1f7a90d6ae056cd12cc5f4754"',
-  'RECEIPT="/opt/wandora/ops-workspace/production-rollback-freeze-v2.metadata"',
-];
+  'RECEIPT="/opt/wandora/ops-workspace/production-rollback-freeze-v2.metadata"',\n  \'CORE_IMAGE="wandora/core:organization-adapter-candidate-b2cffbb54089"\',\n  \'CORE_IMAGE_ID="sha256:15a2eca7f74c4e6f7f6ea07bb461d6b711dffd0a70807a3f8e7773f6e6a27c49"\',\n  \'CORE_REVISION="b2cffbb54089212844ef177827e7a616b1008144"\',\n  \'OA_VERSION="0.5.0"\',\n  \'OA_PATH="/paperclip/operator-packages/wandora-organization-adapter-v1/f4e733613e72e771eb18361dbdbf420c810c5b8bbe31361a64040a2081cc2ae2/package"\',\n  \'RECEIPT="/opt/wandora/ops-workspace/production-rollback-freeze-v2-b2cffbb54089212844ef177827e7a616b1008144.metadata"\',\n];
 const presentHistoricalOrStaleCurrentAnchors = historicalOrStaleCurrentAnchors.filter((item) => helperText.includes(item));
 if (presentHistoricalOrStaleCurrentAnchors.length) {
   throw new Error(`canonical_helper_historical_or_stale_anchor_present:${JSON.stringify(presentHistoricalOrStaleCurrentAnchors)}`);
