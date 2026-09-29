@@ -298,7 +298,7 @@ test('operator operational read returns only mapped provider-native operational 
   }
 });
 
-test('operator data handler is fixed to host company scope and managed Ana', async () => {
+test('operator data handler accepts the real host getData envelope while rejecting caller selectors', async () => {
   let handler;
   const calls = [];
   const ctx = {
@@ -336,8 +336,20 @@ test('operator data handler is fixed to host company scope and managed Ana', asy
     () => handler({ companyId: 'company-a', agentId: 'caller-controlled' }),
     /operator_operational_read_invalid_company_scope/,
   );
+  await assert.rejects(
+    () => handler({
+      companyId: 'company-a',
+      renderEnvironment: null,
+      agentId: 'caller-controlled',
+    }),
+    /operator_operational_read_invalid_company_scope/,
+  );
+  await assert.rejects(
+    () => handler({ companyId: 'company-a', renderEnvironment: { source: 'caller-controlled' } }),
+    /operator_operational_read_invalid_company_scope/,
+  );
 
-  const result = await handler({ companyId: 'company-a' });
+  const result = await handler({ companyId: 'company-a', renderEnvironment: null });
   assert.equal(result.runtimeHealth, 'ok');
   assert.equal(result.connections.length, 1);
   assert.equal(result.connections[0].tools.some((entry) => entry.toolName === 'vendaerp_search_products'), true);
