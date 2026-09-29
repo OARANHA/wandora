@@ -1,3 +1,15 @@
+## Latest execution checkpoint — 2026-09-29 / ADR 0343
+
+Semantic Fast Read bounded opening was technically validated and then closed fail-closed because no legitimate already-authenticated owner/admin browser execution boundary was available to issue the one Human Fast Read without moving the Bearer token into the operator plane.
+
+Pre-open render hard gates passed: exact Core image pin `wandora/core:organization-adapter-candidate-b2cffbb54089`, `config --quiet` GREEN, `config --images` exact, final render Fast Read/Semantic/Selector ON + Human Send OFF, qualified custody mounts read-only. Opening recreated only Core and post-open validation proved exact tag/digest/revision, healthy state and correct custody+attestation provenance.
+
+No browser Human Fast Read or provider/business effect was executed. Mandatory close restored the exact baseline: Core same tag/digest/revision, provenance ending at `compose.semantic-fast-read.yaml`, Fast Read/Semantic/Selector OFF, Human Send OFF, custody/attestation absent, Gateway outbound OFF. Paperclip v2026.916.1 and OA 0.6.1 remain healthy/ready.
+
+A transient Task Drain started at 19:20:01Z via a local authenticated POST, with zero active runs/wakes; actor is not identifiable from redacted logs. It expired by TTL before the separately confirmed official stop call. Final Task Drain is false/0/0/quiescent.
+
+**Do not retry from chat memory.** A later retry must restart from fresh REAL NOW and only open once a legitimate owner/admin browser request can be executed inside the bounded window. See ADR 0343.
+
 ## 2026-09-29 — Bootstrap checkpoint: PR #369 current-main compatibility GREEN
 
 Use this section only to locate the canonical checkpoint; the authority remains `AGENTS.md`, relevant ADRs, `docs/CAPABILITY_AUTHORITY.md`, `docs/architecture.md` and `docs/CANONICAL_STATE.md`.

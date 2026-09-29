@@ -1,3 +1,19 @@
+## 2026-09-29 — ADR 0343 Semantic Fast Read bounded opening/close V1
+
+Status: **OPENING COMPOSITION VALIDATED / HUMAN FAST READ NOT EXECUTED / BASELINE RESTORED / NO BUSINESS-PROVIDER OR OUTBOUND EFFECT**.
+
+Fresh pre-mutation reconciliation kept `main@e4c7c36bb1091ba38d39b85fa259bae94553fc52`, PR #369 docs head `e16c91b88831999167c7fad92c0f8ebdc404804c`, and 17/17 workflows GREEN. Exact-chain render passed `config --quiet`, resolved exactly `wandora/core:organization-adapter-candidate-b2cffbb54089`, and proved Fast Read/Semantic/Selector ON with Human Send OFF and qualified custody mounts read-only.
+
+Human-approved opening recreated only Core with no build/pull/deps. Immediate post-open state was valid: exact tag/digest/revision, healthy/restart 0, custody+attestation provenance live, Fast Read/Semantic ON, Human Send OFF, Gateway outbound OFF, Paperclip/OA healthy and Task Drain quiescent.
+
+The one required Human Fast Read was **not executed** because this operator session had no legitimate already-authenticated owner/admin browser boundary and the runbook forbids receiving or impersonating the browser Bearer token. The window therefore closed fail-closed. Human-approved close restored the exact gates-OFF baseline, removed custody/attestation mounts and preserved the same image/digest/revision.
+
+A Task Drain flag observed after close was traced only to a local authenticated POST at 19:20:01Z; redacted logs do not identify the actor. It had zero active runs/wakes and expired by TTL before the separately confirmed official stop call, which returned `wasActive=false`. Fresh final state is Task Drain false/0/0/quiescent.
+
+No Human Fast Read, TypeSafe customer-route, Mistral selector, Paperclip Fast Read run, VendaERP tool call, Human Send, WhatsApp or Gateway outbound occurred. Next retry must be a fresh slice and must have a real browser-owned owner/admin execution path available before opening.
+
+Canonical detail: `docs/decisions/0343-semantic-fast-read-bounded-production-attestation-opening-close-v1.md`.
+
 ## 2026-09-29 — ADR 0342 PR #369 Current-Main Compatibility Reconciliation V1
 
 Status: **GREEN / CURRENT-MAIN COMPATIBILITY PROVEN / 17/17 PR CI GREEN / EPHEMERAL CURRENT-MAIN MERGE GREEN / PRODUCTION UNCHANGED / HARD STOP**.
