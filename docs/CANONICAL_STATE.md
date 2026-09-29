@@ -6340,3 +6340,19 @@ Only `wandora-core` was recreated on the existing 13-file baseline composition w
 A stable non-secret operator selector now exists at `/opt/wandora/ops-workspace/core-runtime-image.env` and resolves the baseline to the exact live candidate when passed after the protected render env-file. The protected env-file was not copied or rewritten. No Human Fast Read, TypeSafe/Mistral/Paperclip Fast Read/VendaERP call, customer work, outbound effect, migration or database mutation occurred.
 
 Next only as a fresh separately reviewed slice: **Semantic Fast Read Bounded Production Attestation V2** with fresh REAL NOW, fresh approvals and ADR 0320 mandatory-close discipline.
+
+## 2026-09-29 — ADR 0335 Organization Adapter operational-read packaging/promotion qualification blocked and rolled back
+
+Status: **PACKAGE IDENTITY QUALIFIED / 0.6.0 PROMOTION BLOCKED / ROLLBACK COMPLETE / LIVE OA 0.5.0 RESTORED / NO VENDAERP / NO ATTESTATION OPEN**.
+
+ADR 0335 resolved the package-identity question from ADR 0334 without replacing the released live `0.5.0` bytes. The additive operational-read candidate is immutable `0.6.0`, exact package SHA-256 `5e044bed6886651bd7ebff6c5c2d30f27efb3e86d59d3b63a41541437d42482f`, from Organization Adapter Plugin CI artifact `11028756089` / run `36558236355`. The GitHub merge-ref provenance `67fccb589f5e69b3f14e29fc36f83cc756056c74` was source-equivalent to exact source head `d8e9f565a8b4dc9ca97c747e89945d38cb66d725`, which was 17/17 workflows GREEN.
+
+The package was staged to a new hash-named Paperclip path, normalized to the existing production ownership convention and re-hash-verified byte-for-byte. The old `0.5.0` path was never overwritten. A Paperclip-native soft-uninstall/install preserved durable plugin id `86e77fe7-c7e4-4bee-afa3-46cdad575d0c` and temporarily brought exactly one `0.6.0` plugin to `ready/healthy`.
+
+Exactly one live `operational-read` attempt then failed fail-closed with `operator_operational_read_invalid_company_scope`. Pinned Paperclip `v2026.916.1` source proves the bridge safely owns company scope but always injects `renderEnvironment:null` into the worker data-handler params alongside the host-authorized `companyId`. The `0.6.0` handler requires the params object to contain exactly one key, `companyId`, and therefore rejects the legitimate bridge envelope before calling `ctx.toolAccess.readOperationalSnapshot`.
+
+No retry or bypass was attempted. The same native lifecycle restored the preserved immutable `0.5.0` package. Final production readback is exactly one OA `0.5.0`, same plugin id, old hash path, `ready`, `healthy=true`, `lastError=null`; Task Drain is false/0/0/quiescent; seven containers are healthy; Core Fast Read, Semantic Fast Read and Human Send remain OFF; Gateway outbound remains OFF. Fresh policy qualification with the provider-owned Connection/Catalog context remains `allow / allow_profile`, with company Tool Policies `[]` and `auditEvent=null`.
+
+No VendaERP, TypeSafe/System One, Mistral, Human Fast Read, customer work or outbound call occurred. No Connection/install/grant/catalog/profile/Tool Policy mutation occurred. No attestation was opened. The inactive `0.6.0` staging directory is retained only as immutable forensic/provenance evidence and must not be promoted again unchanged.
+
+Next slice/new chat: **Organization Adapter Operational Read Bridge Compatibility Fix V1 — CODE ONLY / 0.6.1 IMMUTABLE PACKAGE / NO PRODUCTION EFFECT**. Correct only the bridge-envelope compatibility with pinned-Paperclip anti-spoof coverage, assign corrected bytes a new immutable identity, complete exact-head CI/provenance, and stop before production promotion.
