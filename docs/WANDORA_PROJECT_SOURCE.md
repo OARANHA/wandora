@@ -1,3 +1,19 @@
+## Latest checkpoint — ADR 0333 Semantic Fast Read fresh attestation operational-read surface gap
+
+Status: **BLOCKED BEFORE ATTESTATION OPEN / FRESH CONNECTION-SCOPED POLICY GREEN / PROVIDER-NATIVE OPERATIONAL SNAPSHOT NOT OBSERVABLE THROUGH CURRENT SAFE OPERATOR SURFACE / READ-ONLY / NO VENDAERP OR PRODUCTION MUTATION**.
+
+Fresh reconciliation on PR #369 pre-documentation head `85d87ea05a763878e8292a7f9f09e9c76c160cd4` completed **17/17 workflows GREEN**. Production remains healthy and inert: Core `b2cff...`, Paperclip v2026.916.1, exactly one Organization Adapter 0.5.0 ready, Task Drain false/0/0/quiescent, Core Fast Read/Semantic Fast Read/Human Send OFF and Gateway outbound OFF.
+
+The ADR 0332 policy qualification was repeated with VendaERP Connection identity and is freshly `allow / allow_profile`, effective profile `259a5449-58ba-4d59-9774-92612e3caa91`, `matchedPolicyIds=[]`, `auditEvent=null`; company Tool Policies remain empty.
+
+The separate freshness gate could not be observed safely: OA 0.5.0 declares `tools.operational.read` and internally uses `ctx.toolAccess.readOperationalSnapshot`, but the current MCP/operator schema exposes no operational-snapshot read, while the signed `employee-capabilities` webhook requires company HMAC headers not exposed by the Paperclip CLI webhook command. No secret extraction, shell/database bypass, Wandora mirror or new authority was introduced.
+
+ADR 0168 / Reuse Gate classifies this as an operator observability gap over Paperclip-owned state, not missing Wandora state. Fresh JEV review selected `block=0.96` with confidence `0.94`. The preflight stops before attestation opening.
+
+Next boundary: **Paperclip Operational Read Operator Surface Qualification V1 — READ-ONLY CAPABILITY QUALIFICATION / NO VENDAERP / NO ATTESTATION OPEN**, only if fresh reconciliation still proves no existing safe read surface. Prefer reuse; any narrow operator adapter must project the existing Paperclip-owned read only and must not persist or reimplement provider state.
+
+Canonical detail: `docs/decisions/0333-semantic-fast-read-fresh-attestation-operational-read-surface-gap-v1.md`.
+
 ## Latest checkpoint — ADR 0332 Paperclip VendaERP Tool Authorization Drift Reconciliation V1
 
 Status: **AUTHORIZATION DRIFT EXPLAINED / FRESH CONNECTION-SCOPED QUALIFICATION GREEN / OPERATIONAL INSTALL+GRANT READBACK REMAINS A FRESH ATTESTATION GATE / READ-ONLY / NO PROVIDER OR POLICY MUTATION**.
