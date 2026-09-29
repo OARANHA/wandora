@@ -23,6 +23,9 @@ on:
       - 'scripts/operations/verify-managed-admin-production-rollback-freeze-v2-precheck.mjs'
       - 'scripts/operations/managed-admin-production-rollback-freeze-v2-capture.sh'
       - 'scripts/operations/verify-managed-admin-production-rollback-freeze-v2-capture.mjs'
+      - 'scripts/operations/managed-admin-semantic-fast-read-custody-metadata-v1.sh'
+      - 'scripts/operations/verify-managed-admin-semantic-fast-read-custody-metadata-v1.mjs'
+      - 'docs/decisions/0339-semantic-fast-read-custody-metadata-readback-capability-qualification-v1.md'
       - 'docs/decisions/0314-managed-admin-v2-persistent-capture-capability-governance-v1.md'
       - 'scripts/operations/prepare-postgres-18-1-recovery-image-v1.sh'
       - 'docs/decisions/0299-production-rollback-freeze-secret-metadata-readback-v1.md'
@@ -60,6 +63,9 @@ on:
       - 'scripts/operations/verify-managed-admin-production-rollback-freeze-v2-precheck.mjs'
       - 'scripts/operations/managed-admin-production-rollback-freeze-v2-capture.sh'
       - 'scripts/operations/verify-managed-admin-production-rollback-freeze-v2-capture.mjs'
+      - 'scripts/operations/managed-admin-semantic-fast-read-custody-metadata-v1.sh'
+      - 'scripts/operations/verify-managed-admin-semantic-fast-read-custody-metadata-v1.mjs'
+      - 'docs/decisions/0339-semantic-fast-read-custody-metadata-readback-capability-qualification-v1.md'
       - 'docs/decisions/0314-managed-admin-v2-persistent-capture-capability-governance-v1.md'
       - 'scripts/operations/prepare-postgres-18-1-recovery-image-v1.sh'
       - 'docs/decisions/0299-production-rollback-freeze-secret-metadata-readback-v1.md'
@@ -356,6 +362,23 @@ jobs:
           grep -Fq 'caller arguments are forbidden' <<<"$rejection"
 
           printf 'WANDORA_ADR0314_MANAGED_ADMIN_CAPTURE_CI_OK\n'
+
+      - name: ADR 0339 Semantic Fast Read custody metadata managed-admin qualification
+        shell: bash
+        run: |
+          set -euo pipefail
+          entrypoint=scripts/operations/managed-admin-semantic-fast-read-custody-metadata-v1.sh
+          bash -n "$entrypoint"
+          node scripts/operations/verify-managed-admin-semantic-fast-read-custody-metadata-v1.mjs
+
+          set +e
+          rejection="$(bash "$entrypoint" unexpected 2>&1)"
+          status=$?
+          set -e
+          test "$status" -ne 0
+          grep -Fq 'SEMANTIC_FAST_READ_CUSTODY_METADATA_V1_ERROR' <<<"$rejection"
+
+          printf 'WANDORA_ADR0339_CUSTODY_METADATA_CAPABILITY_CI_OK\n'
 
       - name: ADR 0300 PostgreSQL 18.1 recovery image helper static qualification
         shell: bash
