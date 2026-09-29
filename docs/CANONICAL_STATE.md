@@ -1,3 +1,12 @@
+## 2026-09-29 — ADR 0348 current 14534e Rollback V2 source requalification
+
+- Browser-owned owner/admin trigger is available, but Semantic Fast Read attestation remains CLOSED.
+- Fresh gates: Tool Policy allow/allow_profile; OA operational-read healthy/read-only; custody metadata GREEN; Task Drain quiescent; Gateway outbound OFF.
+- Current blocker: live Core is 14534e57256f while persistent Rollback Freeze V2 is still pinned to the prior e4c7 baseline.
+- Decision: reuse Rollback Freeze V2 and repin only exact Core/receipt identity plus managed-admin byte pins; no new subsystem.
+- Source-only requalification does not authorize host deployment, root precheck/capture, Core recreation, Human Fast Read, provider calls or outbound effects.
+- Next: new exact-head CI -> separately reviewed/approved host deployment -> precheck -> separately reviewed/approved capture -> only then a new attestation opening decision.
+
 ## 2026-09-29 — ADR 0347 Semantic Fast Read Production Attestation V1 — browser-owned trigger preflight blocked
 
 Status: **BLOCKED BEFORE ATTESTATION OPEN / BASELINE PRESERVED / NO HUMAN FAST READ / NO BUSINESS PROVIDER OR CUSTOMER EFFECT**.

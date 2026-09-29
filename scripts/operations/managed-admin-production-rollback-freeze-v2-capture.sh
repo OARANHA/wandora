@@ -17,7 +17,7 @@ fail() {
 
 SELF="/usr/local/sbin/wandora-rollback-freeze-v2-capture"
 HELPER="/usr/local/libexec/wandora/production-rollback-freeze-v2.sh"
-EXPECTED_HELPER_GIT_BLOB="e42cf63fda168ea3d3efd0bfc80f8d8bd4550d9d"
+EXPECTED_HELPER_GIT_BLOB="21d6f054558e0f52e843f6933ef2c0047992ad43"
 
 resolved_self="$(/usr/bin/readlink -f -- "$0")"
 [[ "$resolved_self" == "$SELF" ]] || fail "entrypoint path mismatch"
