@@ -6,7 +6,7 @@ const compatibility = JSON.parse(await readFile(new URL('../compatibility.json',
 const packageJson = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
 
 assert.equal(packageJson.name, 'paperclip-plugin-wandora-organization-adapter');
-assert.equal(packageJson.version, '0.6.0');
+assert.equal(packageJson.version, '0.5.0');
 assert.deepEqual(packageJson.paperclipPlugin, {
   manifest: './dist/manifest.js',
   worker: './dist/worker.js',
@@ -14,7 +14,7 @@ assert.deepEqual(packageJson.paperclipPlugin, {
 
 assert.equal(manifest.id, 'wandora.organization-adapter-v1');
 assert.equal(manifest.apiVersion, 1);
-assert.equal(manifest.version, '0.6.0');
+assert.equal(manifest.version, '0.5.0');
 assert.deepEqual([...manifest.capabilities].sort(), ['agent.runs.read', 'agents.invoke', 'agents.managed', 'agents.resume', 'issues.create', 'issues.read', 'issues.wakeup', 'plugin.state.read', 'plugin.state.write', 'secrets.read-ref', 'tools.operational.read', 'webhooks.receive']);
 assert.equal(manifest.webhooks?.length, 5);
 assert.deepEqual(manifest.webhooks?.map((entry) => entry.endpointKey).sort(), ['employee-activate', 'employee-capabilities', 'employee-fast-read', 'employee-reconcile', 'employee-work']);
