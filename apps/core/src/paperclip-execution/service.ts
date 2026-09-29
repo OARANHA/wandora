@@ -218,31 +218,30 @@ export class PaperclipExecutionService {
 
     if (input.workId && this.workTelemetry) {
       const completedAtMs = this.now();
-      try {
-        const telemetry = await this.workTelemetry.recordCompleted({
-          organizationId,
-          employeeId: employee.employee_id,
-          workId: input.workId,
-          paperclipRunId: input.paperclipRunId,
-          executionId,
-          model: result.model,
-          startedAtMs,
-          completedAtMs,
-        });
+      void this.workTelemetry.recordCompleted({
+        organizationId,
+        employeeId: employee.employee_id,
+        workId: input.workId,
+        paperclipRunId: input.paperclipRunId,
+        executionId,
+        model: result.model,
+        startedAtMs,
+        completedAtMs,
+      }).then((telemetry) => {
         console.log(JSON.stringify({
           event: 'wandora.vigia.work-recorded',
           workId: input.workId,
           executionId,
           traceId: telemetry.traceId,
         }));
-      } catch (error) {
+      }).catch((error: unknown) => {
         console.error(JSON.stringify({
           event: 'wandora.vigia.telemetry-failed',
           workId: input.workId,
           executionId,
           message: error instanceof Error ? error.message : 'unknown',
         }));
-      }
+      });
     }
 
     return { executionId, model: result.model, summary: result.summary, usage: result.usage };
