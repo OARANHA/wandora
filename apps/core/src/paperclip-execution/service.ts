@@ -216,28 +216,27 @@ export class PaperclipExecutionService {
 
       if (this.vigia) {
         const executionEndedAtUnixNano = BigInt(Date.now()) * 1_000_000n;
-        try {
-          const telemetry = await this.vigia.recordWorkCompleted({
-            organizationId,
-            employeeId: employee.employee_id,
-            workId: input.workId,
-            executionId,
-            model: result.model,
-            startTimeUnixNano: executionStartedAtUnixNano,
-            endTimeUnixNano: executionEndedAtUnixNano,
-          });
+        void this.vigia.recordWorkCompleted({
+          organizationId,
+          employeeId: employee.employee_id,
+          workId: input.workId,
+          executionId,
+          model: result.model,
+          startTimeUnixNano: executionStartedAtUnixNano,
+          endTimeUnixNano: executionEndedAtUnixNano,
+        }).then((telemetry) => {
           console.log(JSON.stringify({
             event: 'wandora.vigia.work_completed_exported',
             executionId,
             traceId: telemetry.traceId,
           }));
-        } catch (error) {
+        }).catch((error: unknown) => {
           console.warn(JSON.stringify({
             event: 'wandora.vigia.export_failed',
             executionId,
             error: error instanceof Error ? error.message : 'unknown',
           }));
-        }
+        });
       }
     }
 
