@@ -1,3 +1,17 @@
+## 2026-09-29 — ADR 0332 Paperclip VendaERP Tool Authorization Drift Reconciliation V1
+
+Status: **QUALIFIED / AUTHORIZATION DRIFT EXPLAINED / FRESH CONNECTION-SCOPED POLICY QUALIFICATION GREEN / READ-ONLY / NO PROVIDER OR POLICY MUTATION**.
+
+Fresh exact-head reconciliation proved PR #369 source head `853505a48e059ba658e891762ba00185cac053a2` was 17/17 GREEN before documentation, with Core/Paperclip healthy and Task Drain false/0/0/quiescent.
+
+The ADR 0331 denial was an under-specified qualification request: without Connection/Catalog identity, `vendaerp_search_products {pageSize:5,skip:0}` returns `deny / deny_default` while profile `259a5449-58ba-4d59-9774-92612e3caa91` remains effective. Fresh differential tests return `allow / allow_profile` with Connection `8e2c23f4-73f5-444a-8647-71428819ea91`, with Catalog Entry `165fcdca-8021-41dd-90e5-f0f143adeac3`, or with both. All tests had `matchedPolicyIds=[]` and `auditEvent=null`; company Tool Policies remain empty.
+
+Paperclip source explains the result: app-gallery profiles are additive/effective but deny-by-default, and their catalog/connection-scoped include entries need provider identity in context. Catalog or Connection identity also resolves the Application, so a separate `applicationId` is not required; the GREEN test also needs no run context.
+
+No Paperclip authorization change is required. Install + organization-grant reach remains a distinct Paperclip-owned operational gate; this slice did not infer it from the policy test or bypass the signed OA boundary. Future attestation preflight must freshly require the existing `tools.operational.read` projection to report the intended path ready before any effect.
+
+Canonical detail: `docs/decisions/0332-paperclip-vendaerp-tool-authorization-drift-reconciliation-v1.md`.
+
 ## 2026-09-29 — ADR 0327 Current-Core Rollback V2 exact-byte host deployment
 
 Status: **EXACT BYTES DEPLOYED + VALIDATED / PRECHECK NOT EXECUTED / CAPTURE NOT EXECUTED / HISTORICAL RECEIPT PRESERVED**.
