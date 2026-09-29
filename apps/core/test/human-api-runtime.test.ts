@@ -145,6 +145,24 @@ test('Runtime forwards only reviewed Human API namespaces to human handler', asy
       rawBody: fastReadBody,
     });
 
+    const largeFastReadBody = JSON.stringify({ request: 'x'.repeat(9_000) });
+    const largeFastRead = await fetch(
+      `${baseUrl}/api/v1/organizations/${ORG}/digital-employees/00000000-0000-0000-0000-0000000000c1/fast-read`,
+      {
+        method: 'POST',
+        headers: {
+          authorization: 'Bearer fixture',
+          'content-type': 'application/json',
+        },
+        body: largeFastReadBody,
+      },
+    );
+    assert.equal(largeFastRead.status, 200);
+    const largeFastReadResponse = await largeFastRead.json() as {
+      items: Array<{ rawBody: string }>;
+    };
+    assert.equal(largeFastReadResponse.items[0]?.rawBody, largeFastReadBody);
+
     const groundingBody = JSON.stringify({
       entryType: 'fact',
       content: 'Informação confirmada',
