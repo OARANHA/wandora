@@ -7,6 +7,29 @@ type OperationalSnapshot = Awaited<
 type OperationalConnection = OperationalSnapshot['connections'][number];
 type OperationalTool = OperationalConnection['tools'][number];
 
+export const OPERATIONAL_READ_DATA_KEY = 'operational-read';
+
+export type ManagedEmployeeOperationalReadProjection = {
+  runtimeHealth: OperationalSnapshot['runtimeHealth'];
+  connections: Array<{
+    displayName: string;
+    status: OperationalConnection['status'];
+    enabled: boolean;
+    healthStatus: OperationalConnection['healthStatus'];
+    organizationGrantActive: boolean;
+    installedForAgent: boolean;
+    tools: Array<{
+      toolName: string;
+      status: OperationalTool['status'];
+      riskLevel: OperationalTool['riskLevel'];
+      isReadOnly: boolean;
+      isWrite: boolean;
+      isDestructive: boolean;
+      allowedByEffectiveProfile: boolean;
+    }>;
+  }>;
+};
+
 export type WandoraBusinessCapability =
   | 'business.products.search'
   | 'business.products.price'
@@ -53,6 +76,38 @@ export const ADAPTER_MAPPED_BUSINESS_CAPABILITIES = Object.freeze(
 
 function mappedCapabilities(toolName: string): readonly WandoraBusinessCapability[] {
   return PROVIDER_TOOL_CAPABILITY_MAP.get(toolName) ?? [];
+}
+
+export function projectPaperclipOperationalRead(
+  snapshot: OperationalSnapshot,
+): ManagedEmployeeOperationalReadProjection {
+  return {
+    runtimeHealth: snapshot.runtimeHealth,
+    connections: snapshot.connections.flatMap((connection) => {
+      const tools = connection.tools
+        .filter((tool) => mappedCapabilities(tool.toolName).length > 0)
+        .map((tool) => ({
+          toolName: tool.toolName,
+          status: tool.status,
+          riskLevel: tool.riskLevel,
+          isReadOnly: tool.isReadOnly,
+          isWrite: tool.isWrite,
+          isDestructive: tool.isDestructive,
+          allowedByEffectiveProfile: tool.allowedByEffectiveProfile,
+        }));
+      if (tools.length === 0) return [];
+
+      return [{
+        displayName: connection.displayName,
+        status: connection.status,
+        enabled: connection.enabled,
+        healthStatus: connection.healthStatus,
+        organizationGrantActive: connection.organizationGrantActive,
+        installedForAgent: connection.installedForAgent,
+        tools,
+      }];
+    }),
+  };
 }
 
 function providerReadSemantic(tool: OperationalTool): boolean {
@@ -140,11 +195,12 @@ export function normalizePaperclipOperationalSnapshot(
 }
 
 type OperationalReadContext = Pick<PluginContext, 'agents' | 'toolAccess'>;
+type OperationalReadDataContext = OperationalReadContext & Pick<PluginContext, 'data'>;
 
-export async function readManagedEmployeeIntegrationCapabilityProjection(
+export async function readManagedEmployeePaperclipOperationalRead(
   ctx: OperationalReadContext,
   companyId: string,
-): Promise<IntegrationOperationalSnapshot[]> {
+): Promise<ManagedEmployeeOperationalReadProjection> {
   const managed = await ctx.agents.managed.get(CATALOG_KEY, companyId);
   if (managed.status !== 'resolved' || !managed.agentId || !managed.agent) {
     throw new Error('managed_employee_missing');
@@ -155,5 +211,32 @@ export async function readManagedEmployeeIntegrationCapabilityProjection(
     agentId: managed.agentId,
   });
 
-  return normalizePaperclipOperationalSnapshot(snapshot);
+  return projectPaperclipOperationalRead(snapshot);
+}
+
+export function registerManagedEmployeeOperationalReadData(
+  ctx: OperationalReadDataContext,
+): void {
+  ctx.data.register(OPERATIONAL_READ_DATA_KEY, async (params) => {
+    const keys = Object.keys(params).sort();
+    if (
+      keys.length !== 1
+      || keys[0] !== 'companyId'
+      || typeof params.companyId !== 'string'
+      || params.companyId.trim().length === 0
+      || params.companyId.length > 255
+    ) {
+      throw new Error('operator_operational_read_invalid_company_scope');
+    }
+    return readManagedEmployeePaperclipOperationalRead(ctx, params.companyId);
+  });
+}
+
+export async function readManagedEmployeeIntegrationCapabilityProjection(
+  ctx: OperationalReadContext,
+  companyId: string,
+): Promise<IntegrationOperationalSnapshot[]> {
+  return normalizePaperclipOperationalSnapshot(
+    await readManagedEmployeePaperclipOperationalRead(ctx, companyId),
+  );
 }
