@@ -73,6 +73,13 @@ export type RuntimePaperclipExecutionBridgeConfig = {
   agentMeUrl: string;
 };
 
+export type RuntimeVigiaTelemetryConfig = {
+  baseUrl: string;
+  projectSlug: string;
+  apiKey: string;
+  requestTimeoutMs: number;
+};
+
 export type RuntimeConfig = {
   port: number;
   mode: RuntimeMode;
@@ -87,6 +94,7 @@ export type RuntimeConfig = {
   humanDigitalEmployeeActivation?: RuntimeHumanDigitalEmployeeActivationConfig;
   humanDigitalEmployeeWork?: RuntimeHumanDigitalEmployeeWorkConfig;
   paperclipExecutionBridge?: RuntimePaperclipExecutionBridgeConfig;
+  vigiaTelemetry?: RuntimeVigiaTelemetryConfig;
 };
 
 const parsePort = (value: string | undefined, fallback: number, name: string): number => {
@@ -177,6 +185,29 @@ const validatePaperclipAgentMeUrl = (value: string): string => {
     );
   }
   return url.toString();
+};
+
+const validateVigiaBaseUrl = (value: string): string => {
+  const url = new URL(value);
+  if (
+    url.protocol !== 'https:'
+    || url.pathname !== '/'
+    || url.username
+    || url.password
+    || url.search
+    || url.hash
+  ) {
+    throw new Error('WANDORA_VIGIA_BASE_URL must be an HTTPS origin without path, credentials, query or fragment.');
+  }
+  return url.origin;
+};
+
+const validateVigiaProjectSlug = (value: string): string => {
+  const normalized = value.trim();
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(normalized) || normalized.length > 160) {
+    throw new Error('WANDORA_VIGIA_PROJECT_SLUG must be a canonical Vigia project slug.');
+  }
+  return normalized;
 };
 
 const validateOrganizationAdapterActivationWebhookUrl = (value: string): string => {
@@ -279,6 +310,10 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_ENABLED,
     'WANDORA_PAPERCLIP_EXECUTION_BRIDGE_ENABLED',
   );
+  const vigiaTelemetryEnabled = parseEnabled(
+    env.WANDORA_VIGIA_TELEMETRY_ENABLED,
+    'WANDORA_VIGIA_TELEMETRY_ENABLED',
+  );
   const agentRuntimeMode = parseAgentRuntimeMode(env.WANDORA_AGENT_RUNTIME_MODE);
 
   if (mode === 'standby') {
@@ -308,6 +343,9 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     }
     if (paperclipExecutionBridgeEnabled) {
       throw new Error('Paperclip Execution Bridge cannot be enabled while Wandora Core is in standby mode.');
+    }
+    if (vigiaTelemetryEnabled) {
+      throw new Error('Vigia telemetry cannot be enabled while Wandora Core is in standby mode.');
     }
     if (agentRuntimeMode !== 'disabled') {
       throw new Error('Agent Runtime cannot be enabled while Wandora Core is in standby mode.');
@@ -487,6 +525,36 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     };
   }
 
+  let vigiaTelemetry: RuntimeVigiaTelemetryConfig | undefined;
+  if (vigiaTelemetryEnabled) {
+    const apiKeyFile = required(env, 'WANDORA_VIGIA_API_KEY_FILE');
+    if (!isAbsolute(apiKeyFile)) {
+      throw new Error('WANDORA_VIGIA_API_KEY_FILE must be an absolute mounted file.');
+    }
+    const apiKeyStat = await stat(apiKeyFile).catch(() => null);
+    if (!apiKeyStat?.isFile()) {
+      throw new Error('WANDORA_VIGIA_API_KEY_FILE must be a mounted regular file.');
+    }
+    const apiKey = (await readFile(apiKeyFile, 'utf8')).trim();
+    if (apiKey.length < 20 || apiKey.length > 4096 || /\s/.test(apiKey)) {
+      throw new Error('Wandora Vigia API key is invalid.');
+    }
+    vigiaTelemetry = {
+      baseUrl: validateVigiaBaseUrl(
+        env.WANDORA_VIGIA_BASE_URL?.trim() || 'https://vigia.wandora.com.br',
+      ),
+      projectSlug: validateVigiaProjectSlug(required(env, 'WANDORA_VIGIA_PROJECT_SLUG')),
+      apiKey,
+      requestTimeoutMs: parseBoundedInteger(
+        env.WANDORA_VIGIA_REQUEST_TIMEOUT_MS,
+        3_000,
+        500,
+        10_000,
+        'WANDORA_VIGIA_REQUEST_TIMEOUT_MS',
+      ),
+    };
+  }
+
   let organizationAdapter: RuntimeOrganizationAdapterConfig | undefined;
   if (organizationAdapterEnabled) {
     const secretDirectory = required(env, 'WANDORA_ORGANIZATION_ADAPTER_SECRET_DIRECTORY');
@@ -537,6 +605,7 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     ...(humanSendProposal ? { humanSendProposal } : {}),
     ...(organizationAdapter ? { organizationAdapter } : {}),
     ...(paperclipExecutionBridge ? { paperclipExecutionBridge } : {}),
+    ...(vigiaTelemetry ? { vigiaTelemetry } : {}),
     ...(humanDigitalEmployeeHireEnabled
       ? { humanDigitalEmployeeHire: { enabled: true as const } }
       : {}),

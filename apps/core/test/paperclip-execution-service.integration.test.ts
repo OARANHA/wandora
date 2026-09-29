@@ -136,6 +136,7 @@ test('Wandora work correlation is verified and result is committed without enter
   let received: AssignedTaskInput | undefined;
   const preparation: unknown[] = [];
   const recorded: unknown[] = [];
+  const telemetry: unknown[] = [];
   const service = new PaperclipExecutionService(
     runtimePool,
     {
@@ -157,6 +158,18 @@ test('Wandora work correlation is verified and result is committed without enter
         throw new Error('must not mark uncertain');
       },
     },
+    undefined,
+    undefined,
+    {
+      async recordCompleted(input) {
+        telemetry.push(input);
+        return { traceId: '11111111111111111111111111111111' };
+      },
+    },
+    (() => {
+      const values = [1_000, 2_000];
+      return () => values.shift() ?? 2_000;
+    })(),
   );
 
   const result = await service.execute({
@@ -189,6 +202,16 @@ test('Wandora work correlation is verified and result is committed without enter
     model: 'wandora-supervised-v1',
     summary: 'Resultado supervisionado',
   });
+  assert.deepEqual(telemetry, [{
+    organizationId: ORG,
+    employeeId: EMPLOYEE,
+    workId: WORK,
+    paperclipRunId: RUN,
+    executionId: result.executionId,
+    model: 'wandora-supervised-v1',
+    startedAtMs: 1_000,
+    completedAtMs: 2_000,
+  }]);
 });
 
 test('cached exact work result prevents a duplicate AgentTaskRuntime execution', async () => {

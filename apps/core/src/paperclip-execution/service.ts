@@ -6,6 +6,7 @@ import type { AgentTaskRuntime, AssignedTask, NormalizedExecutionUsage, RuntimeR
 import { paperclipManagedAgentRef } from '../organization-adapter/paperclip-provider.js';
 import type { PaperclipRunIdentity } from './paperclip-run-identity.js';
 import type { OrganizationAdapterService } from '../organization-adapter/service.js';
+import type { CompletedWorkTelemetry } from '../vigia/telemetry.js';
 
 export class PaperclipExecutionBindingError extends Error {
   constructor(readonly code: 'company-unmapped' | 'employee-unavailable' | 'work-unavailable') {
@@ -41,6 +42,8 @@ export class PaperclipExecutionService {
       paperclipRunId: string;
     }) => Promise<RuntimeReadTool[]>,
     private readonly employeeDevelopmentProjection?: EmployeeDevelopmentProjection,
+    private readonly workTelemetry?: CompletedWorkTelemetry,
+    private readonly now: () => number = Date.now,
   ) {}
 
   private async resolveOrganization(providerCompanyRef: string): Promise<string> {
@@ -157,6 +160,7 @@ export class PaperclipExecutionService {
       }
     }
 
+    const startedAtMs = this.now();
     let result;
     try {
       const readTools = this.readToolBridge
@@ -209,6 +213,35 @@ export class PaperclipExecutionService {
           paperclipRunId: input.paperclipRunId,
         }).catch(() => undefined);
         throw new PaperclipExecutionBindingError('work-unavailable');
+      }
+    }
+
+    if (input.workId && this.workTelemetry) {
+      const completedAtMs = this.now();
+      try {
+        const telemetry = await this.workTelemetry.recordCompleted({
+          organizationId,
+          employeeId: employee.employee_id,
+          workId: input.workId,
+          paperclipRunId: input.paperclipRunId,
+          executionId,
+          model: result.model,
+          startedAtMs,
+          completedAtMs,
+        });
+        console.log(JSON.stringify({
+          event: 'wandora.vigia.work-recorded',
+          workId: input.workId,
+          executionId,
+          traceId: telemetry.traceId,
+        }));
+      } catch (error) {
+        console.error(JSON.stringify({
+          event: 'wandora.vigia.telemetry-failed',
+          workId: input.workId,
+          executionId,
+          message: error instanceof Error ? error.message : 'unknown',
+        }));
       }
     }
 
