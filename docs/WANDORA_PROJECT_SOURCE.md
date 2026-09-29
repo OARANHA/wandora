@@ -1,3 +1,19 @@
+## Latest checkpoint — ADR 0336 Organization Adapter Operational Read Bridge Compatibility Fix V1
+
+Status: **QUALIFIED / 0.6.1 IMMUTABLE PACKAGE / 17/17 EXACT CODE-HEAD CI GREEN / PRODUCTION PROMOTION NOT STARTED / LIVE OA 0.5.0 UNCHANGED / NO PRODUCTION EFFECT**.
+
+ADR 0335 proved that immutable OA 0.6.0 fails closed on the real Paperclip `getData` envelope because the host injects authorized `companyId` plus `renderEnvironment:null`. The failure was compatibility-only, not a tenant-boundary weakness; production was restored to OA 0.5.0.
+
+ADR 0336 fixes only that boundary. The handler accepts a valid host company scope plus optional `renderEnvironment` exactly `null`; every extra selector/key and non-null render metadata still fails closed. The existing provider-neutral projection and Paperclip-owned `ctx.toolAccess.readOperationalSnapshot` path are unchanged. Pinned-Paperclip CI now proves Board/company authorization, `params` defaulting, `renderEnvironment:null`, and worker merge ordering where host scope overrides caller params.
+
+Corrected bytes received the new immutable identity `0.6.1`. The 0.6.0 candidate record and ADR 0335 artifact remain untouched/promotion-blocked. Exact code head `d7a3794ec675af3bc73244e2659db31b850048ba` completed **17/17 GREEN**. Organization Adapter Plugin CI run `36563941785` produced artifact `11031365784`, package `paperclip-plugin-wandora-organization-adapter-0.6.1.tgz`, package SHA-256 `80373a61f08d87772c3aab738ffa6905bddcb49c783e9574c1540247cb3b258f`, artifact digest `sha256:b7d4fd6b4334f317e7470ce08dab7010f21f0d35138fd65427cc54f242eeb744`. Its merge-ref provenance is tree-equivalent to the source head.
+
+Post-validation production is unchanged and inert: Paperclip 916.1 healthy, Core healthy, exactly one OA 0.5.0 ready, Task Drain false/0/0/quiescent, Fast Read/Semantic/Human Send/Gateway outbound OFF. No 0.6.1 staging/install/promotion or live operator-read retry occurred.
+
+**Next boundary:** a separately reviewed **Organization Adapter 0.6.1 production promotion qualification**. Start again from fresh REAL NOW; do not reuse the failed 0.6.0 promotion or infer authorization from this CODE ONLY slice. No Semantic Fast Read attestation opens until a later successful bounded live operational read.
+
+Canonical detail: `docs/decisions/0336-organization-adapter-operational-read-bridge-compatibility-fix-v1.md`.
+
 ## Latest checkpoint — ADR 0334 Paperclip Operational Read Operator Surface Qualification V1
 
 Status: **QUALIFIED IN CODE / 17/17 EXACT-HEAD CI GREEN / OPERATOR SURFACE NOT LIVE / FRESH OPERATIONAL SNAPSHOT STILL BLOCKED / READ-ONLY / NO VENDAERP / NO ATTESTATION OPEN / NO PRODUCTION MUTATION**.

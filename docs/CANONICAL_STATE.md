@@ -1,3 +1,17 @@
+## 2026-09-29 — ADR 0336 Organization Adapter Operational Read Bridge Compatibility Fix V1
+
+Status: **QUALIFIED / OA 0.6.1 IMMUTABLE PACKAGE / 17/17 EXACT CODE-HEAD CI GREEN / LIVE OA 0.5.0 UNCHANGED / NO PRODUCTION EFFECT**.
+
+Pinned Paperclip source proved the real data-handler envelope is host-authorized `companyId` plus host `renderEnvironment:null`, after caller params. The OA handler was changed only to accept that exact metadata shape while preserving company-scope validation, rejecting extra selectors and rejecting non-null render metadata. Operational projection/mappings and provider-owned snapshot access are unchanged.
+
+Corrected bytes use new identity `0.6.1`; 0.6.0 remains immutable and promotion-blocked. Code head `d7a3794ec675af3bc73244e2659db31b850048ba` passed **17/17 GREEN**. OA artifact `11031365784` contains `paperclip-plugin-wandora-organization-adapter-0.6.1.tgz` at SHA-256 `80373a61f08d87772c3aab738ffa6905bddcb49c783e9574c1540247cb3b258f`.
+
+Production remains Paperclip 916.1 + OA 0.5.0 healthy, Task Drain quiescent, Fast Read/Semantic/Human Send/Gateway outbound OFF. No 0.6.1 promotion or provider/customer effect occurred.
+
+Next: separately qualify/authorize any OA 0.6.1 production promotion. Do not open Semantic Fast Read attestation from this checkpoint.
+
+Canonical detail: `docs/decisions/0336-organization-adapter-operational-read-bridge-compatibility-fix-v1.md`.
+
 ## Latest checkpoint — ADR 0334 Paperclip Operational Read Operator Surface Qualification V1
 
 Status: **QUALIFIED IN CODE / 17/17 EXACT-HEAD CI GREEN / OPERATOR SURFACE NOT LIVE / FRESH OPERATIONAL SNAPSHOT STILL BLOCKED / READ-ONLY / NO VENDAERP / NO ATTESTATION OPEN / NO PRODUCTION MUTATION**.
