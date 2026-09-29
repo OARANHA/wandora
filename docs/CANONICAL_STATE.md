@@ -1,3 +1,17 @@
+## 2026-09-29 — ADR 0326 Current-Core Rollback V2 source requalification
+
+Status: **SOURCE QUALIFIED / 17/17 EXACT-HEAD CI GREEN / HOST DEPLOYMENT NOT STARTED / HISTORICAL RECEIPT PRESERVED / ACTIVATION NOT AUTHORIZED**.
+
+Fresh GitHub/runtime evidence confirmed production Core `b2cffbb54089212844ef177827e7a616b1008144` while the historical V2 receipt and canonical helper still represented Core `2c214223...`. The historical receipt remains valid historical evidence and is untouched.
+
+ADR 0168 / Reuse Gate selected evolution of the existing Rollback V2 contract rather than a V3 mechanism or new root authority. The helper now pins the exact `b2cff...` tag/image-id/revision and will publish only to the baseline-specific receipt `/opt/wandora/ops-workspace/production-rollback-freeze-v2-b2cffbb54089212844ef177827e7a616b1008144.metadata`. The existing precheck/capture wrappers and verifiers are repinned to helper blob `0f09289c5969cd3ddd407cc588f98648635026e3`; the existing CI gate now rejects stale `2c214...` anchors and the generic historical receipt assignment as current helper state.
+
+Exact code head `607e02e41abd310be1342688efc9a62467d62e6f` passed **17/17 workflows GREEN**, including Semantic Fast Read CI `36533568729`, Core CI `36533568844` and Paperclip Fast Read Production Candidate CI `36533568680`.
+
+No VPS/helper deployment, root precheck, capture, provider/customer/outbound effect or Fast Read activation occurred. Next boundary is exact-byte host deployment only; precheck and capture remain separate fresh-approval effects.
+
+Canonical detail: `docs/decisions/0326-current-core-rollback-v2-readiness-requalification-v1.md`.
+
 ## 2026-09-28 — ADR 0322 Web bridge production promotion and persistent selector reconciliation
 
 Status: **WEB BRIDGE PROMOTED + SELECTOR PERSISTED / BASELINE PRESERVED / FAST READ STILL OFF / NO NEW ATTESTATION**.

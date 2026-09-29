@@ -1,3 +1,17 @@
+## Latest checkpoint — ADR 0326 Current-Core Rollback V2 source requalification
+
+Status: **SOURCE QUALIFIED / 17/17 EXACT-HEAD CI GREEN / HOST DEPLOYMENT NOT STARTED / HISTORICAL RECEIPT PRESERVED / FAST READ STILL OFF**.
+
+ADR 0325 proved that the retained Rollback V2 receipt and helper contract still represented Core `2c214223...`, while production had already converged to corrected Core `b2cffbb54089212844ef177827e7a616b1008144`. Fresh runtime reconciliation reconfirmed `b2cff...` healthy/restart 0 on the gates-OFF baseline, Paperclip v2026.916.1 healthy, exactly one OA 0.5.0 ready, Task Drain false/0/0/quiescent, Human Send OFF and Gateway outbound OFF.
+
+Capability Authority / Reuse Gate kept the existing Rollback V2 + Remote-Ops managed-admin implementation. No new backup/approval/lifecycle/registry/root-shell subsystem was introduced. The historical receipt `/opt/wandora/ops-workspace/production-rollback-freeze-v2.metadata` remains untouched as evidence for Core `2c214...`.
+
+The current source contract now pins Core `b2cff...` exactly and assigns the future current-Core receipt `/opt/wandora/ops-workspace/production-rollback-freeze-v2-b2cffbb54089212844ef177827e7a616b1008144.metadata`. Canonical helper blob is `0f09289c5969cd3ddd407cc588f98648635026e3`; both existing managed-admin wrappers/verifiers pin it. Exact code head `607e02e41abd310be1342688efc9a62467d62e6f` completed **17/17 workflows GREEN**.
+
+**Next boundary:** deploy only the exact helper + existing wrapper bytes in a separately reviewed effect, then stop. Root precheck and persistent capture remain separately approved effects. Do not open Semantic Fast Read attestation.
+
+Canonical detail: `docs/decisions/0326-current-core-rollback-v2-readiness-requalification-v1.md`.
+
 ## Latest checkpoint — ADR 0322 Web bridge production promotion and persistent selector reconciliation
 
 Status: **WEB BRIDGE PROMOTED + SELECTOR PERSISTED / BASELINE PRESERVED / FAST READ STILL OFF / NO NEW ATTESTATION**.

@@ -1,3 +1,35 @@
+## Current-Core source requalification checkpoint — ADR 0326
+
+Status: **SOURCE QUALIFIED / 17/17 EXACT-HEAD CI GREEN / LIVE HELPER+WRAPPERS NOT YET UPDATED / HISTORICAL RECEIPT PRESERVED / ACTIVATION NOT AUTHORIZED**.
+
+Current corrected production Core anchors:
+
+- image: `wandora/core:organization-adapter-candidate-b2cffbb54089`;
+- image id: `sha256:15a2eca7f74c4e6f7f6ea07bb461d6b711dffd0a70807a3f8e7773f6e6a27c49`;
+- revision: `b2cffbb54089212844ef177827e7a616b1008144`.
+
+The historical receipt remains untouched at:
+
+`/opt/wandora/ops-workspace/production-rollback-freeze-v2.metadata`
+
+and remains evidence for the prior Core `2c214223...` baseline only.
+
+The qualified current-Core source uses the same Rollback V2 implementation and same dedicated managed-admin programs, but the future current-Core capture publishes to:
+
+`/opt/wandora/ops-workspace/production-rollback-freeze-v2-b2cffbb54089212844ef177827e7a616b1008144.metadata`
+
+with protected rollback roots prefixed:
+
+`paperclip-v9161-fast-read-rollback-freeze-v2-b2cffbb54089-`
+
+Canonical helper Git blob:
+
+`0f09289c5969cd3ddd407cc588f98648635026e3`
+
+Both precheck and capture wrappers/verifiers pin that same blob. Exact source head `607e02e41abd310be1342688efc9a62467d62e6f` passed 17/17 workflows GREEN.
+
+**Do not execute the live rollback programs yet.** The host still requires a separate exact-byte deployment of the helper + two existing wrappers, followed by validation and a hard stop. Root precheck is then a separately reviewed/approved effect; persistent capture is another separately reviewed/approved effect. Semantic Fast Read attestation remains prohibited.
+
 ## Persistent capture execution checkpoint — ADR 0315
 
 Status: **PERSISTENT CAPTURE EXECUTED + VALIDATED / ROLLBACK V2 READY / ACTIVATION NOT AUTHORIZED**.
