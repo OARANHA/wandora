@@ -1,3 +1,19 @@
+## 2026-09-29 — ADR 0337 Organization Adapter 0.6.1 Production Promotion Qualification V1
+
+Status: **GREEN / OA 0.6.1 LIVE / OPERATIONAL READ GREEN / SEMANTIC FAST READ STILL OFF**.
+
+PR #369 pre-documentation head `bea589e275dfcf559e22b4efe6996f12ab812fd6` was 17/17 GREEN. Exact immutable OA package SHA-256 `80373a61f08d87772c3aab738ffa6905bddcb49c783e9574c1540247cb3b258f` was verified before staging and again in the production Paperclip volume; the known-good 0.5.0 rollback bytes were independently re-proven before lifecycle mutation. OA 0.6.0 remains immutable/promotion-blocked.
+
+Paperclip-native soft uninstall/install promoted exactly one `wandora.organization-adapter-v1@0.6.1` at the content-addressed `80373...` package path, preserving plugin id `86e77fe7-c7e4-4bee-afa3-46cdad575d0c`. It is `ready`, `lastError=null`, `healthy=true`.
+
+Exactly one bounded `operational-read` succeeded with `runtimeHealth=ok`, active/enabled/healthy VendaERP read-only Connection, active organization grant, installation for Ana and eight active read-only/non-write/non-destructive tools allowed by the effective profile. No VendaERP tool/provider execution occurred.
+
+Task Drain remains false/0/0/quiescent; all seven containers are healthy; Core Fast Read/Semantic Fast Read/Human Send and Gateway outbound remain OFF; 28PRO issueCounter remains 19. No model/customer/outbound effect occurred.
+
+Semantic Fast Read attestation remains a separate future slice and is not authorized by this checkpoint.
+
+Canonical detail: `docs/decisions/0337-organization-adapter-0-6-1-production-promotion-qualification-v1.md`.
+
 ## 2026-09-29 — ADR 0336 Organization Adapter Operational Read Bridge Compatibility Fix V1
 
 Status: **QUALIFIED / OA 0.6.1 IMMUTABLE PACKAGE / 17/17 EXACT CODE-HEAD CI GREEN / LIVE OA 0.5.0 UNCHANGED / NO PRODUCTION EFFECT**.
