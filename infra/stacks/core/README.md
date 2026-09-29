@@ -87,6 +87,33 @@ When the candidate flag is enabled, readiness additionally probes the three migr
 
 The host custody directory must be operator-controlled. Individual HMAC files use deterministic SHA-256-derived filenames resolved from the frozen provider company reference and are opened without following symlinks by the Core resolver.
 
+## Vigia telemetry client wiring
+
+`compose.vigia.yaml` activates the optional Wandora -> Vigia customer integration using only Vigia's public HTTP contracts.
+
+The overlay:
+
+- enables `WANDORA_VIGIA_TELEMETRY_ENABLED=true`;
+- defaults the customer endpoint to `https://vigia.wandora.com.br`;
+- requires the normal Vigia project slug through `WANDORA_VIGIA_PROJECT_SLUG`;
+- mounts the customer's Vigia API key from an operator-controlled host file at `/run/secrets/wandora/vigia.api-key`;
+- keeps the API key out of Git and Docker environment variables.
+
+Example render-only composition:
+
+```bash
+export WANDORA_VIGIA_PROJECT_SLUG=wandora-s-project
+export WANDORA_VIGIA_API_KEY_FILE_HOST=/opt/wandora/stacks/core/secrets/vigia-api-key
+
+docker compose \
+  -f infra/stacks/core/compose.yaml \
+  -f infra/stacks/core/compose.database.yaml \
+  -f infra/stacks/core/compose.vigia.yaml \
+  config
+```
+
+This does not authorize a production promotion by itself. The host secret must be provisioned through the normal Vigia customer/API-key flow, and the final production composition must preserve the already-active Core overlays.
+
 ## Current non-goals
 
 Private Runtime V1 does not by itself:

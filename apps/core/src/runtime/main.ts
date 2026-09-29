@@ -29,6 +29,7 @@ import { HumanSendProposalService } from '../supervision/human-send-proposal.js'
 import { loadRuntimeConfig } from './config.js';
 import { createGatewayIngressHandler } from './gateway-ingress.js';
 import { createHumanSupervisionHandler } from './human-supervision.js';
+import { VigiaPublicTelemetryClient } from '../vigia/telemetry.js';
 import { createRuntimeOrganizationAdapter } from './organization-adapter.js';
 import { createRuntimeReadinessChecker } from './readiness.js';
 import { createRuntimeServer } from './server.js';
@@ -58,6 +59,10 @@ const agentRuntime = config.agentRuntime?.mode === 'mastra-deterministic'
 
 const organizationAdapterService = pool && config.organizationAdapter
   ? createRuntimeOrganizationAdapter(pool, config.organizationAdapter)
+  : undefined;
+
+const vigiaTelemetry = config.vigiaTelemetry
+  ? new VigiaPublicTelemetryClient(config.vigiaTelemetry)
   : undefined;
 
 const checkReady = createRuntimeReadinessChecker(pool, {
@@ -100,6 +105,7 @@ const paperclipExecutionService = pool
         ? paperclipReadToolBridge
         : undefined,
       new PostgresEmployeeDevelopmentProjection(pool),
+      vigiaTelemetry,
     )
   : undefined;
 
@@ -271,6 +277,7 @@ server.listen(config.port, '0.0.0.0', () => {
     organizationGrounding: Boolean(humanGroundingService),
     digitalEmployeeDevelopment: Boolean(humanDigitalEmployeeDevelopmentService),
     organizationAdapter: Boolean(organizationAdapterService),
+    vigiaTelemetry: Boolean(vigiaTelemetry),
     agentRuntime: config.agentRuntime?.mode ?? 'disabled',
   }));
 });
