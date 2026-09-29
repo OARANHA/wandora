@@ -1,3 +1,19 @@
+## Latest execution checkpoint — 2026-09-29 / ADR 0346
+
+Current Vigia + Semantic Fast Read Core Compatibility Promotion V1 is **GREEN**.
+
+Production Core now runs the exact combined candidate `wandora/core:organization-adapter-candidate-14534e57256f`, OCI manifest/image id `sha256:ac253a9479338f0d47954937209323229314ef513125a71dd266558b3bfe1c8b`, revision `14534e57256f0a73c49feb3944a1068921468f94`. This merge ref combines current `main@e4c7c36bb1091ba38d39b85fa259bae94553fc52` with PR #369 source head `6035cfd2b32eb9a8da1aadb01414759201606930`.
+
+The exact PR source head was 17/17 GREEN. The artifact was independently hash-verified and passed `PORTABLE_CANDIDATE_ARCHIVE_V1_OK`; `config --quiet` was GREEN and `config --images` resolved exactly to the candidate. A separately reviewed/human-approved Core-only recreation used `--no-deps --force-recreate --no-build --pull never --wait`.
+
+Post-promotion: Core healthy/restart 0, exact 14-file production provenance preserved, Vigia preserved, read-only rootfs and existing security/network/mount boundaries preserved. Startup reports `fastReadExecution=false`, `semanticFastRead=false`, `humanSendProposal=false`, `vigiaTelemetry=true`. Paperclip and Gateway remained on the same containers/start times and healthy; OA remains exactly one `0.6.1` ready; Task Drain is false/0/0/quiescent.
+
+The stable non-secret selector `/opt/wandora/ops-workspace/core-runtime-image.env` was reconciled to the live `14534e...` image and a separate read-only `config --images` proved it resolves exactly to the live candidate.
+
+ADR 0345's `e4c7 + OA 0.6.1 + Vigia` Rollback Freeze V2 remains the fail-closed rollback anchor.
+
+**No Semantic Fast Read opening or Human Fast Read occurred.** TypeSafe/Mistral, Paperclip Fast Read, VendaERP, Human Send, Gateway outbound and WhatsApp remain untouched. Any attestation retry is a new slice requiring fresh REAL NOW and a legitimate already-authenticated owner/admin browser boundary. See ADR 0346.
+
 ## Latest execution checkpoint — 2026-09-29 / ADR 0343
 
 Semantic Fast Read bounded opening was technically validated and then closed fail-closed because no legitimate already-authenticated owner/admin browser execution boundary was available to issue the one Human Fast Read without moving the Bearer token into the operator plane.
