@@ -64,7 +64,7 @@ jobs:
           if (compatibility.paperclipSourceCommit !== 'd554c4789ed3930f8a53ac9fdf6503b3187097da') {
             throw new Error('Organization Adapter Paperclip source pin changed');
           }
-          if (pkg.version !== '0.6.0') {
+          if (pkg.version !== '0.6.1') {
             throw new Error('Organization Adapter candidate version changed');
           }
           console.log('PAPERCLIP_FAST_READ_CANDIDATE_COMPATIBILITY_PIN_OK');
