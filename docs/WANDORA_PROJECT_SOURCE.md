@@ -1,3 +1,17 @@
+## Latest execution checkpoint — 2026-09-29 / ADR 0347
+
+Semantic Fast Read Production Attestation V1 is **BLOCKED BEFORE ATTESTATION OPEN**.
+
+Fresh state: `main=e4c7c36bb1091ba38d39b85fa259bae94553fc52`; PR #369 head `1ee7c6e888d740510d192a4a1c3364dedf961853`; exact-head CI **17/17 GREEN**. Production remains exact Core `14534e...` healthy with the 14-file gates-OFF baseline, Paperclip 916.1 healthy, exactly one OA 0.6.1 ready, Gateway outbound OFF and Task Drain false/0/0/quiescent.
+
+Exactly one fresh OA `operational-read` is GREEN for 28PRO/Ana/VendaERP without provider execution. Fresh Tool Policy list/test reached Paperclip with HTTP 200, but the client response body was lost; state-first logs proved they ran, so they were not repeated and the exact decision was not claimed as fresh evidence.
+
+ADR 0345 Rollback V2 receipt remains present and ends `ROLLBACK_FREEZE_V2_OK`. No opening composition was rendered/applied because the decisive hard gate failed first: this session has no legitimate way to execute the single request inside the already-authenticated owner/admin Wandora browser while keeping Bearer/cookie authority browser-owned. JEV second review returned `block=0.97`, confidence `0.96`.
+
+**No production opening occurred.** Fast Read/Semantic/Selector/Human Send remain OFF; custody/attestation overlays remain absent; no Human Fast Read, TypeSafe/Mistral customer path, Paperclip Fast Read, VendaERP, Gateway outbound or WhatsApp ran.
+
+A later retry must be a new slice with the browser-owned execution surface already available before opening and must repeat all mutable freshness gates. See ADR 0347.
+
 ## Latest execution checkpoint — 2026-09-29 / ADR 0346
 
 Current Vigia + Semantic Fast Read Core Compatibility Promotion V1 is **GREEN**.

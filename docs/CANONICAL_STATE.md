@@ -1,3 +1,21 @@
+## 2026-09-29 — ADR 0347 Semantic Fast Read Production Attestation V1 — browser-owned trigger preflight blocked
+
+Status: **BLOCKED BEFORE ATTESTATION OPEN / BASELINE PRESERVED / NO HUMAN FAST READ / NO BUSINESS PROVIDER OR CUSTOMER EFFECT**.
+
+Fresh reconciliation proved `main@e4c7c36bb1091ba38d39b85fa259bae94553fc52`, PR #369 current head `1ee7c6e888d740510d192a4a1c3364dedf961853` and **17/17 exact-head workflows GREEN**. Production remains exact Core `wandora/core:organization-adapter-candidate-14534e57256f` / OCI `sha256:ac253a9479338f0d47954937209323229314ef513125a71dd266558b3bfe1c8b` / revision `14534e...`, healthy/restart 0; Paperclip v2026.916.1 healthy; exactly one OA 0.6.1 ready; Gateway healthy/outbound OFF; Task Drain false/0/0/quiescent. Core startup remains Fast Read OFF / Semantic Fast Read OFF / Human Send OFF with Vigia preserved.
+
+Live inspect still shows the exact 14-file gates-OFF baseline and no custody/attestation overlay or TypeSafe/`wfri1` mounts. ADR 0345's `e4c7 + OA0.6.1 + Vigia` receipt remains present with `ROLLBACK_FREEZE_V2_OK`.
+
+One fresh OA `operational-read` was GREEN: runtime health ok, VendaERP Connection active/enabled/healthy, organization grant active, installed for Ana, and `vendaerp_search_products` active/read-only/non-write/non-destructive/allowed. No VendaERP call occurred. A fresh Tool Policy list and policy test both returned HTTP 200 server-side, but their response bodies were lost when the enclosing client call was blocked; state-first evidence proved execution, so they were not replayed and the exact fresh policy decision was not claimed.
+
+The decisive blocker is unchanged from the canonical browser boundary: this operator session cannot execute inside an already-authenticated owner/admin Wandora browser without moving Bearer/cookie authority into the operator plane. Exporting session material, impersonating the human, widening MCP/Remote-Ops or adding an alternate admin endpoint is prohibited. Fresh JEV adversarial review returned `block=0.97`, confidence `0.96`.
+
+Therefore no opening render, custody/attestation mount, Core recreation, Fast Read/Semantic/Selector activation, Human Fast Read, TypeSafe/Mistral customer-path call, Paperclip Fast Read, VendaERP read, Human Send, Gateway outbound or WhatsApp occurred. Final runtime remains healthy and inert.
+
+Next retry is a new slice and requires the legitimate browser-owned owner/admin execution surface to be available before opening, plus fresh policy/operational/custody/rollback and opening-time `config --quiet` + exact `config --images` proof.
+
+Canonical detail: `docs/decisions/0347-semantic-fast-read-production-attestation-browser-owned-trigger-preflight-blocked-v1.md`.
+
 ## 2026-09-29 — ADR 0346 Current Vigia + Semantic Fast Read Core Compatibility Promotion V1
 
 Status: **GREEN / EXACT COMBINED CORE LIVE / VIGIA PRESERVED / ALL SEMANTIC CUSTOMER/OUTBOUND EFFECT GATES OFF / ROLLBACK E4C7 READY / NO HUMAN FAST READ**.
