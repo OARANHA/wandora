@@ -65,7 +65,7 @@ test('production pins remain canonical while explicitly qualified provider candi
 
   const candidate = json(join(
     root,
-    'candidates/organization-adapter-v0.5.0-paperclip-v2026.916.1.json',
+    'candidates/organization-adapter-v0.6.0-paperclip-v2026.916.1.json',
   ));
   assert.equal(candidate.schemaVersion, 1);
   assert.equal(candidate.kind, 'organization_adapter_candidate');

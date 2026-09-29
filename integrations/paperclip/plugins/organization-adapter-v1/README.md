@@ -69,9 +69,9 @@ The Core runtime adapter reuses the existing company-scoped HMAC secret custody 
 This source/candidate qualification does **not** install or promote 0.5.0 or Paperclip v2026.916.1 in production.
 
 
-## Board-scoped operational read projection — qualification candidate
+## Board-scoped operational read projection — 0.6.0
 
-This qualification adds one operator-only read projection through Paperclip's existing authenticated plugin data bridge. It does not add a Wandora operational registry or a second Paperclip API.
+Version 0.6.0 adds one operator-only read projection through Paperclip's existing authenticated plugin data bridge. It does not add a Wandora operational registry or a second Paperclip API.
 
 The data key `operational-read` accepts only the Paperclip host-authorized company scope, resolves the fixed managed catalog employee, and reuses `ctx.toolAccess.readOperationalSnapshot`. The response is bounded to current runtime health plus mapped Connection/tool operational flags required for qualification: Connection status/enabled/health, organization grant presence, agent install presence, and read-tool status/risk/read-write/destructive/effective-profile evidence.
 
@@ -79,4 +79,4 @@ Paperclip object IDs, raw grants/profiles/catalog records, provider metadata, cr
 
 Paperclip's host remains the authority that authenticates Board access and injects the authorized company scope. The worker rejects missing scope and all additional caller parameters, and the package CI verifies the pinned Paperclip host/worker anti-spoofing contract.
 
-The canonical package version pin remains 0.5.0 in this slice. Any package version change or production promotion is a separate reviewed effect. This source qualification does **not** open Semantic Fast Read attestation, call VendaERP, or enable any outbound/customer effect.
+The production 0.5.0 package remains an immutable released artifact and is not overwritten by this source. Version 0.6.0 is the new package identity for the additive `operational-read` surface. Production promotion remains a separate reviewed effect. This source qualification does **not** open Semantic Fast Read attestation, call VendaERP, or enable any outbound/customer effect.

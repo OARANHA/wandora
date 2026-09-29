@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "organization_adapter_candidate",
-  "pluginVersion": "0.5.0",
+  "pluginVersion": "0.6.0",
   "providerVersion": "v2026.916.1",
   "paperclipSourceCommit": "d554c4789ed3930f8a53ac9fdf6503b3187097da",
   "openApi": {
