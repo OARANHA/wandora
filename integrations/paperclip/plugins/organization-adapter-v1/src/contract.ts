@@ -10,7 +10,7 @@ function nonEmpty(value: unknown): string | null {
 
 function parseCatalogWebhook(input: {
   endpointKey: string;
-  expectedEndpointKey: 'employee-reconcile' | 'employee-activate';
+  expectedEndpointKey: 'employee-reconcile' | 'employee-activate' | 'employee-capabilities';
   parsedBody?: unknown;
   rawBody: string;
   headers: Record<string, HeaderValue>;
@@ -38,6 +38,12 @@ export function parseActivationWebhook(input: {
   endpointKey: string; parsedBody?: unknown; rawBody: string; headers: Record<string, HeaderValue>;
 }) {
   return parseCatalogWebhook({ ...input, expectedEndpointKey: 'employee-activate' });
+}
+
+export function parseCapabilitiesWebhook(input: {
+  endpointKey: string; parsedBody?: unknown; rawBody: string; headers: Record<string, HeaderValue>;
+}) {
+  return parseCatalogWebhook({ ...input, expectedEndpointKey: 'employee-capabilities' });
 }
 
 export function parseWorkWebhook(input: {

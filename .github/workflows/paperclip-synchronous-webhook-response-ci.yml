@@ -1,0 +1,83 @@
+name: Paperclip Synchronous Webhook Response CI
+
+on:
+  pull_request:
+    paths:
+      - 'integrations/paperclip/synchronous-webhook-response-v1/**'
+      - 'integrations/paperclip/patches/v2026.916.1-synchronous-webhook-response-v1.patch'
+      - '.github/workflows/paperclip-synchronous-webhook-response-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'integrations/paperclip/synchronous-webhook-response-v1/**'
+      - 'integrations/paperclip/patches/v2026.916.1-synchronous-webhook-response-v1.patch'
+      - '.github/workflows/paperclip-synchronous-webhook-response-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: paperclip-synchronous-webhook-response-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - name: Checkout Wandora
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Checkout exact Paperclip v2026.916.1 source
+        uses: actions/checkout@v4
+        with:
+          repository: paperclipai/paperclip
+          ref: d554c4789ed3930f8a53ac9fdf6503b3187097da
+          path: .paperclip
+          persist-credentials: false
+
+      - name: Apply retained synchronous webhook response patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C .paperclip rev-parse HEAD)" = "d554c4789ed3930f8a53ac9fdf6503b3187097da"
+          patch_file="$GITHUB_WORKSPACE/integrations/paperclip/patches/v2026.916.1-synchronous-webhook-response-v1.patch"
+          git -C .paperclip apply --check "$patch_file"
+          git -C .paperclip apply "$patch_file"
+          git -C .paperclip diff --check
+
+      - name: Set up Node 24.21.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.21.0
+
+      - name: Static boundary verifier
+        run: node integrations/paperclip/synchronous-webhook-response-v1/verify.mjs .paperclip
+
+      - name: Set up pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.4 --activate
+          pnpm --version
+
+      - name: Install pinned Paperclip dependencies
+        working-directory: .paperclip
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck patched plugin SDK
+        working-directory: .paperclip
+        run: pnpm --filter @paperclipai/plugin-sdk typecheck
+
+      - name: Typecheck patched Paperclip server
+        working-directory: .paperclip
+        run: pnpm --filter @paperclipai/server typecheck
+
+      - name: Focused synchronous webhook response tests
+        working-directory: .paperclip
+        run: |
+          pnpm exec vitest run \
+            packages/plugins/sdk/tests/worker-rpc-host-webhook.test.ts \
+            server/src/__tests__/plugin-webhook-response-routes.test.ts

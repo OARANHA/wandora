@@ -1,0 +1,16 @@
+services:
+  core:
+    environment:
+      # Compatibility convergence is intentionally effect-inert. A future
+      # attestation must use a separately reviewed effect-authorizing overlay.
+      WANDORA_FAST_READ_EXECUTION_ENABLED: "false"
+      WANDORA_SEMANTIC_FAST_READ_ENABLED: "false"
+      WANDORA_SEMANTIC_SELECTOR_ENABLED: "false"
+      WANDORA_HUMAN_SEND_PROPOSAL_ENABLED: "false"
+
+      # These are container-side references only. With the gates above OFF,
+      # Core does not open either file and no new host secret is required.
+      WANDORA_FAST_READ_INTENT_SECRET_FILE: "/run/secrets/wandora/fast-read-intent.hmac"
+      WANDORA_TYPESAFE_JEV_API_KEY_FILE: "/run/secrets/wandora/typesafe-jev.api-key"
+      WANDORA_TYPESAFE_JEV_TIMEOUT_MS: "3000"
+      WANDORA_SEMANTIC_SELECTOR_TIMEOUT_MS: "3000"

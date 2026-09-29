@@ -1,3 +1,5 @@
+import type { BusinessCapability } from '../semantic-routing/contracts.js';
+
 export type CatalogEmployeeDefinition = {
   key: string;
   displayName: string;
@@ -22,8 +24,37 @@ export type CatalogEmployeeWorkProviderInput = {
   description: string;
 };
 
+export type OrganizationAdapterFastReadUsage = {
+  inputTokens: number;
+  outputTokens: number;
+  cachedInputTokens: number;
+  totalTokens: number;
+};
+
+export type OrganizationAdapterFastReadResult = {
+  model: string;
+  summary: string;
+  usage: OrganizationAdapterFastReadUsage;
+};
+
+export type OrganizationAdapterFastReadBridge = {
+  getAvailableCapabilities(input: {
+    organizationId: string;
+    actorUserId: string;
+    employeeId: string;
+  }): Promise<BusinessCapability[]>;
+  dispatchFastRead(input: {
+    organizationId: string;
+    actorUserId: string;
+    employeeId: string;
+    correlationId: string;
+    intentToken: string;
+    request: string;
+  }): Promise<OrganizationAdapterFastReadResult>;
+};
+
 export type OrganizationAdapterProvider = {
-  readonly provider: 'paperclip';
+  readonly provider: string;
   reconcileCatalogEmployee(input: {
     providerCompanyRef: string;
     catalogKey: string;
@@ -35,6 +66,17 @@ export type OrganizationAdapterProvider = {
   ensureCatalogEmployeeWork?(input: CatalogEmployeeWorkProviderInput): Promise<{
     providerAgentRef: string;
   }>;
+  getCatalogEmployeeAvailableCapabilities?(input: {
+    providerCompanyRef: string;
+    catalogKey: string;
+  }): Promise<BusinessCapability[]>;
+  dispatchCatalogEmployeeFastRead?(input: {
+    providerCompanyRef: string;
+    catalogKey: string;
+    correlationId: string;
+    intentToken: string;
+    request: string;
+  }): Promise<OrganizationAdapterFastReadResult>;
 };
 
 export type CatalogEmployeeResult = {
@@ -126,5 +168,17 @@ export class DigitalEmployeeWorkError extends Error {
   constructor(readonly code: DigitalEmployeeWorkErrorCode, message: string) {
     super(message);
     this.name = 'DigitalEmployeeWorkError';
+  }
+}
+
+export type DigitalEmployeeFastReadErrorCode =
+  | 'employee-fast-read-unavailable'
+  | 'provider-fast-read-unavailable'
+  | 'provider-fast-read-uncertain';
+
+export class DigitalEmployeeFastReadError extends Error {
+  constructor(readonly code: DigitalEmployeeFastReadErrorCode, message: string) {
+    super(message);
+    this.name = 'DigitalEmployeeFastReadError';
   }
 }

@@ -17,6 +17,7 @@ import {
   isHumanCompanyProfileMutationPath,
   isHumanDigitalEmployeeActivationPath,
   isHumanDigitalEmployeeDevelopmentMutationPath,
+  isHumanDigitalEmployeeFastReadPath,
   isHumanDigitalEmployeeHirePath,
   isHumanDigitalEmployeeWorkPath,
   isHumanGroundingMutationPath,
@@ -149,6 +150,10 @@ export function createRuntimeServer(deps: RuntimeServerDeps): Server {
         return;
       }
       try {
+        const humanFastReadBody = (
+          request.method === 'POST'
+          && isHumanDigitalEmployeeFastReadPath(url.pathname)
+        );
         const humanMutationBody = (
           request.method === 'POST'
           && (
@@ -160,7 +165,11 @@ export function createRuntimeServer(deps: RuntimeServerDeps): Server {
             || isHumanGroundingMutationPath(url.pathname)
           )
         ) || isHumanCompanyProfileMutationPath(url.pathname, request.method);
-        const rawBody = humanMutationBody ? await readBody(request, 8_192) : undefined;
+        const rawBody = humanFastReadBody
+          ? await readBody(request, 12_100)
+          : humanMutationBody
+            ? await readBody(request, 8_192)
+            : undefined;
         const result = await deps.handleHumanSupervision({
           method: request.method,
           pathname: url.pathname,

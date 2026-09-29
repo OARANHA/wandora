@@ -18,6 +18,7 @@ function decision(overrides: Partial<SemanticRouteDecision> = {}): SemanticRoute
   return {
     mode: 'deterministic_read',
     capability: 'business.products.price',
+    selector: { kind: 'product', by: 'name', value: 'PREMIUM PLUS' },
     confidence: 0.97,
     needsDataOrToolLookup: 0.99,
     needsMoreContext: 0.05,
@@ -65,6 +66,24 @@ test('deterministic read executes exactly one capability binding and renders wit
     toolCalls: 1,
     usage: { inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, totalTokens: 0 },
   });
+});
+
+test('product price without an authorized selector fails closed before any capability binding executes', async () => {
+  let calls = 0;
+  const executor = new DeterministicReadExecutor(POLICY);
+  const result = await executor.execute({
+    request: 'Qual o preço?',
+    decision: decision({ selector: null }),
+    bindings: [
+      binding('business.products.price', async () => {
+        calls += 1;
+        return { kind: 'not_found' as const, message: 'never' };
+      }),
+    ],
+  });
+
+  assert.deepEqual(result, { kind: 'fallback', reason: 'missing-selector', toolCalls: 0 });
+  assert.equal(calls, 0);
 });
 
 test('low confidence fails out before any capability binding executes', async () => {

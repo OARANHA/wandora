@@ -1,0 +1,12 @@
+services:
+  core:
+    environment:
+      # Attestation-only effect overlay. This file is inert unless a future,
+      # separately authorized operator execution explicitly appends it after
+      # the gates-OFF convergence and custody overlays.
+      WANDORA_FAST_READ_EXECUTION_ENABLED: "true"
+      WANDORA_SEMANTIC_FAST_READ_ENABLED: "true"
+      WANDORA_SEMANTIC_SELECTOR_ENABLED: "true"
+
+      # Human/customer outbound remains outside the bounded Fast Read attestation.
+      WANDORA_HUMAN_SEND_PROPOSAL_ENABLED: "false"

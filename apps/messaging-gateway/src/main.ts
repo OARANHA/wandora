@@ -1,9 +1,11 @@
 import { createCoreIngressClient } from './core-client.js';
 import { loadMessagingGatewayConfig } from './config.js';
+import { createConsoleMessagingLatencyRecorder } from './latency.js';
 import { createEvolutionOutboundSender } from './outbound.js';
 import { createMessagingGatewayServer } from './server.js';
 
 const config = await loadMessagingGatewayConfig();
+const latencyRecorder = createConsoleMessagingLatencyRecorder();
 const forwardToCore = createCoreIngressClient({
   url: config.coreIngressUrl,
   secret: config.coreIngressSecret,
@@ -17,6 +19,7 @@ const outbound = config.outbound
         instanceName: config.evolutionInstance,
         baseUrl: config.outbound.evolutionBaseUrl,
         apiKey: config.outbound.evolutionApiKey,
+        recordLatency: latencyRecorder,
       }),
     }
   : undefined;
@@ -27,6 +30,7 @@ const server = createMessagingGatewayServer({
   organizationId: config.organizationId,
   connectionId: config.connectionId,
   forwardToCore,
+  recordLatency: latencyRecorder,
   ...(outbound ? { outbound } : {}),
 });
 

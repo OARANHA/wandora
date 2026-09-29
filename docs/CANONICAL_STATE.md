@@ -1,3 +1,754 @@
+## 2026-09-28 — ADR 0322 Web bridge production promotion and persistent selector reconciliation
+
+Status: **WEB BRIDGE PROMOTED + SELECTOR PERSISTED / BASELINE PRESERVED / FAST READ STILL OFF / NO NEW ATTESTATION**.
+
+PR #369 exact pre-documentation head `623555b2d623563533e6745d5b68eb0f0bcf961a` was open/draft/mergeable with **17/17 workflows GREEN**. The reviewed Web artifact from run `36497653370`, artifact `11003604308`, GitHub artifact digest `sha256:fe483f927a340ad41517e4ed5dc2a41dcd4bf8145c5f3d18dbadfc97051e4091` is live as `wandora/web:candidate-4e67366fbf5a`, OCI digest `sha256:a6a329dd3643f0c825edbfca91abc9341023b68857edf99458c65eb173a97935`, revision `4e67366fbf5a5caa9e2184cde722c3e40332c945`, healthy with restart count 0.
+
+The persistent Web stack selector had still pointed at rollback image `wandora/web:candidate-5108f7ce8de3`. Existing managed-admin authority was reused; no new subsystem or generic root shell was introduced. A fresh approved backup was created at `/opt/wandora/stacks/web/.env.backup-adr0321-selector-before-persist-20260929T0236Z` and independently resolves the rollback image. A separately reviewed and human-approved second effect copied the already-staged one-line selector `WANDORA_WEB_IMAGE=wandora/web:candidate-4e67366fbf5a` to the persistent stack `.env`.
+
+Post-persistence Compose rendering resolves the promoted image. No Compose up or container recreation occurred during persistence: Web retained the same container ID/start time/digest/revision and remains healthy/restart 0. Core, Paperclip and Gateway identities remained unchanged; Task Drain remains false/0/0/quiescent. Core Fast Read execution, Semantic Fast Read and Human Send remain OFF; Gateway outbound remains OFF; no custody/attestation window was reopened.
+
+The live exact UUID-scoped Fast Read path is now distinct from the Nginx catch-all: a valid unauthenticated probe reaches Core and returns JSON `{"error":"not-found"}` because Fast Read remains disabled, while `/fast-read/again`, `/api/unreviewed` and `/internal/unreviewed` remain Nginx 404.
+
+ADR 0321 remains the historical record of the earlier fail-closed browser 404 and code-only repair. ADR 0322 records the later Web-only promotion and selector persistence. Any new Semantic Fast Read attestation is a separate production slice with fresh reconciliation, decision, second adversarial review and new one-use approvals.
+
+Canonical detail: `docs/decisions/0322-semantic-fast-read-web-bridge-production-promotion-v1.md`.
+
+## 2026-09-28 — ADR 0321 Semantic Fast Read browser 404 Web bridge gap
+
+Status: **FAIL-CLOSED / BASELINE RESTORED / ROOT CAUSE PROVEN / WEB-ONLY FIX IMPLEMENTED + WEB CI GREEN / NO PRODUCTION PROMOTION**.
+
+Exactly one owner/admin browser Fast Read request was executed during the bounded attestation and returned HTTP 404. The mandatory close was then freshly approved and executed; Core is back on the exact gates-OFF baseline, custody/attestation mounts are absent, Human Send and Gateway outbound remain OFF, Task Drain is quiescent, and Paperclip is unchanged.
+
+Production Web access logs plus the exact deployed Web revision proved the request never reached Core: `apps/web/nginx.conf` lacked the UUID-scoped `/digital-employees/{id}/fast-read` allowlist and the request fell through to the explicit `location /api/ { return 404; }` boundary. Therefore this attempt made no TypeSafe/Mistral/Paperclip/VendaERP call.
+
+PR #369 now contains the narrow Web-only repair and isolated bridge test. Code commits `7789467b0c2115dcb9614d1201ccfa1516a68c49` and `9a3e8ce416f9e181bca19bf392c636a5a733e4e4` add exactly one Fast Read proxy rule and Web CI coverage; the Web bridge verifier is GREEN. Production Web remains unchanged.
+
+**Next boundary:** complete final exact-head CI, then separately qualify/promote only the reviewed Web artifact before any new bounded attestation. No approval from the failed attempt may be reused.
+
+Canonical detail: `docs/decisions/0321-semantic-fast-read-browser-404-web-bridge-gap-v1.md`.
+
+## 2026-09-28 — ADR 0317 Semantic Fast Read bounded attestation attempt aborted and baseline restored
+
+Status: **FAIL-CLOSED / INVALID WINDOW CLOSED / BASELINE RESTORED / NO HUMAN FAST READ**.
+
+The first ADR 0316 bounded opening mutation executed once after explicit approval, but immediate post-recreation validation found Core had resolved to the base Compose fallback image `wandora/core:private-runtime-v1` instead of the pre-attestation production candidate `wandora/core:organization-adapter-candidate-2c2142237c9c`. The cause was a missing explicit `WANDORA_CORE_IMAGE` pin in the temporary non-secret render environment; `config --quiet` had proven parse/interpolation but not resolved image identity.
+
+No browser Human Fast Read was executed. The attempt was declared invalid and the mandatory close was separately reviewed/approved. Core was restored to the exact candidate image/digest/revision and pre-attestation Compose chain ending at `compose.semantic-fast-read.yaml`, with custody/attestation removed, TypeSafe/`wfri1` mounts absent, Fast Read/Semantic/Human Send OFF, Task Drain quiescent, Paperclip/OA intact and Gateway outbound OFF.
+
+Permanent guard: future attempts must explicitly pin the freshly captured live `WANDORA_CORE_IMAGE`, prove the resolved image (not only `config --quiet`) before `up`, and re-read tag/digest/revision before any browser action.
+
+Canonical detail: `docs/decisions/0317-semantic-fast-read-bounded-production-attestation-attempt-v1.md`.
+
+**Next boundary:** new chat/slice only, starting from fresh REAL NOW. No ADR 0317 approval may be reused.
+
+
+## 2026-09-28 — ADR 0315 Canonical Rollback V2 Persistent Capture Execution V2
+
+Status: **PERSISTENT CAPTURE EXECUTED + VALIDATED / ROLLBACK V2 READY / ACTIVATION NOT AUTHORIZED / NO PROVIDER/CUSTOMER/OUTBOUND EFFECT**.
+
+PR #369 was freshly reconciled at exact pre-capture head `22613dcb92d913649d4c5ae79583ce11b6c67d07`, open/draft/mergeable with **17/17 workflows GREEN** and no rerun. Runtime remained on the pinned inert baseline: seven containers healthy; Paperclip v2026.916.1; Core `2c214223...`; one Organization Adapter 0.5.0 ready; Task Drain false/0/0/quiescent; Core Fast Read/Semantic Fast Read/Human Send OFF; Gateway outbound OFF.
+
+The existing Remote-Ops managed-admin chain and ADR 0314 zero-argument program were reused exactly. Fresh JEV guard returned `confirm=0.86` with confidence `0.81`. Human-approved ticket `adm_cccf18ab2668c5e094cee2be` executed exactly once with `exit_code=0`, no timeout and `ROLLBACK_FREEZE_V2_OK`.
+
+The new safe receipt `/opt/wandora/ops-workspace/production-rollback-freeze-v2.metadata` independently proves the protected rollback root, exact runtime anchors, official Paperclip backup/gzip proof, disposable PostgreSQL restore/schema equality, metadata-only secret custody and all four forbidden effect flags `false`.
+
+Post-execution runtime is unchanged and healthy: same seven containers, OA 0.5.0 ready, Task Drain false/0/0/quiescent, broker/agent active with zero restart, Core activation gates OFF and Gateway outbound OFF.
+
+**Hard stop:** Rollback V2 is now captured and ready; Semantic Fast Read or any other production activation remains a separate future effect requiring fresh pre-mutation attestation and authorization.
+
+Canonical detail: `docs/decisions/0315-canonical-rollback-v2-persistent-capture-execution-v2.md`.
+
+## 2026-09-28 — ADR 0314 Managed-Admin V2 Persistent Capture Capability Governance V1
+
+Status: **CAPABILITY DEPLOYED + VALIDATED / PERSISTENT CAPTURE NOT PREPARED OR EXECUTED / NO FAST READ/PROVIDER/CUSTOMER/OUTBOUND EFFECT**.
+
+PR #369 remained open/draft/mergeable at pre-deployment documentation head `d8312cecda8e9c475c3c46b5d2ec04fb275d1bb3`, whose 17/17 workflows were GREEN. The capability deployment then reused the existing Remote-Ops `host.managed_admin` boundary; no new broker, approval subsystem, generic root shell authority or provider implementation was introduced.
+
+Production now has the qualified zero-argument program `/usr/local/sbin/wandora-rollback-freeze-v2-capture` installed `root:root 0755` at Git blob `f693cc0f0e34258fcdf10d7616f92f1ff1d48758`. The broker drop-in is installed `root:root 0644` at blob `7bcda5c69048190b242d2895a206d96537be0a3c`.
+
+A fresh protected live-registry snapshot matched the prior reviewed snapshot byte-for-byte. The deployed candidate differed semantically only by adding `wandora-rollback-freeze-v2-capture` to `wandora-managed-admin.allowedAdminPrograms` and was installed as `wandora-admin:wandora-ops 0600`.
+
+`systemctl daemon-reload` succeeded. The admin-broker restart returned a disconnect but state-first readback proved the service had already moved from PID `1765513` to `2368034` and remained active/running. The Remote-Ops control-plane restart likewise returned a tool error after the effect; state-first readback proved `remote-ops-mcp` restarted and is healthy on unchanged image `ghcr.io/oaranha/remote-ops-mcp:sha-f408ed4`.
+
+Final live target readback now exposes `wandora-rollback-freeze-v2-capture` alongside `wandora-rollback-freeze-v2-precheck`. Remote-Ops health is OK; the ops agent and admin broker are active; seven Wandora containers are running/healthy; Task Drain remains `false / 0 / 0 / quiescent=true`.
+
+**Hard stop:** no `host_admin_prepare` was issued for the capture program, no persistent-capture approval exists from this slice, the program was not executed, and no V2 receipt, Fast Read activation, provider/model/VendaERP/customer/WhatsApp/outbound effect occurred.
+
+Next: start **Canonical Rollback V2 Persistent Capture Execution** only as a fresh separate slice with new REAL NOW reconciliation, decision, second adversarial review and explicit new managed-admin approval. Do not reuse ADR 0314 deployment approvals.
+
+Canonical detail: `docs/decisions/0314-managed-admin-v2-persistent-capture-capability-governance-v1.md`.
+
+## 2026-09-27 — ADR 0313 Canonical Rollback V2 Persistent Capture Execution V1
+
+Status: **BLOCKED BEFORE PREPARE / DEDICATED PERSISTENT-CAPTURE AUTHORITY ABSENT / ROLLBACK NOT CAPTURED / NO PRODUCTION EFFECT**.
+
+Fresh repo/CI/runtime reconciliation is GREEN, the canonical V2 helper remains exact and syntactically valid, and the receipt remains absent. However, the effective `wandora-managed-admin` authority exposes only the dedicated ADR 0310/0311 precheck program; there is no dedicated persistent-capture program and generic root shell authority is outside the accepted boundary.
+
+Capability Authority / Reuse Gate therefore blocks capture before `host_admin_prepare`. Fresh JEV second review returned `block=0.98` with confidence `0.97`. No approval or production effect occurred.
+
+Next: qualify/deploy the narrowest managed-admin persistent-capture capability in a separate **CAPABILITY ONLY / NO CAPTURE** slice, then restart capture execution from fresh state.
+
+## 2026-09-27 — ADR 0312 Canonical Rollback V2 Root Precheck Execution
+
+Status: **ROOT PRECHECK EXECUTED / GREEN / ROLLBACK NOT CAPTURED / ACTIVATION NOT AUTHORIZED**.
+
+Fresh reconciliation kept PR #369 open/draft/mergeable at source head `3f309cd4e70572a76d0e4f9cbbc35eddfd39f912` with **17/17 workflows GREEN**. Remote-Ops remained source/live aligned at `f408ed420dc8e104c6b105e31d8b093a624523e6`; seven Wandora containers remained healthy; Paperclip remained v2026.916.1; Core remained `wandora/core:organization-adapter-candidate-2c2142237c9c`; Organization Adapter was exactly 0.5.0 ready; Task Drain remained false/0/0/quiescent; Core Fast Read/Semantic Fast Read/Human Send remained OFF; Gateway outbound remained OFF.
+
+A fresh JEV guard returned `confirm=0.74` with confidence `0.65`. The already-deployed dedicated program `wandora-rollback-freeze-v2-precheck` was prepared under fresh approval `adm_754da3e28ac55462fcf60074`, explicitly approved, and executed exactly once with zero caller arguments.
+
+The governed apply returned `exit_code=0`, no timeout, and `ROLLBACK_FREEZE_V2_PRECHECK_OK`. Safe output confirmed current Paperclip/Core/OA/Compose anchors, metadata-only TypeSafe/`wfri1`/Mistral custody, and `activation_performed=false`, `provider_call_performed=false`, `customer_effect=false`, `outbound_effect=false`.
+
+Post-readback kept all runtime identities healthy/unchanged and proved `production-rollback-freeze-v2.metadata` absent. The exact precheck branch exits before the helper's explicit first-write boundary, so rollback-parent/root creation was not reached by this invocation. No additional root/filesystem authority was introduced merely to inspect the protected backup path.
+
+This checkpoint does not authorize persistent rollback capture or any activation. The next slice is **Canonical Rollback V2 Persistent Capture Execution**, requiring fresh state, a new decision, a new second adversarial review and new explicit authorization.
+
+Canonical detail: `docs/decisions/0312-canonical-rollback-v2-root-precheck-execution-v1.md`.
+
+## 2026-09-27 — ADR 0311 managed-admin V2 precheck capability deployed and validated
+
+Status: **CAPABILITY DEPLOYED / VALIDATED / ROOT PRECHECK NOT EXECUTED / NO CUSTOMER OR PROVIDER EFFECT**.
+
+Fresh continuation on PR #369 reconciled source/runtime, obtained the exact protected dynamic registry through the existing governed managed-admin boundary, and proved that the only required target change was adding `wandora-rollback-freeze-v2-precheck` to `wandora-managed-admin.allowedAdminPrograms`. The reviewed candidate changed no other target field or target and reverted semantically to the exact live registry when that one entry was removed.
+
+Remote-Ops source at `f408ed420dc8e104c6b105e31d8b093a624523e6` proved `target_agent_apply` would rebuild the target from a preset, so preset reapplication was rejected. The same source proved `loadRegistry()` runs at control-plane startup, making a bounded `remote-ops-mcp` restart the correct reload for the custom reviewed dynamic-registry diff.
+
+After a second adversarial review (`confirm=0.80`, confidence `0.73`) and fresh explicit approvals, production deployment installed:
+
+- dedicated entrypoint `/usr/local/sbin/wandora-rollback-freeze-v2-precheck` via root-owned `0755` install;
+- exact canonical helper `/usr/local/libexec/wandora/production-rollback-freeze-v2.sh` via root-owned `0750` install;
+- one broker drop-in adding only the dedicated program to `WANDORA_ADMIN_PROGRAMS`;
+- the reviewed dynamic registry as `wandora-admin:wandora-ops 0600`.
+
+`systemctl daemon-reload` succeeded. Transport-side errors during the admin-broker and control-plane restart calls were reconciled state-first rather than blindly retried. Readback proved the admin broker restarted to PID `1765513`, loaded the exact drop-in and effective admin-program addition; `remote-ops-mcp` restarted at `2026-09-28T01:54:01.625511967Z`, remained healthy, and exposes the new target authority.
+
+Final governed live hash readback, without executing either script, is exact:
+
+- entrypoint `97b6962858aee3ea8c5577d7bd480502637bb4b2`;
+- helper `849a05971d5f2526b6e8829d5315b4678f169315`.
+
+Managed-admin hard-denies remain unchanged for generic shells/interpreters; `env` remains denied-by-default because it is absent from the administrative allowlists. All seven Wandora containers remained healthy; agent/admin/exec brokers remained active. No root precheck, rollback capture, Fast Read activation, provider/VendaERP/customer work or outbound effect occurred.
+
+Next boundary: **Canonical Rollback V2 Root Precheck Execution** is a new slice requiring fresh REAL NOW reconciliation, new decision, second adversarial review and new explicit managed-admin approval. Deployment approvals from ADR 0311 must not be reused.
+
+Canonical detail: `docs/decisions/0311-managed-admin-v2-precheck-capability-deployment-v1.md`.
+
+## 2026-09-27 — ADR 0310 managed-admin root capability governance for canonical Rollback V2 precheck
+
+Status: **QUALIFIED / CODE+CI ONLY / CAPABILITY NOT DEPLOYED / ROOT PRECHECK NOT EXECUTED / NO PRODUCTION EFFECT**.
+
+Fresh authority reconciliation proved that current Remote-Ops-MCP `main@f408ed420dc8e104c6b105e31d8b093a624523e6` is the live control-plane implementation and that its managed-admin provider already supplies the generic operational mechanics required for governed root execution: target program allowlists, explicit prepare/apply, signed short-lived one-use tickets, root broker replay protection and `shell=false`. Generic `bash`, `sh`, `sudo` and interpreter execution remain hard-denied at both layers.
+
+No approved-script/helper primitive exists. Reuse Gate therefore selected a Wandora-owned dedicated precheck program instead of a new Remote-Ops subsystem. The qualified entrypoint accepts zero caller arguments, requires root-owned non-symlink installed files, pins the exact canonical V2 helper Git blob `849a05971d5f2526b6e8829d5315b4678f169315`, validates syntax, and executes only fixed `--precheck-only`. Direct helper allowlisting was rejected because the helper also exposes the separately governed no-argument rollback capture.
+
+Final code head `ac53b2d6389e382f55615906e40b4bed9c0fe839` passed **17/17 workflows GREEN**; Semantic Fast Read CI run `36341259674` includes the ADR 0310 gate, Core CI run `36341259563` is GREEN, and the post-primary-gates Core Candidate job `108682490694` is GREEN. Final adversarial review returned `allow=0.74` / confidence `0.66`.
+
+No live Remote-Ops config, target, broker, VPS application runtime or production effect changed. The dedicated program is **not live yet**. Next slice is capability deployment only: install root-owned exact bytes and add only `wandora-rollback-freeze-v2-precheck` to the existing target and broker admin-program allowlists; then validate and stop before root precheck.
+
+Canonical detail: `docs/decisions/0310-managed-admin-root-capability-governance-canonical-rollback-v2-precheck-v1.md`.
+
+## 2026-09-27 — ADR 0309 canonical V2 exact-byte host staging complete
+
+Status: **CANONICAL V2 STAGED EXACT-BYTES / BASH-N GREEN / NO ROOT EXECUTION / NO PRODUCTION EFFECT**.
+
+Fresh GitHub reconciliation kept `main@8d6a65f519de5c1c49607314b49968af608c7164` and PR #369 open/draft/mergeable at exact source head `11cda265e15e75ee03492326a3b9bbf64bfd8d9b`, with **17/17 workflows GREEN**. Semantic Fast Read CI run `36335619133` included the successful ADR 0309 canonical V2 static qualification.
+
+The quarantined host copy still hashed to Git blob `4058eaf32e46de69e23a1866ba64878491bf642e` before staging. Reusing only the existing governed `wandora-agent` workspace-write boundary, it was atomically replaced from the canonical repository source. Post-write `git hash-object --no-filters` is exactly `849a05971d5f2526b6e8829d5315b4678f169315`, matching the GitHub blob, and non-root `bash -n` exits 0.
+
+Post-staging runtime remained inert: the same seven containers stayed healthy/identical, Task Drain remained false/0/0/quiescent, and no V2 receipt exists. No root helper call, `--precheck-only`, rollback capture, secret read, Compose/container/gate mutation, provider/model/VendaERP call, customer work or outbound effect occurred.
+
+Second adversarial review for the bounded staging effect returned `allow=0.70 / confirm=0.23 / review=0.04 / deny=0.03`. ADR 0168 remains satisfied; no capability or authority was widened.
+
+Next: start a **new fresh decision + second adversarial review + explicit authorization for root `--precheck-only` only**. Do not infer that authorization from this staging checkpoint.
+
+## 2026-09-27 — ADR 0309 canonical V2 repository remediation
+
+Status: **CANONICAL REPO V2 ADDED / WORKSPACE COPY QUARANTINED / NO ROOT EXECUTION / NO PRODUCTION EFFECT**.
+
+A retained preparation diff proved stale V1 terminal markers in the workspace-only V2 before the later `--precheck-only` edit. Shared execution-broker `session_capacity` blocks both operator targets from independently reading the current tail or running post-edit `bash -n` without restarting infrastructure; that restart was refused.
+
+The safe remediation is repository-only. `scripts/operations/production-rollback-freeze-v2.sh` is the canonical V2 source and Semantic Fast Read CI validates its syntax, V2-only markers/current exact runtime guards, precheck-before-first-write placement and pinned Paperclip v2026.916.1 embedded-PostgreSQL contract. The current VPS copy is quarantined until a later authorized exact-byte staging operation.
+
+Final narrowed adversarial review: `proceed_fast=0.66 / deep_review=0.29 / split_task=0.04 / block=0.01`.
+
+No VPS write, backup, root precheck, secret read, container/Compose/gate mutation, provider/model/VendaERP call, customer Fast Read or outbound occurred.
+
+Next: exact-head CI -> separately reviewed/authorized canonical-byte staging -> separately reviewed/authorized root `--precheck-only`.
+
+## 2026-09-27 — ADR 0309 Current Rollback/Custody Precheck + Owner Browser Trigger Preparation V1
+
+Status: **PREPARED / ENTRY HEAD 17/17 GREEN / ROOT PRECHECK NOT EXECUTED / ROLLBACK NOT CAPTURED / HUMAN FAST READ NOT EXECUTED / NO PRODUCTION EFFECT**.
+
+PR #369 entry head `2b54668dfe85a9495c6a38c9d409f2deeb949a85` completed 17/17 workflows successfully.
+
+The production gap-closure path now reuses the ADR 0299 helper rather than creating a new backup/secret subsystem. A byte-identical copy was made at `/opt/wandora/ops-workspace/production-rollback-freeze-v2.sh` before narrowly updating current v916.1/Core-2c214/OA-0.5.0 anchors, current Paperclip three-file Compose provenance and current Core gates-OFF semantic overlay guards.
+
+V2 adds a separate `--precheck-only` mode that executes the same fresh pre-write checks, emits only safe runtime/custody metadata and exits on `ROLLBACK_FREEZE_V2_PRECHECK_OK` before the first persistent rollback write. The full no-argument mode remains separately effectful and would create the protected current rollback freeze ending in `ROLLBACK_FREEZE_V2_OK`.
+
+Before the precheck mode was added the helper passed `bash -n`. After the edit, the execution broker hit `BROKER_DENIED: session_capacity`; the edit was independently read back, visible sessions were terminal, and no broker restart/authority widening was used. Post-edit syntax validation therefore remains a hard prerequisite to root execution.
+
+The legitimate Human Fast Read boundary is now prepared as browser-owned: use the normal logged-in Wandora browser session, verify `/api/v1/me` owner/admin membership, require exactly one active Ana, default to preflight only, and keep all access/refresh token material inside the browser. Core still revalidates identity and owner/admin authorization server-side. No operator impersonation is permitted.
+
+No root/precheck/backup/activation/provider/customer/outbound effect occurred. Production attestation remains blocked.
+
+Next: real V2 syntax validation; fresh reviewed + explicitly authorized root `--precheck-only`; then a separate reviewed + authorized full current rollback capture; only afterward a brand-new Immediate Pre-Mutation Attestation + Effect Authorization.
+
+Canonical detail: `docs/decisions/0309-current-rollback-custody-precheck-owner-browser-trigger-preparation-v1.md`.
+
+## 2026-09-27 — ADR 0308 Immediate Pre-Mutation Evidence Gap Closure V1
+
+Status: **PARTIAL / 2 OF 5 GAPS CLOSED / PRODUCTION ATTESTATION STILL BLOCKED / READ-ONLY / NO PRODUCTION EFFECT**.
+
+PR #369 entry head `0274534722f23cb5a7df472885726d2a03f7aac5` completed **17/17 workflows GREEN**. Production remains healthy/inert on Core `2c214223...`, Paperclip v2026.916.1, exactly one OA 0.5.0 ready, Task Drain false/0/0/quiescent, Human Send OFF and Gateway outbound OFF.
+
+Fresh governed policy-test closes the exact VendaERP authorization gap: 28PRO Ana + Connection `8e2c23f4-73f5-444a-8647-71428819ea91` + Catalog Entry `165fcdca-8021-41dd-90e5-f0f143adeac3` + `vendaerp_search_products {pageSize:5,skip:0}` returned `allow / allow_profile`, effective profile `259a5449-58ba-4d59-9774-92612e3caa91`, no temporary matched policy and no audit/rate-limit consumption.
+
+Fresh runtime plus exact Paperclip v2026.916.1 source closes the Ana-state gap: although Ana currently reports `error / wandora_execution_failed_422`, Paperclip explicitly includes `error` among invokable statuses and blocks only paused/terminated/pending_approval; her org chain is healthy. No recovery or wake was executed.
+
+Three gaps remain and keep production activation blocked: fresh metadata-only TypeSafe/`wfri1`/Mistral readback is not available through the current authorized operator boundary; the operator context has no legitimate current 28PRO owner/admin Human Fast Read Bearer and must not impersonate one; and the existing `ROLLBACK_FREEZE_V1_OK` receipt anchors the older v916.0/Core-f322/OA0.3.1 state rather than current v916.1/Core-2c214/OA0.5.0.
+
+Second adversarial review returned **block=0.92 / deep_review=0.08**. No production deploy, Compose/container/secret/Task Drain/policy mutation, provider/model/VendaERP call, customer Fast Read, Human Send, WhatsApp or outbound occurred.
+
+Next: close only those three remaining gaps through existing authority, then start a brand-new Immediate Pre-Mutation Attestation + Effect Authorization. ADR 0308 is not an activation authorization.
+
+Canonical detail: `docs/decisions/0308-immediate-pre-mutation-evidence-gap-closure-v1.md`.
+
+## 2026-09-27 — ADR 0307 Immediate Pre-Mutation Attestation + Effect Authorization V1
+
+Status: **BLOCKED / NO MUTATION / NO PRODUCTION EFFECT**.
+
+Fresh reconciliation confirmed PR #369 source head `fc41d10888d67771d9b2b2c6dd465f2c17f725a2` completed **17/17 workflows GREEN**. Production remains inert and healthy: Core `wandora/core:organization-adapter-candidate-2c2142237c9c` / revision `2c2142237...` with Fast Read Execution OFF, Semantic Fast Read OFF and Human Send OFF; Paperclip v2026.916.1 / `d554c478...`; exactly one Organization Adapter 0.5.0 ready/lastError null; Task Drain false/0/0/quiescent; Messaging Gateway outbound OFF.
+
+The attestation found five freshness-sensitive blockers before the first production mutation: no currently exposed authorized metadata-only readback for TypeSafe/`wfri1`/Mistral secret files; exact 28PRO VendaERP Connection/grant authorization for `vendaerp_search_products` not freshly proven; 28PRO Ana currently reports `status=error` / `wandora_execution_failed_422` and issue-less Fast Read admissibility from that state is unresolved; no legitimate authenticated owner/admin Human Fast Read trigger exists in the operator tool context; and the existing protected `ROLLBACK_FREEZE_V1_OK` receipt captures the older pre-0303/0304/0305 baseline rather than the immediately current attestation state.
+
+Capability Authority / Reuse Gate confirms no new Wandora subsystem or Remote-Ops authority widening is justified. JEV second adversarial review returned **block=1.00**. Therefore no effect authorization was issued and no deploy, Compose/secret/gate mutation, Task Drain change, provider/model/VendaERP call, customer work, Human Send, WhatsApp or outbound effect occurred.
+
+Next: **Immediate Pre-Mutation Evidence Gap Closure V1 — READ-ONLY / NO ACTIVATION / NO CUSTOMER EFFECT**. Once all gaps are proven, begin a new fresh Immediate Pre-Mutation Attestation + Effect Authorization for exactly one authenticated owner/admin Human Fast Read.
+
+Canonical detail: `docs/decisions/0307-immediate-pre-mutation-attestation-effect-authorization-v1.md`.
+
+## 2026-09-27 — ADR 0306 Semantic Fast Read Bounded Attestation Activation Contract V1
+
+Status: **QUALIFIED / 17/17 PR WORKFLOWS GREEN / CODE+CI ONLY / NO PRODUCTION EFFECT**.
+
+The post-ADR0305 gap is now represented explicitly in repository code: `infra/stacks/core/compose.semantic-fast-read-attestation.yaml` is an attestation-only overlay that turns ON exactly Fast Read Execution, Semantic Fast Read and Semantic Selector while keeping Human Send OFF. It adds no volume, secret, image, build, network or port and must be layered after the existing gates-OFF and custody contracts only inside a future separately authorized attestation window.
+
+The future bounded test remains exactly one owner/admin Human Fast Read request, not WhatsApp. TypeSafe/System One, Mastra/Mistral, Paperclip/Organization Adapter, VendaERP and Messaging Gateway retain their existing provider/operational authority; no Wandora lifecycle, registry, retry engine, secret manager or provider implementation was added.
+
+Production was not changed. Core remains on the ADR 0305 gates-OFF compatibility baseline; TypeSafe/`wfri1` custody mounts are not live; Paperclip remains v2026.916.1; Organization Adapter remains exactly one 0.5.0 ready plugin; Gateway outbound remains OFF; Task Drain remains false/0/0/quiescent.
+
+Qualification head `8a4e58877dcc845ba47332949285c764fc2d940d` completed **17/17 workflows GREEN**. Core CI run `36329848056` emitted `SEMANTIC_FAST_READ_BOUNDED_ATTESTATION_CONTRACT_V1_OK`; Semantic Fast Read CI run `36329848114` also completed GREEN.
+
+ADR 0306 is therefore qualified. Stop here and begin a fresh **Immediate Pre-Mutation Attestation + Effect Authorization** before any live attestation.
+
+Canonical detail: `docs/decisions/0306-semantic-fast-read-bounded-attestation-activation-contract-v1.md`.
+
+## 2026-09-27 — ADR 0305 Core Semantic Fast Read Compatibility Convergence Production Execution V1
+
+Status: **COMPLETE / CORE COMPATIBILITY CONVERGED / SEMANTIC+OUTBOUND EFFECTS OFF**.
+
+PR #369 was reconciled at source head `c6deae0fd0419b3b4d5f8a2eac85fa2930e6093d`, base `main@8d6a65f519de5c1c49607314b49968af608c7164`, with **17/17 workflows GREEN**. Because the original Core Candidate Artifact completed before the primary Core/Semantic gates, the successful candidate job was rerun post-gates and only that later artifact was accepted.
+
+The exact production candidate is `wandora/core:organization-adapter-candidate-2c2142237c9c`, archive SHA-256 `93e98c07b9914eb99b89cfc185effe6397ecd021cbded6121ab0c7edfb571d4b`, OCI config `sha256:25a89258bd27e96f57ecf641911005dafc8d714c2d10521e1d37b3e27b309393`, OCI manifest `sha256:d3ed5494c03c0720419387befc54f6f6cb124e5407fc619150ecf3dde03dfed7`, revision/merge ref `2c2142237c9cccc1f7a90d6ae056cd12cc5f4754`.
+
+Production Core was recreated alone, using the complete existing Compose chain plus canonical `compose.semantic-fast-read.yaml` blob `e65ba5293d3d51fb9f2038ed368cadbe217e54b3`. Post-change Core is healthy/restart 0 and active Compose provenance includes the gates-OFF overlay but excludes `compose.semantic-fast-read-custody.yaml`. Runtime startup reports `fastReadExecution=false`, `semanticFastRead=false`, `humanSendProposal=false`, `organizationAdapter=true`, `agentRuntime=mastra-supervised-model`; final rendered composition also keeps Semantic Selector OFF. TypeSafe and Fast Read intent-HMAC custody mounts remain absent.
+
+Paperclip was not recreated and remains exactly `v2026.916.1` / `sha256:7b72d43...`; Organization Adapter remains exactly one `0.5.0`, same plugin id, ready/lastError null; Messaging Gateway was not recreated and remains `outboundEnabled=false`; Task Drain remains `false/0/0/quiescent`. No provider/model/VendaERP/WhatsApp/customer/Human Send/outbound effect occurred.
+
+Canonical detail: `docs/decisions/0305-core-semantic-fast-read-compatibility-convergence-production-execution-v1.md`.
+
+Next slice must begin from fresh repository/CI/runtime reconciliation. **No semantic activation is implied by compatibility convergence.**
+
+## 2026-09-27 — ADR 0304 Organization Adapter 0.5.0 Production Promotion Execution V1
+
+Status: **COMPLETE / OA 0.5.0 LIVE / PAPERCLIP 916.1 PRESERVED / SEMANTIC+OUTBOUND EFFECTS OFF**.
+
+PR #369 exact execution source head `84bb0dbf78bfb136fbb83c119b764846211cc3b9` completed **17/17 checks SUCCESS**. The qualified Organization Adapter 0.5.0 artifact `10932212876` was hash-verified, staged and promoted through Paperclip's native plugin lifecycle without hard purge or runtime restart.
+
+Production now has exactly one `wandora.organization-adapter-v1@0.5.0`, same plugin id `86e77fe7-c7e4-4bee-afa3-46cdad575d0c`, `ready`, `healthy=true`, `lastError=null`, from immutable package path `/paperclip/operator-packages/wandora-organization-adapter-v1/f4e733613e72e771eb18361dbdbf420c810c5b8bbe31361a64040a2081cc2ae2/package`. All four company-scoped HMAC configs were preserved.
+
+Task Drain remains `false/0/0/quiescent`. Paperclip remains exactly `v2026.916.1@d554c478...`, healthy/restart 0. Core and Messaging Gateway were not recreated; Core remains `humanSendProposal=false`, Gateway remains `outboundEnabled=false`, and current Core composition still excludes Semantic Fast Read/Selector overlays. No Fast Read smoke, VendaERP/provider/model/customer work, Human Send or outbound effect occurred.
+
+A staging permission mismatch was diagnosed rather than bypassed: the copied candidate initially had `0750 uid=999 gid=1003`, making Paperclip's server-side `realpath()` fail. The candidate was normalized to the known-good package convention `uid/gid 1000:1000`, directories `0755`, files `0644`, hashes were reverified, and install then succeeded.
+
+Canonical detail: `docs/decisions/0304-organization-adapter-0-5-0-production-promotion-execution-v1.md`.
+
+Next slice: fresh reconciliation for the remaining **Core compatibility convergence**, still with semantic/outbound gates OFF. No activation is implied.
+
+## 2026-09-27 — ADR 0302 Remote-Ops Multi-VPS Baseline Production Rollout V1
+
+Status: **COMPLETE / DEPLOYED / VALIDATED / NO TARGET AUTHORITY WIDENING**.
+
+Remote-Ops-MCP PR #40 was merged to `main` as exact SHA `f408ed420dc8e104c6b105e31d8b093a624523e6`. Post-merge CI run `36312085556` and Container publish run `36312085671` both completed GREEN. The immutable production candidate `ghcr.io/oaranha/remote-ops-mcp:sha-f408ed4` was published with manifest-list digest `sha256:b7b904ea725f600801b9713a8ad9eb6dfd7ccccc06fd0809a2bfa459aa1ba129`; the previous live revision remains available as immutable rollback tag `sha-ffe32f6`.
+
+The production effect was intentionally narrow: only the central `remote-ops-mcp` service/container was recreated, with `--no-deps --force-recreate`; no target creation/update, Agent Mesh pairing, permission widening or application-container mutation was included. JEV guard review returned `confirm=0.96`, and the exact managed-admin action was explicitly approved by the user.
+
+A first approval expired before execution and was rejected. The second apply call returned an internal transport failure; following state-first continuity, the action was not repeated blindly. Immediate runtime reconciliation proved the effect had completed successfully.
+
+Post-deploy runtime is healthy on image `ghcr.io/oaranha/remote-ops-mcp:sha-f408ed4`, OCI revision `f408ed420dc8e104c6b105e31d8b093a624523e6`, runtime image manifest `sha256:232114d1a90d3554e4a723e0dbca537f2c1867c21bac5224f3ce5d8192e868f2`, restart count 0. All eight pre-existing targets reloaded. Live `target_status` is now summary-first, and `medicspro-agent` remains independently scoped with zero Docker read/exec/action authority.
+
+No provider/model/VendaERP call, customer work or outbound effect occurred. Semantic Fast Read production activation remains separately gated.
+
+Canonical detail: `docs/decisions/0302-remote-ops-multi-vps-baseline-production-rollout-v1.md`.
+
+## 2026-09-27 — ADR 0301 Remote-Ops Multi-VPS Capability Baseline + Minimal Disclosure V1
+
+Status: **QUALIFIED / REMOTE-OPS PR #40 CI GREEN / CODE ONLY / NOT DEPLOYED / NO PRODUCTION EFFECT**.
+
+Wandora PR #369 was reconciled at exact pre-checkpoint head `21c83b0ecc15eb5c616266eb7ff96029c310a6e7` with **17/17 workflows GREEN**. Remote-Ops-MCP `main` was `f2b94f3efe70082d42b45425ddfd568e6a0c72cd`; Remote-Ops PR #40 is open/draft/mergeable at exact head `4a2861aa261363a57bfa6797a6bce0284a2a6826`, and CI run `36310743917` completed GREEN.
+
+The central multi-VPS authority remains the existing Remote-Ops control plane hosted in Wandora infrastructure. Wandora, MedicsPro/28server and future VPSs are independent Agent Mesh devices/targets with independent authority profiles; no target inherits Wandora application/container authority by default. Existing Target Registry, prepare/apply approvals, brokers/proxies and presets are reused; no second registry, lifecycle, secret store or orchestration subsystem was created.
+
+Operator chat is now qualified as summary-first in code: `target_status` defaults to a bounded capability summary while exact allowlists remain explicitly available through `detail=full`. This changes presentation only; authorization, redaction, audit and runtime evidence boundaries remain intact.
+
+No Remote-Ops deploy, pairing, live target mutation, permission widening, VPS mutation, provider call, customer work or outbound effect occurred. Remote-Ops merge/deploy remains a separate future reviewed effect. Semantic Fast Read production activation remains separately gated by a fresh Immediate Pre-Mutation Attestation + Effect Authorization.
+
+Canonical detail: `docs/decisions/0301-remote-ops-multi-vps-capability-baseline-minimal-disclosure-v1.md`.
+
+## 2026-09-27 — ADR 0299 Production Rollback Freeze + Secret Metadata Readback V1
+
+Status: **COMPLETE / QUALIFIED ROLLBACK BUNDLE / NO ACTIVATION / NO PROVIDER CALL / NO CUSTOMER EFFECT / NO OUTBOUND EFFECT**.
+
+PR #369 head `c85d27b06afed51a157d48dfd26ffc8b23508767` was 17/17 GREEN before execution. Exact helper blob `631a540c97ab320932fe0a4d1683e0a31049c2f4` was rematerialized and hash-verified. The manually authorized run completed with `ROLLBACK_FREEZE_V1_OK`.
+
+Safe receipt: `/opt/wandora/ops-workspace/production-rollback-freeze-v1.metadata`.
+
+Qualified rollback root: `/home/wandora-admin/backups/paperclip-v9161-fast-read-rollback-freeze-v1-20260927T085922932680245Z`.
+
+Independent readback proved official backup creation/gzip validity, PostgreSQL 18.1 disposable restore, schema equality, OA 0.3.1 ready, Task Drain quiescent, secret metadata-only evidence and all four effect flags false. Fresh post-run reconciliation preserved the normal seven-container healthy production set. A root read-only physical check of the protected bundle and selected non-secret recovery artifacts completed successfully without reading secret contents.
+
+ADR 0299 is closed. **Do not rerun it merely to reconfirm success.** No production promotion is authorized by this checkpoint.
+
+Next production slice: **Immediate Pre-Mutation Attestation + Effect Authorization** from fresh state.
+
+Follow-up governance backlog, not part of the production mutation path:
+- **Remote-Ops Multi-VPS Capability Baseline V1** — reusable governed presets/capability validation for Wandora, MedicsPro/28server and future VPS targets;
+- **Operator Chat Minimal Disclosure Policy V1** — concise chat summaries by default; detailed raw operational evidence remains in repository/runtime unless explicitly requested or required for a human decision.
+
+## 2026-09-27 — ADR 0300 PostgreSQL 18.1 Recovery Image Acquisition V1
+
+Status: **COMPLETE / QUALIFIED LOCAL RECOVERY IMAGE / NO CUSTOMER EFFECT**.
+
+The exact PR #369 head `2a95053abc96cff5a0de8ff06cfb8279278515f3` was 17/17 GREEN before execution. The operator-local ADR 0300 helper qualified the official PostgreSQL 18.1 image by pinned index digest `sha256:1090bc3a8ccfb0b55f78a494d76f8d603434f7e4553543d6e807bc7bd6bbd17f` for `linux/amd64`, created local tag `postgres:18.1`, and emitted safe receipt `/opt/wandora/ops-workspace/postgres-18-1-recovery-image-v1.metadata`.
+
+Receipt readback is GREEN and ends in `POSTGRES_18_1_RECOVERY_IMAGE_V1_OK`. PostgreSQL runtime version is 18.1. Task Drain remains false/0/0/quiescent. The ADR 0299 receipt remains absent. Product containers Paperclip/Core/Gateway retained identity and health. No activation, provider call, customer work or outbound effect occurred.
+
+ADR 0299 is now unblocked only with respect to its pre-existing PostgreSQL 18.1 recovery-image prerequisite. All other ADR 0299 prechecks remain mandatory and must be freshly reconciled before its first write.
+
+## 2026-09-26 — ADR 0299 operator-local boundary recheck
+
+Status: **PARTIAL / NO BACKUP CREATED / NO ACTIVATION / NO CUSTOMER EFFECT**.
+
+The exact pre-documentation PR #369 head `66d7f2e15c1c1a09a7f42c146375fce8c709078b` completed **17/17 workflows GREEN**. Fresh production reconciliation preserved Paperclip v2026.916.0 / `dffc2b3...`, Core `organization-adapter-candidate-f3225586d082`, OA 0.3.1 ready, Gateway outbound OFF, Human Send OFF, Semantic/Fast Read overlays absent and Task Drain OFF/0/0/quiescent. Frozen artifact `10914008713` remains available/non-expired.
+
+Execution remains blocked only by the operator custody boundary: `/home/wandora-admin/backups` is outside exposed operator paths, the Core secret directory remains `SECRET_PATH_DENIED`, and no narrow current capability performs the protected rollback write plus metadata-only secret stat. No permission widening or bypass is authorized. Independent JEV guard review returned **deny=1.00**.
+
+ADR 0299 remains the active slice. Do not create another ADR for this unchanged block. Resume only when the exact operator-local boundary is authorized; require `ROLLBACK_FREEZE_V1_OK`, validate, then start a new Immediate Pre-Mutation Attestation + Effect Authorization.
+
+## 2026-09-26 — ADR 0299 continuation: freshness recheck
+
+**PARTIAL / OPERATOR-LOCAL EXECUTION REQUIRED / NO BACKUP CREATED / NO ACTIVATION / NO CUSTOMER EFFECT.**
+
+Fresh state revalidated the ADR 0299 preconditions without mutation: PR #369 pre-documentation head `4f461ae3bcdffa7ef20b47c3f8be60b9c835f068` was 17/17 GREEN; frozen Paperclip artifact `10914008713` remained available; Task Drain recovered to `false / 0 / 0 / quiescent=true`; Paperclip v2026.916.0, Core rollback anchor, Organization Adapter 0.3.1 and Messaging Gateway remained healthy/unchanged, with Human Send/outbound OFF and Semantic/Fast Read overlays absent.
+
+The only remaining execution blocker is the approved operator-custody boundary: `/home/wandora-admin/backups` remains inaccessible through exposed Remote-Ops targets and Core secret metadata remains protected by `SECRET_PATH_DENIED`. No allowlist widening, sudo/shell bypass, provisional workspace custody or partial backup is authorized. Fresh adversarial review: `block=0.99`.
+
+Next action remains completion of `docs/operations/production-rollback-freeze-secret-metadata-readback-v1.md` through an authorized operator-local path, followed by independent receipt validation. Only then rerun ADR 0298 Immediate Pre-Mutation Attestation from fresh state.
+
+## 2026-09-26 — ADR 0299 Production Rollback Freeze + Secret Metadata Readback V1 — partial operator checkpoint
+
+Status: **PARTIAL / OPERATOR-LOCAL EXECUTION REQUIRED / NO BACKUP CREATED / NO ACTIVATION / NO CUSTOMER EFFECT**.
+
+Fresh reconciliation kept `main@8d6a65f519de5c1c49607314b49968af608c7164`; PR #369 was open/draft/mergeable at exact source head `5619622bc079bb1b5019f39c5221a81bc4cdd845` with **17/17 workflows GREEN**; PR #370 remained separate at `11fd59599b21493a0fe335f4c32354989a6083a2` with **4/4 GREEN**. ADR 0295 artifact `10914008713` remained available/non-expired.
+
+Fresh Paperclip readback proved `status=ok`, authenticated/private deployment, live/source commit `dffc2b3ca1b9e88fa21cb17493083e682dffd1ca`, and database-backup health `ok`. The exact rollback artifact set required by ADRs 0129/0130/0294 was re-derived without inventing a new subsystem.
+
+Execution is intentionally not complete: the existing Remote-Ops Task Drain semantic path currently fails at the broker transport with `fetch failed`, Docker inspection remains unavailable through that boundary, and secret directories still correctly return `SECRET_PATH_DENIED`. This session has no authorized root/operator path for the protected `/home/wandora-admin/backups` operation. No partial backup, permission widening, shell/sudo bypass or provisional workspace custody was used.
+
+The reviewed operator-local contract requires fresh Task Drain OFF/0/0/quiescent, OA 0.3.1 ready, old Core/Gateway healthy, semantic/Human Send/outbound gates OFF and fresh metadata-only secret stat **before** the first backup write. Only then may it create the official Paperclip backup + matching key + PostgreSQL 18.1 schema-faithful dump/restore proof + exact plugin/package/Compose recovery state and protected manifests.
+
+Second review history: initial route review was low-confidence (`proceed_fast=0.41`, `deep_review=0.33`); the narrowed final guard review returned `allow=0.64`. Because the mandatory freshness boundary is unavailable in this session, the deterministic result remains **NO BACKUP CREATED / NO ACTIVATION / NO CUSTOMER EFFECT**.
+
+Continuation is repository-backed in `docs/decisions/0299-production-rollback-freeze-secret-metadata-readback-v1.md` and `docs/operations/production-rollback-freeze-secret-metadata-readback-v1.md`. Complete that operator-local slice first; only then rerun ADR 0298-style Immediate Pre-Mutation Attestation from fresh state.
+
+## 2026-09-26 — ADR 0298 Immediate Pre-Mutation Attestation + Effect Authorization V1
+
+Status: **BLOCKED / NO MUTATION / NO PRODUCTION EFFECT**.
+
+Fresh GitHub reconciliation preserved `main@8d6a65f519de5c1c49607314b49968af608c7164`; PR #369 was open/draft/mergeable at pre-checkpoint head `3064c151331378c4d8b608c409967fd9f9f503ef`, merge ref `0049e193f945f4c1512430df51a0b145c45c3c97`, with **17/17 workflows GREEN**. PR #370 remained separate at `11fd59599b21493a0fe335f4c32354989a6083a2`.
+
+The exact ADR 0295 Paperclip candidate remains available and non-expired: artifact `10914008713`, ZIP digest `sha256:e43acc85e3f7f010b7189f11bd9c3622f9a7a9015765a50f315ca61a98c36a19`, exact Paperclip source `d554c4789ed3930f8a53ac9fdf6503b3187097da`. A newer workflow artifact was deliberately not substituted because exact archived bytes are the promotion unit.
+
+Fresh production readback proved Core `wandora/core:organization-adapter-candidate-f3225586d082` / revision `f3225586...` healthy/restart 0, Paperclip `wandora/paperclip:v2026.916.0` / commit `dffc2b3...` healthy/restart 0, Task Drain OFF with activeRuns=0/pendingWakes=0/quiescent=true, exactly one Organization Adapter `0.3.1` ready, Human Send OFF and Messaging Gateway `outboundEnabled=false`. Semantic/Fast Read convergence/custody overlays remain absent from live Core.
+
+The attestation nevertheless cannot authorize the first planned compatibility mutation. ADR 0294 requires a fresh immediately-pre-mutation rollback set containing current Paperclip durable-state recovery evidence, matching key custody, plugin/adapter store, compose/wrapper and protected manifests. No such fresh rollback bundle exists in this window, and the available MCP has no dedicated backup/snapshot capability. The official `paperclipai db:backup` path exists but would itself be a gap-closing write, so it was not improvised inside the read-only attestation.
+
+A second freshness gap is also recorded: Remote-Ops correctly denied direct access to the Core secret directory with `SECRET_PATH_DENIED`. ADR 0297 remains the canonical custody qualification, but this immediate slice did not bypass the guard to re-stat TypeSafe/`wfri1`.
+
+Capability Authority remains unchanged and ADR 0168 Exit Test passes. No subsystem, registry, lifecycle, run mirror, secret manager or permission widening is justified.
+
+Decision: **BLOCKED / NO MUTATION / NO PRODUCTION EFFECT**. The contemplated first mutation — promotion of exact Paperclip artifact `10914008713` while Organization Adapter remains 0.3.1 and all semantic/outbound gates remain OFF — is **not authorized**.
+
+Second adversarial JEV review returned `block=0.95`, `split_task=0.04`, `deep_review=0.01`, `proceed_fast=0` (route confidence 0.93), consistent with the deterministic rollback gap.
+
+Next slice: **Production Rollback Freeze + Secret Metadata Readback V1 — operator-local / NO ACTIVATION / NO CUSTOMER EFFECT**. Only after that gap is closed should Immediate Pre-Mutation Attestation be rerun from fresh state.
+
+See `docs/decisions/0298-immediate-pre-mutation-attestation-effect-authorization-v1.md`.
+
+## 2026-09-26 — ADR 0297 Production Credential Custody Completion V1
+
+Status: **COMPLETE / CUSTODY QUALIFIED / NO ACTIVATION / NO RUNTIME OR CUSTOMER EFFECT**.
+
+The ADR 0296 operator-local custody gap is closed. Core-side TypeSafe/System One custody now exists at `/opt/wandora/stacks/core/secrets/wandora_typesafe_jev_api_key`, and a distinct Wandora-owned `wfri1` HMAC now exists at `/opt/wandora/stacks/core/secrets/wandora_fast_read_intent_hmac`. Fresh metadata-only verification proved both are regular files owned by `wandora-admin:wandora-ops` with mode `0640`.
+
+The TypeSafe Core-side file was verified byte-equivalent to the already-qualified JEV/System One provider credential without emitting secret bytes. The `wfri1` HMAC was verified distinct from the current Core regular-secret set and the Organization Adapter HMAC set without exposing values.
+
+The existing Mistral platform credential `wandora_model_provider_api_key` was freshly re-attested as a regular file, `0640 wandora-admin:wandora-ops`. No selector-specific credential was created.
+
+Post-operation readback proved the live Core remains `wandora/core:organization-adapter-candidate-f3225586d082` / revision `f3225586d0825334d2c9c697a1720512a65d47f8`, healthy/restart 0. The active Core Compose set still excludes the Semantic/Fast Read convergence and custody overlays, so the new TypeSafe/`wfri1` host files are not mounted. Messaging Gateway outbound remains inactive and Paperclip remains `wandora/paperclip:v2026.916.0`.
+
+No deploy, restart, Compose/runtime mutation, provider call, VendaERP call, WhatsApp/customer traffic, Task Drain change or candidate promotion occurred. The operator verification ended in `CUSTODY_V1_OK` with `activation_performed=false` and `provider_call_performed=false`.
+
+Capability Authority / ADR 0168 remains unchanged: no secret manager, provider registry, lifecycle, run mirror, retry engine or new operational subsystem was introduced.
+
+Next slice: **Immediate Pre-Mutation Attestation + Effect Authorization**. Rollback readiness, Task Drain/quiescence, final live component state and exact candidate-artifact identity must be captured fresh immediately adjacent to the proposed mutation and are intentionally not captured here.
+
+See `docs/decisions/0297-production-credential-custody-completion-v1.md`.
+
+## 2026-09-26 — ADR 0296 Production Credential Custody Qualification V1
+
+Status: **PARTIAL / BLOCKED ON OPERATOR CUSTODY COMPLETION / NO ACTIVATION / NO PRODUCTION EFFECT**.
+
+Repository/GitHub reconciliation preserved `main@8d6a65f519de5c1c49607314b49968af608c7164`, PR #369 open/draft/mergeable at pre-checkpoint head `99fd0f6dfb6382fd706a0216449d924a9b0d0bf5` with **17/17 workflows GREEN**, and PR #370 separate at `11fd59599b21493a0fe335f4c32354989a6083a2`.
+
+The exact ADR 0295 Paperclip production candidate remains artifact `10914008713`, non-expired at readback, with ZIP digest `sha256:e43acc85e3f7f010b7189f11bd9c3622f9a7a9015765a50f315ca61a98c36a19`. No later rebuild replaces it.
+
+Credential-purpose evidence is now narrower and stronger: the existing production JEV service has a separate TypeSafe provider file and MCP OAuth boundary; its code uses the provider file as HTTP Bearer auth for `POST https://api.typesafe.ai/v1/systemone`. Metadata-only stat proved that provider file is `0600 wandora-exec:ops-mcp`. Its purpose is therefore qualified, but that service-local custody must not be widened or directly reused as Core custody.
+
+The canonical Core-side TypeSafe mount and distinct Wandora-owned `wfri1` HMAC contract remain those of ADR 0295. Current Remote-Ops policy intentionally cannot write `/opt/wandora/stacks/core/secrets`; the slice refused to widen that policy or create secrets in a provisional path. The Fast Read intent HMAC is therefore not yet created/qualified.
+
+Mistral remains the existing Wandora platform credential reused by the selector; no selector-specific secret is justified. The live read-only bind remains visible, but exact current host-file owner/group/mode cannot be re-attested through the available secret-safe MCP boundary. Historical metadata is not substituted for a fresh readback.
+
+The first adversarial review requested `deep_review`; after proving the service-local custody and tool restrictions, the second review returned **block = 0.94**. The block is accepted. Production remains **NO-GO** and no deploy, container/Compose mutation, provider call, secret-value read, Task Drain change, customer traffic or outbound effect occurred.
+
+Next safe work is **Production Credential Custody Completion V1 — operator-local / NO ACTIVATION**: securely install Core-side TypeSafe custody, generate/install the distinct `wfri1` HMAC, and metadata-only stat those files plus the existing Mistral secret while all semantic/Fast Read gates remain OFF. Only after that checkpoint may a fresh **Immediate Pre-Mutation Attestation + Effect Authorization** be considered.
+
+See `docs/decisions/0296-production-credential-custody-qualification-v1.md`.
+
+## 2026-09-26 — ADR 0295 Semantic Fast Read Production Convergence Artifact + Activation Contract V1
+
+Status: **QUALIFIED / 17/17 PR WORKFLOWS GREEN / PRODUCTION EXECUTION NO-GO / NO PRODUCTION EFFECT**.
+
+ADR 0295 closed the deployment-evidence gaps left by ADR 0294 without touching production: it froze the exact Paperclip `v2026.916.1` + three qualified Fast Read patches candidate, proved authenticated/private disposable startup with `/api/health status=ok`, and separated Core gates-OFF convergence from future secret custody.
+
+The exact Paperclip promotion unit is Actions artifact `10914008713`, built from upstream `d554c4789ed3930f8a53ac9fdf6503b3187097da`. Its Docker config digest is `sha256:e05f1604cf863d316b4ce5db189782f022fa4fd17544f9724747e11223d4356c`; raw archive SHA-256 `a91f96feff4dbb8161d182e350fc3e2ca1d0d6784cfa9179fdaa20a200e7ce97`; compressed artifact SHA-256 `69c962c79375446060af12fc9240385987790f4d11a3528cbb7a6ad745e98269`; uploaded ZIP digest `sha256:e43acc85e3f7f010b7189f11bd9c3622f9a7a9015765a50f315ca61a98c36a19`. Because the upstream Dockerfile resolves some CLI dependencies through floating `@latest`, those exact archived bytes — not a later rebuild — are the qualified promotion unit.
+
+The Core convergence contract leaves Fast Read execution, Semantic Fast Read, Semantic Selector and Human Send disabled by default. The future custody overlay contains only the TypeSafe/System One API-key mount and a distinct Wandora-owned `wfri1` HMAC mount. The semantic selector reuses the existing platform Mistral credential; no selector-specific Mistral secret or new secret authority is justified.
+
+Capability Authority remains unchanged: Wandora owns semantics/product/effect authorization; Paperclip owns workforce/run/tools/secrets/audit; TypeSafe/System One, Mastra/Mistral and VendaERP remain replaceable implementations. Production remains **NO-GO** pending credential custody qualification and a later freshness-sensitive Immediate Pre-Mutation Attestation.
+
+See `docs/decisions/0295-semantic-fast-read-production-convergence-artifact-activation-contract-v1.md`.
+
+## 2026-09-26 — ADR 0294 Semantic Fast Read + Product Selector Production Convergence Preflight V2
+
+Status: **PREFLIGHT COMPLETE / NEXT PRODUCTION EXECUTION NO-GO / ARTIFACT + ACTIVATION-CONTRACT GAPS PROVEN / NO PRODUCTION EFFECT**.
+
+Repository reconciliation at decision time:
+
+- `main = 8d6a65f519de5c1c49607314b49968af608c7164`;
+- PR #369 remained open/draft/mergeable at `8fe81cb2b2b0cb603e9f33b5325b6756377a7c61` before this ADR checkpoint;
+- PR #370 remained separate at `11fd59599b21493a0fe335f4c32354989a6083a2`;
+- the exact pre-checkpoint PR head had 16/16 workflows GREEN.
+
+Current-head qualified Core candidate remains the post-gates artifact from merge ref `bc2f98bd52074d13a3cae2752ba04c95cbba1d99`:
+
+- image `wandora/core:organization-adapter-candidate-bc2f98bd5207`;
+- archive SHA-256 `77593828dcd69a258c4e814752d540105a43e7b79ab8135243ed385b6799d315`;
+- OCI manifest `sha256:a0cf838cc79439652961aa04cbc3d9b50930117fa6bcdec4e4deade6325b2061`;
+- post-gates job `108458569619` GREEN.
+
+Read-only production reconciliation proved:
+
+- Core = `wandora/core:organization-adapter-candidate-f3225586d082`, revision `f3225586d0825334d2c9c697a1720512a65d47f8`, healthy, restart 0, `/readyz` 200;
+- that live Core revision does not contain the Fast Read/Semantic Fast Read/Semantic Selector/TypeSafe runtime gates;
+- live agent runtime remains `mastra-supervised-model`;
+- Human Send remains OFF;
+- Messaging Gateway remains healthy with `outboundEnabled=false`;
+- Paperclip = `wandora/paperclip:v2026.916.0`, commit `dffc2b3ca1b9e88fa21cb17493083e682dffd1ca`, image ID `sha256:4fb5073ff0b09ea50527cfeafe5bcaff4f9dae2b0f508fd06c0dc58661735ced`, healthy/restart 0;
+- Task Drain = OFF / activeRuns 0 / pendingWakes 0 / quiescent true;
+- Organization Adapter live = exactly `wandora.organization-adapter-v1@0.3.1`, ready;
+- qualified Organization Adapter candidate = `0.5.0`, package SHA-256 `f4e733613e72e771eb18361dbdbf420c810c5b8bbe31361a64040a2081cc2ae2`, pinned to Paperclip v2026.916.1 / `d554c478...`.
+
+The platform-owned Mistral credential is already mounted read-only from `/opt/wandora/stacks/core/secrets/wandora_model_provider_api_key` to `/run/secrets/wandora/model-provider.api-key`. ADR 0144 still makes Wandora the semantic owner; ADR 0293 reuses that same credential for the selector. **No selector-specific Mistral secret is justified.** MCP correctly denied direct secret-path metadata access; exact current file owner/mode/group must be re-attested with metadata-only `stat` before any mutation.
+
+Paperclip v2026.916.1 + the qualified Fast Read patches remains code/CI-qualified but lacks a deployable production-promotable image artifact/digest. The current 916.1 artifact is OpenAPI only. Production also lacks a reviewed Core activation overlay, a qualified TypeSafe/JEV Core secret mount and a distinct Fast Read intent-HMAC mount.
+
+Capability Authority / ADR 0168 remains intact: Wandora semantic authority; no new durable product/operational state; Paperclip operational authority; TypeSafe/JEV, Mastra/Mistral and VendaERP remain replaceable implementations; `SemanticDecisionProvider`, `SemanticSelectorProvider`, `OrganizationAdapterFastReadBridge`, `BusinessCapability` and signed `wfri1` remain replacement boundaries. Exit Test = PASS.
+
+Decision: **NO-GO for production execution/attestation**. The next executable slice is repository/CI-only:
+
+**Semantic Fast Read Production Convergence Artifact + Activation Contract Preparation V1 — CODE/CI ONLY / NO PRODUCTION EFFECT**.
+
+It must build/freeze the deployable patched Paperclip 916.1 candidate, define the explicit disabled-by-default Core activation overlay/mount contract, prove secret custody references without reading values, and stop before any production/provider/ERP/customer/outbound effect.
+
+See `docs/decisions/0294-semantic-fast-read-product-selector-production-convergence-preflight-v2.md`.
+
+## Reconciled checkpoint — ADR 0293 Concrete Semantic Product Selector Provider Runtime Wiring V1
+
+ADR 0293 is **QUALIFIED / 16/16 PR WORKFLOWS GREEN / PRODUCTION ACTIVATION NO-GO / NO PRODUCTION EFFECT**.
+
+PR #369 exact code head `a44348706fc99aace844de63e0be078c2b1fe70d` completed **16/16 PR workflows GREEN**. Semantic Fast Read CI run `36260828998` and Core CI run `36260828980` were GREEN. The first Core Candidate Artifact completed before both primary gates and was not counted; after Semantic Fast Read CI + Core CI were GREEN, post-gate Candidate job `108457131633` completed GREEN.
+
+The already-qualified `MastraMistralSemanticSelectorProvider` is now composed into Human Fast Read behind an additional explicit disabled-by-default runtime gate, `WANDORA_SEMANTIC_SELECTOR_ENABLED`. No selector provider registry/router was added. When the gate is false, runtime behavior is unchanged and selector-required requests remain fail-closed.
+
+When enabled in a future separately authorized environment, selector wiring requires the existing Semantic Fast Read path and reuses the Wandora platform-owned file-backed model credential locator `WANDORA_MODEL_API_KEY_FILE` under ADR 0144. No selector-specific secret store/custody subsystem was created. `WANDORA_SEMANTIC_SELECTOR_TIMEOUT_MS` defaults to 3000 ms and is bounded to 250..10000 ms. Provider/model identity remains internal implementation configuration.
+
+Runtime instantiates the qualified Mastra/Mistral selector only when the optional selector config exists and injects it through the existing Wandora-owned `SemanticSelectorProvider` dependency of `HumanDigitalEmployeeFastReadService`. TypeSafe/JEV remains route-decision provider; Wandora still reruns its gate before signed `wfri1`; Paperclip remains operational lifecycle/Tool Gateway/result authority; VendaERP remains the business-system read provider.
+
+Capability Authority / Reuse Gate remains intact. No table, migration, provider registry, lifecycle/run mirror, Connection/grant/secret/tool registry, retry engine, product catalog/cache, heuristic parser or new LLM subsystem was introduced.
+
+The first adversarial review requested `deep_review` (0.52 vs 0.48 `proceed_fast`) over credential purpose/provider-selection concerns. The refined design removed a selector-provider selection registry and reused the existing platform credential boundary. A focused second review then selected `proceed_fast` with probability 0.94.
+
+No live model credential was mounted, no provider/VendaERP call occurred, no WhatsApp path was wired, and no VPS/Compose/deploy/customer/ERP-write effect occurred. `WANDORA_SEMANTIC_FAST_READ_ENABLED` and the new selector gate remain disabled by default in production. Production remains **NO-GO**.
+
+### Next minimum slice
+
+Do **not** wire WhatsApp yet.
+
+Next: **Semantic Fast Read + Product Selector Production Convergence Preflight V2 — NO EFFECT**. Reconcile the exact qualified Core/Paperclip/Organization Adapter candidates against real production, prove deployment/rollback order and platform-model credential mount/custody without reading the secret value, and freeze the smallest activation/attestation sequence. No production mutation or real customer outbound is authorized by ADR 0293.
+
+## Reconciled checkpoint — ADR 0292 Concrete Semantic Product Selector Provider Qualification V1
+
+ADR 0292 is **QUALIFIED / 16/16 PR WORKFLOWS GREEN / PRODUCTION ACTIVATION NO-GO / NO PRODUCTION EFFECT**.
+
+PR #369 exact qualification code head `7d0aaf1e6581bb9aac97b129d88ac710362bd777` completed **16/16 PR workflows GREEN**. Semantic Fast Read CI `36258479880` and Core CI `36258479851` were GREEN. The Core Candidate Artifact completed before those primary gates and was therefore not counted; after both gates were GREEN, its exact job was rerun and post-gate job `108450267362` completed GREEN.
+
+Official Mistral documentation proves Mistral Small 4 `mistral-small-2603` supports Structured Outputs on Chat Completions and accepts caller-defined JSON schema, including Zod-defined structures. The reuse gate also proved Core already depends on `@mastra/core@1.66.0` + `zod@4.6.4` and already uses the same Mistral model in its supervised runtime with structured output, bounded aborts and zero retries.
+
+The qualified concrete implementation is `MastraMistralSemanticSelectorProvider` behind the existing Wandora-owned `SemanticSelectorProvider`. It receives only bounded request text plus the already-selected BusinessCapability and deliberately omits organization/employee/actor/Paperclip/ERP context. Strict output permits only one bounded product selector by `name|code|barcode`, confidence 0..1 and canonical ambiguity. It uses one Mastra generation step, tools=0, ERP reads=0, timeout default 3s bounded 250..10000 ms, and retries=0.
+
+Capability authority remains unchanged: Wandora owns selector semantics, admission, final gate and signed `wfri1`; Mastra/Mistral are replaceable selector implementation only; Paperclip remains operational authority for lifecycle/Tool Gateway/Connections/grants/secrets/audit/result; VendaERP remains the business-system read provider. No second LLM subsystem, direct vendor client, catalog/cache, selector table, lifecycle/run mirror, retry engine, pre-admission ERP lookup, fuzzy matcher or heuristic parser was created.
+
+Second adversarial review selected `reuse_mastra_mistral = 0.97` and `provider_only = 1.00`. Post-validation review marked `complete = 0.92`.
+
+No runtime selector composition, live provider secret, live provider call, VendaERP call, WhatsApp wiring/outbound, deploy, VPS/Compose mutation, migration or ERP write occurred. `WANDORA_SEMANTIC_FAST_READ_ENABLED` remains disabled by default and production remains **NO-GO**.
+
+### Next minimum slice
+
+**Concrete Semantic Product Selector Provider Runtime Wiring V1 — CODE ONLY / NO PRODUCTION EFFECT**.
+
+Reuse the already-qualified provider and existing file-backed model credential pattern where authority/purpose remain correct, compose it disabled-by-default into Human Fast Read, and prove config/custody/fail-closed behavior. Do not wire WhatsApp or execute live provider/customer/ERP work in that slice.
+
+## Reconciled checkpoint — ADR 0291 Semantic Product Selector Provider Qualification V1
+
+ADR 0291 is **QUALIFIED / 16/16 PR WORKFLOWS GREEN / PRODUCTION ACTIVATION NO-GO / NO PRODUCTION EFFECT**.
+
+PR #369 exact qualification code head `7de01d0ffd32079d2a18cac919dd0d2bd9d8581e` completed **16/16 PR workflows GREEN**. Semantic Fast Read CI `36256708250` and Core CI `36256708309` were GREEN. Core Candidate Artifact run `36256708316` completed before the primary gates, so only after both primary gates were GREEN its exact job was rerun; post-gate candidate job `108445446127` completed GREEN.
+
+Official TypeSafe OpenAPI 0.2.0 at `https://api.typesafe.ai/openapi.json` proves the current System One question/answer union contains only `noul`, `choice` and `score`. `choice` selects only among caller-supplied criteria. There is no arbitrary string/extraction primitive, so the current qualified TypeSafe/JEV boundary cannot originate an arbitrary product `selector.value` without a pre-supplied candidate set.
+
+The rejected workarounds remain rejected: no Core/ERP heuristic parser, no Wandora product catalog/cache, no pre-admission VendaERP candidate fetch, no second ERP lookup and no provider-specific semantic contract.
+
+The qualified extension adds a narrow Wandora-owned `SemanticSelectorProvider`. It returns only a canonical selector, confidence, ambiguity and bounded provider evidence. `HumanDigitalEmployeeFastReadService` invokes it only after the first Wandora gate returns `missing-selector`; the selector output is then combined with the original route decision, confidence can only narrow through `min(route, selector)`, ambiguity can only block, and the Wandora deterministic gate runs again before the existing signed `wfri1` intent is issued.
+
+Without a concrete selector provider, current TypeSafe-only runtime behavior remains fail-closed. The slice adds only one new ephemeral latency stage, `semantic.product_selector`, and introduces no provider secret, network client, table, migration, registry, catalog mirror, lifecycle/run state, deploy, WhatsApp wiring or production effect.
+
+Pre-execution adversarial review selected `compose_selector_provider`, `selector_plus_confidence` and `rerun_wandora_gate_before_intent` with probability 1.00; narrowed code execution was `proceed = 0.93`. Post-validation review marked the qualification `complete = 0.95` and selected the next gap `concrete_selector_provider = 0.98`.
+
+Production remains unchanged and **NO-GO**. `WANDORA_SEMANTIC_FAST_READ_ENABLED` remains disabled by default.
+
+### Next minimum preflight
+
+Do **not** wire WhatsApp yet.
+
+The next slice is **Concrete Semantic Product Selector Provider Qualification V1 — CODE ONLY / NO PRODUCTION EFFECT**: qualify one replaceable provider capable of bounded string extraction behind `SemanticSelectorProvider`, including exact network/auth/credential custody, typed response validation, timeout/retry policy and fail-closed behavior. Only after that provider is GREEN should disabled-by-default runtime wiring be considered.
+
+## Reconciled checkpoint — ADR 0290 ProRevest Product Selector + Price Fast Read V1
+
+ADR 0290 is **QUALIFIED / 16/16 PR WORKFLOWS GREEN / PRODUCTION ACTIVATION NO-GO / NO PRODUCTION EFFECT**.
+
+PR #369 exact qualification code head `7898dfc7e664185d872ad0e8fc6cefc3efcc2d12` completed **16/16 PR workflows GREEN**. Semantic Fast Read CI `36239607985`, Core CI `36239607974` and VendaERP Read-Only MCP CI `36239608018` were GREEN. Core Candidate Artifact run `36239607989` initially completed before the primary gates and was deliberately rerun only after Semantic Fast Read CI + Core CI were GREEN; **attempt 2** job `108398239115` completed GREEN.
+
+The qualified Wandora-owned selector is deliberately small and provider-neutral:
+
+```text
+{ kind: "product", by: "name" | "code" | "barcode", value: bounded-string }
+```
+
+The selector is canonicalized by the semantic contract and, when present, is carried inside the existing HMAC-signed `wfri1` Fast Read intent. Existing selector-less product-search intents remain compatible. `business.products.price` now requires a valid product selector before dispatch; missing/invalid selectors fail closed before Paperclip invocation. No downstream ERP adapter is allowed to reinterpret raw customer text into a product query.
+
+Execution reuses the already-authorized `vendaerp_search_products` tool. Core maps that exact tool to `business.products.search` and `business.products.price`; it does not map the price-table tool into this Fast Read V1. Selector-aware execution sends exactly one of `name`, `code` or `barcode` plus the existing bounded pagination, then deterministically post-filters normalized returned rows against the authorized selector. Zero exact matches returns not-found; multiple exact matches returns bounded clarification; exactly one matching product may expose its normalized `salePrice`. No second provider call, fuzzy ranking, price service, registry or durable selector/query state exists.
+
+The disposable proof additionally verifies that the signed selector reaches the already-authorized deterministic binding only after Fast Read intent verification and that model/token usage remains zero. Focused VendaERP tests prove one exact existing product-read call, no trust in the first returned row, bounded clarification for ambiguity, and no tool call when price lacks selector.
+
+**Important provider gap:** the qualified `TypeSafeJevSemanticDecisionProvider` still returns only the ADR 0287 mode/capability/probability/ambiguity decision and does not originate arbitrary structured product selectors. That behavior was not invented or bypassed. Therefore current live/customer product-price admission remains intentionally fail-closed even though the downstream selector+price contract is now qualified.
+
+Capability Authority / Reuse Gate remains intact: Wandora owns the semantic product selector and signed authorization; Paperclip remains operational authority for lifecycle, Tool Gateway authorization/execution and terminal result; VendaERP remains the concrete read provider. No table, migration, lifecycle/run mirror, Connection/grant/secret/tool registry, retry subsystem, new price service or provider-specific semantic contract was added.
+
+The adversarial review selected signed-intent selector authority, the single-key provider-neutral selector, current-TypeSafe fail-closed behavior and `reuse_search_products` with probability 1.00 for the architectural choices. A focused second pass selected execution `proceed` at 0.92. Post-validation completion review marked the code-only objective `complete` at 0.77.
+
+No production/VPS/Compose/secret/customer/real TypeSafe/VendaERP/WhatsApp effect occurred. `WANDORA_SEMANTIC_FAST_READ_ENABLED` remains disabled by default and production remains **NO-GO**.
+
+### Next minimum preflight
+
+Do **not** wire WhatsApp yet.
+
+The next code-only gap is **Semantic Product Selector Provider Qualification V1**: prove whether the current qualified TypeSafe/System One boundary can emit the bounded Wandora product selector contract without untyped/arbitrary behavior. If it cannot, qualify the smallest provider-neutral semantic-provider extension instead. Do not add a heuristic Core/ERP parser.
+
+Only after selector origination is GREEN should a later effect-authorizing preflight consider authenticated WhatsApp ingress -> Semantic Fast Read -> real read-only product+price -> bounded outbound. Quote V1 remains subsequent and deterministic, with no ERP write.
+
+## Reconciled checkpoint — ADR 0289 Fast Read Measurable Convergence + Latency Instrumentation V1
+
+ADR 0289 is **QUALIFIED / 16/16 PR WORKFLOWS GREEN / PRODUCTION ACTIVATION NO-GO / NO PRODUCTION EFFECT**.
+
+PR #369 exact code head `fafa3f8e8697a510aa51f3d464c50aff89c6b44c` completed **16/16 PR workflows GREEN**. Core CI, Semantic Fast Read CI, Organization Adapter Plugin CI, Messaging Gateway CI and VendaERP Read-Only MCP CI all passed. Core Candidate Artifact run `36236475808` completed GREEN on **attempt 2**, after the primary code gates, preserving the accepted candidate-order discipline.
+
+The slice adds only bounded, structured, ephemeral `wandora.latency.v1` evidence at existing boundaries. It introduces no table, migration, tracing backend, durable trace store, lifecycle/run mirror, Connection/grant/secret/tool registry, retry subsystem or orchestration layer.
+
+Measured boundaries now include:
+
+- WhatsApp Gateway inbound;
+- Core Fast Read auth/context;
+- Core capability projection;
+- TypeSafe/JEV semantic decision;
+- Core -> Paperclip Fast Read dispatch round-trip;
+- Paperclip issue-less dispatch;
+- Paperclip terminal-result observation;
+- Paperclip Tool Gateway session/tool listing;
+- exact read-tool execution;
+- VendaERP read-only tool/API call;
+- Core Fast Read response;
+- WhatsApp outbound provider call.
+
+The evidence is intentionally split across the two real current paths. WhatsApp supervised ingress does **not** yet invoke Semantic Fast Read, so ADR 0289 does not claim a synthetic end-to-end WhatsApp Fast Read trace. Existing correlation identifiers are reused where already authoritative; no new global trace-id contract is introduced.
+
+Tests prove latency events contain no customer text, phone, credentials, provider payload, organization/employee/provider IDs or provider-private run IDs. Observability recorder failures are swallowed so instrumentation cannot alter business/execution semantics. VendaERP latency is emitted on stderr so MCP stdout remains JSON-RPC only.
+
+Capability Authority / Reuse Gate remains intact. Wandora owns semantic timing evidence and the product-facing BusinessCapability contract; Paperclip remains operational authority for run lifecycle, dispatch, Connections, grants, secrets, Tool Gateway authorization/execution and terminal result. VendaERP remains the concrete provider implementation only.
+
+Second adversarial review selected the bounded structured-event approach, reuse of existing correlation IDs, and explicit separate-path evidence with probability 1.00 for the key architectural choices. No production/VPS/Compose/secret/real provider/outbound effect occurred; `WANDORA_SEMANTIC_FAST_READ_ENABLED` remains disabled by default.
+
+### Next minimum preflight toward the ProRevest commercial objective
+
+Do **not** wire WhatsApp to Fast Read yet.
+
+REAL NOW proves one semantic gap that would make the demo misleading:
+
+- Paperclip capability projection already maps `vendaerp_search_products` to both `business.products.search` and `business.products.price`;
+- Core's `createVendaErpFastReadCapabilityAdapter()` still maps only `business.products.search`;
+- the Core adapter currently calls `vendaerp_search_products` with only `{ pageSize: 5, skip: 0 }`, so it does not identify the product requested by the customer;
+- therefore a natural request such as “quanto custa a tinta X?” is not yet safely bound to an exact product selector even though the provider response may contain `salePrice`.
+
+The next preflight is therefore:
+
+**ProRevest Product Selector + Price Fast Read V1 — CODE ONLY / NO PRODUCTION EFFECT.**
+
+It must qualify the smallest Wandora-owned provider-neutral product selector/query contract, bind that selector into the existing signed Fast Read authorization, reuse the already-authorized `vendaerp_search_products` tool for both `business.products.search` and `business.products.price`, and prove in disposable/read-only evidence that the intended product and real price are returned without a second provider call, ERP write, new registry or durable query state.
+
+Only after that selector/price attestation is GREEN should the next slice wire authenticated WhatsApp ingress to Semantic Fast Read and then the existing bounded outbound path.
+
+Quote V1 remains subsequent: item identity + unit price from qualified read-only facts, quantities from customer request/context, deterministic arithmetic only, no ERP quote/order write.
+
+## Reconciled checkpoint — ADR 0288 SemanticDecisionProvider Runtime Wiring V1
+
+ADR 0288 is **QUALIFIED / RUNTIME WIRING GREEN / PRODUCTION ACTIVATION NO-GO / NO PRODUCTION EFFECT**.
+
+PR #369 now composes the already-qualified TypeSafe/JEV semantic provider into Core runtime without creating a new execution subsystem. Qualification code head `52e2a4fc9b7fe8768d3b003eec492680eaaea58a` completed **16/16 PR workflows GREEN**. Semantic Fast Read CI run `36234623424` and Core CI run `36234623515` were GREEN. The early Core Candidate Artifact run `36234623410` was deliberately rerun only after those gates; rerun job `108384859313` completed GREEN.
+
+Runtime activation is explicitly disabled by default through `WANDORA_SEMANTIC_FAST_READ_ENABLED`. When enabled in a future separately qualified environment, it requires the existing Human API, Organization Adapter and Fast Read Execution boundaries; loads the TypeSafe Bearer credential only from absolute file-backed `WANDORA_TYPESAFE_JEV_API_KEY_FILE`; preserves ADR 0287's 3 second default / 250..10000 ms bound / zero-retry fail-closed provider behavior; instantiates `TypeSafeJevSemanticDecisionProvider`; instantiates the existing `HumanDigitalEmployeeFastReadService`; and injects it into the existing authenticated Human Fast Read route.
+
+The Wandora-owned V1 gate remains caller policy: confidence >= 0.90, needs-more-context <= 0.10, needs-human-review <= 0.10 and data/tool-lookup >= 0.90. No live provider readiness probe is added: startup proves local config/custody and request-time provider uncertainty fails closed.
+
+Capability Authority remains intact. Reused: Wandora semantic contracts/auth/intent, ADR 0286 Organization Adapter bridge, ADR 0287 TypeSafe provider, existing file-backed custody, and Paperclip-owned lifecycle/Connections/grants/secrets/Tool Gateway/run result/audit. Not created: table, migration, lifecycle/run mirror, registry, Connection mirror, secret store, retry/orchestration subsystem, provider execution store or production credential.
+
+The first adversarial routing pass returned a near tie (`deep_review=0.40`, `proceed_fast=0.39`). A focused review then selected Wandora runtime policy constant (1.00), startup-config-only readiness (1.00), and proceed for the narrowed slice (0.97). Post-validation completion review marked `complete=0.93`.
+
+Production remains unchanged and **NO-GO**. No deploy, Compose/VPS mutation, migration, live TypeSafe key, real TypeSafe/VendaERP call, customer work or WhatsApp outbound occurred.
+
+Next gap: reconcile the complete Fast Read candidate as a measurable end-to-end path, add stage latency instrumentation before optimization, then run a fresh production convergence preflight before any live credential mount/promotion. ProRevest product + price and deterministic read-only Quote V1 remain subsequent separately governed steps.
+
+## Reconciled checkpoint — ADR 0287 TypeSafe Jev SemanticDecisionProvider Qualification V1
+
+ADR 0287 is **QUALIFIED / TYPESAFE JEV ADAPTER GREEN / PRODUCTION ACTIVATION NO-GO / NO PRODUCTION EFFECT**.
+
+PR #369 qualifies the concrete pre-Issue semantic provider behind the existing provider-neutral `SemanticDecisionProvider` at exact code head `e4b044c5efbdf25ba50f181764b55c2a3782fd6d`. All **16/16 PR workflows were GREEN** on that head. Semantic Fast Read CI run `36230335382` and Core CI run `36230335422` were GREEN; Core Candidate Artifact run `36230335359` was rerun only after both gates completed and finished GREEN on **attempt 2**.
+
+The qualified implementation is `TypeSafeJevSemanticDecisionProvider` over the official TypeSafe System One HTTPS boundary: one `POST https://api.typesafe.ai/v1/systemone`, HTTP Bearer authentication, strict typed response validation, 3 second default timeout, 64 KiB maximum response, zero retries and fail-closed handling for timeout/network/non-200/oversize/malformed/unknown provider output.
+
+Semantic authority remains Wandora-owned. The adapter sends only the bounded customer request plus the finite currently-advertised Wandora `BusinessCapability` set; it intentionally omits organization id, employee id, actor id, Paperclip ids, provider bindings and Tool Gateway state. Provider-specific identity remains only bounded `providerEvidence` and does not alter the Wandora contract.
+
+The existing Paperclip semantic-decision plugin remains post-Issue/advisory and is not reused as this pre-Issue provider. The ChatGPT JEV MCP connector is not treated as the Core runtime contract.
+
+No table, migration, provider registry, lifecycle, runtime memory, result mirror, retry subsystem, new secrets subsystem or provider execution store was introduced. No runtime secret was created or mounted and the provider is not wired into `runtime/main.ts` by this slice.
+
+Pre-execution adversarial review via TypeSafe-backed JEV 1.13.0 returned `proceed_fast=0.56`, `deep_review=0.34`, `block=0.09`, `split_task=0.01`; implementation stayed deliberately narrow.
+
+Production remains unchanged and **NO-GO**. No deploy, VPS mutation, Paperclip/Organization Adapter promotion, migration, VendaERP call, customer/provider production call, customer work or outbound effect occurred.
+
+Next exact gap: **SemanticDecisionProvider runtime wiring V1 — CODE ONLY / NO PRODUCTION EFFECT**. Reuse the existing file-backed secret-custody pattern to bind the qualified TypeSafe Bearer credential behind a disabled-by-default runtime config, instantiate the provider with the ADR 0286 Organization Adapter bridge and wire the already-authenticated customer Fast Read admission route. That future slice must prove config/readiness/fail-closed behavior in CI before any production preflight.
+
+## Reconciled checkpoint — ADR 0286 Core Organization Adapter Fast Read Bridge V1
+
+ADR 0286 is **QUALIFIED / CORE BRIDGE GREEN / PRODUCTION ACTIVATION NO-GO / NO PRODUCTION EFFECT**.
+
+PR #369 qualified the Core-side provider-neutral Fast Read bridge at exact code head `3ca3800adf9fdef3478d43b1fb6044e02e073aab`. All **16/16 PR workflows were GREEN** on that head. Semantic Fast Read CI run `36228374257` and Core CI run `36228374350` were GREEN; Core Candidate Artifact run `36228374169` was rerun after both gates and finished GREEN on attempt 2.
+
+The Wandora-owned `OrganizationAdapterFastReadBridge` now exposes only BusinessCapability projection and bounded deterministic Fast Read dispatch/result using Wandora organization/actor/employee/correlation semantics. It does not expose Paperclip, agentRuns, webhook URLs, Tool Gateway internals, credentials or provider run identity. `OrganizationAdapterProvider` no longer hard-codes the Paperclip literal in its provider discriminator.
+
+`OrganizationAdapterService` reuses the existing owner/admin checks plus exact active employee/hire/control-plane/provider binding validation. No table, migration, registry, lifecycle/run state, result mirror or provider-state cache was introduced.
+
+The Paperclip implementation remains isolated in `paperclip-provider.ts` / runtime adapter. It reuses the existing company-scoped HMAC secret custody and timeout/fail-closed behavior, calls the already-qualified signed `employee-capabilities` and `employee-fast-read` webhooks, validates provider run correlation internally and strips `runId` before returning the Wandora-owned result. The runtime adapter derives the sibling webhook URLs from the already-configured canonical plugin route, so no new environment variable or credential custody exists.
+
+`HumanDigitalEmployeeFastReadService` now consumes this canonical bridge for both capability projection and dispatch. `SemanticDecisionProvider` remains injected and deliberately has no concrete JEV/TypeSafe runtime implementation.
+
+Tests prove valid projection, unavailable capability fail-closed, deterministic bounded result, explicit rejection of nonzero token usage, malformed provider payload fail-closed, provider/transport uncertainty fail-closed, single dispatch with no Core retry/second execution, and no Paperclip run identity crossing the Wandora result contract.
+
+A first Core CI run exposed a stale production-activation rehearsal assertion still pinned to Organization Adapter 0.4.0. ADR 0285 had already qualified 0.5.0. The rehearsal was reconciled to 0.5.0 without weakening its production-disabled/custody/activation/work guardrails; the next exact head passed.
+
+Pre-execution adversarial review routed the narrow bridge as `proceed_fast`; post-validation JEV completion review marked the objective `complete` with probability 0.96.
+
+Production remains unchanged and **NO-GO** for candidate activation. No production deploy/upgrade, compose change, migration, VPS mutation, VendaERP/provider/model real call, customer work or outbound was executed.
+
+Next gap: **qualify the concrete `SemanticDecisionProvider` boundary under ADR 0276** — exact JEV/TypeSafe network surface, authentication, credential custody, tenant isolation, timeout/fail-closed semantics and bounded provider-neutral decision response. Only after that boundary is GREEN may Core instantiate the already-injected provider and wire customer Fast Read admission at runtime.
+
+## Reconciled checkpoint — ADR 0285 Semantic Fast Read Organization Adapter Candidate V1
+
+ADR 0285 is **CANDIDATE QUALIFIED / PRODUCTION ACTIVATION NO-GO / NO PRODUCTION EFFECT**.
+
+PR #369 proved the provider-side Semantic Fast Read candidate at exact code head `28acf5d1f7e1c6ceb6fc1ec899be6bdfa666412a`: Semantic Fast Read CI (including disposable E2E), Organization Adapter Plugin CI, Paperclip OpenAPI Compatibility and Paperclip 916.1 OpenAPI Candidate CI were GREEN.
+
+The installable candidate is `wandora.organization-adapter-v1@0.5.0`, qualified against exact Paperclip `v2026.916.1@d554c4789ed3930f8a53ac9fdf6503b3187097da` plus the independently retained provider deltas for `tools.operational.read`, `agent.runs.read` and bounded synchronous webhook responses. The three deltas are composed only in candidate CI through the insertion-restricted compositor; their standalone retained patches remain independently auditable.
+
+The candidate productionizes the ADR 0282 operational capability projection without persistence, adds signed `employee-capabilities`, and makes `employee-fast-read` invoke at most once then observe only its exact Paperclip-owned run with a bounded wait. Timeout, retry scheduling, missing/malformed result and non-success terminal states fail closed; no Wandora run lifecycle or result mirror exists.
+
+The provider adapter now preserves only the already-sanitized `executionId`, deterministic `model` and bounded `summary` in Paperclip `resultJson`; exact v2026.916.1 `heartbeat_runs` has no separate model/summary columns. This allows the qualified `ctx.agentRuns.get` read to return the terminal result without Board credentials, direct DB access from Wandora/plugin or provider metadata leakage.
+
+Disposable E2E proves one issue-less accepted run, one bounded read tool invocation, deterministic result persistence, zero model tokens, zero agentic/model calls, replay without a second invoke, and fail-closed expired/unauthorized/ambiguous cases with no added tool calls.
+
+Paperclip v2026.916.1 has a separately qualified OpenAPI candidate: 685 paths, SHA-256 `55383e4b9aceee52544a5e8a93b7c04526f10cb13ce91082185df0691bd7e740`, byte-identical to the current v2026.916.0 HTTP contract with reviewed generator/supplement source evidence unchanged. Canonical production pins and `infra/stacks/paperclip/compose.yaml` remain v2026.916.0.
+
+No production deploy/upgrade/promotion, migration, VPS mutation, provider/VendaERP real call, customer work, outbound or production model/JEV call occurred.
+
+Next code-only slice: **Core Organization Adapter Fast Read Bridge V1** — extend the Wandora-owned provider-neutral adapter contract for ephemeral capability projection and bounded Fast Read dispatch/result, reuse existing Human authorization and exact managed-employee/provider binding checks, map Paperclip only inside its adapter, and keep concrete JEV/TypeSafe wiring separately gated by ADR 0276.
+
+## Reconciled checkpoint — ADR 0284 Paperclip Fast Read terminal result read boundary preflight
+
+ADR 0284 is **PREFLIGHT COMPLETE / GO FOR NARROW PAPERCLIP HOST RUN-RESULT READ QUALIFICATION / NO PRODUCTION EFFECT**.
+
+PR #369 on branch `feat/semantic-fast-read-runtime-wiring-v1` reached exact head `55851366e0e9b31c51ae8bdd1c2519795cd8466d` with **10/10 PR workflows GREEN**, including Core CI, Semantic Fast Read CI, Core Candidate Artifact, Organization Adapter Plugin CI and the new Paperclip Synchronous Webhook Response CI.
+
+The customer-admission layer is now code-proven behind injected boundaries: authenticated Human API Fast Read route, provider-neutral `SemanticDecisionProvider`, deterministic gate, signed short-lived `FastReadIntent`, capability fail-closed behavior and zero-token deterministic-result enforcement. It remains intentionally unwired in `runtime/main.ts` until the Organization Adapter result bridge and semantic provider qualification are complete.
+
+The next proven gap is provider-operational, not Wandora-owned: `ctx.agents.invoke(...)` creates the Paperclip run and returns its `runId`, while Paperclip itself owns terminal status, `resultJson` and `usageJson`. The supported plugin worker surface used by this slice does not provide a qualified read of one exact terminal run result. The new synchronous webhook response transport is GREEN, but it can return the result only after the worker can legitimately read that Paperclip-owned state.
+
+Rejected: Core polling of Board APIs, Board/agent credential custody in Core, direct Paperclip DB reads, plugin direct DB reads, a Wandora run/result table, run lifecycle mirror, polling/retry subsystem, or relying on documented run-finished events without exact-version proof.
+
+Second adversarial review selected a **preflight then narrow host run-read** boundary (0.82), rejected relying on run-finished events now (0.82 no) and rejected new Wandora durable run state (0.83 no).
+
+Next executable slice: **Paperclip Host Fast Read Run Result Read Qualification V1 — CODE ONLY / NO PRODUCTION EFFECT**. Reuse exact Paperclip v2026.916.1 heartbeat-run services behind one capability-gated, company/agent/run-scoped, read-only plugin SDK surface returning bounded status/result/usage only. Follow ADR 0281's digest-pinned provider-patch qualification pattern. Concrete JEV wiring remains separately blocked by ADR 0276 auth/network/custody requirements.
+
+No production mutation, migration, provider/model/VendaERP call, customer work, outbound or VPS action occurred.
+
 ## Reconciled checkpoint — ADR 0283 Semantic Fast Read production convergence preflight
 
 ADR 0283 is **PREFLIGHT COMPLETE / PRODUCTION ACTIVATION NO-GO / RUNTIME WIRING + ARTIFACT GAPS PROVEN / NO PRODUCTION EFFECT**.
@@ -5435,3 +6186,66 @@ The retained provider patch is `integrations/paperclip/patches/v2026.916.1-host-
 Production remains unchanged: Paperclip `v2026.916.0` healthy; Task Drain OFF; activeRuns=0; pendingWakes=0; quiescent=true; zero provider/model/customer/outbound effect.
 
 Next only after exact PR-head CI GREEN: disposable ADR 0279 Integration Capability Plane attestation against an isolated Paperclip candidate/lab. Production activation remains a separate slice.
+
+
+## 2026-09-27 — ADR 0295 production image-store identity reconciliation
+
+Status: **IDENTITY RECONCILED / NO PROMOTION / NO CUSTOMER OR OUTBOUND EFFECT**.
+
+The exact frozen Paperclip `v2026.916.1` candidate staged from ADR 0295 remains byte-identical: compressed SHA-256 `69c962c79375446060af12fc9240385987790f4d11a3528cbb7a6ad745e98269`, raw Docker archive SHA-256 `a91f96feff4dbb8161d182e350fc3e2ca1d0d6784cfa9179fdaa20a200e7ce97`.
+
+Archive inspection proves the OCI chain `manifest sha256:7b72d43e87d54fcb9aa48b665150e062750c0cacb270e069f94297d58caa91e5 -> config sha256:e05f1604cf863d316b4ce5db189782f022fa4fd17544f9724747e11223d4356c`. Production Docker Engine 29.8.0 reports the loaded tag `.Id` as the manifest digest `7b72d43e...`, while the original CI workflow recorded `e05f1604...` from its build-time `.Id`; this is now treated as image-store representation semantics, not candidate divergence.
+
+For this frozen candidate, identity validation is the exact archive checksums plus the internal manifest->config digest relation; post-load `.Id` equality alone is not a portable verifier across image-store semantics.
+
+Live Paperclip remained `wandora/paperclip:v2026.916.0`, healthy/restart 0, and Task Drain remained OFF/0/0/quiescent during reconciliation. No promotion was authorized by this checkpoint. Next: fresh Immediate Pre-Mutation Attestation + adversarial review for exactly one compatibility effect — Paperclip 916.1 promotion with Organization Adapter 0.3.1 and all semantic/Human Send/Gateway outbound/WhatsApp effects OFF.
+
+
+## 2026-09-27 — ADR 0303 Paperclip v2026.916.1 production promotion
+
+Status: **GREEN / PAPERCLIP 916.1 LIVE / OA 0.3.1 PRESERVED / SEMANTIC+OUTBOUND EFFECTS OFF**.
+
+Exact execution head before mutation was `a31ba64598d20e0f0162bb515b706e2178577e7e` with **17/17 GREEN**. The qualified Compose render emitted `WANDORA_PAPERCLIP_V9161_PROMOTION_COMPOSE_OK`.
+
+Production Paperclip is now `wandora/paperclip:v2026.916.1`, container `b58e2f20580ac89a32d8a3fb6670e759f94b668f3c49e799337176f029da2512`, OCI manifest/image ID `sha256:7b72d43e87d54fcb9aa48b665150e062750c0cacb270e069f94297d58caa91e5`, healthy/restart 0, API `status=ok`, source commit `d554c4789ed3930f8a53ac9fdf6503b3187097da`.
+
+The frozen ADR 0295 candidate identity remains: raw archive SHA-256 `a91f96feff4dbb8161d182e350fc3e2ca1d0d6784cfa9179fdaa20a200e7ce97`, compressed SHA-256 `69c962c79375446060af12fc9240385987790f4d11a3528cbb7a6ad745e98269`, manifest `7b72d43e...` -> config `e05f1604...`.
+
+Startup reused the existing embedded PostgreSQL cluster and reported `Migrations already applied`. Startup orphaned heartbeat-run reap was 0. Exactly one `wandora.organization-adapter-v1@0.3.1` remains ready with `lastError=null`. Task Drain remains `draining=false, activeRuns=0, pendingWakes=0, quiescent=true`.
+
+Core and Messaging Gateway were not recreated and remain healthy/restart 0 on their prior images. Core last startup still reports `humanSendProposal=false`; Gateway last startup still reports `outboundEnabled=false`. No Semantic Fast Read/Selector activation, Organization Adapter 0.5.0 promotion, Core promotion, provider/model/VendaERP call, customer work or outbound effect occurred.
+
+ADR 0299 qualified rollback receipt/root remain the recovery anchor. No next mutation is authorized by implication.
+
+Next separately reviewed slice: **Organization Adapter 0.5.0 Production Promotion — compatibility convergence only / all semantic and outbound gates OFF**.
+
+
+## 2026-09-28 — ADR 0320 Semantic Fast Read mandatory-close boundary reuse
+
+Status: **DECISION COMPLETE / EXISTING REMOTE-OPS BOUNDARY REUSED / NO PRODUCTION EFFECT**.
+
+ADR 0319's mandatory-close fragility is now classified correctly: the expired `adm_...` was an ephemeral approval, not the durable close capability. Production Remote-Ops source proves managed-admin approvals expire after 10 minutes and the signed root ticket created after apply expires after 90 seconds. Those lifetimes remain unchanged.
+
+The durable operational authority remains the existing `host_admin_prepare/apply` path. The next attestation retry must therefore freeze and prove the exact image-pinned baseline close command before opening, but **must not pre-create the close approval**. After the single human browser request, or immediately on any error/ambiguity, create a fresh close approval for that already-frozen exact operation, require the user's exact `APPROVE adm_...`, apply immediately, then validate the gates-OFF baseline state-first.
+
+No new wrapper, approval subsystem, scheduler, state machine, table, migration, generic root shell or Remote-Ops TTL change is justified by current evidence. A narrow wrapper remains a future fallback only if the existing fresh prepare/apply route is proven insufficient.
+
+Current reconciled baseline remains: Core `organization-adapter-candidate-2c2142237c9c` healthy with Semantic Fast Read/Human Send OFF and custody/attestation absent; Paperclip `v2026.916.1` healthy; Gateway outbound OFF; Task Drain quiescent; Rollback Freeze V2 receipt aligned. No production mutation/provider/customer/outbound effect occurred in ADR 0320.
+
+Next: **Semantic Fast Read Bounded Production Attestation Retry Preflight V1 — NO OPENING YET**. Reprove exact head/CI, rollback precheck, custody/provider qualification, overlay bytes, exact baseline/open/close Compose renders, image identity, Task Drain, effect gates and managed-admin availability before any opening.
+
+## 2026-09-29 — ADR 0323 Semantic Fast Read HTTP body-forwarding failure
+
+Status: **FAIL-CLOSED / ONE HUMAN POST RETURNED 400 / BASELINE RESTORED / ROOT CAUSE FIXED IN PR / 17-OF-17 CI GREEN / PATCHED CORE NOT LIVE**.
+
+Exactly one authenticated 28PRO owner request for active Ana was issued to the reviewed Fast Read route and returned `400 invalid-fast-read-request`. No second request was made. The mandatory close used a fresh ADR 0320 approval and restored the exact baseline: Core healthy/restart 0 on `wandora/core:organization-adapter-candidate-2c2142237c9c`, digest `sha256:d3ed5494c03c0720419387befc54f6f6cb124e5407fc619150ecf3dde03dfed7`, revision `2c2142237c9cccc1f7a90d6ae056cd12cc5f4754`, custody/attestation absent, Fast Read/Semantic OFF, Human Send OFF, Gateway outbound OFF and Task Drain quiescent.
+
+The failure occurred before semantic/provider execution. The reviewed browser body was valid, but Core's HTTP server omitted Fast Read from the Human POST routes whose body is read. The handler therefore received `rawBody=undefined` and returned `invalid-fast-read-request` before invoking the Semantic Fast Read service. This attempt did not reach TypeSafe, Mistral selector, Paperclip Fast Read execution or VendaERP Tool Gateway.
+
+The source fix is narrow and preserves existing authority boundaries: Fast Read gets its own exact path matcher and HTTP-body branch using the canonical 12,100-byte limit; generic Human mutations remain capped at 8,192 bytes. HTTP-level regression coverage proves both a normal Fast Read body and a body larger than the generic limit are forwarded correctly.
+
+Implementation checkpoint before documentation: PR #369 head `025afcc5787e4ce61a131cfe5710a5ac079bd6af`, 17/17 workflows GREEN, Core CI 1427 GREEN, Semantic Fast Read CI 313 GREEN and Core Candidate Artifact 547 GREEN. Artifact `11012599392` / `core-organization-adapter-candidate-e56674ffba3a8b10754bcbb466bea36c20e70183` has GitHub digest `sha256:c07391790e34630f61cdf5654ee32cf46dd08a20a1ea4b1041fbe6d2677c6fc1`.
+
+Production still runs the older Core candidate. No production promotion is implied by CI.
+
+Next: **Core Fast Read HTTP Body Forwarding Compatibility Promotion V1 — GATES OFF / NO HUMAN FAST READ**. Reconcile fresh repository/runtime/artifact evidence, promote only the exact reviewed Core compatibility candidate while all semantic/outbound gates remain OFF, validate state-first, document, and only then consider a new bounded attestation under fresh approvals.

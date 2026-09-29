@@ -1,5 +1,6 @@
 import { readFile, stat } from 'node:fs/promises';
 import { isAbsolute } from 'node:path';
+import type { SemanticRoutePolicy } from '../semantic-routing/contracts.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -73,6 +74,24 @@ export type RuntimePaperclipExecutionBridgeConfig = {
   agentMeUrl: string;
 };
 
+export type RuntimeFastReadExecutionConfig = {
+  intentSecret: string;
+};
+
+export type RuntimeSemanticSelectorConfig = {
+  provider: 'mastra-mistral';
+  apiKey: string;
+  timeoutMs: number;
+};
+
+export type RuntimeSemanticFastReadConfig = {
+  provider: 'typesafe-jev';
+  apiKey: string;
+  timeoutMs: number;
+  policy: SemanticRoutePolicy;
+  selector?: RuntimeSemanticSelectorConfig;
+};
+
 export type RuntimeConfig = {
   port: number;
   mode: RuntimeMode;
@@ -87,6 +106,8 @@ export type RuntimeConfig = {
   humanDigitalEmployeeActivation?: RuntimeHumanDigitalEmployeeActivationConfig;
   humanDigitalEmployeeWork?: RuntimeHumanDigitalEmployeeWorkConfig;
   paperclipExecutionBridge?: RuntimePaperclipExecutionBridgeConfig;
+  fastReadExecution?: RuntimeFastReadExecutionConfig;
+  semanticFastRead?: RuntimeSemanticFastReadConfig;
 };
 
 const parsePort = (value: string | undefined, fallback: number, name: string): number => {
@@ -115,6 +136,22 @@ const required = (env: NodeJS.ProcessEnv, name: string): string => {
   const value = env[name]?.trim();
   if (!value) throw new Error(`${name} is required in database mode.`);
   return value;
+};
+
+const loadPlatformModelApiKey = async (env: NodeJS.ProcessEnv): Promise<string> => {
+  const apiKeyFile = required(env, 'WANDORA_MODEL_API_KEY_FILE');
+  if (!isAbsolute(apiKeyFile)) {
+    throw new Error('WANDORA_MODEL_API_KEY_FILE must be an absolute mounted file.');
+  }
+  const apiKeyStat = await stat(apiKeyFile).catch(() => null);
+  if (!apiKeyStat?.isFile()) {
+    throw new Error('WANDORA_MODEL_API_KEY_FILE must be a mounted regular file.');
+  }
+  const apiKey = (await readFile(apiKeyFile, 'utf8')).trim();
+  if (apiKey.length < 20 || apiKey.length > 4096 || /\s/.test(apiKey)) {
+    throw new Error('Wandora model API key is invalid.');
+  }
+  return apiKey;
 };
 
 const parseEnabled = (value: string | undefined, name: string): boolean => {
@@ -279,6 +316,18 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     env.WANDORA_PAPERCLIP_EXECUTION_BRIDGE_ENABLED,
     'WANDORA_PAPERCLIP_EXECUTION_BRIDGE_ENABLED',
   );
+  const fastReadExecutionEnabled = parseEnabled(
+    env.WANDORA_FAST_READ_EXECUTION_ENABLED,
+    'WANDORA_FAST_READ_EXECUTION_ENABLED',
+  );
+  const semanticFastReadEnabled = parseEnabled(
+    env.WANDORA_SEMANTIC_FAST_READ_ENABLED,
+    'WANDORA_SEMANTIC_FAST_READ_ENABLED',
+  );
+  const semanticSelectorEnabled = parseEnabled(
+    env.WANDORA_SEMANTIC_SELECTOR_ENABLED,
+    'WANDORA_SEMANTIC_SELECTOR_ENABLED',
+  );
   const agentRuntimeMode = parseAgentRuntimeMode(env.WANDORA_AGENT_RUNTIME_MODE);
 
   if (mode === 'standby') {
@@ -309,6 +358,15 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     if (paperclipExecutionBridgeEnabled) {
       throw new Error('Paperclip Execution Bridge cannot be enabled while Wandora Core is in standby mode.');
     }
+    if (fastReadExecutionEnabled) {
+      throw new Error('Fast Read Execution cannot be enabled while Wandora Core is in standby mode.');
+    }
+    if (semanticFastReadEnabled) {
+      throw new Error('Semantic Fast Read cannot be enabled while Wandora Core is in standby mode.');
+    }
+    if (semanticSelectorEnabled) {
+      throw new Error('Semantic Selector cannot be enabled while Wandora Core is in standby mode.');
+    }
     if (agentRuntimeMode !== 'disabled') {
       throw new Error('Agent Runtime cannot be enabled while Wandora Core is in standby mode.');
     }
@@ -332,6 +390,21 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
   }
   if (paperclipExecutionBridgeEnabled && agentRuntimeMode === 'disabled') {
     throw new Error('Paperclip Execution Bridge requires an Agent Runtime to be enabled.');
+  }
+  if (fastReadExecutionEnabled && !paperclipExecutionBridgeEnabled) {
+    throw new Error('Fast Read Execution requires the Paperclip Execution Bridge to be enabled.');
+  }
+  if (semanticFastReadEnabled && !humanApiEnabled) {
+    throw new Error('Semantic Fast Read requires the Human API to be enabled.');
+  }
+  if (semanticFastReadEnabled && !organizationAdapterEnabled) {
+    throw new Error('Semantic Fast Read requires the Organization Adapter to be enabled.');
+  }
+  if (semanticFastReadEnabled && !fastReadExecutionEnabled) {
+    throw new Error('Semantic Fast Read requires Fast Read Execution to be enabled.');
+  }
+  if (semanticSelectorEnabled && !semanticFastReadEnabled) {
+    throw new Error('Semantic Selector requires Semantic Fast Read to be enabled.');
   }
   if (humanDigitalEmployeeActivationEnabled && !humanApiEnabled) {
     throw new Error('Human Digital Employee Activation requires the Human API to be enabled.');
@@ -383,18 +456,7 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     if (baseUrl !== 'https://api.mistral.ai/v1') {
       throw new Error('WANDORA_MODEL_BASE_URL must be the approved Mistral API base URL.');
     }
-    const apiKeyFile = required(env, 'WANDORA_MODEL_API_KEY_FILE');
-    if (!isAbsolute(apiKeyFile)) {
-      throw new Error('WANDORA_MODEL_API_KEY_FILE must be an absolute mounted file.');
-    }
-    const apiKeyStat = await stat(apiKeyFile).catch(() => null);
-    if (!apiKeyStat?.isFile()) {
-      throw new Error('WANDORA_MODEL_API_KEY_FILE must be a mounted regular file.');
-    }
-    const apiKey = (await readFile(apiKeyFile, 'utf8')).trim();
-    if (apiKey.length < 20 || apiKey.length > 4096 || /\s/.test(apiKey)) {
-      throw new Error('Wandora model API key is invalid.');
-    }
+    const apiKey = await loadPlatformModelApiKey(env);
 
     agentRuntime = {
       mode: 'mastra-supervised-model',
@@ -487,6 +549,78 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     };
   }
 
+  let fastReadExecution: RuntimeFastReadExecutionConfig | undefined;
+  if (fastReadExecutionEnabled) {
+    const secretFile = required(env, 'WANDORA_FAST_READ_INTENT_SECRET_FILE');
+    if (!isAbsolute(secretFile)) {
+      throw new Error('WANDORA_FAST_READ_INTENT_SECRET_FILE must be an absolute mounted file.');
+    }
+    const secretFileStat = await stat(secretFile).catch(() => null);
+    if (!secretFileStat?.isFile()) {
+      throw new Error('WANDORA_FAST_READ_INTENT_SECRET_FILE must be a mounted regular file.');
+    }
+    const intentSecret = (await readFile(secretFile, 'utf8')).trim();
+    if (intentSecret.length < 32 || intentSecret.length > 8_192) {
+      throw new Error('Wandora Fast Read intent secret must contain between 32 and 8192 characters.');
+    }
+    if (
+      gatewayIngress?.secret === intentSecret
+      || humanSendProposal?.gatewaySecret === intentSecret
+      || paperclipExecutionBridge?.secret === intentSecret
+    ) {
+      throw new Error('Fast Read intent HMAC must be distinct from existing Wandora HMAC secrets.');
+    }
+    fastReadExecution = { intentSecret };
+  }
+
+  let semanticFastRead: RuntimeSemanticFastReadConfig | undefined;
+  if (semanticFastReadEnabled) {
+    const apiKeyFile = required(env, 'WANDORA_TYPESAFE_JEV_API_KEY_FILE');
+    if (!isAbsolute(apiKeyFile)) {
+      throw new Error('WANDORA_TYPESAFE_JEV_API_KEY_FILE must be an absolute mounted file.');
+    }
+    const apiKeyFileStat = await stat(apiKeyFile).catch(() => null);
+    if (!apiKeyFileStat?.isFile()) {
+      throw new Error('WANDORA_TYPESAFE_JEV_API_KEY_FILE must be a mounted regular file.');
+    }
+    const apiKey = (await readFile(apiKeyFile, 'utf8')).trim();
+    if (apiKey.length < 20 || apiKey.length > 4_096 || /\s/.test(apiKey)) {
+      throw new Error('Wandora TypeSafe JEV API key is invalid.');
+    }
+    semanticFastRead = {
+      provider: 'typesafe-jev',
+      apiKey,
+      timeoutMs: parseBoundedInteger(
+        env.WANDORA_TYPESAFE_JEV_TIMEOUT_MS,
+        3_000,
+        250,
+        10_000,
+        'WANDORA_TYPESAFE_JEV_TIMEOUT_MS',
+      ),
+      policy: {
+        minimumConfidence: 0.9,
+        maximumNeedsMoreContext: 0.1,
+        maximumNeedsHumanReview: 0.1,
+        minimumNeedsDataOrToolLookup: 0.9,
+      },
+      ...(semanticSelectorEnabled
+        ? {
+            selector: {
+              provider: 'mastra-mistral' as const,
+              apiKey: await loadPlatformModelApiKey(env),
+              timeoutMs: parseBoundedInteger(
+                env.WANDORA_SEMANTIC_SELECTOR_TIMEOUT_MS,
+                3_000,
+                250,
+                10_000,
+                'WANDORA_SEMANTIC_SELECTOR_TIMEOUT_MS',
+              ),
+            },
+          }
+        : {}),
+    };
+  }
+
   let organizationAdapter: RuntimeOrganizationAdapterConfig | undefined;
   if (organizationAdapterEnabled) {
     const secretDirectory = required(env, 'WANDORA_ORGANIZATION_ADAPTER_SECRET_DIRECTORY');
@@ -537,6 +671,8 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     ...(humanSendProposal ? { humanSendProposal } : {}),
     ...(organizationAdapter ? { organizationAdapter } : {}),
     ...(paperclipExecutionBridge ? { paperclipExecutionBridge } : {}),
+    ...(fastReadExecution ? { fastReadExecution } : {}),
+    ...(semanticFastRead ? { semanticFastRead } : {}),
     ...(humanDigitalEmployeeHireEnabled
       ? { humanDigitalEmployeeHire: { enabled: true as const } }
       : {}),

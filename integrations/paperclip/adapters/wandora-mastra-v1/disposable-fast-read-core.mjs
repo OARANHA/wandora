@@ -46,7 +46,14 @@ const fastReadServiceInner = new PaperclipFastReadExecutionService({
         ? ['business.products.price']
         : [];
     },
-    async execute({ tool }) {
+    async execute({ tool, selector }) {
+      if (
+        selector?.kind !== 'product'
+        || selector.by !== 'name'
+        || selector.value !== 'PREMIUM PLUS'
+      ) {
+        throw new Error('disposable_fast_read_selector_missing');
+      }
       const value = await tool.execute({ key: 'project' });
       const rendered = typeof value === 'string' ? value : JSON.stringify(value);
       return {

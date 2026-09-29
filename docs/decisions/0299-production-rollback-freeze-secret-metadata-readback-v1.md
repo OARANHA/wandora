@@ -1,0 +1,328 @@
+# ADR 0299 — Production Rollback Freeze + Secret Metadata Readback V1 — partial operator checkpoint
+
+Date: 2026-09-26
+
+Status: **PARTIAL / OPERATOR-LOCAL EXECUTION REQUIRED / NO BACKUP CREATED / NO ACTIVATION / NO CUSTOMER EFFECT**
+
+## Context
+
+ADR 0298 ended `BLOCKED / NO MUTATION / NO PRODUCTION EFFECT` because the immediately-pre-mutation rollback evidence required by ADR 0294 was not fresh and the secret-safe Remote-Ops boundary correctly refused direct access to Core secrets. This slice exists only to close those two gaps. It does not authorize Paperclip/Core/Organization Adapter promotion, Semantic Fast Read activation, Task Drain mutation, provider calls, customer work or outbound.
+
+The bootstrap was reconciled against repository/GitHub/runtime evidence rather than chat history.
+
+## REAL NOW
+
+Repository/GitHub at the decision point:
+
+- `main = 8d6a65f519de5c1c49607314b49968af608c7164`;
+- PR #369 = open / draft / mergeable;
+- PR #369 source head = `5619622bc079bb1b5019f39c5221a81bc4cdd845`;
+- exact PR #369 source head = **17/17 workflows GREEN**;
+- PR #370 = open / draft / mergeable at `11fd59599b21493a0fe335f4c32354989a6083a2`;
+- PR #370 exact head = **4/4 workflows GREEN**.
+
+The exact ADR 0295 Paperclip promotion unit remains available and non-expired:
+
+- Actions artifact ID `10914008713`;
+- ZIP digest `sha256:e43acc85e3f7f010b7189f11bd9c3622f9a7a9015765a50f315ca61a98c36a19`;
+- exact upstream source `d554c4789ed3930f8a53ac9fdf6503b3187097da`;
+- expiry observed: 2026-10-03.
+
+Fresh Paperclip read-only evidence succeeded:
+
+- `GET http://127.0.0.1:3100/api/health` returned `status=ok`;
+- authenticated/private deployment remained reported;
+- Paperclip commit = `dffc2b3ca1b9e88fa21cb17493083e682dffd1ca`;
+- database-backup health = `ok`;
+- host Paperclip source checkout is clean/detached at the same `dffc2b3...` commit.
+
+Fresh Task Drain readback through the existing Remote-Ops semantic capability did **not** succeed in this session: the broker path returned `fetch failed`. Direct Docker list/exec through the current Remote-Ops path is also unavailable/denied. These failures are not permission gaps to bypass; the already-implemented `paperclip_task_drain_status` authority remains the correct capability.
+
+Direct Core secret inspection also remains correctly denied with `SECRET_PATH_DENIED`. The ADR 0297 receipt proves the prior custody completion but is intentionally not reused as fresh metadata for this slice.
+
+## PROVEN EVIDENCE — rollback contract
+
+ADRs 0129/0130 and 0294 establish the accepted recovery pattern. A fresh rollback freeze for the currently-live Paperclip v2026.916.0 must capture, only after fresh preconditions pass:
+
+1. official Paperclip `db:backup`;
+2. PostgreSQL 18.1 schema-faithful custom-format `pg_dump -Fc`;
+3. disposable PostgreSQL 18.1 restore proof and normalized schema equality;
+4. the matching live `/paperclip/instances/default/secrets/master.key`, copied without printing contents and verified only by boolean byte equality;
+5. current `/paperclip/adapter-plugins.json`, matching the live production `PAPERCLIP_HOME=/paperclip` provider contract;
+6. complete current `/paperclip/operator-packages` adapter package state;
+7. exact current Organization Adapter 0.3.1 package path/tree obtained from Paperclip's own plugin registry;
+8. live Paperclip base Compose, execution-bridge overlay and bridge wrapper;
+9. current Core Compose/config anchors needed to return to the pre-effect state;
+10. protected manifests/checksums, excluding key-derived material from user-visible output.
+
+The backup root must remain operator-local and protected under `/home/wandora-admin/backups/`, with directory mode 0700 and files 0600, following ADR 0129.
+
+## Secret metadata contract
+
+The only fresh secret evidence requested by this slice is owner/group/mode/type for:
+
+- `/opt/wandora/stacks/core/secrets/wandora_typesafe_jev_api_key`;
+- `/opt/wandora/stacks/core/secrets/wandora_fast_read_intent_hmac`;
+- `/opt/wandora/stacks/core/secrets/wandora_model_provider_api_key`.
+
+No value, plaintext, content hash or secret-derived material is required or authorized.
+
+## CAPABILITY AUTHORITY / REUSE GATE
+
+ADR 0168 remains satisfied:
+
+- Wandora owns semantic/product/effect authorization;
+- Paperclip remains operational authority for run/workforce/tools/plugin/secret state;
+- the existing Paperclip backup path, plugin registry and Task Drain capability are reused;
+- PostgreSQL 18.1 is only a disposable recovery-verification client;
+- no Wandora backup subsystem, secret manager, lifecycle, run mirror, registry, cache or retry engine is created;
+- `SECRET_PATH_DENIED` and Docker isolation remain guardrails, not defects to bypass.
+
+## Decision
+
+The intended effect is bounded to **creation of one protected recovery bundle plus one metadata-only receipt**.
+
+The decision was not treated as a generic production GO. It was reviewed in two stages:
+
+1. initial JEV route review: `proceed_fast=0.41`, `deep_review=0.33`, `block=0.23`, `split_task=0.03`, low confidence; this was treated as a request for deeper review rather than permission to execute;
+2. final focused JEV guard review of the fail-closed operator-local procedure: `allow=0.64`, `confirm=0.20`, `deny=0.13`, `review=0.03`, confidence 0.53.
+
+The final procedure requires **all** freshness checks before the first backup write: current Paperclip v916.0 health/identity, fresh Task Drain OFF/0/0/quiescent, exactly one OA 0.3.1 ready, current Core/Gateway health, Semantic/Fast Read/Human Send gates OFF, Gateway outbound OFF, and fresh secret metadata.
+
+## EXECUTION
+
+**No rollback backup was created. No secret metadata was re-read through a bypass.**
+
+The current ChatGPT Remote-Ops session lacks an authorized root/operator path for the protected `/home/wandora-admin/backups` operation, while the existing semantic Task Drain capability currently fails at the broker transport with `fetch failed`. Running only a partial `db:backup`, widening Docker access, restarting infrastructure merely to recover evidence, using `sudo` through an allowlisted shell, or relocating the bundle into `/opt/wandora/ops-workspace` would violate the slice.
+
+Therefore execution stops before the first effect.
+
+The operator-local implementation contract is persisted in:
+
+`docs/operations/production-rollback-freeze-secret-metadata-readback-v1.md`
+
+## VALIDATION
+
+Validated without production mutation:
+
+- canonical authority chain re-read at the exact PR head;
+- ADRs 0294, 0295, 0297 and 0298 reconciled;
+- ADRs 0129/0130 recovery pattern re-read;
+- PR #369 exact head workflows = 17/17 GREEN;
+- PR #370 exact head workflows = 4/4 GREEN;
+- ADR 0295 candidate remains available/non-expired;
+- Paperclip live health/commit/backup health fresh-read succeeded;
+- current Paperclip source checkout identity matched the live commit;
+- direct secret path access remained denied as designed;
+- no TypeSafe, Mistral, VendaERP, WhatsApp or customer call occurred;
+- no Task Drain mutation, deploy, promotion, container restart or Compose mutation occurred.
+
+## Result
+
+**PARTIAL / OPERATOR-LOCAL EXECUTION REQUIRED / NO BACKUP CREATED / NO ACTIVATION / NO CUSTOMER EFFECT**
+
+Do not rerun ADR 0298 yet. First complete this slice through the reviewed operator-local boundary and validate its safe receipt. Only then update this checkpoint (or add the sequential completion ADR) and rerun Immediate Pre-Mutation Attestation from fresh state.
+
+### 2026-09-26 — fresh continuation: Task Drain recovered, operator custody still unavailable
+
+A fresh continuation re-ran the exact canonical and runtime checks before any backup write.
+
+- `main` remains `8d6a65f519de5c1c49607314b49968af608c7164`.
+- PR #369 remained open/draft/mergeable at pre-documentation source head `4f461ae3bcdffa7ef20b47c3f8be60b9c835f068`, with **17/17 workflows GREEN**.
+- PR #370 remained open/draft/mergeable at `11fd59599b21493a0fe335f4c32354989a6083a2`, with **4/4 workflows GREEN**.
+- ADR 0295 artifact `10914008713` remains available/non-expired through 2026-10-03, with GitHub digest `sha256:e43acc85e3f7f010b7189f11bd9c3622f9a7a9015765a50f315ca61a98c36a19`.
+- Fresh Task Drain readback now succeeds again: `draining=false`, `activeRuns=0`, `pendingWakes=0`, `quiescent=true`.
+- Fresh runtime still shows Paperclip `wandora/paperclip:v2026.916.0` / commit `dffc2b3ca1b9e88fa21cb17493083e682dffd1ca`, healthy/restart 0; Core `wandora/core:organization-adapter-candidate-f3225586d082`, healthy/restart 0; Messaging Gateway healthy/restart 0 with `outboundEnabled=false`.
+- Core active Compose labels still exclude `compose.semantic-fast-read.yaml` and `compose.semantic-fast-read-custody.yaml`; startup still reports `humanSendProposal=false`.
+- Fresh Paperclip plugin CLI readback reports exactly `wandora.organization-adapter-v1@0.3.1`, status `ready`.
+
+The former Task Drain transport failure is therefore closed. The execution blocker is narrower: neither the current `wandora-agent` boundary nor the newly visible `wandora-admin` target exposes authorized access to `/home/wandora-admin/backups`, and the canonical Core secret directory continues to fail closed with `SECRET_PATH_DENIED`. No exposed capability can perform the required metadata-only `stat` for TypeSafe/`wfri1`/Mistral or create the protected rollback root without widening policy, using shell/sudo as a bypass, or relocating custody.
+
+The deterministic decision remains **STOP BEFORE FIRST BACKUP WRITE**. A fresh independent JEV route review returned `block=0.99`, `deep_review=0.01`, confidence `0.98`. No backup, deploy, promotion, restart, Compose mutation, secret read, provider call, VendaERP call, customer work, outbound, Task Drain mutation or production effect occurred.
+
+Status remains **PARTIAL / OPERATOR-LOCAL EXECUTION REQUIRED / NO BACKUP CREATED / NO ACTIVATION / NO CUSTOMER EFFECT**. Complete the already-reviewed operator-local runbook through an authorized boundary; do not expand Remote-Ops allowlists or bypass secret guards. Only after the safe receipt ends in `ROLLBACK_FREEZE_V1_OK` should ADR 0298-style Immediate Pre-Mutation Attestation be rerun from fresh state.
+
+
+
+### 2026-09-26 — fresh continuation: exact head GREEN; operator-local boundary still absent
+
+A new reconciliation was completed before any effect.
+
+- `main` remains `8d6a65f519de5c1c49607314b49968af608c7164`.
+- PR #369 remained open/draft/mergeable at source head `66d7f2e15c1c1a09a7f42c146375fce8c709078b`; that exact pre-documentation head is now **17/17 workflows GREEN**.
+- PR #370 remains open/draft/mergeable at `11fd59599b21493a0fe335f4c32354989a6083a2`, with **4/4 workflows GREEN**.
+- Frozen ADR 0295 artifact `10914008713` remains available and non-expired through 2026-10-03 with digest `sha256:e43acc85e3f7f010b7189f11bd9c3622f9a7a9015765a50f315ca61a98c36a19`.
+- Task Drain is freshly `draining=false`, `activeRuns=0`, `pendingWakes=0`, `quiescent=true`.
+- Paperclip remains `wandora/paperclip:v2026.916.0`, commit `dffc2b3ca1b9e88fa21cb17493083e682dffd1ca`, healthy/restart 0, authenticated/private, with database-backup health `ok`.
+- Core remains `wandora/core:organization-adapter-candidate-f3225586d082`, revision `f3225586d0825334d2c9c697a1720512a65d47f8`, healthy/restart 0. Active Compose files still exclude `compose.semantic-fast-read.yaml` and `compose.semantic-fast-read-custody.yaml`; startup readback still reports `humanSendProposal=false`.
+- Paperclip plugin registry still reports exactly `wandora.organization-adapter-v1@0.3.1`, status `ready`, `lastError=null`.
+- Messaging Gateway remains healthy/restart 0 and startup readback reports `outboundEnabled=false`.
+
+The operator-local boundary is still absent. Current registry/schema evidence is explicit:
+
+- `wandora-admin` remains an operator target but exposes no allowed paths, write paths, process programs or Docker execution surface;
+- `wandora-agent` remains operator-capable but does not allow `/home/wandora-admin/backups` or the protected Core secret directory;
+- listing `/home/wandora-admin/backups` is denied on both `wandora-admin` and `wandora-agent` with `PATH_DENIED`;
+- listing `/opt/wandora/stacks/core/secrets` on `wandora-agent` remains denied with `SECRET_PATH_DENIED`;
+- the current MCP schema exposes no narrow capability that can both create the reviewed protected rollback bundle and perform metadata-only `stat` for TypeSafe/`wfri1`/Mistral without bypassing those guards.
+
+No allowlist was widened, no shell/sudo path was used, no substitute custody under `/opt/wandora/ops-workspace` was created and no partial backup was attempted.
+
+A fresh independent JEV guard review of the proposed first write returned **deny=1.00**. The deterministic decision therefore remains **STOP BEFORE FIRST BACKUP WRITE**.
+
+Status remains **PARTIAL / NO BACKUP CREATED / NO ACTIVATION / NO CUSTOMER EFFECT**. Continue only when an authorized operator-local boundary exists for the exact ADR 0299 runbook; do not improvise or reopen ADR 0298 before a safe receipt ends in `ROLLBACK_FREEZE_V1_OK`.
+
+
+### 2026-09-27 — continuation: embedded PostgreSQL resolver mismatch found before first write
+
+After ADR 0300 completed and the exact local PostgreSQL 18.1 recovery image was independently proven, the exact ADR 0299 helper from `8d1e9558a82af39888a7144e7d3c12aeb130a52c` was executed again.
+
+The attempt stopped during the fresh pre-effect database check with:
+
+```text
+Error: unexpected_database_mode
+```
+
+Repository/runtime source reconciliation proved this is a helper assumption defect, not a production database defect:
+
+- live Paperclip source `packages/db/src/runtime-config.ts` resolves the current database as `mode="embedded-postgres"`;
+- the current Paperclip server uses its embedded PostgreSQL lifecycle and expected port 54329;
+- pinned production source `dffc2b3ca1b9e88fa21cb17493083e682dffd1ca` `cli/src/commands/db-backup.ts` resolves embedded PostgreSQL to the fixed provider-local loopback connection contract for user/database `paperclip` at `127.0.0.1:<embeddedPostgresPort>`;
+- ADRs 0129/0130 already classify the live database as the embedded Paperclip DB.
+
+The failing call occurs before `# First write begins here`. The safe ADR 0299 receipt remains absent, and no rollback bundle is accepted from this attempt.
+
+The correction keeps the slice fail-closed:
+
+- require `resolveDatabaseTarget().mode === "embedded-postgres"`;
+- require source `embedded-postgres@54329`;
+- require port 54329;
+- construct exactly the same loopback embedded connection contract used by Paperclip v2026.916.0 `db:backup`;
+- compare live `SHOW data_directory` to Paperclip's resolved embedded `dataDir`;
+- keep `resolveMigrationConnection` forbidden because it can adopt/start an embedded cluster and is not a read-only production resolver;
+- keep schema-only PostgreSQL 18.1 proof before the first write.
+
+A dedicated CI gate now reads the pinned production Paperclip `db-backup.ts` from commit `dffc2b3...` and requires the helper's embedded connection contract to match it.
+
+Status remains **PARTIAL / NO QUALIFIED ROLLBACK BUNDLE YET / NO ACTIVATION / NO CUSTOMER EFFECT** until the corrected exact head is CI GREEN and the operator-local helper completes with `ROLLBACK_FREEZE_V1_OK`.
+
+
+### 2026-09-27 — continuation: PostgreSQL client connection transport corrected before first write
+
+A manually authorized execution of the exact helper blob `f207f7cf69a66fc7cc7a86acdd5eb0ae86da4833` stopped during the PostgreSQL 18.1 pre-effect scalar read with:
+
+```text
+psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+```
+
+Fresh reconciliation after the failure proved:
+
+- `production-rollback-freeze-v1.metadata` is still absent;
+- Task Drain remains `draining=false`, `activeRuns=0`, `pendingWakes=0`, `quiescent=true`;
+- the normal production container set remains unchanged;
+- the failure occurred before `# First write begins here`, so no qualified rollback bundle or persistent ADR 0299 write was created.
+
+The defect was in the helper's PostgreSQL client transport, not in the Paperclip embedded database. The helper placed the connection URI in `PGDATABASE`; the observed client instead fell back to the default local Unix socket/5432 path.
+
+Pinned Paperclip v2026.916.0 source at `dffc2b3ca1b9e88fa21cb17493083e682dffd1ca` proves its backup/restore library invokes both `pg_dump` and `psql` using `--dbname=<connectionString>`. PostgreSQL 18 documents `--dbname` as accepting a connection string. The corrected helper therefore preserves the exact already-qualified provider-local URI but passes it through `--dbname` inside the disposable PostgreSQL client process. The URI is never printed or persisted.
+
+The Semantic Fast Read CI gate is updated simultaneously so it no longer enforces the failed `PGDATABASE` assumption and instead verifies both the helper's three `--dbname="$db_url"` uses and the pinned Paperclip `backup-lib.ts` connection mechanism.
+
+Status remains **PARTIAL / NO QUALIFIED ROLLBACK BUNDLE YET / NO ACTIVATION / NO CUSTOMER EFFECT**. Do not rerun the helper until this corrected exact PR head is CI GREEN, rematerialized to the operator workspace, hash-verified, and a fresh adversarial review passes.
+
+
+### 2026-09-27 — continuation: adapter registry custody path corrected after post-write cleanup
+
+A manually authorized execution of helper blob `8f3c44df6675de1d1633ffec05b1bd0372ff3248` crossed the helper's first-write boundary and then stopped while copying the adapter registry:
+
+```text
+Error response from daemon: Could not find the file /paperclip/instances/default/adapter-plugins.json in container wandora-paperclip
+```
+
+Before that failure the helper had created the unique protected rollback root, copied the official Paperclip backup, created fresh PostgreSQL 18.1 dumps, and copied `master.key`. The helper therefore was **not** eligible for a blind rerun.
+
+Fresh reconciliation proved all partial state was cleaned:
+
+- the safe ADR 0299 receipt is absent;
+- Task Drain remains `draining=false`, `activeRuns=0`, `pendingWakes=0`, `quiescent=true`;
+- the normal seven-container production set remains unchanged and healthy;
+- the Paperclip temporary backup path for the failed attempt is absent;
+- the exact host rollback root `/home/wandora-admin/backups/paperclip-v9161-fast-read-rollback-freeze-v1-20260927T073945719168949Z` is absent.
+
+A read-only managed-admin runtime probe proved:
+
+- `paperclipHome=/paperclip`;
+- `registryPath=/paperclip/adapter-plugins.json`;
+- that registry exists;
+- the stale `/paperclip/instances/default/adapter-plugins.json` path does not exist.
+
+Pinned Paperclip v2026.916.0 source at `dffc2b3ca1b9e88fa21cb17493083e682dffd1ca` defines the adapter store as `path.join(resolvePaperclipHomeDir(), "adapter-plugins.json")`, while the shared home resolver honors `PAPERCLIP_HOME`. The production-specific ADR 0299 helper is therefore corrected to `/paperclip/adapter-plugins.json`.
+
+The helper is also hardened so `master.key`, the adapter registry, `/paperclip/operator-packages`, and the exact Organization Adapter 0.3.1 package path must all exist with the expected basic file/directory type **before** `# First write begins here`. CI pins the upstream provider contract and verifies those guards remain before the first-write boundary.
+
+Status remains **PARTIAL / CLEANED AFTER FAILED WRITE / NO QUALIFIED ROLLBACK BUNDLE YET / NO ACTIVATION / NO CUSTOMER EFFECT** until the corrected exact head is fully GREEN and the helper completes with `ROLLBACK_FREEZE_V1_OK`.
+
+
+### 2026-09-27 — continuation: schema restore verifier narrowed to provider-neutral dump metadata
+
+The next manually authorized ADR 0299 execution crossed the first-write boundary, completed the official Paperclip backup, PostgreSQL 18.1 live dump, master-key copy, adapter registry/package custody copy and disposable restore, then stopped at:
+
+```text
+ROLLBACK_FREEZE_V1_ERROR: normalized schema mismatch after disposable restore
+```
+
+The failed run stamp was `20260927T081332216674083Z`. Fresh reconciliation proved its cleanup completed: no ADR 0299 receipt, no host rollback root, no Paperclip temporary backup directory, no disposable restore container, Task Drain still `false/0/0/quiescent`, and the normal production container set unchanged.
+
+A sequence of schema-only diagnostics then isolated two verifier defects without writing the live database:
+
+1. the official `postgres:18.1` entrypoint exposes a temporary initialization server before stopping it and starting the final server, so `pg_isready` (and even an early `SELECT 1`) can produce a false advancement signal during that transition;
+2. with the real helper startup sequence reproduced and final-server readiness enforced, the restored schema differed from the live schema by exactly one non-schema metadata comment:
+
+```diff
+--- Dumped from database version 18.1
++-- Dumped from database version 18.1 (Debian 18.1-1.pgdg13+2)
+```
+
+The following `-- Dumped by pg_dump version 18.1 (Debian 18.1-1.pgdg13+2)` line matched, and no SQL/object/schema definition differed.
+
+The corrected verifier is therefore intentionally narrow:
+
+- wait for the official entrypoint marker `PostgreSQL init process complete; ready for start up.`;
+- only after that marker, require a successful final-server `SELECT 1` before `createdb`;
+- remove only `-- Dumped from database version ...` from both schema dumps before byte comparison;
+- continue preserving the `-- Dumped by pg_dump version ...` line and every SQL/schema line.
+
+This is verifier hardening, not a broader normalization policy. Status remains **PARTIAL / CLEANED / NO QUALIFIED ROLLBACK BUNDLE YET / NO ACTIVATION / NO CUSTOMER EFFECT** until the corrected exact head is fully GREEN, rematerialized, fresh-prechecked and successfully completes with `ROLLBACK_FREEZE_V1_OK`.
+
+
+### 2026-09-27 — completion: qualified production rollback freeze
+
+ADR 0299 is now **COMPLETE / QUALIFIED ROLLBACK BUNDLE / NO ACTIVATION / NO PROVIDER CALL / NO CUSTOMER EFFECT / NO OUTBOUND EFFECT**.
+
+The exact PR #369 head `c85d27b06afed51a157d48dfd26ffc8b23508767` was **17/17 GREEN** before execution. The exact helper blob `631a540c97ab320932fe0a4d1683e0a31049c2f4` was rematerialized to the operator workspace and hash-verified before the manually authorized root execution.
+
+The successful run stamp was `20260927T085922932680245Z`. The helper emitted `ROLLBACK_FREEZE_V1_OK` and safe receipt `/opt/wandora/ops-workspace/production-rollback-freeze-v1.metadata`.
+
+Independent receipt validation proved:
+
+- official Paperclip backup created and gzip-valid;
+- disposable PostgreSQL 18.1 restore succeeded;
+- normalized restored schema equals the live schema;
+- exactly one Organization Adapter 0.3.1 remained ready;
+- Task Drain remained quiescent;
+- secret evidence remained metadata-only;
+- `activation_performed=false`;
+- `provider_call_performed=false`;
+- `customer_effect=false`;
+- `outbound_effect=false`.
+
+Fresh post-run reconciliation proved the normal seven-container production set remained healthy and no disposable restore container remained. A root read-only physical verification of the protected rollback root and explicitly named non-secret recovery artifacts completed successfully without reading secret contents. The qualified rollback root is:
+
+`/home/wandora-admin/backups/paperclip-v9161-fast-read-rollback-freeze-v1-20260927T085922932680245Z`
+
+This ADR authorizes **no promotion or activation**. The next production slice is a fresh **Immediate Pre-Mutation Attestation + Effect Authorization**.
+
+Two follow-up governance slices are registered separately for later work and do not change this ADR's completion state:
+
+- **Remote-Ops Multi-VPS Capability Baseline V1** — reusable governed onboarding/capability presets for Wandora, MedicsPro/28server and future VPS targets, without defaulting to generic root shell authority;
+- **Operator Chat Minimal Disclosure Policy V1** — chat as concise human control plane, while detailed raw evidence remains in repository/runtime unless explicitly requested or required for a human decision.

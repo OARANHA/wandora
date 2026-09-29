@@ -7,6 +7,11 @@ import {
   type CoreInboundEnvelope,
 } from './contracts.js';
 import { verifyEvolutionWebhookJwt } from './evolution-jwt.js';
+import {
+  emitMessagingLatency,
+  messagingMonotonicNow,
+  type MessagingLatencyRecorder,
+} from './latency.js';
 import { normalizeEvolutionInbound } from './normalize-evolution-inbound.js';
 import {
   OutboundValidationError,
@@ -27,6 +32,8 @@ export type MessagingGatewayServerDeps = {
     sendText: (command: OutboundTextCommand) => Promise<OutboundTextOutcome>;
   };
   now?: () => number;
+  recordLatency?: MessagingLatencyRecorder;
+  monotonicNow?: () => number;
 };
 
 class PayloadTooLargeError extends Error {}
@@ -172,6 +179,7 @@ export function createMessagingGatewayServer(deps: MessagingGatewayServerDeps): 
       return;
     }
 
+    const ingressStartedAt = (deps.monotonicNow ?? messagingMonotonicNow)();
     const authorization = firstHeader(request.headers.authorization);
     if (!verifyEvolutionWebhookJwt(authorization, deps.evolutionWebhookJwtKey, now())) {
       writeJson(response, 401, { error: 'unauthorized-provider-webhook' });
@@ -226,8 +234,20 @@ export function createMessagingGatewayServer(deps: MessagingGatewayServerDeps): 
         organizationId: deps.organizationId,
         event,
       });
+      emitMessagingLatency(deps.recordLatency, {
+        stage: 'whatsapp.gateway_ingress',
+        durationMs: (deps.monotonicNow ?? messagingMonotonicNow)() - ingressStartedAt,
+        outcome: 'success',
+        correlationId: event.eventId,
+      });
       mapCoreOutcome(response, outcome);
     } catch (error) {
+      emitMessagingLatency(deps.recordLatency, {
+        stage: 'whatsapp.gateway_ingress',
+        durationMs: (deps.monotonicNow ?? messagingMonotonicNow)() - ingressStartedAt,
+        outcome: 'error',
+        correlationId: event.eventId,
+      });
       if (error instanceof CoreUnavailableError) {
         writeJson(response, 503, { accepted: false, retry: true, reason: 'core-unavailable' });
       } else {

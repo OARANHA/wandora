@@ -1,0 +1,216 @@
+name: Paperclip ADR0295 Frozen Candidate Transfer Staging
+
+on:
+  push:
+    branches:
+      - feat/semantic-fast-read-runtime-wiring-v1
+    paths:
+      - '.github/workflows/paperclip-adr0295-frozen-candidate-release.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: paperclip-adr0295-frozen-candidate-transfer
+  cancel-in-progress: false
+
+jobs:
+  stage:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      ARTIFACT_ID: '10914008713'
+      ARTIFACT_ZIP_SHA256: 'e43acc85e3f7f010b7189f11bd9c3622f9a7a9015765a50f315ca61a98c36a19'
+      CANDIDATE_FILE: 'paperclip-v2026.916.1-fast-read-candidate.tar.zst'
+      CANDIDATE_SHA256: '69c962c79375446060af12fc9240385987790f4d11a3528cbb7a6ad745e98269'
+      RAW_ARCHIVE_SHA256: 'a91f96feff4dbb8161d182e350fc3e2ca1d0d6784cfa9179fdaa20a200e7ce97'
+      PROVENANCE_SHA256: '00dc1f18c30e610107498531c80a09d9296b5295008a72c8ab2208a212af01e9'
+      DOCKER_CONFIG_DIGEST: 'sha256:e05f1604cf863d316b4ce5db189782f022fa4fd17544f9724747e11223d4356c'
+      PAPERCLIP_SOURCE_SHA: 'd554c4789ed3930f8a53ac9fdf6503b3187097da'
+      TESTED_MERGE_REF: 'fd4d9373d3d7e4d9eca202abdf075fde8feeb8d0'
+      CHUNK_BYTES: '400000000'
+    steps:
+      - name: Download exact frozen Actions artifact
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/adr0295-frozen-candidate"
+          mkdir -p "$work/files" "$work/chunks"
+          printf '%s\n' "$work" > "$RUNNER_TEMP/adr0295-workdir"
+
+          curl --fail --location --silent --show-error --retry 0 \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            -o "$work/artifact.zip" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip"
+
+          test "$(sha256sum "$work/artifact.zip" | awk '{print $1}')" = "$ARTIFACT_ZIP_SHA256"
+          echo 'ADR0295_ACTIONS_ARTIFACT_ZIP_DIGEST_OK'
+
+      - name: Verify exact frozen candidate contents
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$(cat "$RUNNER_TEMP/adr0295-workdir")"
+          unzip -q "$work/artifact.zip" -d "$work/files"
+
+          expected_files="$(printf '%s\n' \
+            'SHA256SUMS' \
+            'paperclip-v2026.916.1-fast-read-candidate.tar.zst' \
+            'provenance.json' | sort)"
+          actual_files="$(find "$work/files" -maxdepth 1 -type f -printf '%f\n' | sort)"
+          test "$actual_files" = "$expected_files"
+
+          (
+            cd "$work/files"
+            sha256sum -c SHA256SUMS
+          )
+
+          test "$(sha256sum "$work/files/$CANDIDATE_FILE" | awk '{print $1}')" = "$CANDIDATE_SHA256"
+          test "$(sha256sum "$work/files/provenance.json" | awk '{print $1}')" = "$PROVENANCE_SHA256"
+
+          PROVENANCE="$work/files/provenance.json" node <<'NODE'
+          const fs = require('node:fs');
+          const p = JSON.parse(fs.readFileSync(process.env.PROVENANCE, 'utf8'));
+          const must = (condition, message) => {
+            if (!condition) throw new Error(message);
+          };
+          must(p.contract === 'paperclip-fast-read-production-candidate-v1', 'candidate contract mismatch');
+          must(p.artifactFormat === 'docker-archive+zstd', 'artifact format mismatch');
+          must(p.imageTag === 'wandora/paperclip:v2026.916.1', 'image tag mismatch');
+          must(p.dockerConfigDigest === process.env.DOCKER_CONFIG_DIGEST, 'docker config digest mismatch');
+          must(p.paperclipSourceCommit === process.env.PAPERCLIP_SOURCE_SHA, 'Paperclip source mismatch');
+          must(p.wandoraSourceSha === process.env.TESTED_MERGE_REF, 'tested merge ref mismatch');
+          must(p.dockerArchiveSha256 === process.env.RAW_ARCHIVE_SHA256, 'raw archive digest mismatch');
+          must(p.compressedArtifactSha256 === process.env.CANDIDATE_SHA256, 'compressed digest mismatch');
+          must(p.startup?.result === 'ok', 'startup proof missing');
+          must(p.startup?.deploymentMode === 'authenticated', 'startup mode mismatch');
+          must(p.startup?.deploymentExposure === 'private', 'startup exposure mismatch');
+          must(Array.isArray(p.patches) && p.patches.length === 3, 'qualified patch set mismatch');
+          NODE
+
+          zstd -d -T0 --stdout "$work/files/$CANDIDATE_FILE" > "$work/candidate.tar"
+          test "$(sha256sum "$work/candidate.tar" | awk '{print $1}')" = "$RAW_ARCHIVE_SHA256"
+          rm -f "$work/candidate.tar"
+          echo 'ADR0295_FROZEN_CANDIDATE_BYTES_OK'
+
+      - name: Split and prove byte-exact reassembly
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$(cat "$RUNNER_TEMP/adr0295-workdir")"
+
+          split -b "$CHUNK_BYTES" -d -a 2 --additional-suffix=.bin \
+            "$work/files/$CANDIDATE_FILE" \
+            "$work/chunks/part-"
+
+          test "$(find "$work/chunks" -maxdepth 1 -type f -name 'part-*.bin' | wc -l)" -eq 5
+
+          cat "$work"/chunks/part-*.bin > "$work/reassembled.tar.zst"
+          test "$(sha256sum "$work/reassembled.tar.zst" | awk '{print $1}')" = "$CANDIDATE_SHA256"
+          rm -f "$work/reassembled.tar.zst"
+
+          CHUNKS_DIR="$work/chunks" MANIFEST_PATH="$work/transfer-manifest.json" node <<'NODE'
+          const crypto = require('node:crypto');
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const dir = process.env.CHUNKS_DIR;
+          const names = fs.readdirSync(dir).filter((n) => /^part-\d{2}\.bin$/.test(n)).sort();
+          if (names.length !== 5) throw new Error('expected exactly five transfer chunks');
+          const parts = names.map((name, index) => {
+            const file = path.join(dir, name);
+            const bytes = fs.readFileSync(file);
+            return {
+              index,
+              name,
+              sizeBytes: bytes.length,
+              sha256: crypto.createHash('sha256').update(bytes).digest('hex'),
+            };
+          });
+          const manifest = {
+            contract: 'paperclip-adr0295-exact-byte-transfer-v1',
+            sourceActionsArtifactId: Number(process.env.ARTIFACT_ID),
+            sourceActionsArtifactZipSha256: process.env.ARTIFACT_ZIP_SHA256,
+            candidateFile: process.env.CANDIDATE_FILE,
+            candidateSha256: process.env.CANDIDATE_SHA256,
+            chunkBytes: Number(process.env.CHUNK_BYTES),
+            parts,
+            reconstruction: 'concatenate parts in ascending index order; accept only if final SHA-256 equals candidateSha256',
+            productionAuthorization: false,
+          };
+          fs.writeFileSync(process.env.MANIFEST_PATH, JSON.stringify(manifest, null, 2) + '\n');
+          NODE
+
+          echo 'ADR0295_EXACT_BYTE_TRANSFER_SPLIT_OK'
+
+      - name: Upload transfer part 00
+        uses: actions/upload-artifact@v4
+        with:
+          name: paperclip-adr0295-transfer-part-00-${{ github.sha }}
+          path: ${{ runner.temp }}/adr0295-frozen-candidate/chunks/part-00.bin
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+      - name: Upload transfer part 01
+        uses: actions/upload-artifact@v4
+        with:
+          name: paperclip-adr0295-transfer-part-01-${{ github.sha }}
+          path: ${{ runner.temp }}/adr0295-frozen-candidate/chunks/part-01.bin
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+      - name: Upload transfer part 02
+        uses: actions/upload-artifact@v4
+        with:
+          name: paperclip-adr0295-transfer-part-02-${{ github.sha }}
+          path: ${{ runner.temp }}/adr0295-frozen-candidate/chunks/part-02.bin
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+      - name: Upload transfer part 03
+        uses: actions/upload-artifact@v4
+        with:
+          name: paperclip-adr0295-transfer-part-03-${{ github.sha }}
+          path: ${{ runner.temp }}/adr0295-frozen-candidate/chunks/part-03.bin
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+      - name: Upload transfer part 04
+        uses: actions/upload-artifact@v4
+        with:
+          name: paperclip-adr0295-transfer-part-04-${{ github.sha }}
+          path: ${{ runner.temp }}/adr0295-frozen-candidate/chunks/part-04.bin
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+      - name: Upload transfer manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: paperclip-adr0295-transfer-manifest-${{ github.sha }}
+          path: ${{ runner.temp }}/adr0295-frozen-candidate/transfer-manifest.json
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+      - name: Summary
+        shell: bash
+        run: |
+          {
+            echo '### ADR 0295 exact-byte transfer staging'
+            echo
+            echo "- Source artifact ID: \`$ARTIFACT_ID\`"
+            echo "- Source ZIP SHA-256: \`$ARTIFACT_ZIP_SHA256\`"
+            echo "- Candidate SHA-256: \`$CANDIDATE_SHA256\`"
+            echo '- Transfer chunks: **5**, 400,000,000 bytes maximum each'
+            echo '- Retention: **1 day**'
+            echo '- Production authorization: **NO**'
+          } >> "$GITHUB_STEP_SUMMARY"
