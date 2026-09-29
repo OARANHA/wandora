@@ -12,8 +12,11 @@ test('Vigia client exports OTLP trace and Business Event with the same traceId',
       requestTimeoutMs: 2_000,
     },
     async (input, init = {}) => {
-      calls.push({ url: String(input), init });
-      return new Response(null, { status: calls.length === 1 ? 200 : 201 });
+      const url = String(input);
+      calls.push({ url, init });
+      if (url.endsWith('/v1/traces')) return new Response(null, { status: 200 });
+      if (url.includes('/traces/')) return new Response(null, { status: 200 });
+      return new Response(null, { status: 201 });
     },
   );
 
@@ -28,11 +31,14 @@ test('Vigia client exports OTLP trace and Business Event with the same traceId',
   });
 
   assert.match(result.traceId, /^[0-9a-f]{32}$/);
-  assert.equal(calls.length, 2);
+  assert.equal(calls.length, 3);
 
   const traceCall = calls[0];
-  const eventCall = calls[1];
+  const traceLookupCall = calls[1];
+  const eventCall = calls[2];
   assert.equal(traceCall?.url, 'https://vigia.example/v1/traces');
+  assert.equal(traceLookupCall?.url, `https://vigia.example/v1/projects/wandora-prod-a1b2c3/traces/${result.traceId}`);
+  assert.equal(traceLookupCall?.init.method, 'GET');
   assert.equal(eventCall?.url, 'https://vigia.example/v1/projects/wandora-prod-a1b2c3/events');
 
   const traceHeaders = traceCall?.init.headers as Record<string, string>;
