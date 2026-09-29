@@ -4,7 +4,7 @@ import fs from "node:fs";
 
 const helperPath = "scripts/operations/production-rollback-freeze-v2.sh";
 const entrypointPath = "scripts/operations/managed-admin-production-rollback-freeze-v2-capture.sh";
-const expectedBlob = "a48812427b050383def5ba410f333e4b72987744";
+const expectedBlob = "0f09289c5969cd3ddd407cc588f98648635026e3";
 
 const helper = fs.readFileSync(helperPath);
 const gitBlob = crypto
@@ -15,6 +15,30 @@ const gitBlob = crypto
 
 if (gitBlob !== expectedBlob) {
   throw new Error(`canonical_helper_blob_mismatch:${gitBlob}`);
+}
+
+const helperText = helper.toString("utf8");
+const currentCoreContract = [
+  'CORE_IMAGE="wandora/core:organization-adapter-candidate-b2cffbb54089"',
+  'CORE_IMAGE_ID="sha256:15a2eca7f74c4e6f7f6ea07bb461d6b711dffd0a70807a3f8e7773f6e6a27c49"',
+  'CORE_REVISION="b2cffbb54089212844ef177827e7a616b1008144"',
+  'RECEIPT="/opt/wandora/ops-workspace/production-rollback-freeze-v2-b2cffbb54089212844ef177827e7a616b1008144.metadata"',
+  'root="${BACKUP_PARENT}/paperclip-v9161-fast-read-rollback-freeze-v2-b2cffbb54089-${stamp}"',
+];
+const missingCurrentCoreContract = currentCoreContract.filter((item) => !helperText.includes(item));
+if (missingCurrentCoreContract.length) {
+  throw new Error(`canonical_helper_current_core_contract_missing:${JSON.stringify(missingCurrentCoreContract)}`);
+}
+
+const historicalOrStaleCurrentAnchors = [
+  'CORE_IMAGE="wandora/core:organization-adapter-candidate-2c2142237c9c"',
+  'CORE_IMAGE_ID="sha256:d3ed5494c03c0720419387befc54f6f6cb124e5407fc619150ecf3dde03dfed7"',
+  'CORE_REVISION="2c2142237c9cccc1f7a90d6ae056cd12cc5f4754"',
+  'RECEIPT="/opt/wandora/ops-workspace/production-rollback-freeze-v2.metadata"',
+];
+const presentHistoricalOrStaleCurrentAnchors = historicalOrStaleCurrentAnchors.filter((item) => helperText.includes(item));
+if (presentHistoricalOrStaleCurrentAnchors.length) {
+  throw new Error(`canonical_helper_historical_or_stale_anchor_present:${JSON.stringify(presentHistoricalOrStaleCurrentAnchors)}`);
 }
 
 const source = fs.readFileSync(entrypointPath, "utf8");

@@ -27,15 +27,15 @@ GW="wandora-messaging-gateway"
 PC_IMAGE="wandora/paperclip:v2026.916.1"
 PC_IMAGE_ID="sha256:7b72d43e87d54fcb9aa48b665150e062750c0cacb270e069f94297d58caa91e5"
 PC_COMMIT="d554c4789ed3930f8a53ac9fdf6503b3187097da"
-CORE_IMAGE="wandora/core:organization-adapter-candidate-2c2142237c9c"
-CORE_IMAGE_ID="sha256:d3ed5494c03c0720419387befc54f6f6cb124e5407fc619150ecf3dde03dfed7"
-CORE_REVISION="2c2142237c9cccc1f7a90d6ae056cd12cc5f4754"
+CORE_IMAGE="wandora/core:organization-adapter-candidate-b2cffbb54089"
+CORE_IMAGE_ID="sha256:15a2eca7f74c4e6f7f6ea07bb461d6b711dffd0a70807a3f8e7773f6e6a27c49"
+CORE_REVISION="b2cffbb54089212844ef177827e7a616b1008144"
 OA_KEY="wandora.organization-adapter-v1"
 OA_VERSION="0.5.0"
 OA_PATH="/paperclip/operator-packages/wandora-organization-adapter-v1/f4e733613e72e771eb18361dbdbf420c810c5b8bbe31361a64040a2081cc2ae2/package"
 
 BACKUP_PARENT="/home/wandora-admin/backups"
-RECEIPT="/opt/wandora/ops-workspace/production-rollback-freeze-v2.metadata"
+RECEIPT="/opt/wandora/ops-workspace/production-rollback-freeze-v2-b2cffbb54089212844ef177827e7a616b1008144.metadata"
 
 TYPESAFE="/opt/wandora/stacks/core/secrets/wandora_typesafe_jev_api_key"
 WFRI1="/opt/wandora/stacks/core/secrets/wandora_fast_read_intent_hmac"
@@ -56,10 +56,10 @@ POSTGRES_CLIENT_REPO_DIGEST="postgres@${POSTGRES_CLIENT_INDEX_DIGEST}"
 POSTGRES_CLIENT_PLATFORM="linux/amd64"
 
 stamp="$(date -u +%Y%m%dT%H%M%S%NZ)"
-prefix="adr0309-rollback-freeze-v2-${stamp}"
-root="${BACKUP_PARENT}/paperclip-v9161-fast-read-rollback-freeze-v2-${stamp}"
+prefix="adr0326-rollback-freeze-v2-b2cffbb54089-${stamp}"
+root="${BACKUP_PARENT}/paperclip-v9161-fast-read-rollback-freeze-v2-b2cffbb54089-${stamp}"
 pc_tmp="/paperclip/instances/default/backups/${prefix}"
-restore_name="wandora-adr0309-restore-${stamp,,}"
+restore_name="wandora-adr0326-b2cff-restore-${stamp,,}"
 qualified=false
 parent_created=false
 root_created=false
@@ -623,7 +623,7 @@ chmod 0600 -- "${root}/SHA256SUMS"
 
 # Safe MCP-readable receipt. No secret values, DB credentials, provider
 # payloads, customer data, or master-key digest are written here.
-tmp_receipt="$(mktemp /opt/wandora/ops-workspace/.production-rollback-freeze-v2.metadata.XXXXXX)"
+tmp_receipt="$(mktemp /opt/wandora/ops-workspace/.production-rollback-freeze-v2-b2cffbb54089212844ef177827e7a616b1008144.metadata.XXXXXX)"
 {
   printf 'rollback_root=%s\n' "${root}"
   printf 'paperclip_image=%s\n' "$(container_field "${PC}" '{{.Config.Image}}')"
