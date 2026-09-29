@@ -1,3 +1,25 @@
+## Latest checkpoint — ADR 0334 Paperclip Operational Read Operator Surface Qualification V1
+
+Status: **QUALIFIED IN CODE / 17/17 EXACT-HEAD CI GREEN / OPERATOR SURFACE NOT LIVE / FRESH OPERATIONAL SNAPSHOT STILL BLOCKED / READ-ONLY / NO VENDAERP / NO ATTESTATION OPEN / NO PRODUCTION MUTATION**.
+
+Fresh reconciliation on PR #369 exact pre-documentation head `26c8e190916fb0b6ded1196d94604882776f2a41` proved **17/17 workflows GREEN**. `main` remains the PR base at `8d6a65f519de5c1c49607314b49968af608c7164`. Production is healthy and inert: Core/Paperclip/Gateway healthy, Task Drain `false / 0 / 0 / quiescent=true`, Core `fastReadExecution=false`, `semanticFastRead=false`, `humanSendProposal=false`, Gateway `outboundEnabled=false`, and exactly one live `wandora.organization-adapter-v1@0.5.0` is `ready`.
+
+Capability Authority / ADR 0168 selected reuse of Paperclip's existing authenticated plugin-data bridge plus the already Paperclip-owned `ctx.toolAccess.readOperationalSnapshot`. The qualified source adds only one bounded Organization Adapter data key, `operational-read`, fixed to the host-authorized company scope and the existing managed Ana catalog employee. It returns only runtime health plus allowlisted Connection/tool operational flags needed by the freshness gate. It does not persist state, query the Paperclip database, read secrets, create a Wandora registry/mirror, implement policy/lifecycle/tool execution, refresh the provider catalog or call VendaERP.
+
+Pinned-Paperclip CI now proves the operator bridge's authorization/scope properties: Board organization access is required, company access is enforced by the Paperclip host, and host-injected `companyId` overwrites caller parameters before the worker data handler runs. Adapter tests additionally reject missing scope and any extra caller selector such as an agent id.
+
+The fresh governed Tool Policy qualification remains `allow / allow_profile` for Ana/28PRO `vendaerp_search_products` when provider-owned Connection/Catalog context is supplied; `auditEvent=null` and company Tool Policies remain empty. No rate-limit consumption or audit write was introduced by that qualification.
+
+A read-only production probe of the new key against the current live OA returned `502 No data handler registered for key "operational-read"`. This is expected and proves the qualified source has **not** been promoted. Therefore the required fresh provider-native operational snapshot is still not available through production and Semantic Fast Read attestation remains closed.
+
+During qualification, a tentative package-version bump to `0.6.0` was rejected by the existing OpenAPI compatibility and Paperclip production-candidate gates, which preserve the canonical OA `0.5.0` pin. The version change was reverted without weakening those gates; all 17 workflows then passed. This means the qualified source must **not** be installed over live 0.5.0 by inference. Package identity/version and promotion are a separate reviewed problem.
+
+Final adversarial review favored `split_task=0.40` over `proceed_fast=0.36` (low confidence `0.20`), consistent with the deterministic hard stop: qualification is complete; promotion is not part of this slice.
+
+**Next boundary:** **Organization Adapter Operational Read Surface Packaging + Promotion Qualification V1 — NO VENDAERP / NO ATTESTATION OPEN**. First resolve immutable package identity/version and exact artifact provenance, then separately promote only the reviewed operator-read surface while all Fast Read/Semantic/Human Send/outbound gates remain OFF. Only after a live successful `operational-read` can a later slice read and qualify the fresh snapshot and decide whether Semantic Fast Read attestation may resume.
+
+Canonical detail: `docs/decisions/0334-paperclip-operational-read-operator-surface-qualification-v1.md`.
+
 ## Latest checkpoint — ADR 0333 Semantic Fast Read fresh attestation operational-read surface gap
 
 Status: **BLOCKED BEFORE ATTESTATION OPEN / FRESH CONNECTION-SCOPED POLICY GREEN / PROVIDER-NATIVE OPERATIONAL SNAPSHOT NOT OBSERVABLE THROUGH CURRENT SAFE OPERATOR SURFACE / READ-ONLY / NO VENDAERP OR PRODUCTION MUTATION**.
