@@ -1,3 +1,23 @@
+## 2026-09-29 — ADR 0346 Current Vigia + Semantic Fast Read Core Compatibility Promotion V1
+
+Status: **GREEN / EXACT COMBINED CORE LIVE / VIGIA PRESERVED / ALL SEMANTIC CUSTOMER/OUTBOUND EFFECT GATES OFF / ROLLBACK E4C7 READY / NO HUMAN FAST READ**.
+
+Fresh reconciliation proved `main@e4c7c36bb1091ba38d39b85fa259bae94553fc52`, PR #369 source head `6035cfd2b32eb9a8da1aadb01414759201606930`, exact-head CI 17/17 GREEN and GitHub merge ref `14534e57256f0a73c49feb3944a1068921468f94` with parents current main + PR head.
+
+Core Candidate Artifact run `36631384273` / artifact `11062264229` was independently verified on-host: ZIP SHA-256 `90abe0fe0ceba542f470dc272628d6476eb60916ec4267d4794eb509c79d34d8`; Docker archive SHA-256 `764ad058df8dfb8e9a09bb33fc05e9d9503ccbc8a505f5095a882122cf0c3292`; portable verifier `PORTABLE_CANDIDATE_ARCHIVE_V1_OK`; OCI manifest/image id `sha256:ac253a9479338f0d47954937209323229314ef513125a71dd266558b3bfe1c8b`; candidate contract `organization-adapter-core-v1`; user `node`.
+
+The exact current 14-file Core Compose chain passed `config --quiet` and `config --images` resolved exactly to `wandora/core:organization-adapter-candidate-14534e57256f`. ADR 0345 Rollback Freeze V2 for the prior `e4c7 + OA0.6.1 + Vigia` baseline remained READY. Final adversarial review returned `confirm=0.98`.
+
+One human-approved Core-only recreation used `--no-deps --force-recreate --no-build --pull never --wait` and returned Core Healthy. Post-promotion state is exact `14534e...`, healthy/restart 0, same 14-file provenance, read-only rootfs, Vigia secret mount preserved read-only, `fastReadExecution=false`, `semanticFastRead=false`, `humanSendProposal=false`, `vigiaTelemetry=true`. Paperclip and Gateway retained their prior containers/start times; OA remains exactly one `0.6.1` ready; Task Drain remains false/0/0/quiescent.
+
+The stable non-secret selector `/opt/wandora/ops-workspace/core-runtime-image.env` was updated from stale `b2cff...` to the live `14534e...` image. A separate human-approved read-only `config --images` using that stable selector resolved exactly to the live candidate.
+
+No Semantic Fast Read opening, Human Fast Read, TypeSafe/Mistral call, Paperclip Fast Read, VendaERP read, Human Send, Gateway outbound, WhatsApp, migration, database mutation or other service recreation occurred.
+
+Next boundary: a fresh, separate **Semantic Fast Read production attestation** slice. It must re-prove current repository/CI/runtime/rollback/provider/custody state and must have a legitimate already-authenticated owner/admin browser request path before opening. Browser Bearer authority must not move into Remote-Ops/operator tooling.
+
+Canonical detail: `docs/decisions/0346-current-vigia-semantic-fast-read-core-compatibility-promotion-v1.md`.
+
 ## 2026-09-29 — ADR 0343 Semantic Fast Read bounded opening/close V1
 
 Status: **OPENING COMPOSITION VALIDATED / HUMAN FAST READ NOT EXECUTED / BASELINE RESTORED / NO BUSINESS-PROVIDER OR OUTBOUND EFFECT**.
