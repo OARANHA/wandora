@@ -80,3 +80,22 @@ Paperclip object IDs, raw grants/profiles/catalog records, provider metadata, cr
 Paperclip's host remains the authority that authenticates Board access and injects the authorized company scope. The worker rejects missing scope and all additional caller parameters, and the package CI verifies the pinned Paperclip host/worker anti-spoofing contract.
 
 The production 0.5.0 package remains an immutable released artifact and is not overwritten by this source. Version 0.6.0 is the new package identity for the additive `operational-read` surface. Production promotion remains a separate reviewed effect. This source qualification does **not** open Semantic Fast Read attestation, call VendaERP, or enable any outbound/customer effect.
+
+### Immutable 0.6.0 promotion block
+
+The exact 0.6.0 package qualified by ADR 0335 remains immutable and promotion-blocked. Its bytes and candidate identity must not be replaced or reused for corrected code.
+
+## Operational-read bridge compatibility — 0.6.1
+
+Version 0.6.1 fixes only the `operational-read` data-handler compatibility with the pinned Paperclip `getData` envelope discovered by ADR 0335.
+
+The pinned Paperclip host remains the company-scope authority. The URL-keyed data route authorizes the requested company, passes the authorized `companyId` separately from caller `params`, and supplies `renderEnvironment: null` when the caller does not provide render metadata. The worker merges caller params first, then overwrites them with host `companyId` and host `renderEnvironment`.
+
+The handler therefore accepts only:
+
+- one valid host-authorized `companyId`;
+- the optional host bridge metadata field `renderEnvironment`, which must be exactly `null`.
+
+Any additional selector/key, or any non-null `renderEnvironment`, still fails closed with `operator_operational_read_invalid_company_scope`. The operational projection, fixed managed Ana lookup, `ctx.toolAccess.readOperationalSnapshot` call and output allowlist are unchanged.
+
+0.6.1 is a new immutable package identity. It does not modify/reuse 0.6.0, does not promote itself, does not call VendaERP, and does not open Semantic Fast Read or outbound/customer effects.
