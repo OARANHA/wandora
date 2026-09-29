@@ -28,6 +28,8 @@ const stringAttribute = (key: string, value: string) => ({
   value: { stringValue: value },
 });
 
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
 export class VigiaClient {
   constructor(
     private readonly config: VigiaClientConfig,
@@ -88,6 +90,30 @@ export class VigiaClient {
 
     if (!traceResponse.ok) {
       throw new Error(`Vigia OTLP trace export failed with HTTP ${traceResponse.status}.`);
+    }
+
+    let traceQueryable = false;
+    for (const delayMs of [0, 250, 500, 1_000, 2_000]) {
+      if (delayMs > 0) await sleep(delayMs);
+      const traceCheck = await this.fetchImpl(
+        `${baseUrl}/v1/projects/${encodeURIComponent(this.config.projectSlug)}/traces/${traceId}`,
+        {
+          method: 'GET',
+          headers: commonHeaders,
+          signal: AbortSignal.timeout(this.config.requestTimeoutMs),
+        },
+      );
+      if (traceCheck.ok) {
+        traceQueryable = true;
+        break;
+      }
+      if (traceCheck.status !== 404) {
+        throw new Error(`Vigia trace lookup failed with HTTP ${traceCheck.status}.`);
+      }
+    }
+
+    if (!traceQueryable) {
+      throw new Error('Vigia trace was not queryable before Business Event export.');
     }
 
     const occurredAt = new Date(Number(input.endTimeUnixNano / 1_000_000n)).toISOString();
