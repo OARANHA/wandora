@@ -142,6 +142,10 @@ Not executed:
 - Human Send;
 - WhatsApp/outbound.
 
+## Implementation checkpoint
+
+The initial atomic code/ADR/workflow commit is `d314732c6c63a876d334937e49b4f3dbcbeeb73d`. This checkpoint records repository identity only; exact-head CI remains required before qualification is complete.
+
 ## VALIDATION CONTRACT
 
 CI must prove:
