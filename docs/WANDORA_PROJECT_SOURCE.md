@@ -1,3 +1,17 @@
+## 2026-09-29 — Bootstrap checkpoint: PR #369 current-main compatibility GREEN
+
+Use this section only to locate the canonical checkpoint; the authority remains `AGENTS.md`, relevant ADRs, `docs/CAPABILITY_AUTHORITY.md`, `docs/architecture.md` and `docs/CANONICAL_STATE.md`.
+
+- current main proven: `e4c7c36bb1091ba38d39b85fa259bae94553fc52`;
+- PR #369 code head proven: `47dde9eeeb2660fb6fa8337a14e3610a80e1d552`;
+- exact PR head: **17/17 workflows GREEN**;
+- exact `PR + current main` disposable merge: zero conflicts / `diff --check` GREEN;
+- combined Core: typecheck GREEN / build GREEN / **64/64 focused tests GREEN**;
+- production remained healthy with Fast Read, Semantic Fast Read, Human Send and Gateway outbound OFF;
+- no production opening occurred.
+
+Canonical ADR: `docs/decisions/0342-pr369-current-main-compatibility-reconciliation-v1.md`.
+
 ## Latest checkpoint — ADR 0341 Semantic Fast Read Custody Metadata Readback Execution V1
 
 Status: **EXECUTED ONCE / METADATA READBACK GREEN / CUSTODY CONTRACT SATISFIED / EFFECT GATES REMAIN OFF / HARD STOP**.

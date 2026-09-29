@@ -1,3 +1,17 @@
+## 2026-09-29 — ADR 0342 PR #369 Current-Main Compatibility Reconciliation V1
+
+Status: **GREEN / CURRENT-MAIN COMPATIBILITY PROVEN / 17/17 PR CI GREEN / EPHEMERAL CURRENT-MAIN MERGE GREEN / PRODUCTION UNCHANGED / HARD STOP**.
+
+Current `main@e4c7c36bb1091ba38d39b85fa259bae94553fc52` plus PR #369 code head `47dde9eeeb2660fb6fa8337a14e3610a80e1d552` is proven compatible without rebasing/pushing the final Vigia-only main delta. Exact PR head completed **17/17 workflows GREEN**. A disposable no-commit merge of exact current main into exact PR head completed with zero conflicts and `git diff --check` GREEN; the only delta was the expected Vigia trace-polling change plus separate `compose.vigia-telemetry.yaml`.
+
+The exact combined tree passed Core typecheck, build and **64/64 focused tests**, covering Fast Read intent/admission, Semantic Fast Read runtime gates, HTTP body forwarding, selector/VendaERP path, Paperclip provider boundary and Vigia config/client. Source inspection preserves separate `PaperclipFastReadExecutionService`; Vigia remains only on generic `PaperclipExecutionService`. Bounded Semantic Fast Read overlays keep Human Send OFF and contain no Vigia or Messaging Gateway outbound authority.
+
+Production remained healthy/inert: Core `b2cffbb...`, Paperclip v2026.916.1, Task Drain false/0/0/quiescent, Fast Read OFF, Semantic Fast Read OFF, Human Send OFF and Gateway outbound OFF. No deploy/provider/customer/outbound effect occurred.
+
+Final completion review returned `complete=0.52` versus `verify_more=0.26` and `incomplete=0.22`. **Hard stop:** this checkpoint does not authorize Semantic Fast Read opening. Any later `main` movement requires a fresh compatibility read before effect.
+
+Canonical detail: `docs/decisions/0342-pr369-current-main-compatibility-reconciliation-v1.md`.
+
 ## 2026-09-29 — ADR 0341 Semantic Fast Read Custody Metadata Readback Execution V1
 
 Status: **EXECUTED ONCE / METADATA READBACK GREEN / CUSTODY CONTRACT SATISFIED / EFFECT GATES REMAIN OFF / HARD STOP**.
