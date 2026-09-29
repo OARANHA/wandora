@@ -219,12 +219,15 @@ export function registerManagedEmployeeOperationalReadData(
 ): void {
   ctx.data.register(OPERATIONAL_READ_DATA_KEY, async (params) => {
     const keys = Object.keys(params).sort();
+    const hasUnsupportedKey = keys.some(
+      (key) => key !== 'companyId' && key !== 'renderEnvironment',
+    );
     if (
-      keys.length !== 1
-      || keys[0] !== 'companyId'
+      hasUnsupportedKey
       || typeof params.companyId !== 'string'
       || params.companyId.trim().length === 0
       || params.companyId.length > 255
+      || ('renderEnvironment' in params && params.renderEnvironment !== null)
     ) {
       throw new Error('operator_operational_read_invalid_company_scope');
     }
