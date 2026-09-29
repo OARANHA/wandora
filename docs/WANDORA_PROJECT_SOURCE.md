@@ -4690,3 +4690,15 @@ No new wrapper, scheduler, approval subsystem, root widening or Remote-Ops TTL c
 Current production baseline remains closed/inert: Core exact candidate healthy, Semantic Fast Read OFF, Human Send OFF, custody/attestation absent, Paperclip 916.1 healthy, Gateway outbound OFF and Task Drain quiescent.
 
 Next slice: **Semantic Fast Read Bounded Production Attestation Retry Preflight V1 — NO OPENING YET**.
+
+## 2026-09-29 — ADR 0323 Semantic Fast Read body-forwarding failure and Core fix
+
+The bounded production retry reached exactly one authenticated owner Human Fast Read POST for 28PRO/Ana and returned `400 invalid-fast-read-request`. No retry was performed. ADR 0320 mandatory close then restored the exact gates-OFF Core baseline: same image/digest/revision, custody/attestation absent, Fast Read/Semantic OFF, Human Send OFF, Gateway outbound OFF and Task Drain quiescent.
+
+Root cause is now proven in Core HTTP dispatch, not in the browser body, Web bridge, Paperclip or VendaERP: `server.ts` recognized the Human namespace but omitted Fast Read from the routes whose POST body is read, so `rawBody` reached `parseDigitalEmployeeFastReadRequest` as `undefined` and failed before the Semantic Fast Read service/provider path.
+
+The repository fix reuses the existing Fast Read regex and HTTP body reader, adds a narrow `isHumanDigitalEmployeeFastReadPath()`, preserves the canonical Fast Read raw-body limit of 12,100 bytes instead of narrowing it to the generic 8,192-byte Human mutation limit, and adds HTTP-level regression tests including a >8,192-byte Fast Read request.
+
+Implementation checkpoint before this documentation: PR #369 head `025afcc5787e4ce61a131cfe5710a5ac079bd6af`, base `main@8d6a65f519de5c1c49607314b49968af608c7164`, 17/17 exact-head workflows GREEN. Core Candidate Artifact run 547 produced artifact `11012599392`, name `core-organization-adapter-candidate-e56674ffba3a8b10754bcbb466bea36c20e70183`, digest `sha256:c07391790e34630f61cdf5654ee32cf46dd08a20a1ea4b1041fbe6d2677c6fc1`.
+
+The patched Core is **not** production-live. Next slice: **Core Fast Read HTTP Body Forwarding Compatibility Promotion V1 — GATES OFF / NO HUMAN FAST READ**. Reconcile the then-current exact head/CI/artifact, promote only the reviewed Core compatibility candidate with Semantic Fast Read/Selector/Human Send/Gateway outbound still OFF, validate state-first and document. Only after that promotion may a new bounded attestation begin from fresh evidence and fresh approvals.
