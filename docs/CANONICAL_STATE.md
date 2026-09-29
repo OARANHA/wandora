@@ -1,3 +1,21 @@
+## 2026-09-29 — ADR 0338 Semantic Fast Read Freshness Attestation Preflight V1
+
+Status: **QUALIFIED / READY FOR SEPARATE ATTESTATION EXECUTION / READ-ONLY FRESHNESS GREEN / NO ACTIVATION**.
+
+PR #369 remains open/draft/mergeable/not merged at exact pre-documentation head `4eacd07fb792451e49217232edcdfa14c3a5babe`, with **17/17 workflows GREEN**; `main` remains `8d6a65f519de5c1c49607314b49968af608c7164`.
+
+Fresh runtime evidence keeps seven containers healthy, Core exact `b2cff...` on the gates-OFF baseline, Paperclip v2026.916.1/`d554c478...`, Gateway outbound OFF and Task Drain false/0/0/quiescent. Exactly one OA 0.6.1 remains ready/healthy on the same plugin id and `80373a61...` content-addressed package path.
+
+Fresh intended Tool Policy qualification is `allow / allow_profile` with Connection/Catalog identity, effective profile `259a5449-58ba-4d59-9774-92612e3caa91`, no temporary policy and no audit event. Exactly one fresh OA `operational-read` is GREEN: runtime health ok, VendaERP Connection active/enabled/healthy, organization grant active, installed for Ana, and all eight mapped tools active/read-only/non-write/non-destructive/allowed. No VendaERP tool executed; 28PRO issueCounter remains 19.
+
+There is no numeric freshness TTL in the qualified operational-read contract. Evidence is point-in-time/event-window based and must be re-read adjacent to any later opening mutation. Tool Policy qualification, operational reach and actual Tool Gateway authorization remain separate authorities.
+
+Current-Core Rollback V2 anchors Core `b2cff...`/Paperclip/Gateway and secret metadata but its OA field is historical 0.5.0. ADR 0337 independently preserves/re-proves immutable OA 0.5.0 rollback bytes. A future attestation opening mutates Core only and must close to exact pre-window gates-OFF Core composition on failure; OA rollback is separate if OA itself fails.
+
+Decision is **READY FOR SEPARATE SEMANTIC FAST READ ATTESTATION EXECUTION**, not effect authorization. No Fast Read/Semantic/Selector activation, business-provider execution, Human Fast Read, customer work, Human Send, WhatsApp or outbound effect occurred.
+
+Canonical detail: `docs/decisions/0338-semantic-fast-read-freshness-attestation-preflight-v1.md`.
+
 ## 2026-09-29 — ADR 0337 Organization Adapter 0.6.1 Production Promotion Qualification V1
 
 Status: **GREEN / OA 0.6.1 LIVE / OPERATIONAL READ GREEN / SEMANTIC FAST READ STILL OFF**.
