@@ -56,6 +56,22 @@ If the resolved or running image differs at any point, the window is invalid: do
 
 Do not read/copy the protected live environment file merely to recover this pin; use fresh safe runtime image identity plus a non-secret operator render input.
 
+## Core HTTP body-forwarding hard gate — ADR 0323
+
+Before opening any future Human Fast Read attestation, prove that the **exact Core candidate intended for production** forwards the Fast Read POST body from the HTTP server boundary into the Human Fast Read handler.
+
+A handler/service unit test is insufficient. The proof must exercise the Core HTTP server boundary and show that:
+
+1. the exact UUID-scoped `POST /api/v1/organizations/{organizationId}/digital-employees/{employeeId}/fast-read` route is classified as a body-bearing Human request;
+2. the JSON body reaches the Human handler as `rawBody`;
+3. the Fast Read-specific raw-body limit remains 12,100 bytes;
+4. the generic Human mutation limit remains 8,192 bytes;
+5. a request larger than 8,192 bytes but within the Fast Read contract is not rejected by the HTTP dispatch merely because it exceeds the generic mutation limit.
+
+Do not substitute Web/Nginx route success for this Core proof. ADR 0323 proved that Web can forward the correct request while an older Core still drops the body before the Fast Read parser.
+
+If the production Core does not contain the exact reviewed body-forwarding fix, the attestation must not open even if all Compose, custody, image-identity and provider gates are otherwise GREEN.
+
 ## Fresh pre-mutation gate
 
 Before any future production mutation, capture fresh evidence for all of the following:
