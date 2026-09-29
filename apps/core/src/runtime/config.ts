@@ -73,6 +73,13 @@ export type RuntimePaperclipExecutionBridgeConfig = {
   agentMeUrl: string;
 };
 
+export type RuntimeVigiaConfig = {
+  baseUrl: string;
+  projectSlug: string;
+  apiKey: string;
+  requestTimeoutMs: number;
+};
+
 export type RuntimeConfig = {
   port: number;
   mode: RuntimeMode;
@@ -87,6 +94,7 @@ export type RuntimeConfig = {
   humanDigitalEmployeeActivation?: RuntimeHumanDigitalEmployeeActivationConfig;
   humanDigitalEmployeeWork?: RuntimeHumanDigitalEmployeeWorkConfig;
   paperclipExecutionBridge?: RuntimePaperclipExecutionBridgeConfig;
+  vigia?: RuntimeVigiaConfig;
 };
 
 const parsePort = (value: string | undefined, fallback: number, name: string): number => {
@@ -234,6 +242,21 @@ const validateOrganizationAdapterWebhookUrl = (value: string): string => {
     );
   }
   return url.toString();
+};
+
+const validateVigiaBaseUrl = (value: string): string => {
+  const url = new URL(value);
+  if (
+    url.protocol !== 'https:'
+    || url.username
+    || url.password
+    || (url.pathname !== '/' && url.pathname !== '')
+    || url.search
+    || url.hash
+  ) {
+    throw new Error('WANDORA_VIGIA_BASE_URL must be an HTTPS origin without credentials, path, query or fragment.');
+  }
+  return url.origin;
 };
 
 export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): Promise<RuntimeConfig> {
@@ -519,6 +542,47 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     };
   }
 
+  const vigiaConfigured = [
+    env.WANDORA_VIGIA_BASE_URL,
+    env.WANDORA_VIGIA_PROJECT_SLUG,
+    env.WANDORA_VIGIA_API_KEY_FILE,
+  ].some((value) => Boolean(value?.trim()));
+
+  let vigia: RuntimeVigiaConfig | undefined;
+  if (vigiaConfigured) {
+    const baseUrl = validateVigiaBaseUrl(required(env, 'WANDORA_VIGIA_BASE_URL'));
+    const projectSlug = required(env, 'WANDORA_VIGIA_PROJECT_SLUG');
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(projectSlug)) {
+      throw new Error('WANDORA_VIGIA_PROJECT_SLUG must be a lowercase URL-safe slug.');
+    }
+
+    const apiKeyFile = required(env, 'WANDORA_VIGIA_API_KEY_FILE');
+    if (!isAbsolute(apiKeyFile)) {
+      throw new Error('WANDORA_VIGIA_API_KEY_FILE must be an absolute mounted file.');
+    }
+    const apiKeyStat = await stat(apiKeyFile).catch(() => null);
+    if (!apiKeyStat?.isFile()) {
+      throw new Error('WANDORA_VIGIA_API_KEY_FILE must be a mounted regular file.');
+    }
+    const apiKey = (await readFile(apiKeyFile, 'utf8')).trim();
+    if (apiKey.length < 20 || apiKey.length > 4096 || /\s/.test(apiKey)) {
+      throw new Error('Wandora Vigia API key is invalid.');
+    }
+
+    vigia = {
+      baseUrl,
+      projectSlug,
+      apiKey,
+      requestTimeoutMs: parseBoundedInteger(
+        env.WANDORA_VIGIA_REQUEST_TIMEOUT_MS,
+        3_000,
+        500,
+        10_000,
+        'WANDORA_VIGIA_REQUEST_TIMEOUT_MS',
+      ),
+    };
+  }
+
   return {
     port,
     mode,
@@ -547,5 +611,6 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
       ? { humanDigitalEmployeeWork: { enabled: true as const } }
       : {}),
     ...(agentRuntime ? { agentRuntime } : {}),
+    ...(vigia ? { vigia } : {}),
   };
 }
