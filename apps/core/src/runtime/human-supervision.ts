@@ -116,6 +116,11 @@ export function isHumanDigitalEmployeeWorkPath(pathname: string): boolean {
   return Boolean(match?.[1] && match?.[2] && UUID_RE.test(match[1]) && UUID_RE.test(match[2]));
 }
 
+export function isHumanDigitalEmployeeFastReadPath(pathname: string): boolean {
+  const match = DIGITAL_EMPLOYEE_FAST_READ_PATH_RE.exec(pathname);
+  return Boolean(match?.[1] && match?.[2] && UUID_RE.test(match[1]) && UUID_RE.test(match[2]));
+}
+
 export function isHumanDigitalEmployeeDevelopmentMutationPath(pathname: string): boolean {
   for (const expression of [
     DIGITAL_EMPLOYEE_DEVELOPMENT_PATH_RE,
