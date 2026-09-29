@@ -6233,3 +6233,19 @@ No new wrapper, approval subsystem, scheduler, state machine, table, migration, 
 Current reconciled baseline remains: Core `organization-adapter-candidate-2c2142237c9c` healthy with Semantic Fast Read/Human Send OFF and custody/attestation absent; Paperclip `v2026.916.1` healthy; Gateway outbound OFF; Task Drain quiescent; Rollback Freeze V2 receipt aligned. No production mutation/provider/customer/outbound effect occurred in ADR 0320.
 
 Next: **Semantic Fast Read Bounded Production Attestation Retry Preflight V1 — NO OPENING YET**. Reprove exact head/CI, rollback precheck, custody/provider qualification, overlay bytes, exact baseline/open/close Compose renders, image identity, Task Drain, effect gates and managed-admin availability before any opening.
+
+## 2026-09-29 — ADR 0323 Semantic Fast Read HTTP body-forwarding failure
+
+Status: **FAIL-CLOSED / ONE HUMAN POST RETURNED 400 / BASELINE RESTORED / ROOT CAUSE FIXED IN PR / 17-OF-17 CI GREEN / PATCHED CORE NOT LIVE**.
+
+Exactly one authenticated 28PRO owner request for active Ana was issued to the reviewed Fast Read route and returned `400 invalid-fast-read-request`. No second request was made. The mandatory close used a fresh ADR 0320 approval and restored the exact baseline: Core healthy/restart 0 on `wandora/core:organization-adapter-candidate-2c2142237c9c`, digest `sha256:d3ed5494c03c0720419387befc54f6f6cb124e5407fc619150ecf3dde03dfed7`, revision `2c2142237c9cccc1f7a90d6ae056cd12cc5f4754`, custody/attestation absent, Fast Read/Semantic OFF, Human Send OFF, Gateway outbound OFF and Task Drain quiescent.
+
+The failure occurred before semantic/provider execution. The reviewed browser body was valid, but Core's HTTP server omitted Fast Read from the Human POST routes whose body is read. The handler therefore received `rawBody=undefined` and returned `invalid-fast-read-request` before invoking the Semantic Fast Read service. This attempt did not reach TypeSafe, Mistral selector, Paperclip Fast Read execution or VendaERP Tool Gateway.
+
+The source fix is narrow and preserves existing authority boundaries: Fast Read gets its own exact path matcher and HTTP-body branch using the canonical 12,100-byte limit; generic Human mutations remain capped at 8,192 bytes. HTTP-level regression coverage proves both a normal Fast Read body and a body larger than the generic limit are forwarded correctly.
+
+Implementation checkpoint before documentation: PR #369 head `025afcc5787e4ce61a131cfe5710a5ac079bd6af`, 17/17 workflows GREEN, Core CI 1427 GREEN, Semantic Fast Read CI 313 GREEN and Core Candidate Artifact 547 GREEN. Artifact `11012599392` / `core-organization-adapter-candidate-e56674ffba3a8b10754bcbb466bea36c20e70183` has GitHub digest `sha256:c07391790e34630f61cdf5654ee32cf46dd08a20a1ea4b1041fbe6d2677c6fc1`.
+
+Production still runs the older Core candidate. No production promotion is implied by CI.
+
+Next: **Core Fast Read HTTP Body Forwarding Compatibility Promotion V1 — GATES OFF / NO HUMAN FAST READ**. Reconcile fresh repository/runtime/artifact evidence, promote only the exact reviewed Core compatibility candidate while all semantic/outbound gates remain OFF, validate state-first, document, and only then consider a new bounded attestation under fresh approvals.
