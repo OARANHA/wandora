@@ -6,6 +6,7 @@ import type { AgentTaskRuntime, AssignedTask, NormalizedExecutionUsage, RuntimeR
 import { paperclipManagedAgentRef } from '../organization-adapter/paperclip-provider.js';
 import type { PaperclipRunIdentity } from './paperclip-run-identity.js';
 import type { OrganizationAdapterService } from '../organization-adapter/service.js';
+import type { VigiaClient } from '../vigia/client.js';
 
 export class PaperclipExecutionBindingError extends Error {
   constructor(readonly code: 'company-unmapped' | 'employee-unavailable' | 'work-unavailable') {
@@ -41,6 +42,7 @@ export class PaperclipExecutionService {
       paperclipRunId: string;
     }) => Promise<RuntimeReadTool[]>,
     private readonly employeeDevelopmentProjection?: EmployeeDevelopmentProjection,
+    private readonly vigia?: Pick<VigiaClient, 'recordWorkCompleted'>,
   ) {}
 
   private async resolveOrganization(providerCompanyRef: string): Promise<string> {
@@ -114,6 +116,7 @@ export class PaperclipExecutionService {
     const executionId = `exec_${createHash('sha256')
       .update(JSON.stringify(['paperclip-run-v1', organizationId, employee.employee_id, input.paperclipRunId]))
       .digest('hex')}`;
+    const executionStartedAtUnixNano = BigInt(Date.now()) * 1_000_000n;
 
     const [organizationGrounding, employeeGuidance] = await Promise.all([
       this.groundingProjection.project(organizationId, input.task),
@@ -209,6 +212,32 @@ export class PaperclipExecutionService {
           paperclipRunId: input.paperclipRunId,
         }).catch(() => undefined);
         throw new PaperclipExecutionBindingError('work-unavailable');
+      }
+
+      if (this.vigia) {
+        const executionEndedAtUnixNano = BigInt(Date.now()) * 1_000_000n;
+        try {
+          const telemetry = await this.vigia.recordWorkCompleted({
+            organizationId,
+            employeeId: employee.employee_id,
+            workId: input.workId,
+            executionId,
+            model: result.model,
+            startTimeUnixNano: executionStartedAtUnixNano,
+            endTimeUnixNano: executionEndedAtUnixNano,
+          });
+          console.log(JSON.stringify({
+            event: 'wandora.vigia.work_completed_exported',
+            executionId,
+            traceId: telemetry.traceId,
+          }));
+        } catch (error) {
+          console.warn(JSON.stringify({
+            event: 'wandora.vigia.export_failed',
+            executionId,
+            error: error instanceof Error ? error.message : 'unknown',
+          }));
+        }
       }
     }
 
