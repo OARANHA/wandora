@@ -1,3 +1,21 @@
+## Latest checkpoint — ADR 0338 Semantic Fast Read Freshness Attestation Preflight V1
+
+Status: **QUALIFIED / READY FOR SEPARATE SEMANTIC FAST READ ATTESTATION EXECUTION / READ-ONLY FRESHNESS GREEN / NO ACTIVATION**.
+
+Fresh reconciliation proved `main@8d6a65f519de5c1c49607314b49968af608c7164`; PR #369 open/draft/mergeable/not merged at exact pre-documentation head `4eacd07fb792451e49217232edcdfa14c3a5babe`; and **17/17 exact-head workflows GREEN**.
+
+Production remains inert and healthy: seven containers healthy; Core exact `b2cffbb54089212844ef177827e7a616b1008144` with Fast Read execution/Semantic Fast Read/Human Send OFF; Paperclip exact v2026.916.1/`d554c478...`; Gateway outbound OFF; Task Drain `false/0/0/quiescent=true`. Exactly one OA `wandora.organization-adapter-v1@0.6.1` remains live with plugin id `86e77fe7-c7e4-4bee-afa3-46cdad575d0c`, content-addressed package `80373a61...`, `ready`, `lastError=null`, `healthy=true`.
+
+Fresh Paperclip qualification for 28PRO Ana + provider-owned VendaERP Connection/Catalog identity returned `allow / allow_profile`, effective profile `259a5449-58ba-4d59-9774-92612e3caa91`, no matched temporary policy and `auditEvent=null`. Exactly one fresh OA `operational-read` returned `runtimeHealth=ok`, active/enabled/healthy Connection, active organization grant, installed-for-Ana and all eight mapped tools active/read-only/non-write/non-destructive/allowed. No VendaERP tool ran.
+
+The canonical freshness contract has **no numeric TTL**. `operational-read` has no timestamp/TTL and uses current Paperclip state plus cached catalog rows; freshness is event/window based and must be re-read immediately adjacent to any later opening effect. Tool Policy authorization and operational-read are separate gates; actual Tool Gateway authorization remains run-time authority.
+
+Current-Core Rollback V2 remains GREEN for Core `b2cff...`/Paperclip/Gateway but predates OA 0.6.1; ADR 0337 separately preserves/re-proves exact OA 0.5.0 rollback bytes. Future attestation opening is Core-only and must close to exact pre-window gates-OFF Core composition on failure; OA rollback remains separate if OA itself fails.
+
+Decision: **READY FOR SEPARATE SEMANTIC FAST READ ATTESTATION EXECUTION** means only that no code/provider-observability blocker remains. It does **not** authorize opening, calling the customer Fast Read provider path or executing Human Fast Read. The execution slice must start from new REAL NOW and repeat all mutable freshness gates before effect.
+
+Canonical detail: `docs/decisions/0338-semantic-fast-read-freshness-attestation-preflight-v1.md`.
+
 ## Latest checkpoint — ADR 0337 Organization Adapter 0.6.1 Production Promotion Qualification V1
 
 Status: **EXECUTED / GREEN / OA 0.6.1 LIVE / OPERATIONAL READ GREEN / ALL OTHER EFFECT GATES OFF / NO SEMANTIC FAST READ ATTESTATION**.
