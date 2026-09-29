@@ -1,3 +1,19 @@
+## 2026-09-28 — ADR 0322 Web bridge production promotion and persistent selector reconciliation
+
+Status: **WEB BRIDGE PROMOTED + SELECTOR PERSISTED / BASELINE PRESERVED / FAST READ STILL OFF / NO NEW ATTESTATION**.
+
+PR #369 exact pre-documentation head `623555b2d623563533e6745d5b68eb0f0bcf961a` was open/draft/mergeable with **17/17 workflows GREEN**. The reviewed Web artifact from run `36497653370`, artifact `11003604308`, GitHub artifact digest `sha256:fe483f927a340ad41517e4ed5dc2a41dcd4bf8145c5f3d18dbadfc97051e4091` is live as `wandora/web:candidate-4e67366fbf5a`, OCI digest `sha256:a6a329dd3643f0c825edbfca91abc9341023b68857edf99458c65eb173a97935`, revision `4e67366fbf5a5caa9e2184cde722c3e40332c945`, healthy with restart count 0.
+
+The persistent Web stack selector had still pointed at rollback image `wandora/web:candidate-5108f7ce8de3`. Existing managed-admin authority was reused; no new subsystem or generic root shell was introduced. A fresh approved backup was created at `/opt/wandora/stacks/web/.env.backup-adr0321-selector-before-persist-20260929T0236Z` and independently resolves the rollback image. A separately reviewed and human-approved second effect copied the already-staged one-line selector `WANDORA_WEB_IMAGE=wandora/web:candidate-4e67366fbf5a` to the persistent stack `.env`.
+
+Post-persistence Compose rendering resolves the promoted image. No Compose up or container recreation occurred during persistence: Web retained the same container ID/start time/digest/revision and remains healthy/restart 0. Core, Paperclip and Gateway identities remained unchanged; Task Drain remains false/0/0/quiescent. Core Fast Read execution, Semantic Fast Read and Human Send remain OFF; Gateway outbound remains OFF; no custody/attestation window was reopened.
+
+The live exact UUID-scoped Fast Read path is now distinct from the Nginx catch-all: a valid unauthenticated probe reaches Core and returns JSON `{"error":"not-found"}` because Fast Read remains disabled, while `/fast-read/again`, `/api/unreviewed` and `/internal/unreviewed` remain Nginx 404.
+
+ADR 0321 remains the historical record of the earlier fail-closed browser 404 and code-only repair. ADR 0322 records the later Web-only promotion and selector persistence. Any new Semantic Fast Read attestation is a separate production slice with fresh reconciliation, decision, second adversarial review and new one-use approvals.
+
+Canonical detail: `docs/decisions/0322-semantic-fast-read-web-bridge-production-promotion-v1.md`.
+
 ## 2026-09-28 — ADR 0321 Semantic Fast Read browser 404 Web bridge gap
 
 Status: **FAIL-CLOSED / BASELINE RESTORED / ROOT CAUSE PROVEN / WEB-ONLY FIX IMPLEMENTED + WEB CI GREEN / NO PRODUCTION PROMOTION**.
