@@ -17,6 +17,7 @@ import {
   isHumanCompanyProfileMutationPath,
   isHumanDigitalEmployeeActivationPath,
   isHumanDigitalEmployeeDevelopmentMutationPath,
+  isHumanDigitalEmployeeFastReadPath,
   isHumanDigitalEmployeeHirePath,
   isHumanDigitalEmployeeWorkPath,
   isHumanGroundingMutationPath,
@@ -156,6 +157,7 @@ export function createRuntimeServer(deps: RuntimeServerDeps): Server {
             || isHumanDigitalEmployeeHirePath(url.pathname)
             || isHumanDigitalEmployeeActivationPath(url.pathname)
             || isHumanDigitalEmployeeWorkPath(url.pathname)
+            || isHumanDigitalEmployeeFastReadPath(url.pathname)
             || isHumanDigitalEmployeeDevelopmentMutationPath(url.pathname)
             || isHumanGroundingMutationPath(url.pathname)
           )
