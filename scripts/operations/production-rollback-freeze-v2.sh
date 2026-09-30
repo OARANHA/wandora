@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 umask 077
 
-# ADR 0309 — Current Production Rollback Freeze + Secret Metadata Readback V2
+# ADR 0359 — Post-ADR0358 Rollback Freeze V2 Requalification V1
 # Operator-local only. Run manually as root on wandora-vps-01.
 # No activation, provider call, customer work, outbound effect, or secret value output.
 # Optional --precheck-only performs only fresh read-only checks; every path and runtime identity is fixed by the reviewed runbook.
@@ -34,8 +34,15 @@ OA_KEY="wandora.organization-adapter-v1"
 OA_VERSION="0.6.1"
 OA_PATH="/paperclip/operator-packages/wandora-organization-adapter-v1/80373a61f08d87772c3aab738ffa6905bddcb49c783e9574c1540247cb3b258f/package"
 
+MASTRA_TYPE="wandora_mastra"
+MASTRA_SOURCE="external"
+MASTRA_VERSION="0.6.0"
+MASTRA_PATH="/paperclip/operator-packages/wandora-paperclip-adapter-mastra-v1/2e97da6dabfe8cc81c60c35ce74b071329078835373eb3ca39ce63017e9b9ecf/package"
+MASTRA_ROLLBACK_VERSION="0.5.0"
+MASTRA_ROLLBACK_PATH="/paperclip/operator-packages/wandora-paperclip-adapter-mastra-v1/64795ff7d2c519ef6303ab0944bac02d27aadf8b919860b832c2e6fac4defb62/package"
+
 BACKUP_PARENT="/home/wandora-admin/backups"
-RECEIPT="/opt/wandora/ops-workspace/production-rollback-freeze-v2-f279acc98687da894a1ce6570273b5949552a8c7.metadata"
+RECEIPT="/opt/wandora/ops-workspace/production-rollback-freeze-v2-post-adr0358-f279acc98687da894a1ce6570273b5949552a8c7-mastra060-2e97da6d.metadata"
 
 TYPESAFE="/opt/wandora/stacks/core/secrets/wandora_typesafe_jev_api_key"
 WFRI1="/opt/wandora/stacks/core/secrets/wandora_fast_read_intent_hmac"
@@ -57,10 +64,10 @@ POSTGRES_CLIENT_REPO_DIGEST="postgres@${POSTGRES_CLIENT_INDEX_DIGEST}"
 POSTGRES_CLIENT_PLATFORM="linux/amd64"
 
 stamp="$(date -u +%Y%m%dT%H%M%S%NZ)"
-prefix="adr0356-rollback-freeze-v2-f279acc98687-${stamp}"
-root="${BACKUP_PARENT}/paperclip-v9161-fast-read-rollback-freeze-v2-f279acc98687-${stamp}"
+prefix="adr0359-rollback-freeze-v2-post-adr0358-f279acc98687-mastra060-2e97da6d-${stamp}"
+root="${BACKUP_PARENT}/paperclip-v9161-fast-read-rollback-freeze-v2-post-adr0358-f279acc98687-mastra060-2e97da6d-${stamp}"
 pc_tmp="/paperclip/instances/default/backups/${prefix}"
-restore_name="wandora-adr0356-f279acc-restore-${stamp,,}"
+restore_name="wandora-adr0359-f279acc-mastra060-restore-${stamp,,}"
 qualified=false
 parent_created=false
 root_created=false
@@ -116,6 +123,20 @@ assert_container() {
 assert_core_revision() {
   [[ "$(container_field "$CORE" '{{index .Config.Labels "org.opencontainers.image.revision"}}')" == "${CORE_REVISION}" ]] ||
     fail "Core revision mismatch"
+}
+
+assert_mastra_adapter() {
+  local adapters count adapter
+  adapters="$(docker exec "${PC}" paperclipai adapter list --json)" || fail "Paperclip adapter list failed"
+  count="$(jq --arg t "${MASTRA_TYPE}" '[.[] | select(.type==$t)] | length' <<<"${adapters}")"
+  [[ "${count}" == "1" ]] || fail "wandora_mastra adapter count mismatch"
+  adapter="$(jq -cer --arg t "${MASTRA_TYPE}" '.[] | select(.type==$t)' <<<"${adapters}")" || fail "wandora_mastra adapter projection invalid"
+  [[ "$(jq -r '.source // ""' <<<"${adapter}")" == "${MASTRA_SOURCE}" ]] || fail "wandora_mastra source mismatch"
+  [[ "$(jq -r '.version // ""' <<<"${adapter}")" == "${MASTRA_VERSION}" ]] || fail "wandora_mastra version mismatch"
+  [[ "$(jq -r '.loaded' <<<"${adapter}")" == "true" ]] || fail "wandora_mastra not loaded"
+  [[ "$(jq -r '.disabled' <<<"${adapter}")" == "false" ]] || fail "wandora_mastra disabled"
+  [[ "$(jq -r '.packageName // ""' <<<"${adapter}")" == "${MASTRA_PATH}" ]] || fail "wandora_mastra package mismatch"
+  [[ "$(jq -r '.isLocalPath' <<<"${adapter}")" == "true" ]] || fail "wandora_mastra package is not local"
 }
 
 assert_regular_secret_meta() {
@@ -301,6 +322,8 @@ oa="$(jq -c --arg k "${OA_KEY}" '.[] | select(.pluginKey==$k)' <<<"$plugins")"
 [[ "$(jq -r '.lastError // ""' <<<"$oa")" == "" ]] || fail "OA lastError non-empty"
 [[ "$(jq -r '.packagePath' <<<"$oa")" == "${OA_PATH}" ]] || fail "OA packagePath mismatch"
 
+assert_mastra_adapter
+
 # All custody sources must exist with the expected basic type before the first
 # persistent rollback write. This prevents a late copy failure after the
 # protected rollback root has already been created.
@@ -310,6 +333,10 @@ docker exec "${PC}" test -f "${PC_ADAPTER_REGISTRY}" ||
   fail "Paperclip adapter registry source missing"
 docker exec "${PC}" test -d /paperclip/operator-packages ||
   fail "Paperclip operator-packages source missing"
+docker exec "${PC}" test -d "${MASTRA_PATH}" ||
+  fail "wandora_mastra 0.6.0 package source missing"
+docker exec "${PC}" test -d "${MASTRA_ROLLBACK_PATH}" ||
+  fail "wandora_mastra 0.5.0 rollback package source missing"
 docker exec "${PC}" test -d "${OA_PATH}" ||
   fail "Organization Adapter package source missing"
 
@@ -391,6 +418,15 @@ if [[ "${precheck_only}" == "true" ]]; then
   printf 'core_compose_files=%s\n' "${core_compose}"
   printf 'oa_version=%s\n' "${OA_VERSION}"
   printf 'oa_package_path=%s\n' "${OA_PATH}"
+  printf 'mastra_adapter_type=%s\n' "${MASTRA_TYPE}"
+  printf 'mastra_adapter_source=%s\n' "${MASTRA_SOURCE}"
+  printf 'mastra_adapter_version=%s\n' "${MASTRA_VERSION}"
+  printf 'mastra_adapter_loaded=true\n'
+  printf 'mastra_adapter_disabled=false\n'
+  printf 'mastra_adapter_package_path=%s\n' "${MASTRA_PATH}"
+  printf 'mastra_adapter_rollback_version=%s\n' "${MASTRA_ROLLBACK_VERSION}"
+  printf 'mastra_adapter_rollback_package_path=%s\n' "${MASTRA_ROLLBACK_PATH}"
+  printf 'mastra_adapter_rollback_package_preserved=true\n'
   printf 'task_drain_quiescent=true\n'
   safe_secret_meta_line typesafe "${TYPESAFE}"
   safe_secret_meta_line wfri1 "${WFRI1}"
@@ -455,6 +491,8 @@ docker exec "${PC}" cat "${PC_MASTER_KEY}" | cmp -s - "${root}/paperclip/master.
 
 docker cp "${PC}:${PC_ADAPTER_REGISTRY}" "${root}/paperclip/adapter-plugins.json"
 docker cp "${PC}:/paperclip/operator-packages" "${root}/paperclip/operator-packages"
+[[ -d "${root}/paperclip/operator-packages/wandora-paperclip-adapter-mastra-v1/2e97da6dabfe8cc81c60c35ce74b071329078835373eb3ca39ce63017e9b9ecf/package" ]] || fail "captured wandora_mastra 0.6.0 package missing"
+[[ -d "${root}/paperclip/operator-packages/wandora-paperclip-adapter-mastra-v1/64795ff7d2c519ef6303ab0944bac02d27aadf8b919860b832c2e6fac4defb62/package" ]] || fail "captured wandora_mastra 0.5.0 rollback package missing"
 docker cp "${PC}:${OA_PATH}" "${root}/paperclip/organization-adapter-0.6.1-package"
 
 cp -- "${PAPERCLIP_COMPOSE}" "${root}/runtime/"
@@ -514,6 +552,15 @@ shopt -u nullglob
   printf 'oa_count=%s\n' "${oa_count}"
   printf 'oa_version=%s\n' "${OA_VERSION}"
   printf 'oa_status=ready\n'
+  printf 'mastra_adapter_type=%s\n' "${MASTRA_TYPE}"
+  printf 'mastra_adapter_source=%s\n' "${MASTRA_SOURCE}"
+  printf 'mastra_adapter_version=%s\n' "${MASTRA_VERSION}"
+  printf 'mastra_adapter_loaded=true\n'
+  printf 'mastra_adapter_disabled=false\n'
+  printf 'mastra_adapter_package_path=%s\n' "${MASTRA_PATH}"
+  printf 'mastra_adapter_rollback_version=%s\n' "${MASTRA_ROLLBACK_VERSION}"
+  printf 'mastra_adapter_rollback_package_path=%s\n' "${MASTRA_ROLLBACK_PATH}"
+  printf 'mastra_adapter_rollback_package_preserved=true\n'
   printf 'task_drain_draining=false\n'
   printf 'task_drain_active_runs=0\n'
   printf 'task_drain_pending_wakes=0\n'
@@ -606,6 +653,7 @@ assert_false_or_absent "${CORE}" "WANDORA_SEMANTIC_FAST_READ_ENABLED"
 assert_false_or_absent "${CORE}" "WANDORA_SEMANTIC_SELECTOR_ENABLED"
 assert_false_or_absent "${CORE}" "WANDORA_HUMAN_SEND_PROPOSAL_ENABLED"
 assert_false_or_absent "${GW}" "WANDORA_GATEWAY_OUTBOUND_ENABLED"
+assert_mastra_adapter
 
 # Secure all copied state. Directories need execute permission for traversal.
 chown -R wandora-admin:wandora-ops -- "${root}"
@@ -628,7 +676,7 @@ chmod 0600 -- "${root}/SHA256SUMS"
 
 # Safe MCP-readable receipt. No secret values, DB credentials, provider
 # payloads, customer data, or master-key digest are written here.
-tmp_receipt="$(mktemp /opt/wandora/ops-workspace/.production-rollback-freeze-v2-f279acc98687da894a1ce6570273b5949552a8c7.metadata.XXXXXX)"
+tmp_receipt="$(mktemp /opt/wandora/ops-workspace/.production-rollback-freeze-v2-post-adr0358-f279acc98687da894a1ce6570273b5949552a8c7-mastra060-2e97da6d.metadata.XXXXXX)"
 {
   printf 'rollback_root=%s\n' "${root}"
   printf 'paperclip_image=%s\n' "$(container_field "${PC}" '{{.Config.Image}}')"
@@ -651,6 +699,15 @@ tmp_receipt="$(mktemp /opt/wandora/ops-workspace/.production-rollback-freeze-v2-
   printf 'oa_version=%s\n' "${OA_VERSION}"
   printf 'oa_status=ready\n'
   printf 'oa_package_path=%s\n' "${OA_PATH}"
+  printf 'mastra_adapter_type=%s\n' "${MASTRA_TYPE}"
+  printf 'mastra_adapter_source=%s\n' "${MASTRA_SOURCE}"
+  printf 'mastra_adapter_version=%s\n' "${MASTRA_VERSION}"
+  printf 'mastra_adapter_loaded=true\n'
+  printf 'mastra_adapter_disabled=false\n'
+  printf 'mastra_adapter_package_path=%s\n' "${MASTRA_PATH}"
+  printf 'mastra_adapter_rollback_version=%s\n' "${MASTRA_ROLLBACK_VERSION}"
+  printf 'mastra_adapter_rollback_package_path=%s\n' "${MASTRA_ROLLBACK_PATH}"
+  printf 'mastra_adapter_rollback_package_preserved=true\n'
   printf 'semantic_fast_read_gates_off=true\n'
   printf 'custody_overlay_live=false\n'
   printf 'attestation_overlay_live=false\n'

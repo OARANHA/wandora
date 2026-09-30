@@ -1,3 +1,21 @@
+## Post-ADR0358 source requalification checkpoint — ADR 0359
+
+Status: **CODE COMPLETE / EXACT-HEAD CI REQUIRED / LIVE HELPER+WRAPPERS NOT UPDATED / POST-ADR0358 CAPTURE ABSENT**.
+
+ADR 0356's f279acc receipt remains historical and must not be overwritten. Future qualified capture publishes to:
+
+`/opt/wandora/ops-workspace/production-rollback-freeze-v2-post-adr0358-f279acc98687da894a1ce6570273b5949552a8c7-mastra060-2e97da6d.metadata`
+
+with protected rollback roots prefixed:
+
+`paperclip-v9161-fast-read-rollback-freeze-v2-post-adr0358-f279acc98687-mastra060-2e97da6d-`
+
+The existing backup/restore architecture is unchanged. Before first persistent write the helper now requires official Paperclip adapter-list to show exactly one external `wandora_mastra@0.6.0`, loaded and enabled, at the exact 2e97... package path, and requires the retained 64795... 0.5.0 package. The full provider-owned adapter registry and operator-package tree remain the restoration state; both package directories are verified after copy. The adapter assertion runs again before receipt publication.
+
+Qualified candidate source identities: helper `31742060143e8ff7c86a9753045400364b98c9c9`, precheck wrapper `94d47e50d25e733799a345d7c5cfb4ff243ee74a`, capture wrapper `5fa90bd0432c51a72ec050e3f2d78ce1ebb73737`.
+
+No host staging, root precheck or persistent capture is authorized from this source checkpoint. After exact-head CI GREEN, start a new production slice with fresh state, decision, second review and separate managed-admin approvals for deployment, precheck and capture.
+
 ## Current-Core exact-byte host deployment checkpoint — ADR 0327
 
 Status: **LIVE HELPER+WRAPPERS EXACT / ROOT PRECHECK NOT EXECUTED / CURRENT-CORE RECEIPT ABSENT / HISTORICAL RECEIPT PRESERVED**.

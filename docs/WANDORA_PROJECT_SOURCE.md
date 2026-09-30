@@ -1,3 +1,15 @@
+## 2026-09-30 — ADR 0359 Post-ADR0358 Rollback Freeze V2 source requalification
+
+Status: **CODE COMPLETE / EXACT-HEAD CI REQUIRED / NO PRODUCTION EFFECT**.
+
+Fresh provenance before mutation: `main=e4c7c36bb1091ba38d39b85fa259bae94553fc52`, PR #369 source head `216f366e6267176a2ddfaa8b5dd0d2d75ef1129b`, merge ref `8224fa58c521f9c5747c2fcbc04040c5f0ad2c03` with parents exactly main + source head, 17/17 exact-head workflows GREEN. Fresh production stayed Core `f279acc...`, Paperclip v916.1, OA 0.6.1 healthy, Task Drain false/0/0/quiescent and customer/outbound gates closed.
+
+ADR 0356's receipt remains historical because it predates ADR 0358. The existing mechanism already captures Paperclip DB/master.key, provider-owned adapter registry, complete operator-packages, Compose anchors, OA/custody/Task Drain/gates and restore/schema proof. ADR 0359 adds no subsystem: it uses a new non-colliding post-ADR0358 namespace and hard-gates official Paperclip adapter state to exact `wandora_mastra@0.6.0` / 2e97... while requiring the retained 64795... 0.5.0 rollback package.
+
+Helper blob `31742060143e8ff7c86a9753045400364b98c9c9`; precheck wrapper `94d47e50d25e733799a345d7c5cfb4ff243ee74a`; capture wrapper `5fa90bd0432c51a72ec050e3f2d78ce1ebb73737`. Initial adversarial routing requested deep review; focused review returned `allow=0.78`. Exact-head CI is the remaining code-only qualification gate. No production/VPS/provider/customer/outbound effect is authorized.
+
+Canonical detail: `docs/decisions/0359-post-adr0358-rollback-freeze-v2-requalification-v1.md`.
+
 ## 2026-09-30 — ADR 0357 CI correction: preserve production baseline pin, separate Fast Read candidate
 
 The first ADR 0357 source head `4e316206dafd9d7152db4912dbceb910982096b5` produced two intentional canary failures before any production effect. OpenAPI Compatibility proved the adapter's canonical production-baseline compatibility pin must remain `v2026.916.0 / dffc2b3ca1b9e88fa21cb17493083e682dffd1ca`. Paperclip Mastra Adapter CI independently passed the new `0.6.0` package markers, 11/11 adapter contract tests and loader proof, then the legacy disposable E2E failed because it correctly expects that same baseline commit.

@@ -4,7 +4,7 @@ import fs from "node:fs";
 
 const helperPath = "scripts/operations/production-rollback-freeze-v2.sh";
 const entrypointPath = "scripts/operations/managed-admin-production-rollback-freeze-v2-precheck.sh";
-const expectedBlob = "d1203bdf2cc90a5471fe9536e886eedcef496c2b";
+const expectedBlob = "31742060143e8ff7c86a9753045400364b98c9c9";
 
 const helper = fs.readFileSync(helperPath);
 const gitBlob = crypto
@@ -22,12 +22,20 @@ const currentCoreContract = [
   'CORE_IMAGE="wandora/core:organization-adapter-candidate-f279acc98687"',
   'CORE_IMAGE_ID="sha256:c8994cc7b9a6bff15b212eba215d5a1360ee217b84df18a1b59409fb9fd1a4d8"',
   'CORE_REVISION="f279acc98687da894a1ce6570273b5949552a8c7"',
-  'RECEIPT="/opt/wandora/ops-workspace/production-rollback-freeze-v2-f279acc98687da894a1ce6570273b5949552a8c7.metadata"',
-  'root="${BACKUP_PARENT}/paperclip-v9161-fast-read-rollback-freeze-v2-f279acc98687-${stamp}"',
+  'RECEIPT="/opt/wandora/ops-workspace/production-rollback-freeze-v2-post-adr0358-f279acc98687da894a1ce6570273b5949552a8c7-mastra060-2e97da6d.metadata"',
+  'root="${BACKUP_PARENT}/paperclip-v9161-fast-read-rollback-freeze-v2-post-adr0358-f279acc98687-mastra060-2e97da6d-${stamp}"',
 ];
 currentCoreContract.push(
   'OA_VERSION="0.6.1"',
   'OA_PATH="/paperclip/operator-packages/wandora-organization-adapter-v1/80373a61f08d87772c3aab738ffa6905bddcb49c783e9574c1540247cb3b258f/package"',
+  'MASTRA_TYPE="wandora_mastra"',
+  'MASTRA_SOURCE="external"',
+  'MASTRA_VERSION="0.6.0"',
+  'MASTRA_PATH="/paperclip/operator-packages/wandora-paperclip-adapter-mastra-v1/2e97da6dabfe8cc81c60c35ce74b071329078835373eb3ca39ce63017e9b9ecf/package"',
+  'MASTRA_ROLLBACK_VERSION="0.5.0"',
+  'MASTRA_ROLLBACK_PATH="/paperclip/operator-packages/wandora-paperclip-adapter-mastra-v1/64795ff7d2c519ef6303ab0944bac02d27aadf8b919860b832c2e6fac4defb62/package"',
+  'assert_mastra_adapter',
+  'mastra_adapter_rollback_package_preserved=true',
   'VIGIA="/opt/wandora/ops-workspace/.credentials/vigia-core-production"',
   'fail "Vigia overlay missing"',
   'assert_regular_secret_meta "${VIGIA}" "wandora-exec"',
@@ -63,6 +71,8 @@ const historicalOrStaleCurrentAnchors = [
   'OA_VERSION="0.5.0"',
   'OA_PATH="/paperclip/operator-packages/wandora-organization-adapter-v1/f4e733613e72e771eb18361dbdbf420c810c5b8bbe31361a64040a2081cc2ae2/package"',
   'RECEIPT="/opt/wandora/ops-workspace/production-rollback-freeze-v2-b2cffbb54089212844ef177827e7a616b1008144.metadata"',
+  'RECEIPT="/opt/wandora/ops-workspace/production-rollback-freeze-v2-f279acc98687da894a1ce6570273b5949552a8c7.metadata"',
+  'root="${BACKUP_PARENT}/paperclip-v9161-fast-read-rollback-freeze-v2-f279acc98687-${stamp}"',
 ];
 const presentHistoricalOrStaleCurrentAnchors = historicalOrStaleCurrentAnchors.filter((item) => helperText.includes(item));
 if (presentHistoricalOrStaleCurrentAnchors.length) {
