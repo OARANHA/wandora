@@ -1,3 +1,14 @@
+## 2026-09-30 — ADR 0350 Semantic Fast Read explicit product context / selector admission compatibility
+
+- Exact code head `1b28df19eef190ec54bded54c9b1cc830a131d0b` completed **17/17 workflows GREEN**; Core Candidate Artifact was rerun only after Semantic Fast Read CI + Core CI were GREEN and attempt 2 also passed.
+- Fresh non-production reproduction of the exact request `Qual é o preço do produto PREMIUM PLUS?` under the old TypeSafe/JEV wording returned `needsMoreContext=0.53`; this is qualification evidence only and is **not** the missing numeric value from the prior production request.
+- The smallest provider-neutral fix changes only the TypeSafe/JEV `needsMoreContext` question semantics: missing structured selector materialization is not itself missing customer/business context when one product is explicitly identified.
+- `maximumNeedsMoreContext=0.10` and all gate ordering remain unchanged. No regex/parser, product cache/catalog, ERP pre-read, new subsystem or second ERP read was added.
+- With the clarified contract the same non-production request returned `needsMoreContext=0.08`; ambiguous/missing-product probes remained fail-closed.
+- Regression coverage proves selector at most once, ambiguity fail-closed, signed `wfri1` only after the second Wandora gate, and zero dispatch before admission.
+- Production remains exact Core `14534e...` gates-OFF, Paperclip healthy, Gateway outbound OFF and Task Drain quiescent. No deployment/reopening is authorized.
+- Canonical detail: `docs/decisions/0350-semantic-fast-read-explicit-product-context-selector-admission-compatibility-v1.md`.
+
 ## 2026-09-30 — ADR 0349 Semantic Fast Read production attestation semantic fallback
 
 - One legitimate browser-owned owner/admin Human Fast Read was executed for `Qual é o preço do produto PREMIUM PLUS?`.

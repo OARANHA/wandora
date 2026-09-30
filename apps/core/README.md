@@ -136,6 +136,8 @@ WANDORA_SEMANTIC_SELECTOR_TIMEOUT_MS=3000
 
 Allowed range is 250..10000 ms. Provider/model details remain internal runtime configuration. Missing selector configuration, provider uncertainty or invalid selector output remains fail-closed before the signed Fast Read intent can authorize an ERP read.
 
+ADR 0350 clarifies the semantic admission boundary without relaxing policy: `needsMoreContext` is about material customer/business context missing from the request itself. For product reads, an absent structured `ProductSelector` is not by itself missing context when the request explicitly identifies one product. The normal gate may then return `missing-selector`, call the existing selector provider at most once, combine confidence/ambiguity, and rerun the same Wandora gate before issuing `wfri1`. Missing, vague or multiple product identities remain fail-closed, and `maximumNeedsMoreContext=0.10` is unchanged.
+
 This runtime wiring does not connect WhatsApp to Fast Read and does not authorize a live provider/VendaERP call or production activation.
 
 ## Human session and read APIs
