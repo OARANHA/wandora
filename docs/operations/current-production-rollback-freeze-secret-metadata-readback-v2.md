@@ -1,6 +1,6 @@
 ## Post-ADR0358 source requalification checkpoint — ADR 0359
 
-Status: **CODE COMPLETE / EXACT-HEAD CI REQUIRED / LIVE HELPER+WRAPPERS NOT UPDATED / POST-ADR0358 CAPTURE ABSENT**.
+Status: **SOURCE QUALIFIED / 17/17 EXACT-HEAD CI GREEN / LIVE HELPER+WRAPPERS NOT UPDATED / POST-ADR0358 CAPTURE ABSENT**.
 
 ADR 0356's f279acc receipt remains historical and must not be overwritten. Future qualified capture publishes to:
 
@@ -14,7 +14,7 @@ The existing backup/restore architecture is unchanged. Before first persistent w
 
 Qualified candidate source identities: helper `31742060143e8ff7c86a9753045400364b98c9c9`, precheck wrapper `94d47e50d25e733799a345d7c5cfb4ff243ee74a`, capture wrapper `5fa90bd0432c51a72ec050e3f2d78ce1ebb73737`.
 
-No host staging, root precheck or persistent capture is authorized from this source checkpoint. After exact-head CI GREEN, start a new production slice with fresh state, decision, second review and separate managed-admin approvals for deployment, precheck and capture.
+Code head `997868abfefbe929aa56177df9bb6596d8929f89` completed 17/17 PR workflows GREEN. No host staging, root precheck or persistent capture is authorized from this source checkpoint. The next production slice must begin with fresh state, decision, second review and separate managed-admin approvals for exact-byte deployment, precheck and capture.
 
 ## Current-Core exact-byte host deployment checkpoint — ADR 0327
 
