@@ -2,7 +2,7 @@
 
 Date: 2026-09-30
 
-Status: **CODE-ONLY REQUALIFICATION / LIVE CORE F279ACC GATES-OFF / HOST DEPLOYMENT PENDING / NO CURRENT-BASELINE CAPTURE**
+Status: **GREEN / CURRENT BASELINE ROLLBACK READY / ATTESTATION CLOSED**
 
 ## Objective
 
@@ -154,3 +154,32 @@ After exact-head CI GREEN:
 6. execute exactly one persistent capture under another separate human approval;
 7. validate the f279acc receipt and runtime invariants;
 8. only then begin a fresh bounded production re-attestation preflight.
+
+## Runtime completion
+
+ADR 0356 runtime completion is **GREEN / CURRENT BASELINE ROLLBACK READY / ATTESTATION CLOSED**.
+
+Production receipt:
+`/opt/wandora/ops-workspace/production-rollback-freeze-v2-f279acc98687da894a1ce6570273b5949552a8c7.metadata`
+
+Validated receipt/runtime evidence:
+
+- rollback root = `/home/wandora-admin/backups/paperclip-v9161-fast-read-rollback-freeze-v2-f279acc98687-20260930T085353251632216Z`;
+- Paperclip = `wandora/paperclip:v2026.916.1`, image id `sha256:7b72d43e87d54fcb9aa48b665150e062750c0cacb270e069f94297d58caa91e5`, commit `d554c4789ed3930f8a53ac9fdf6503b3187097da`, healthy/restart 0;
+- Core = `wandora/core:organization-adapter-candidate-f279acc98687`, image id `sha256:c8994cc7b9a6bff15b212eba215d5a1360ee217b84df18a1b59409fb9fd1a4d8`, revision `f279acc98687da894a1ce6570273b5949552a8c7`, healthy/restart 0;
+- exact 14-file Core gates-OFF composition preserved; custody/attestation overlays absent;
+- OA = exactly one `0.6.1`, status `ready`, canonical package path retained;
+- Task Drain = false / activeRuns 0 / pendingWakes 0 / quiescent=true;
+- official backup created and gzip-valid;
+- disposable restore succeeded and `schema_equal=true`;
+- TypeSafe / `wfri1` / Mistral / Vigia custody metadata remained correct;
+- `activation_performed=false`;
+- `provider_call_performed=false`;
+- `customer_effect=false`;
+- `outbound_effect=false`;
+- terminal marker = `ROLLBACK_FREEZE_V2_OK`.
+
+Precheck immediately before capture returned `ROLLBACK_FREEZE_V2_PRECHECK_OK`; no current-baseline receipt existed before capture. The capture executed exactly once through the zero-argument managed-admin wrapper and returned exit 0.
+
+Next boundary: fresh Semantic Fast Read bounded production re-attestation preflight. Re-prove current Git provenance, exact-head CI, runtime, policy/OA operational-read, custody, browser owner/admin identity and opening render before any effect-authorizing overlay. Do not reuse stale attestation approvals.
+
