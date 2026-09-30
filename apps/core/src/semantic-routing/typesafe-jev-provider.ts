@@ -165,10 +165,10 @@ function buildQuestions(availableCapabilities: readonly BusinessCapability[]): J
     },
     needsMoreContext: {
       type: 'noul',
-      instructions: 'Is material context missing such that the request should not be executed as a deterministic read yet?',
+      instructions: 'Is material business context missing from the customer request itself such that deterministic read admission should stop before selector extraction? Do not treat the absence of a structured selector object as missing context when the request explicitly names or identifies one product; selector materialization is handled separately after route admission.',
       criteria: {
-        true: 'Important context or identification is missing.',
-        false: 'The supplied request is sufficiently specific for the selected mode.',
+        true: 'The customer request itself omits material business context or entity identity required to know what should be read.',
+        false: 'The customer request itself is sufficiently specific for the selected read. An explicitly stated product name, code, or barcode counts as present even if it still needs separate structured selector extraction.',
       },
     },
     needsHumanReview: {

@@ -212,3 +212,66 @@ test('malformed answer probabilities fail closed', async () => {
     availableCapabilities: ['business.products.search'],
   }), /typesafe_jev_invalid_response/);
 });
+
+test('explicit named product is context-complete for later bounded selector extraction', async () => {
+  let calls = 0;
+  const fetchImpl: typeof fetch = async (_input, init) => {
+    calls += 1;
+    const body = JSON.parse(String(init?.body)) as {
+      state: Record<string, unknown>;
+      questions: Record<string, {
+        instructions?: string;
+        criteria?: Record<string, string>;
+      }>;
+    };
+
+    assert.deepEqual(body.state, {
+      request: 'Qual é o preço do produto PREMIUM PLUS?',
+      availableCapabilities: ['business.products.search', 'business.products.price'],
+    });
+    assert.match(
+      body.questions.needsMoreContext?.instructions ?? '',
+      /structured selector object as missing context/,
+    );
+    assert.match(
+      body.questions.needsMoreContext?.criteria?.false ?? '',
+      /explicitly stated product name, code, or barcode counts as present/,
+    );
+
+    const response = validResponse();
+    const payload = JSON.parse(await response.text()) as any;
+    payload.answers.capability.choice = 'business.products.price';
+    payload.answers.capability.confidence = 1;
+    payload.answers.capability.probabilities = {
+      none: 0,
+      'business.products.search': 0,
+      'business.products.price': 1,
+    };
+    payload.answers.needsDataOrToolLookup.noul = 0.94;
+    payload.answers.needsMoreContext.noul = 0.08;
+    payload.answers.needsHumanReview.noul = 0.04;
+    return new Response(JSON.stringify(payload), { status: 200 });
+  };
+
+  const provider = new TypeSafeJevSemanticDecisionProvider({
+    apiKey: API_KEY,
+    fetchImpl,
+  });
+
+  const decision = await provider.decide({
+    organizationId: '11111111-1111-4111-8111-111111111111',
+    employeeId: '22222222-2222-4222-8222-222222222222',
+    request: 'Qual é o preço do produto PREMIUM PLUS?',
+    availableCapabilities: ['business.products.search', 'business.products.price'],
+  });
+
+  assert.equal(calls, 1);
+  assert.equal(decision.mode, 'deterministic_read');
+  assert.equal(decision.capability, 'business.products.price');
+  assert.equal(decision.confidence, 0.98);
+  assert.equal(decision.needsDataOrToolLookup, 0.94);
+  assert.equal(decision.needsMoreContext, 0.08);
+  assert.equal(decision.needsHumanReview, 0.04);
+  assert.equal(decision.ambiguity, 'none');
+});
+
