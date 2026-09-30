@@ -1,3 +1,9 @@
+## 2026-09-30 — ADR 0357 CI correction: preserve production baseline pin, separate Fast Read candidate
+
+The first ADR 0357 source head `4e316206dafd9d7152db4912dbceb910982096b5` produced two intentional canary failures before any production effect. OpenAPI Compatibility proved the adapter's canonical production-baseline compatibility pin must remain `v2026.916.0 / dffc2b3ca1b9e88fa21cb17493083e682dffd1ca`. Paperclip Mastra Adapter CI independently passed the new `0.6.0` package markers, 11/11 adapter contract tests and loader proof, then the legacy disposable E2E failed because it correctly expects that same baseline commit.
+
+Correction: `compatibility.json` keeps the canonical baseline pin and adds a separate `qualifiedFastReadCandidate` for `v2026.916.1 / d554c4789ed3930f8a53ac9fdf6503b3187097da`. Adapter CI returns to the baseline checkout and emits both baseline/candidate provenance; exact-head Semantic Fast Read CI remains the authority for the full issue-less Fast Read E2E against the v916.1/d554 candidate. `index.mjs` remains unchanged. Production remains closed; no adapter install/reload, agent recovery, provider call or second browser request is authorized.
+
 ## 2026-09-30 — ADR 0357 Fast Read production re-attestation exposed stale wandora_mastra package
 
 Status: **PRODUCTION WINDOW CLOSED / NO VENDAERP CALL / ADAPTER 0.6.0 CODE-ONLY REQUALIFICATION / ANA ERROR PRESERVED**.
@@ -8,7 +14,7 @@ Persistent evidence proves correlation `33e070c7-1677-432b-9e50-1ba07512cc87`, s
 
 Root cause boundary: production still uses content-addressed `wandora_mastra@0.5.0` package `64795ff7d2c519ef6303ab0944bac02d27aadf8b919860b832c2e6fac4defb62`, the exact ADR 0239/0240 artifact promoted before ADR 0277 added issue-less `paperclipWake.agentMessage / WANDORA_FAST_READ_V1` transport in source. ADR 0277 had no production effect. Reusing version `0.5.0` for later source semantics obscured this byte-level drift.
 
-This slice creates no production effect. Current source is requalified as new immutable adapter package `0.6.0`, pinned to Paperclip `v2026.916.1 / d554c4789ed3930f8a53ac9fdf6503b3187097da`; adapter CI is aligned to the v916.1 provider deltas and explicitly gates the Fast Read transport identity. `index.mjs` execution logic is unchanged.
+This slice creates no production effect. Current source is requalified as new immutable adapter package `0.6.0`. The canonical adapter production-baseline compatibility pin remains `v2026.916.0 / dffc2b3ca1b9e88fa21cb17493083e682dffd1ca`; the qualified Fast Read candidate is recorded separately as `v2026.916.1 / d554c4789ed3930f8a53ac9fdf6503b3187097da`. Adapter CI preserves the baseline contract while exact-head Semantic Fast Read CI owns the full candidate Fast Read E2E. `index.mjs` execution logic is unchanged.
 
 The failed run left Paperclip Ana `428b6730-3df4-4b92-b90a-a87f87c401f9` in `status=error`, `errorReason=wandora_execution_failed_400`. OA activation intentionally rejects `error`; no recovery mutation is authorized here.
 

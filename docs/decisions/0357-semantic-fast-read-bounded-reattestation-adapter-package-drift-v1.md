@@ -178,13 +178,13 @@ The source execution logic in `index.mjs` is not changed.
 
 Requalify package metadata/CI by:
 
-1. pinning compatibility to production Paperclip `v2026.916.1`;
-2. pinning Paperclip source `d554c4789ed3930f8a53ac9fdf6503b3187097da`;
-3. recording the issue-less Fast Read transport contract in compatibility metadata;
-4. updating the adapter-specific CI to compose the same qualified v916.1 provider deltas;
-5. statically requiring `0.6.0`, `fastReadWake` and `WANDORA_FAST_READ_V1`;
-6. keeping the existing contract tests;
-7. relying on the same exact-head Semantic Fast Read CI for the full disposable Fast Read E2E against v916.1.
+1. preserving the canonical adapter production-baseline compatibility pin `v2026.916.0 / dffc2b3ca1b9e88fa21cb17493083e682dffd1ca`;
+2. separately recording a `qualifiedFastReadCandidate` boundary for Paperclip `v2026.916.1 / d554c4789ed3930f8a53ac9fdf6503b3187097da`;
+3. recording the issue-less Fast Read transport contract only inside that candidate boundary;
+4. keeping the adapter-specific CI's first Paperclip checkout on the canonical production baseline so the existing loader/legacy disposable E2E remains authoritative;
+5. statically requiring `0.6.0`, `fastReadWake`, `WANDORA_FAST_READ_V1` and the separate candidate metadata;
+6. emitting both baseline and Fast Read candidate provenance in the deterministic artifact receipt;
+7. relying on the same exact-head Semantic Fast Read CI for the full disposable Fast Read E2E against the v916.1/d554 candidate boundary.
 
 Any later production promotion must use the new deterministic `0.6.0` artifact hash emitted by CI, never overwrite or reinterpret `64795...`.
 
@@ -195,6 +195,15 @@ The routing review selected `proceed_fast` with probability 0.61.
 The exact source action review returned `confirm` as the leading decision. Confidence was low because adapter packaging and production recovery are safety-sensitive; therefore this slice is deliberately restricted to source/package provenance only.
 
 No production installation, reload, restart, agent recovery or customer/provider effect is permitted by this ADR.
+
+## CI adversarial correction
+
+The first package-requalification head `4e316206dafd9d7152db4912dbceb910982096b5` intentionally received no production effect and exposed two canary failures:
+
+- Paperclip OpenAPI Compatibility rejected replacing the canonical adapter production source pin `dffc2b3...` with `d554c478...`;
+- Paperclip Mastra Adapter CI passed package markers, 11/11 unit tests and loader qualification, then its existing disposable E2E failed immediately because that baseline verifier correctly requires `dffc2b3...`.
+
+Those failures proved that production-baseline compatibility and qualified Fast Read candidate compatibility are distinct authorities. The corrective source keeps the former unchanged and records the latter separately. No gate was weakened, skipped or rerun against mutated production.
 
 ## Production boundary
 

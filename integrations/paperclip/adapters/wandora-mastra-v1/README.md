@@ -80,3 +80,5 @@ The adapter recognizes Fast Read only when the Paperclip adapter context contain
 It forwards `workId=null`, the bounded request, correlation id and signed Wandora Fast Read Intent to the existing private Core bridge. It does not choose a provider tool, grant authority, create a retry engine or own run lifecycle.
 
 This version bump is a package/provenance boundary. The execution logic already existed in source and disposable qualification; production previously retained the older content-addressed `0.5.0` package from ADR 0240, which predated ADR 0277. Promotion of `0.6.0` requires a separately reviewed production effect.
+
+Compatibility metadata preserves the canonical `v2026.916.0 / dffc2b3...` production-baseline pin used by the legacy adapter contract while separately recording the qualified Fast Read candidate boundary `v2026.916.1 / d554c478...`. The exact-head Semantic Fast Read CI owns the full disposable Fast Read E2E for that candidate boundary.
