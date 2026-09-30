@@ -181,13 +181,13 @@ function buildQuestions(availableCapabilities: readonly BusinessCapability[]): J
     },
     ambiguity: {
       type: 'choice',
-      instructions: 'Classify the strongest ambiguity present in the request.',
+      instructions: 'Classify ambiguity only from the customer request itself. Do not infer ambiguity merely because an external catalog may contain duplicate rows or multiple records with the same explicit product name, code, or barcode; downstream deterministic lookup and exact-match post-filtering handle provider-side multiplicity.',
       criteria: {
-        none: 'No material ambiguity blocks deterministic execution.',
-        missing_entity: 'A required entity or identifier is missing.',
-        multiple_matches: 'The request plausibly refers to multiple entities or values.',
-        vague_reference: 'The request contains a vague reference that cannot be resolved safely.',
-        unknown: 'Ambiguity cannot be classified safely.',
+        none: 'The request explicitly identifies one product name, code, or barcode, or otherwise contains no material ambiguity. Possible duplicate records in the external catalog do not make the request itself ambiguous.',
+        missing_entity: 'A required product/entity or identifier is missing from the request.',
+        multiple_matches: 'The request itself explicitly names or asks between multiple products/entities/values, so more than one target is requested or equally intended before any provider lookup.',
+        vague_reference: 'The request uses a vague reference whose target cannot be identified from the request itself.',
+        unknown: 'Request-level ambiguity cannot be classified safely.',
       },
     },
   };

@@ -632,6 +632,51 @@ test('needs-more-context threshold remains fail-closed and does not invoke selec
   assert.equal(dispatchCalls, 0);
 });
 
+test('request-level ambiguity remains fail-closed before selector and dispatch', async () => {
+  let selectorCalls = 0;
+  let dispatchCalls = 0;
+  const service = new HumanDigitalEmployeeFastReadService({
+    intentSecret: SECRET,
+    policy: POLICY,
+    semanticDecisionProvider: {
+      async decide() {
+        return deterministicDecision({
+          capability: 'business.products.price',
+          needsMoreContext: 0.08,
+          ambiguity: 'multiple_matches',
+        });
+      },
+    },
+    semanticSelectorProvider: {
+      async select() {
+        selectorCalls += 1;
+        throw new Error('selector must not run when the request itself is ambiguous');
+      },
+    },
+    bridge: {
+      async getAvailableCapabilities() {
+        return ['business.products.search', 'business.products.price'];
+      },
+      async dispatchFastRead() {
+        dispatchCalls += 1;
+        throw new Error('must not dispatch');
+      },
+    },
+  });
+
+  assert.deepEqual(await service.execute({
+    organizationId: ORG,
+    actorUserId: USER,
+    employeeId: EMPLOYEE,
+    request: 'Qual é o preço do produto PREMIUM PLUS ou PREMIUM FOSCO?',
+  }), {
+    kind: 'fallback',
+    reason: 'ambiguous',
+  });
+  assert.equal(selectorCalls, 0);
+  assert.equal(dispatchCalls, 0);
+});
+
 test('selector ambiguity remains fail-closed with one selector call and zero dispatch', async () => {
   let selectorCalls = 0;
   let dispatchCalls = 0;

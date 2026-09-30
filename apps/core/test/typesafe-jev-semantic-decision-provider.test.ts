@@ -237,6 +237,18 @@ test('explicit named product is context-complete for later bounded selector extr
       body.questions.needsMoreContext?.criteria?.false ?? '',
       /explicitly stated product name, code, or barcode counts as present/,
     );
+    assert.match(
+      body.questions.ambiguity?.instructions ?? '',
+      /external catalog may contain duplicate rows/,
+    );
+    assert.match(
+      body.questions.ambiguity?.criteria?.none ?? '',
+      /Possible duplicate records in the external catalog do not make the request itself ambiguous/,
+    );
+    assert.match(
+      body.questions.ambiguity?.criteria?.multiple_matches ?? '',
+      /request itself explicitly names or asks between multiple products/,
+    );
 
     const response = validResponse();
     const payload = JSON.parse(await response.text()) as any;
