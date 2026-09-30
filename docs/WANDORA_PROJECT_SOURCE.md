@@ -1,3 +1,48 @@
+## 2026-09-30 — ADR 0352 Corrected Core Compatibility Promotion V1 GREEN
+
+ADR 0352 is **EXECUTED / GREEN / CORRECTED CORE LIVE / ALL EFFECT GATES OFF / NO HUMAN FAST READ**.
+
+Fresh authoritative Git reconciliation immediately before mutation proved `refs/heads/main=e4c7c36bb1091ba38d39b85fa259bae94553fc52`, PR #369 head `004551f445a89ad7b4489360bb05c0c0551ca825`, and `refs/pull/369/merge=a49504c7c41ee255fa25cc3944ef0f718cc9a696`. The verified merge commit parents are exactly main `e4c7c36...` plus PR head `004551f...`; the exact PR head completed **17/17 workflows GREEN**.
+
+A transient preflight block during this slice was caused by incorrectly treating the PR object's historical `base.sha=ce805822...` as the current main tip. Raw Git refs proved main never regressed: `refs/heads/main` remained `e4c7c36...`. Provenance decisions must prefer the actual branch ref and pull merge ref over that stale PR metadata field.
+
+The current Core Candidate Artifact run `36669756777` produced artifact `11077542990`, name `core-organization-adapter-candidate-a49504c7c41ee255fa25cc3944ef0f718cc9a696`, GitHub digest `sha256:e59b40dba92a7d52f7aaca112ae915075949385c9ceef6682471bf9decf5dcad`. The downloaded ZIP independently matched that digest. Candidate manifest/archive checks matched `archive_sha256=926dfcc4d7d50d81beb3080fb7fa0e43d90f08b3b4b8efe8124ef06230ed26ee`; CI's portable provenance re-check was GREEN.
+
+The image was loaded through a separately human-approved managed-admin `docker load`. Exact loaded identity was:
+- tag `wandora/core:organization-adapter-candidate-a49504c7c41e`;
+- OCI/image id `sha256:ec37d2f730e0069521745fc620085f5d2353dc583117808d955f9e6975604005`;
+- revision `a49504c7c41ee255fa25cc3944ef0f718cc9a696`;
+- candidate contract `organization-adapter-core-v1`;
+- user `node`.
+
+The exact current 14-file production Compose chain passed `config --quiet` and `config --images` resolved exactly to that candidate. The Semantic Fast Read convergence overlay remained effect-inert: Fast Read execution OFF, Semantic Fast Read OFF, Semantic Selector OFF and Human Send Proposal OFF.
+
+Immediately before recreation, the current `14534e...` Rollback Freeze V2 receipt was freshly re-read and ended `ROLLBACK_FREEZE_V2_OK`. Core/Paperclip/Gateway were healthy and Task Drain was `false / 0 / 0 / quiescent=true`. A corrected second adversarial review returned `confirm=0.95`, confidence `0.93`.
+
+One separately human-approved Core-only recreation executed with the exact 14-file chain and:
+`up -d --no-deps --force-recreate --no-build --pull never --wait core`.
+
+Post-promotion production is:
+- Core tag `wandora/core:organization-adapter-candidate-a49504c7c41e`;
+- OCI/image id `sha256:ec37d2f730e0069521745fc620085f5d2353dc583117808d955f9e6975604005`;
+- revision `a49504c7c41ee255fa25cc3944ef0f718cc9a696`;
+- healthy / restart 0 / user `node`;
+- exact 14-file Compose provenance preserved;
+- read-only rootfs, `CapDrop=ALL`, `no-new-privileges`, no published host port and existing networks/mount boundaries preserved;
+- startup: `fastReadExecution=false`, `semanticFastRead=false`, `humanSendProposal=false`, `vigiaTelemetry=true`;
+- Paperclip remained on the same container/start time and healthy;
+- exactly one Organization Adapter `0.6.1` remains `ready`, `lastError=null`;
+- Messaging Gateway remained on the same container/start time, healthy and `outboundEnabled=false`;
+- Task Drain remains `false / 0 / 0 / quiescent=true`.
+
+After successful promotion only, stable selector `/opt/wandora/ops-workspace/core-runtime-image.env` was reconciled from `14534e...` to `a49504c...`. A separate human-approved read-only `config --images` using that stable selector returned exactly `wandora/core:organization-adapter-candidate-a49504c7c41e`.
+
+No Semantic Fast Read opening, Human Fast Read, TypeSafe/System One customer-path call, Mistral selector customer-path call, Paperclip Fast Read run, VendaERP call, Human Send, Gateway outbound, WhatsApp, migration, database mutation, Paperclip/OA mutation or other service recreation occurred.
+
+**Hard stop:** the corrected Core promotion is complete. The next slice is a fresh **Semantic Fast Read Bounded Production Re-Attestation after ADR 0350 — FRESH PREFLIGHT / CONTROLLED EFFECT**. It must independently repeat all mutable repository/runtime/rollback/provider/custody/browser freshness gates before any opening effect.
+
+Canonical detail: `docs/decisions/0352-adr0350-corrected-core-compatibility-promotion-v1.md`.
+
 ## 2026-09-30 — ADR 0351 Semantic Fast Read re-attestation preflight blocked on corrected Core promotion
 
 - Fresh GitHub reconciliation: `main=e4c7c36bb1091ba38d39b85fa259bae94553fc52`; PR #369 open/draft/mergeable; pre-documentation head `d46e58e8e9194486ad8430b37f81cc7b2158f88d`; merge ref `e7b1b1af596642da54cf5e5db7fae34bb1c9a554` with parents exactly main + PR head; exact-head CI **17/17 GREEN**.
