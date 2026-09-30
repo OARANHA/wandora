@@ -64,3 +64,19 @@ The blocking write is bounded and fail-closed:
 - an ambiguous block write is read back before any repeat mutation;
 - a pre-existing native `blocked` status is accepted without overwrite/retry;
 - if native blocking cannot be persisted, the adapter still fails and Wandora's durable `execution_uncertain` gate prevents a successor run from reaching model/tool/provider execution for that work.
+
+
+## Issue-less Semantic Fast Read transport
+
+`wandora_mastra@0.6.0` is the first production-package identity that explicitly includes the already-qualified ADR 0277 issue-less Semantic Fast Read transport.
+
+The adapter recognizes Fast Read only when the Paperclip adapter context contains:
+
+- no `paperclipIssue`;
+- `paperclipWake.agentMessage.source === "plugin_invoke"`;
+- `paperclipWake.agentMessage.pluginKey === "wandora.organization-adapter-v1"`;
+- an exact `WANDORA_FAST_READ_V1 ` envelope.
+
+It forwards `workId=null`, the bounded request, correlation id and signed Wandora Fast Read Intent to the existing private Core bridge. It does not choose a provider tool, grant authority, create a retry engine or own run lifecycle.
+
+This version bump is a package/provenance boundary. The execution logic already existed in source and disposable qualification; production previously retained the older content-addressed `0.5.0` package from ADR 0240, which predated ADR 0277. Promotion of `0.6.0` requires a separately reviewed production effect.

@@ -1,3 +1,21 @@
+## 2026-09-30 — ADR 0357 Fast Read production re-attestation exposed stale wandora_mastra package
+
+Status: **PRODUCTION WINDOW CLOSED / NO VENDAERP CALL / ADAPTER 0.6.0 CODE-ONLY REQUALIFICATION / ANA ERROR PRESERVED**.
+
+Exactly one owner/browser Human Fast Read for 28PRO/Ana and `PREMIUM PLUS` returned HTTP 500 `internal-error`. Mandatory close immediately restored Core `f279acc98687` to the exact 14-file gates-OFF baseline; Paperclip/Gateway remain healthy and Task Drain quiescent.
+
+Persistent evidence proves correlation `33e070c7-1677-432b-9e50-1ba07512cc87`, selector `product/name/PREMIUM PLUS`, exactly one Paperclip run `86b101a9-0f7b-412d-b25c-7ef1e1b49be7`, and failure `wandora_execution_failed_400` before Tool Gateway execution. Governed `vendaerp_search_products` activity for that exact run is `count=0`; Gateway had no event in the attestation window; no Human Send/WhatsApp/outbound occurred.
+
+Root cause boundary: production still uses content-addressed `wandora_mastra@0.5.0` package `64795ff7d2c519ef6303ab0944bac02d27aadf8b919860b832c2e6fac4defb62`, the exact ADR 0239/0240 artifact promoted before ADR 0277 added issue-less `paperclipWake.agentMessage / WANDORA_FAST_READ_V1` transport in source. ADR 0277 had no production effect. Reusing version `0.5.0` for later source semantics obscured this byte-level drift.
+
+This slice creates no production effect. Current source is requalified as new immutable adapter package `0.6.0`, pinned to Paperclip `v2026.916.1 / d554c4789ed3930f8a53ac9fdf6503b3187097da`; adapter CI is aligned to the v916.1 provider deltas and explicitly gates the Fast Read transport identity. `index.mjs` execution logic is unchanged.
+
+The failed run left Paperclip Ana `428b6730-3df4-4b92-b90a-a87f87c401f9` in `status=error`, `errorReason=wandora_execution_failed_400`. OA activation intentionally rejects `error`; no recovery mutation is authorized here.
+
+Next: exact-head CI GREEN -> deterministic 0.6.0 artifact identity -> separate Paperclip-native error-state recovery qualification -> separate Task-Drain adapter promotion/rollback preflight -> no second browser Fast Read until all fresh gates are re-proven.
+
+Canonical detail: `docs/decisions/0357-semantic-fast-read-bounded-reattestation-adapter-package-drift-v1.md`.
+
 ## 2026-09-30 — ADR 0356 f279acc Rollback Freeze V2 captured and validated
 
 ADR 0356 runtime completion is **GREEN / CURRENT BASELINE ROLLBACK READY / ATTESTATION CLOSED**.

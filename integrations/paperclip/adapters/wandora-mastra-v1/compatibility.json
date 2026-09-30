@@ -1,6 +1,6 @@
 {
-  "paperclipImage": "wandora/paperclip:v2026.916.0",
-  "paperclipSourceCommit": "dffc2b3ca1b9e88fa21cb17493083e682dffd1ca",
+  "paperclipImage": "wandora/paperclip:v2026.916.1",
+  "paperclipSourceCommit": "d554c4789ed3930f8a53ac9fdf6503b3187097da",
   "adapterType": "wandora_mastra",
   "supportsLocalAgentJwt": true,
   "wandoraBridgePath": "/internal/v1/paperclip/execution",
@@ -9,5 +9,8 @@
   "usageBasis": "per_run",
   "paperclipIssueApi": "PAPERCLIP_LISTEN_HOST+PAPERCLIP_LISTEN_PORT",
   "customerWorkReadToolFailureDisposition": "run-scoped-issue-blocked-before-failed-adapter-return",
-  "customerWorkReadToolFailureScope": "exact-422-read-tool-failed-only"
+  "customerWorkReadToolFailureScope": "exact-422-read-tool-failed-only",
+  "issueLessFastReadTransport": "paperclipWake.agentMessage/plugin_invoke-v1",
+  "fastReadEnvelopePrefix": "WANDORA_FAST_READ_V1",
+  "fastReadWorkId": null
 }
