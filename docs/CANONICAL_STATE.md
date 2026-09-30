@@ -1,3 +1,18 @@
+## 2026-09-30 — ADR 0351 Semantic Fast Read re-attestation preflight blocked on corrected Core promotion
+
+- Fresh GitHub reconciliation: `main=e4c7c36bb1091ba38d39b85fa259bae94553fc52`; PR #369 open/draft/mergeable; pre-documentation head `d46e58e8e9194486ad8430b37f81cc7b2158f88d`; merge ref `e7b1b1af596642da54cf5e5db7fae34bb1c9a554` with parents exactly main + PR head; exact-head CI **17/17 GREEN**.
+- Core Candidate Artifact run `36667558633` attempt 2 / job `109736364891` is GREEN; corrected merge-ref artifact `11077191825` is available/unexpired.
+- Fresh production remains Core `14534e57256f...`, healthy/restart 0, exact 14-file gates-OFF composition, Paperclip 916.1 healthy, exactly one OA 0.6.1 ready, Gateway outbound OFF, Task Drain false/0/0/quiescent.
+- Decisive hard gate: live Core `14534e...` is merge(main `e4c7...` + PR source `6035cfd2...`). ADR 0350 correction is later code head `1b28df19...`; compare `6035..1b28` is 10 commits ahead and includes `typesafe-jev-provider.ts`. The live Core therefore does **not** contain the ADR 0350 correction.
+- Current `14534e...` Rollback Freeze V2 receipt remains present and ends `ROLLBACK_FREEZE_V2_OK`.
+- Fresh Paperclip authorization/readiness is GREEN: Tool Policies `[]`; exact 28PRO/Ana/VendaERP product-search test = `allow / allow_profile`, no matched temporary policy, no audit event; corrected scoped OA `operational-read` = runtime healthy, Connection active/enabled/healthy, grant active, installed for Ana and `vendaerp_search_products` read-only/non-write/non-destructive/allowed.
+- Fresh custody metadata and browser-owned preflight were intentionally not consumed after the earlier hard gate failed; no opening-time freshness is claimed for those boundaries.
+- Reuse Gate: no new subsystem/capability is needed. This is a deployment-convergence gap, not a provider-authority gap.
+- Decision: **BLOCK BEFORE OPEN**. JEV second review chose `split_task`; focused opening guard returned `deny=1.00` / confidence `0.99`.
+- No deployment, Core recreation, overlay/gate activation, TypeSafe/Mistral customer path, Paperclip Fast Read, VendaERP, Human Send, Gateway outbound, WhatsApp or customer effect occurred.
+- Next slice: **ADR 0350 Corrected Core Compatibility Promotion V1 — CORE ONLY / ALL EFFECT GATES OFF / NO HUMAN FAST READ**. Promotion and re-attestation remain separate effect boundaries.
+- Canonical detail: `docs/decisions/0351-semantic-fast-read-bounded-production-reattestation-preflight-blocked-corrected-core-promotion-v1.md`.
+
 ## 2026-09-30 — ADR 0350 Semantic Fast Read explicit product context / selector admission compatibility
 
 - Exact code head `1b28df19eef190ec54bded54c9b1cc830a131d0b` completed **17/17 workflows GREEN**; Core Candidate Artifact was rerun only after Semantic Fast Read CI + Core CI were GREEN and attempt 2 also passed.
