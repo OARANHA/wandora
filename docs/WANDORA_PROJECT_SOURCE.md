@@ -1,3 +1,17 @@
+## 2026-09-30 — ADR 0354 Current a49504c Core Rollback Freeze V2 Source Requalification V1
+
+ADR 0354 is **CODE-ONLY REQUALIFICATION / CURRENT BASELINE REPINNED / NO HOST DEPLOYMENT / NO CAPTURE / ATTESTATION CLOSED**.
+
+Fresh PROVENANCE NOW before mutation: `refs/heads/main=e4c7c36...`; PR #369 head `95c3918...`; `refs/pull/369/merge=53469ee...`; merge parents exactly main + PR head; exact-head CI 17/17 GREEN.
+
+Live Core remains exact `a49504c...` / image id `sha256:ec37d2f...`, healthy/restart 0, with Semantic/Fast Read/Human Send/Gateway outbound OFF and Task Drain quiescent. No current-baseline Rollback Freeze V2 receipt exists.
+
+The existing Rollback Freeze V2 implementation is reused without semantic expansion and repinned only to the exact `a49504c...` Core identity, immutable receipt/root namespace and wrapper byte identity. Historical receipts remain untouched; `14534e...` is explicitly stale for current-helper qualification.
+
+No host deployment, precheck, capture, provider/customer call, Core recreation or outbound effect occurs in this source-only checkpoint.
+
+Canonical detail: `docs/decisions/0354-current-a49504c-core-rollback-v2-source-requalification-v1.md`.
+
 ## 2026-09-30 — ADR 0353 Session Continuity + Git Provenance Hardening V1
 
 ADR 0353 is **GOVERNANCE HARDENED / RETROSPECTIVE AUDIT COMPLETE / NO PRODUCTION EFFECT**.
