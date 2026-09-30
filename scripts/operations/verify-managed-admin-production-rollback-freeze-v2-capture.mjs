@@ -4,7 +4,7 @@ import fs from "node:fs";
 
 const helperPath = "scripts/operations/production-rollback-freeze-v2.sh";
 const entrypointPath = "scripts/operations/managed-admin-production-rollback-freeze-v2-capture.sh";
-const expectedBlob = "13b5eb89e3a223372e50b8302f257bd70fc5e3f9";
+const expectedBlob = "d1203bdf2cc90a5471fe9536e886eedcef496c2b";
 
 const helper = fs.readFileSync(helperPath);
 const gitBlob = crypto
@@ -19,11 +19,11 @@ if (gitBlob !== expectedBlob) {
 
 const helperText = helper.toString("utf8");
 const currentCoreContract = [
-  'CORE_IMAGE="wandora/core:organization-adapter-candidate-a49504c7c41e"',
-  'CORE_IMAGE_ID="sha256:ec37d2f730e0069521745fc620085f5d2353dc583117808d955f9e6975604005"',
-  'CORE_REVISION="a49504c7c41ee255fa25cc3944ef0f718cc9a696"',
-  'RECEIPT="/opt/wandora/ops-workspace/production-rollback-freeze-v2-a49504c7c41ee255fa25cc3944ef0f718cc9a696.metadata"',
-  'root="${BACKUP_PARENT}/paperclip-v9161-fast-read-rollback-freeze-v2-a49504c7c41e-${stamp}"',
+  'CORE_IMAGE="wandora/core:organization-adapter-candidate-f279acc98687"',
+  'CORE_IMAGE_ID="sha256:c8994cc7b9a6bff15b212eba215d5a1360ee217b84df18a1b59409fb9fd1a4d8"',
+  'CORE_REVISION="f279acc98687da894a1ce6570273b5949552a8c7"',
+  'RECEIPT="/opt/wandora/ops-workspace/production-rollback-freeze-v2-f279acc98687da894a1ce6570273b5949552a8c7.metadata"',
+  'root="${BACKUP_PARENT}/paperclip-v9161-fast-read-rollback-freeze-v2-f279acc98687-${stamp}"',
 ];
 currentCoreContract.push(
   'OA_VERSION="0.6.1"',
@@ -39,6 +39,11 @@ if (missingCurrentCoreContract.length) {
 }
 
 const historicalOrStaleCurrentAnchors = [
+  'CORE_IMAGE="wandora/core:organization-adapter-candidate-a49504c7c41e"',
+  'CORE_IMAGE_ID="sha256:ec37d2f730e0069521745fc620085f5d2353dc583117808d955f9e6975604005"',
+  'CORE_REVISION="a49504c7c41ee255fa25cc3944ef0f718cc9a696"',
+  'RECEIPT="/opt/wandora/ops-workspace/production-rollback-freeze-v2-a49504c7c41ee255fa25cc3944ef0f718cc9a696.metadata"',
+  'root="${BACKUP_PARENT}/paperclip-v9161-fast-read-rollback-freeze-v2-a49504c7c41e-${stamp}"',
   'CORE_IMAGE="wandora/core:organization-adapter-candidate-14534e57256f"',
   'CORE_IMAGE_ID="sha256:ac253a9479338f0d47954937209323229314ef513125a71dd266558b3bfe1c8b"',
   'CORE_REVISION="14534e57256f0a73c49feb3944a1068921468f94"',

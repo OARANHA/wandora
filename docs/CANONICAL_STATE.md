@@ -1,3 +1,17 @@
+## 2026-09-30 — ADR 0356 Current f279acc Core Rollback Freeze V2 Source Requalification V1
+
+ADR 0356 is **CODE-ONLY REQUALIFICATION / LIVE CORE F279ACC GATES-OFF / CURRENT-BASELINE ROLLBACK NOT YET CAPTURED**.
+
+Fresh production convergence proved Core `wandora/core:organization-adapter-candidate-f279acc98687` / image id `sha256:c8994cc7b9a6bff15b212eba215d5a1360ee217b84df18a1b59409fb9fd1a4d8` / revision `f279acc98687da894a1ce6570273b5949552a8c7`, healthy/restart 0 on the exact 14-file composition. Startup remains Fast Read OFF / Semantic Fast Read OFF / Human Send OFF; the canonical semantic overlay also pins Semantic Selector OFF. Paperclip and Gateway remain healthy and unchanged; Task Drain remains false/0/0/quiescent. Stable selector `/opt/wandora/ops-workspace/core-runtime-image.env` now points to the f279acc candidate.
+
+Git provenance immediately before this requalification: `main=e4c7c36bb1091ba38d39b85fa259bae94553fc52`, PR #369 head `aef0526ebe4dbe292e06fe977d1241fbe0fe1296`, merge ref `f279acc98687da894a1ce6570273b5949552a8c7` with parents exactly current main + PR head, and the exact PR head completed 17/17 workflows GREEN.
+
+The existing Rollback Freeze V2 mechanism is reused and repinned only to the exact f279acc Core identity/receipt/root namespaces and managed-admin byte pins. Historical a49504c rollback evidence remains untouched and valid as the prior-baseline rollback; it is stale for a current-baseline capture. New helper Git blob = `d1203bdf2cc90a5471fe9536e886eedcef496c2b`; precheck wrapper blob = `be4616837539bafebe72e1729aa1669a91150682`; capture wrapper blob = `865a9b9338ce7f273140cfb35e401320383fce0f`.
+
+No host deployment, root precheck, rollback capture, attestation opening, provider/customer/database/outbound effect is authorized or performed by this source requalification. Next boundary: exact-head CI GREEN, then deploy only the exact reviewed helper/wrappers, run a separate zero-argument precheck, capture exactly one f279acc Rollback Freeze V2 receipt, independently validate it, and only then consider a fresh bounded production re-attestation.
+
+Canonical detail: `docs/decisions/0356-current-f279acc-core-rollback-v2-source-requalification-v1.md`.
+
 ## 2026-09-30 — ADR 0354 Current a49504c Core Rollback Freeze V2 Source Requalification V1
 
 ADR 0354 is **CODE-ONLY REQUALIFICATION / CURRENT BASELINE REPINNED / NO HOST DEPLOYMENT / NO CAPTURE / ATTESTATION CLOSED**.
