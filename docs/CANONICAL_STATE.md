@@ -1,3 +1,14 @@
+## 2026-09-30 — ADR 0349 Semantic Fast Read production attestation semantic fallback
+
+- One legitimate browser-owned owner/admin Human Fast Read was executed for `Qual é o preço do produto PREMIUM PLUS?`.
+- HTTP 200 returned `fastRead.kind=fallback` / `reason=needs-more-context`.
+- The request reached `employee-capabilities` but did **not** reach `employee-fast-read`; no new Paperclip run was created and no VendaERP tool call occurred.
+- Current source invokes the Mastra+Mistral selector only after `missing-selector`; the live decision failed earlier at the `needsMoreContext <= 0.10` gate, so the selector never ran.
+- Mandatory close is GREEN: exact Core `14534e...` back on the 14-file baseline, Fast Read/Semantic OFF, Human Send OFF, Gateway outbound OFF, Paperclip healthy, Task Drain quiescent.
+- Do not repeat the browser request or loosen thresholds blindly.
+- Next slice is **CODE+CI ONLY / NO PRODUCTION EFFECT**: reproduce/qualify the exact PREMIUM PLUS request and make the smallest provider-neutral semantic-decision/selector admission correction with an exact regression test.
+- Canonical detail: `docs/decisions/0349-semantic-fast-read-bounded-production-attestation-semantic-fallback-v1.md`.
+
 ## 2026-09-29 — ADR 0348 current 14534e Rollback V2 source requalification
 
 - Browser-owned owner/admin trigger is available, but Semantic Fast Read attestation remains CLOSED.
