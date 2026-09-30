@@ -1,3 +1,20 @@
+## 2026-09-30 — ADR 0353 Session Continuity + Git Provenance Hardening V1
+
+ADR 0353 is **GOVERNANCE HARDENED / RETROSPECTIVE AUDIT COMPLETE / NO PRODUCTION EFFECT**.
+
+A confirmed ADR 0352 resumption error temporarily treated PR `base.sha=ce805822...` as the current `main` tip. Direct Git refs proved `refs/heads/main=e4c7c36...`; the error was contained before the Core recreation and the promotion proceeded only after corrected provenance and a new adversarial review.
+
+The permanent hard gate now requires production-bound Git provenance to use live `refs/heads/<base>`, exact PR head SHA, `refs/pull/<PR>/merge` when applicable, verified merge parents, and exact-SHA CI. PR `base.sha` / connector `base_sha` is descriptive metadata only and cannot establish current-main identity.
+
+A mandatory **PROVENANCE NOW** block must be recorded immediately before production mutations that depend on Git provenance. On disagreement, investigate; do not infer branch regression/reset from PR metadata alone.
+
+Retrospective audit of ADRs 0342–0352 found one confirmed interpretation error (ADR 0352 resumption), no other explicit `base.sha` misuse, and no evidence that an earlier audited production promotion used a wrong base because of this failure mode. Merge commits used by ADRs 0346, 0349, 0351 and 0352 mechanically close over `e4c7...` plus their recorded PR heads. Several other ADRs are historically consistent but did not record the raw-ref retrieval source, so their evidence is not retroactively overstated.
+
+Canonical procedure: `docs/operations/session-continuity-git-provenance-v1.md`.
+Canonical decision: `docs/decisions/0353-session-continuity-git-provenance-hardening-v1.md`.
+
+No runtime, production, provider, database, migration, customer or outbound effect occurred. Semantic Fast Read remains closed.
+
 ## 2026-09-30 — ADR 0352 Corrected Core Compatibility Promotion V1 GREEN
 
 ADR 0352 is **EXECUTED / GREEN / CORRECTED CORE LIVE / ALL EFFECT GATES OFF / NO HUMAN FAST READ**.

@@ -25,6 +25,22 @@ Before continuing previous work:
 - never repeat an operation merely because the previous assistant response did not arrive;
 - record material decisions/checkpoints in the repository so continuity does not depend on one chat.
 
+### Git provenance hard gate for resumed or production-bound work
+
+For GitHub state, distinguish **live refs** from PR convenience metadata.
+
+- prove the current base branch from the actual Git ref, e.g. `refs/heads/main`;
+- prove the PR source from the exact PR head SHA;
+- when a merge candidate matters, prove `refs/pull/<PR>/merge` and inspect the merge commit parents;
+- require the merge parents to be exactly the live base ref SHA plus the intended PR head SHA before claiming current-main candidate provenance;
+- never use PR `base.sha` / connector `base_sha` as authority for the current base-branch tip. It may describe historical/stale PR metadata and must not substitute for `refs/heads/<base>`;
+- if PR metadata conflicts with live refs, **investigate the conflict**. Do not conclude that `main` moved, regressed or was force-reset from PR metadata alone;
+- bind workflow evidence to the exact intended SHA. A GREEN workflow on another head is not transferable;
+- immediately before a production mutation, record a compact **PROVENANCE NOW** block containing: base ref+SHA, PR head ref+SHA, merge ref+SHA when applicable, verified merge-parent pair, and exact-SHA workflow result;
+- after interruption, re-read the real refs and runtime effect before repeating or extending any prior action.
+
+The operational procedure and the ADR 0342–0352 retrospective audit are in `docs/operations/session-continuity-git-provenance-v1.md` and ADR 0353.
+
 Do not silently reopen, reinterpret or override an accepted decision. If new evidence creates a conflict, stop the conflicting change, document the evidence and propose a superseding ADR.
 
 **Urgent architecture rule:** a missing local Wandora table/service/workflow is never, by itself, evidence that Wandora should implement that capability. Before any material new domain state or subsystem is designed, apply ADR 0036's Capability Authority / Reuse Gate.
