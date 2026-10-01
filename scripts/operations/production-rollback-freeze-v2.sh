@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 umask 077
 
-# ADR 0365 — Current 9d0a4ba Core Rollback Freeze V2 Requalification V1
+# ADR 0367 — Current 83baca Core Rollback Freeze V2 Requalification V1
 # Operator-local only. Run manually as root on wandora-vps-01.
 # No activation, provider call, customer work, outbound effect, or secret value output.
 # Optional --precheck-only performs only fresh read-only checks; every path and runtime identity is fixed by the reviewed runbook.
@@ -27,9 +27,9 @@ GW="wandora-messaging-gateway"
 PC_IMAGE="wandora/paperclip:v2026.916.1"
 PC_IMAGE_ID="sha256:7b72d43e87d54fcb9aa48b665150e062750c0cacb270e069f94297d58caa91e5"
 PC_COMMIT="d554c4789ed3930f8a53ac9fdf6503b3187097da"
-CORE_IMAGE="wandora/core:organization-adapter-candidate-9d0a4ba577fe"
-CORE_IMAGE_ID="sha256:3ae9e4eae1949cc9da7e191cea841e1564d1a1577385f994991561c49c715e7d"
-CORE_REVISION="9d0a4ba577fe41d9efd8a5d2c4e5539ec0e7afeb"
+CORE_IMAGE="wandora/core:organization-adapter-candidate-83baca411096"
+CORE_IMAGE_ID="sha256:f8f09f785ed2b1f8fd86c9b9120c8ba09956d8f30b239190b93a110efd462d7f"
+CORE_REVISION="83baca4110966989b484341b5c58bb42d1eb5407"
 OA_KEY="wandora.organization-adapter-v1"
 OA_VERSION="0.6.1"
 OA_PATH="/paperclip/operator-packages/wandora-organization-adapter-v1/80373a61f08d87772c3aab738ffa6905bddcb49c783e9574c1540247cb3b258f/package"
@@ -42,7 +42,7 @@ MASTRA_ROLLBACK_VERSION="0.5.0"
 MASTRA_ROLLBACK_PATH="/paperclip/operator-packages/wandora-paperclip-adapter-mastra-v1/64795ff7d2c519ef6303ab0944bac02d27aadf8b919860b832c2e6fac4defb62/package"
 
 BACKUP_PARENT="/home/wandora-admin/backups"
-RECEIPT="/opt/wandora/ops-workspace/production-rollback-freeze-v2-post-adr0364-9d0a4ba577fe41d9efd8a5d2c4e5539ec0e7afeb-mastra060-2e97da6d.metadata"
+RECEIPT="/opt/wandora/ops-workspace/production-rollback-freeze-v2-post-adr0366-83baca4110966989b484341b5c58bb42d1eb5407-mastra060-2e97da6d.metadata"
 
 TYPESAFE="/opt/wandora/stacks/core/secrets/wandora_typesafe_jev_api_key"
 WFRI1="/opt/wandora/stacks/core/secrets/wandora_fast_read_intent_hmac"
@@ -64,10 +64,10 @@ POSTGRES_CLIENT_REPO_DIGEST="postgres@${POSTGRES_CLIENT_INDEX_DIGEST}"
 POSTGRES_CLIENT_PLATFORM="linux/amd64"
 
 stamp="$(date -u +%Y%m%dT%H%M%S%NZ)"
-prefix="adr0365-rollback-freeze-v2-post-adr0364-9d0a4ba577fe-mastra060-2e97da6d-${stamp}"
-root="${BACKUP_PARENT}/paperclip-v9161-fast-read-rollback-freeze-v2-post-adr0364-9d0a4ba577fe-mastra060-2e97da6d-${stamp}"
+prefix="adr0367-rollback-freeze-v2-post-adr0366-83baca411096-mastra060-2e97da6d-${stamp}"
+root="${BACKUP_PARENT}/paperclip-v9161-fast-read-rollback-freeze-v2-post-adr0366-83baca411096-mastra060-2e97da6d-${stamp}"
 pc_tmp="/paperclip/instances/default/backups/${prefix}"
-restore_name="wandora-adr0365-9d0a4ba-mastra060-restore-${stamp,,}"
+restore_name="wandora-adr0367-83baca-mastra060-restore-${stamp,,}"
 qualified=false
 parent_created=false
 root_created=false
@@ -676,7 +676,7 @@ chmod 0600 -- "${root}/SHA256SUMS"
 
 # Safe MCP-readable receipt. No secret values, DB credentials, provider
 # payloads, customer data, or master-key digest are written here.
-tmp_receipt="$(mktemp /opt/wandora/ops-workspace/.production-rollback-freeze-v2-post-adr0364-9d0a4ba577fe41d9efd8a5d2c4e5539ec0e7afeb-mastra060-2e97da6d.metadata.XXXXXX)"
+tmp_receipt="$(mktemp /opt/wandora/ops-workspace/.production-rollback-freeze-v2-post-adr0366-83baca4110966989b484341b5c58bb42d1eb5407-mastra060-2e97da6d.metadata.XXXXXX)"
 {
   printf 'rollback_root=%s\n' "${root}"
   printf 'paperclip_image=%s\n' "$(container_field "${PC}" '{{.Config.Image}}')"
