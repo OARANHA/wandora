@@ -37,6 +37,7 @@ const CAPABILITY_DESCRIPTIONS: Record<BusinessCapability, string> = {
   'business.price_tables.products.read': 'Read-only lookup of products in a price table.',
   'business.parties.search': 'Read-only search for customers, suppliers, or other parties.',
   'business.orders.search': 'Read-only search for existing orders.',
+  'business.orders.customer_contact.read': 'Read-only linkage from one exact order code to the registered customer contact availability and contact kinds, without exposing contact values.',
   'business.companies.list': 'Read-only listing of business companies available to the organization.',
   'business.connection.probe': 'Read-only connectivity or availability probe for the business system.',
 };

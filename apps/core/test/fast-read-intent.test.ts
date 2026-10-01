@@ -466,3 +466,38 @@ test('order selector is gate-validated, signed, and round-trips unchanged', () =
     nowMs: NOW,
   }), (error: unknown) => error instanceof FastReadIntentError && error.code === 'not-authorized');
 });
+
+
+test('order customer contact capability is signed only with the exact order selector and no contact identity', () => {
+  const request = 'Qual contato está cadastrado para o cliente do pedido 1542?';
+  const intent = issueFastReadIntent({
+    secret: SECRET,
+    organizationId: ORG,
+    employeeId: EMPLOYEE,
+    correlationId: CORRELATION,
+    request,
+    decision: {
+      ...DECISION,
+      capability: 'business.orders.customer_contact.read',
+      selector: { kind: 'order', by: 'code', value: 1542 },
+    },
+    availableCapabilities: ['business.orders.customer_contact.read'],
+    policy: POLICY,
+    nowMs: NOW,
+  });
+  const claims = verifyFastReadIntent({
+    secret: SECRET,
+    token: intent,
+    request,
+    expectedOrganizationId: ORG,
+    expectedEmployeeId: EMPLOYEE,
+    expectedCorrelationId: CORRELATION,
+    nowMs: NOW,
+  });
+  assert.equal(claims.capability, 'business.orders.customer_contact.read');
+  assert.deepEqual(claims.selector, { kind: 'order', by: 'code', value: 1542 });
+  const serialized = JSON.stringify(claims);
+  for (const forbidden of ['customerTaxId','telephone','mobilePhone','phone']) {
+    assert.equal(serialized.includes(forbidden), false);
+  }
+});

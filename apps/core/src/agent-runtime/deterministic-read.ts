@@ -28,12 +28,17 @@ export type DeterministicReadNormalizedResult =
       message: string;
     };
 
+export type DeterministicReadBindingExecution = {
+  result: DeterministicReadNormalizedResult;
+  toolCalls: 1 | 2;
+};
+
 export type DeterministicReadBinding = {
   capability: BusinessCapability;
   execute: (
     request: string,
     selector: SemanticSelector | null,
-  ) => Promise<DeterministicReadNormalizedResult>;
+  ) => Promise<DeterministicReadNormalizedResult | DeterministicReadBindingExecution>;
 };
 
 export type DeterministicReadExecution =
@@ -42,7 +47,7 @@ export type DeterministicReadExecution =
       capability: BusinessCapability;
       model: 'wandora-deterministic-read-v1';
       summary: string;
-      toolCalls: 1;
+      toolCalls: 1 | 2;
       usage: {
         inputTokens: 0;
         outputTokens: 0;
@@ -62,6 +67,18 @@ function nonEmptyText(value: string, max = 2_000): string {
     throw new Error('deterministic_read_invalid_text');
   }
   return normalized;
+}
+
+function bindingExecution(
+  value: DeterministicReadNormalizedResult | DeterministicReadBindingExecution,
+): DeterministicReadBindingExecution {
+  if ('result' in value && 'toolCalls' in value) {
+    if (value.toolCalls !== 1 && value.toolCalls !== 2) {
+      throw new Error('deterministic_read_invalid_tool_call_count');
+    }
+    return value;
+  }
+  return { result: value, toolCalls: 1 };
 }
 
 function render(result: DeterministicReadNormalizedResult): string {
@@ -108,13 +125,13 @@ export class DeterministicReadExecutor {
       return { kind: 'fallback', reason: 'capability-binding-unavailable', toolCalls: 0 };
     }
 
-    const normalized = await matches[0]!.execute(request, input.selector);
+    const executed = bindingExecution(await matches[0]!.execute(request, input.selector));
     return {
       kind: 'completed',
       capability: input.capability,
       model: 'wandora-deterministic-read-v1',
-      summary: render(normalized),
-      toolCalls: 1,
+      summary: render(executed.result),
+      toolCalls: executed.toolCalls,
       usage: {
         inputTokens: 0,
         outputTokens: 0,

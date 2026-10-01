@@ -38,6 +38,7 @@ export type WandoraBusinessCapability =
   | 'business.price_tables.products.read'
   | 'business.parties.search'
   | 'business.orders.search'
+  | 'business.orders.customer_contact.read'
   | 'business.companies.list'
   | 'business.connection.probe';
 
@@ -70,8 +71,13 @@ const PROVIDER_TOOL_CAPABILITY_MAP = new Map<string, readonly WandoraBusinessCap
   PROVIDER_TOOL_CAPABILITY_ENTRIES,
 );
 
+const ORDER_CUSTOMER_CONTACT_CAPABILITY = 'business.orders.customer_contact.read' as const;
+
 export const ADAPTER_MAPPED_BUSINESS_CAPABILITIES = Object.freeze(
-  Array.from(new Set(PROVIDER_TOOL_CAPABILITY_ENTRIES.flatMap(([, capabilities]) => capabilities))),
+  Array.from(new Set([
+    ...PROVIDER_TOOL_CAPABILITY_ENTRIES.flatMap(([, capabilities]) => capabilities),
+    ORDER_CUSTOMER_CONTACT_CAPABILITY,
+  ])),
 ) as readonly WandoraBusinessCapability[];
 
 function mappedCapabilities(toolName: string): readonly WandoraBusinessCapability[] {
@@ -150,6 +156,16 @@ function connectionOperationallyReady(
     && operationallyAvailableReadTool(tool));
 }
 
+function composedCapabilities(
+  tools: readonly OperationalTool[],
+  predicate: (tool: OperationalTool) => boolean,
+): readonly WandoraBusinessCapability[] {
+  const names = new Set(tools.filter(predicate).map((tool) => tool.toolName));
+  return names.has('vendaerp_search_orders') && names.has('vendaerp_search_parties')
+    ? [ORDER_CUSTOMER_CONTACT_CAPABILITY]
+    : [];
+}
+
 function canonicalizeCapabilities(
   capabilities: Iterable<WandoraBusinessCapability>,
 ): WandoraBusinessCapability[] {
@@ -166,19 +182,21 @@ export function normalizePaperclipOperationalSnapshot(
     );
     if (relevantTools.length === 0) return [];
 
-    const supported = canonicalizeCapabilities(
-      relevantTools
+    const supported = canonicalizeCapabilities([
+      ...relevantTools
         .filter(providerReadSemantic)
         .flatMap((tool) => mappedCapabilities(tool.toolName)),
-    );
+      ...composedCapabilities(relevantTools, providerReadSemantic),
+    ]);
 
     const ready = connectionOperationallyReady(snapshot.runtimeHealth, connection);
     const enabled = ready
-      ? canonicalizeCapabilities(
-        relevantTools
+      ? canonicalizeCapabilities([
+        ...relevantTools
           .filter(operationallyAvailableReadTool)
           .flatMap((tool) => mappedCapabilities(tool.toolName)),
-      )
+        ...composedCapabilities(relevantTools, operationallyAvailableReadTool),
+      ])
       : [];
 
     return [{
