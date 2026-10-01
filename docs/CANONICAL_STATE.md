@@ -1,3 +1,7 @@
+## 2026-10-01 — ADR 0372 operational blocker update: execution broker now 48 active sessions
+
+Remote-Ops PR #44 is merged at `48a4d370187b013a4a196af293225c134ec55eb1`. The production execution broker was updated through managed-admin and only `wandora-ops-exec-broker.service` was restarted. Live `process.list` now reports `max_active_sessions=48`, `active_sessions=0`; completed/signaled sessions no longer consume active capacity. Core, Paperclip and Messaging Gateway remained healthy and unchanged. The former 16-session broker-capacity blocker from ADR 0372 is resolved; all other ADR 0372 promotion/authority guardrails remain in force.
+
 # ADR 0372 checkpoint — Exact Core Candidate Production Promotion Preflight V1
 
 Status: **PRE-FLIGHT NO-GO / CANDIDATE STILL QUALIFIED / EXECUTION AUTHORITY BLOCKED / NO PRODUCTION EFFECT**.
