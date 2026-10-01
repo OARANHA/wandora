@@ -1,3 +1,21 @@
+## 2026-10-01 — ADR 0372 exact Core candidate promoted; 9ee338 is live/stable
+
+Status: **GREEN / CORE 9ee338 LIVE / EXACT 14-FILE BASELINE / ALL EFFECT GATES OFF / NO CUSTOMER OR OUTBOUND EFFECT**.
+
+The frozen current-main-compatible candidate from artifact `11153574632` was imported through the existing governed Remote-Ops `load_image` capability after its containerized proxy filesystem boundary was repaired canonically on Remote-Ops main (`5558aa7e...`, `ce008d5b...`, `e1805623...`). No new Portainer stack, loader subsystem or Core lifecycle capability was created.
+
+Exact candidate identity remained `wandora/core:organization-adapter-candidate-9ee338303292`, revision `9ee338303292173db8e1b21bef9c8c5067c104a4`, OCI manifest `sha256:fbb3c420b25fc9ae141f8ece5ab69bec9daef203a36e268eea4c363da3a84a5f`, contract `organization-adapter-core-v1`, user `node`.
+
+A human-approved managed-admin action recreated only `core` on the exact canonical 14-file topology with `--no-deps --force-recreate --no-build --pull never --wait`. Post-readback is GREEN: exact candidate image/revision/contract, healthy/restart 0, exact topology, Fast Read OFF, Semantic Fast Read OFF, Semantic Selector OFF, Human Send OFF, TypeSafe/Fast-Read secret mounts absent, Paperclip and Gateway ids unchanged/healthy, Task Drain quiescent.
+
+Stable selector `/opt/wandora/ops-workspace/core-runtime-image.env` now points to `9ee338303292...` and preserves mode `0640`, uid `999`, gid `1003`.
+
+ADR 0367 is now historical rollback evidence for prior `83baca...`; it is not the current-baseline freeze. **Before any 28PRO/Ana scoped rollout activation, capture a fresh Rollback Freeze V2 for live `9ee338...`.**
+
+Canonical detail: `docs/decisions/0372-exact-core-candidate-production-promotion-preflight-v1.md`.
+
+---
+
 ## 2026-10-01 — ADR 0372 operational blocker update: execution broker now 48 active sessions
 
 Remote-Ops PR #44 is merged at `48a4d370187b013a4a196af293225c134ec55eb1`. The production execution broker was updated through managed-admin and only `wandora-ops-exec-broker.service` was restarted. Live `process.list` now reports `max_active_sessions=48`, `active_sessions=0`; completed/signaled sessions no longer consume active capacity. Core, Paperclip and Messaging Gateway remained healthy and unchanged. The former 16-session broker-capacity blocker from ADR 0372 is resolved; all other ADR 0372 promotion/authority guardrails remain in force.
