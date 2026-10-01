@@ -1,6 +1,6 @@
 # ADR 0362 — Post-ADR0358 Rollback Freeze V2 Persistent Capture Execution V1
 
-Date: 2026-10-01
+Date: 2026-09-30
 
 Status: **EXECUTED / GREEN / ROLLBACK FREEZE V2 READY / NO CUSTOMER EFFECT**
 

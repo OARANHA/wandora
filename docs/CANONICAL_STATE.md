@@ -1,4 +1,4 @@
-## 2026-10-01 — ADR 0362 Post-ADR0358 Rollback Freeze V2 persistent capture execution
+## 2026-09-30 — ADR 0362 Post-ADR0358 Rollback Freeze V2 persistent capture execution
 
 Status: **PERSISTENT CAPTURE GREEN / ROLLBACK FREEZE V2 READY / SEMANTIC FAST READ STILL OFF / CUSTOMER EFFECT NONE**.
 
