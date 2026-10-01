@@ -1,3 +1,17 @@
+## 2026-09-30 — ADR 0360 Post-ADR0358 Rollback Freeze V2 exact-byte host deployment
+
+Status: **DEPLOYED + EXACT-BYTE VALIDATED / PRECHECK NOT EXECUTED / CAPTURE NOT EXECUTED / PRODUCTION CUSTOMER EFFECT = NONE**.
+
+Fresh reconciliation kept `main=e4c7c36bb1091ba38d39b85fa259bae94553fc52` and PR #369 source head `e8170a6adca24314854e7ee53f4cbb06591886ec`; the previously qualified 17/17 exact-head CI remained GREEN and was not rerun. Root readback proved all three live files were older ADR 0356 bytes, so the already-qualified ADR 0359 source was staged, independently hash-verified, syntax-checked and installed through the existing managed-admin boundary only.
+
+Final live blobs are helper `31742060143e8ff7c86a9753045400364b98c9c9`, precheck wrapper `94d47e50d25e733799a345d7c5cfb4ff243ee74a`, capture wrapper `5fa90bd0432c51a72ec050e3f2d78ce1ebb73737`; metadata remains `root:root 0750` for the helper and `root:root 0755` for both wrappers. Paperclip/Core/Gateway remained healthy, Task Drain stayed false/0/0/quiescent, OA stayed 0.6.1 ready and `wandora_mastra@0.6.0` stayed loaded/enabled at the exact 2e97... package.
+
+The future post-ADR0358 receipt remains absent and the historical ADR 0356 receipt remains untouched. No root precheck, persistent capture, Semantic Fast Read, provider/customer call, VendaERP call, outbound activation or Core/Paperclip/Gateway mutation occurred.
+
+Canonical detail: `docs/decisions/0360-post-adr0358-rollback-freeze-v2-exact-byte-host-deployment-v1.md`.
+
+Next boundary: a fresh **ROOT PRECHECK EXECUTION V1** slice with new reconciliation, decision, second review and explicit managed-admin approval. Capture is a third slice only after precheck GREEN.
+
 ## 2026-09-30 — ADR 0359 Post-ADR0358 Rollback Freeze V2 source requalification
 
 Status: **QUALIFIED / 17/17 EXACT-HEAD CI GREEN / NO PRODUCTION EFFECT**.
