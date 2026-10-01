@@ -181,6 +181,60 @@ test('legacy search intent remains valid without a selector claim', () => {
   assert.equal(claims.selector, null);
 });
 
+test('stock selector is gate-validated, signed, and round-trips unchanged', () => {
+  const request = 'Quanto tem do produto código 123 no depósito LOJA-01?';
+  const intent = issueFastReadIntent({
+    secret: SECRET,
+    organizationId: ORG,
+    employeeId: EMPLOYEE,
+    correlationId: CORRELATION,
+    request,
+    decision: {
+      ...DECISION,
+      capability: 'business.stock.read',
+      selector: {
+        kind: 'stock',
+        product: { kind: 'product', by: 'code', value: '123' },
+        location: 'LOJA-01',
+      },
+    },
+    availableCapabilities: ['business.stock.read'],
+    policy: POLICY,
+    nowMs: NOW,
+  });
+  const claims = verifyFastReadIntent({
+    secret: SECRET,
+    token: intent,
+    request,
+    expectedOrganizationId: ORG,
+    expectedEmployeeId: EMPLOYEE,
+    expectedCorrelationId: CORRELATION,
+    nowMs: NOW,
+  });
+  assert.equal(claims.capability, 'business.stock.read');
+  assert.deepEqual(claims.selector, {
+    kind: 'stock',
+    product: { kind: 'product', by: 'code', value: '123' },
+    location: 'LOJA-01',
+  });
+
+  assert.throws(() => issueFastReadIntent({
+    secret: SECRET,
+    organizationId: ORG,
+    employeeId: EMPLOYEE,
+    correlationId: CORRELATION,
+    request,
+    decision: {
+      ...DECISION,
+      capability: 'business.stock.read',
+      selector: null,
+    },
+    availableCapabilities: ['business.stock.read'],
+    policy: POLICY,
+    nowMs: NOW,
+  }), (error: unknown) => error instanceof FastReadIntentError && error.code === 'not-authorized');
+});
+
 test('expired intent opens no Tool Gateway session', async () => {
   let bridgeCalls = 0;
   const service = new PaperclipFastReadExecutionService({

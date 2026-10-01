@@ -21,9 +21,19 @@ export type ProductSelector = {
   value: string;
 };
 
-export type SemanticSelector = ProductSelector;
+export type StockSelector = {
+  kind: 'stock';
+  product: {
+    kind: 'product';
+    by: 'code';
+    value: string;
+  };
+  location: string;
+};
 
-export function canonicalSemanticSelector(value: unknown): SemanticSelector | null {
+export type SemanticSelector = ProductSelector | StockSelector;
+
+function canonicalProductSelector(value: unknown): ProductSelector | null {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
   const selector = value as Record<string, unknown>;
   if (
@@ -38,6 +48,34 @@ export function canonicalSemanticSelector(value: unknown): SemanticSelector | nu
     kind: 'product',
     by: selector.by as ProductSelectorField,
     value: normalized,
+  };
+}
+
+export function canonicalSemanticSelector(value: unknown): SemanticSelector | null {
+  const product = canonicalProductSelector(value);
+  if (product) return product;
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
+  const selector = value as Record<string, unknown>;
+  if (
+    selector.kind !== 'stock'
+    || typeof selector.location !== 'string'
+  ) return null;
+  const stockProduct = canonicalProductSelector(selector.product);
+  const location = selector.location.trim();
+  if (
+    !stockProduct
+    || stockProduct.by !== 'code'
+    || !location
+    || location.length > 512
+  ) return null;
+  return {
+    kind: 'stock',
+    product: {
+      kind: 'product',
+      by: 'code',
+      value: stockProduct.value,
+    },
+    location,
   };
 }
 
@@ -200,14 +238,21 @@ export function gateDeterministicRead(
   if (suppliedSelector !== undefined && suppliedSelector !== null && !selector) {
     return { allowed: false, reason: 'invalid-selector' };
   }
-  if (decision.capability === 'business.products.price' && !selector) {
+  if (
+    (decision.capability === 'business.products.price'
+      || decision.capability === 'business.stock.read')
+    && !selector
+  ) {
     return { allowed: false, reason: 'missing-selector' };
   }
   if (
-    selector
+    selector?.kind === 'product'
     && decision.capability !== 'business.products.search'
     && decision.capability !== 'business.products.price'
   ) {
+    return { allowed: false, reason: 'selector-not-applicable' };
+  }
+  if (selector?.kind === 'stock' && decision.capability !== 'business.stock.read') {
     return { allowed: false, reason: 'selector-not-applicable' };
   }
 

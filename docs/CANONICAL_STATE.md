@@ -1,3 +1,21 @@
+## 2026-10-01 — ADR 0381 Semantic Fast Read Existing VendaERP Capability Reuse — Stock V1
+
+Status: **QUALIFIED / 12/12 EXACT-HEAD WORKFLOWS GREEN / CODE + SYNTHETIC TESTS ONLY / NO PRODUCTION EFFECT**.
+
+Stock V1 reuses the existing `business.stock.read` capability and exact existing `vendaerp_get_product_stock` provider tool. The supplied VendaERP contract proves `Produtos/GetSaldo` requires both `produtoCodigo` and `deposito`; no evidence proves `Produto.estoqueSaldo` / projected `stockBalance` is an aggregate or default-deposit total.
+
+Decision: Stock V1 means one explicit product code + one explicit stock location/deposit. Missing location, name-only or barcode-only requests fail closed into a deterministic clarification; no default deposit, aggregate inference, hidden product-search→stock multi-call or retry is added. A bounded `kind=stock` selector is signed into `wfri1`, and the existing stock tool returns only location, quantity and optional timestamp. Empty result is not converted to zero; malformed quantity is invalid provider data.
+
+Generic product Fast Read no longer presents unqualified `stockBalance` as customer-facing “Estoque”. No new capability, table, migration, lifecycle, registry, cache, state machine or provider subsystem is created.
+
+Mandatory second adversarial review ran before code changes; primary route was `proceed_fast` with moderate confidence, so the implementation remained deliberately narrow. Exact code head `2ed98b9e856616f5a8fd5bfaadcbc0c988d4e9ec` completed 12/12 workflows GREEN. Because the Candidate Artifact finished before Core CI, it was rerun after Core CI + Semantic Fast Read CI were GREEN; post-gate job `110599281091` completed GREEN. Completion review classified the slice `complete` (~0.93).
+
+No production/VPS mutation, rollout expansion, provider/customer call, WRITE/DESTRUCTIVE operation, Human Send, outbound or merge occurred.
+
+Canonical detail: `docs/decisions/0381-semantic-fast-read-existing-vendaerp-capability-reuse-stock-v1.md`.
+
+---
+
 ## 2026-10-01 — ADR 0380 VendaERP Read Capability Coverage V1
 
 Status: **INVENTORY COMPLETE / REUSE-FIRST DECISION / NO PRODUCTION EFFECT**.

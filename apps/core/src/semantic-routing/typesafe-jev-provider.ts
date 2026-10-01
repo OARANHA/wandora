@@ -32,7 +32,7 @@ const AMBIGUITIES = [
 const CAPABILITY_DESCRIPTIONS: Record<BusinessCapability, string> = {
   'business.products.search': 'Read-only search or bounded listing of products.',
   'business.products.price': 'Read-only lookup of product price information.',
-  'business.stock.read': 'Read-only lookup of product stock or inventory quantity.',
+  'business.stock.read': 'Read-only lookup of stock quantity for one explicit product code in one explicit stock location or deposit.',
   'business.price_tables.list': 'Read-only listing of available price tables.',
   'business.price_tables.products.read': 'Read-only lookup of products in a price table.',
   'business.parties.search': 'Read-only search for customers, suppliers, or other parties.',
@@ -168,7 +168,7 @@ function buildQuestions(availableCapabilities: readonly BusinessCapability[]): J
       instructions: 'Is material business context missing from the customer request itself such that deterministic read admission should stop before selector extraction? Do not treat the absence of a structured selector object as missing context when the request explicitly names or identifies one product; selector materialization is handled separately after route admission.',
       criteria: {
         true: 'The customer request itself omits material business context or entity identity required to know what should be read.',
-        false: 'The customer request itself is sufficiently specific for the selected read. An explicitly stated product name, code, or barcode counts as present even if it still needs separate structured selector extraction.',
+        false: 'The customer request itself is sufficiently specific for the selected read. For product search/price, an explicitly stated product name, code, or barcode counts as present even if it still needs separate structured selector extraction. For business.stock.read V1, both an explicit product code and an explicit stock location/deposit are required.',
       },
     },
     needsHumanReview: {

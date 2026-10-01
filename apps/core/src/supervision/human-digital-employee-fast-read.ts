@@ -41,6 +41,10 @@ export type HumanFastReadAdmissionResult =
       usage: HumanFastReadDispatchResult['usage'];
     }
   | {
+      kind: 'clarification';
+      prompt: string;
+    }
+  | {
       kind: 'fallback';
       reason: SemanticRouteGateReason | 'rollout-not-enabled';
     };
@@ -66,6 +70,27 @@ function requireDeterministicResult(
   ) {
     throw new Error('invalid-fast-read-result');
   }
+}
+
+function stockClarification(
+  decision: SemanticRouteDecision,
+  reason: SemanticRouteGateReason,
+): HumanFastReadAdmissionResult | null {
+  if (
+    decision.capability !== 'business.stock.read'
+    || ![
+      'needs-more-context',
+      'ambiguous',
+      'missing-selector',
+      'invalid-selector',
+      'selector-not-applicable',
+    ].includes(reason)
+  ) return null;
+
+  return {
+    kind: 'clarification',
+    prompt: 'Para consultar estoque com segurança, informe um único código de produto e um único depósito/local de estoque.',
+  };
 }
 
 export class HumanDigitalEmployeeFastReadService {
@@ -184,7 +209,10 @@ export class HumanDigitalEmployeeFastReadService {
       gate = gateDeterministicRead(decision, availableCapabilities, this.deps.policy);
     }
 
-    if (!gate.allowed) return { kind: 'fallback', reason: gate.reason };
+    if (!gate.allowed) {
+      return stockClarification(decision, gate.reason)
+        ?? { kind: 'fallback', reason: gate.reason };
+    }
 
     const nowMs = (this.deps.now ?? Date.now)();
     const intentToken = issueFastReadIntent({

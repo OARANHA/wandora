@@ -17,16 +17,29 @@ const MAX_SELECTOR_CHARS = 512;
 const MIN_TIMEOUT_MS = 250;
 const MAX_TIMEOUT_MS = 10_000;
 
-const PRODUCT_CAPABILITIES = new Set<BusinessCapability>([
+const SELECTOR_CAPABILITIES = new Set<BusinessCapability>([
   'business.products.search',
   'business.products.price',
+  'business.stock.read',
 ]);
 
-const selectorSchema = z.object({
+const productSelectorSchema = z.object({
   kind: z.literal('product'),
   by: z.enum(['name', 'code', 'barcode']),
   value: z.string().trim().min(1).max(MAX_SELECTOR_CHARS),
 }).strict();
+
+const stockSelectorSchema = z.object({
+  kind: z.literal('stock'),
+  product: z.object({
+    kind: z.literal('product'),
+    by: z.literal('code'),
+    value: z.string().trim().min(1).max(MAX_SELECTOR_CHARS),
+  }).strict(),
+  location: z.string().trim().min(1).max(MAX_SELECTOR_CHARS),
+}).strict();
+
+const selectorSchema = z.union([productSelectorSchema, stockSelectorSchema]);
 
 const selectorDecisionSchema = z.object({
   selector: selectorSchema.nullable(),
@@ -41,15 +54,19 @@ const selectorDecisionSchema = z.object({
 }).strict();
 
 const SELECTOR_INSTRUCTIONS = [
-  'Extract at most one product selector from the customer request.',
+  'Extract at most one bounded semantic selector from the customer request for the supplied capability.',
   'Return only schema-constrained structured output.',
-  'A selector is allowed only when one product is explicitly and uniquely identifiable from the request.',
-  'Use by=name for an explicit product name, by=code for an explicit product code, and by=barcode for an explicit barcode.',
-  'Preserve the product value semantically; only surrounding whitespace may be removed.',
+  'For business.products.search or business.products.price, return kind=product only when one product is explicitly and uniquely identifiable from the request.',
+  'For product selectors use by=name for an explicit product name, by=code for an explicit product code, and by=barcode for an explicit barcode.',
+  'For business.stock.read V1, return kind=stock only when the request explicitly provides both one product code and one stock location or deposit.',
+  'For stock, copy the explicit product code into product.by=code and preserve the explicit stock location or deposit in location.',
+  'A product name or barcode alone is not enough for business.stock.read V1; do not derive or invent a product code.',
+  'If stock location or required product code is missing, return selector=null and ambiguity=missing_entity.',
+  'Preserve selector values semantically; only surrounding whitespace may be removed.',
   'Do not invent, fuzzy-match, rank, expand, translate, case-normalize, or consult any external catalog.',
-  'If no product is identified, return selector=null and ambiguity=missing_entity.',
-  'If multiple products are requested or identity is ambiguous, return selector=null and ambiguity=multiple_matches.',
-  'If the request relies on a vague reference whose product identity is not explicit, return selector=null and ambiguity=vague_reference.',
+  'If no required entity is identified, return selector=null and ambiguity=missing_entity.',
+  'If multiple products or multiple locations are requested or equally intended, return selector=null and ambiguity=multiple_matches.',
+  'If the request relies on a vague reference whose required target cannot be identified from the request itself, return selector=null and ambiguity=vague_reference.',
   'Use ambiguity=unknown only when none of the narrower ambiguity classes applies.',
   'Use ambiguity=none only when returning one valid selector.',
   'Confidence must be between 0 and 1 and reflects confidence in the selector extraction only.',
@@ -128,7 +145,7 @@ export class MastraMistralSemanticSelectorProvider implements SemanticSelectorPr
     if (!request || request.length > MAX_REQUEST_CHARS) {
       throw new Error('mastra_mistral_selector_invalid_request');
     }
-    if (!PRODUCT_CAPABILITIES.has(input.capability)) {
+    if (!SELECTOR_CAPABILITIES.has(input.capability)) {
       throw new Error('mastra_mistral_selector_unsupported_capability');
     }
 

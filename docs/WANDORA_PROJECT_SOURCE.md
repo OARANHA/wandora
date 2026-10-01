@@ -1,3 +1,21 @@
+# CHECKPOINT ATUAL — ADR 0381 STOCK V1 REUSE QUALIFIED
+
+Status: **QUALIFIED / 12/12 EXACT-HEAD WORKFLOWS GREEN / EXISTING CAPABILITY + TOOL REUSE / NO PRODUCTION EFFECT**.
+
+Stock V1 now has a narrow candidate contract on top of ADR 0380: `business.stock.read` means one explicit product code in one explicit stock location/deposit, using the existing `vendaerp_get_product_stock` / `Produtos/GetSaldo` boundary. No aggregate/default interpretation of `stockBalance` is permitted without provider evidence.
+
+Missing location or name/barcode-only stock requests clarify and stop before provider dispatch. The bounded stock selector is signed in `wfri1`; empty results are not converted to zero; no hidden product-search→stock multi-call or retry was added. Generic product Fast Read no longer surfaces unqualified `stockBalance` as “Estoque”.
+
+The mandatory second adversarial review ran before implementation and did not identify a concrete blocker. Exact code head `2ed98b9e856616f5a8fd5bfaadcbc0c988d4e9ec` completed 12/12 workflows GREEN; the Candidate Artifact was rerun after Core CI + Semantic Fast Read CI and post-gate job `110599281091` completed GREEN. Completion review classified the slice `complete` (~0.93).
+
+No production, VPS, rollout, real provider/customer call, WRITE/DESTRUCTIVE capability, Human Send, outbound or merge occurred.
+
+Canonical detail: `docs/decisions/0381-semantic-fast-read-existing-vendaerp-capability-reuse-stock-v1.md`.
+
+This file is bootstrap only. Continue with `AGENTS.md`, relevant ADRs, `docs/CAPABILITY_AUTHORITY.md`, `docs/architecture.md`, `docs/CANONICAL_STATE.md`, component runbooks, GitHub and live runtime.
+
+---
+
 # CHECKPOINT ATUAL — ADR 0378 OWNER-BROWSER SINGLE REAL CANARY V3 SUCCESS
 
 Status: **SUCCESS / EXACTLY ONE OWNER-BROWSER FAST READ / EXACTLY ONE GOVERNED VENDAERP READ**.
