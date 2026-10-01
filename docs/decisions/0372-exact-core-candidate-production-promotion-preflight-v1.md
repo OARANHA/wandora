@@ -172,3 +172,14 @@ the exact candidate import/render proof. Only if that remains GREEN:
 
 After any later successful Core promotion, capture a fresh Rollback Freeze V2 before
 considering scoped Semantic Fast Read rollout activation.
+
+
+## 2026-10-01 — Remote-Ops execution broker capacity blocker resolved
+
+Post-preflight operational hardening was completed without touching Core/Paperclip/Gateway product state. Remote-Ops PR #44 was merged to `main` as commit `48a4d370187b013a4a196af293225c134ec55eb1`.
+
+The execution broker now defaults to `48` concurrent **active** sessions through `WANDORA_EXEC_MAX_SESSIONS`, bounded to `1..256`. Completed sessions remain readable during retention but no longer consume active-session capacity; signaled processes are classified by `closedAt`, avoiding the prior `exitCode=null` false-running condition.
+
+Production host deployment used the existing managed-admin boundary only: exact broker files were copied, then only `wandora-ops-exec-broker.service` was restarted. Post-restart readback proved `max_active_sessions=48`, `active_sessions=0`, empty fresh session registry, and a new broker PID. Core, Paperclip and Messaging Gateway remained running/healthy and were not recreated.
+
+This resolves only the ADR 0372 execution-broker capacity blocker. It does **not** authorize Core promotion, candidate lifecycle expansion, Fast Read/Semantic/Selector/Human Send enablement, Gateway outbound, provider/customer calls or PR merge. Resume the exact Core candidate production promotion preflight from fresh REAL NOW evidence.
