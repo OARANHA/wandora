@@ -1,3 +1,31 @@
+## 2026-10-01 — ADR 0369 Semantic Fast Read scoped rollout admission V1
+
+Status: **GREEN / CODE-ONLY QUALIFIED / SCOPED CUSTOMER+EMPLOYEE+CAPABILITY ADMISSION / NO PRODUCTION ACTIVATION**.
+
+ADR 0368 already proved the real owner-browser Ana → Paperclip → VendaERP product-price path. ADR 0369 does not repeat that attestation. It converts the proof into a bounded rollout contract.
+
+Implementation head `3b63623f249c050536c0484c8db26a1d505ffae7` completed **7/7 triggered workflows GREEN**, including Core CI, Semantic Fast Read CI and Paperclip Mastra Adapter CI.
+
+A new stacked draft PR #377 (`feat/semantic-fast-read-scoped-rollout-v1` over PR #369 head) adds only:
+
+- exact Wandora rollout target pairs `organizationId:employeeId`;
+- a canonical `BusinessCapability` allowlist;
+- intersection of rollout capabilities with the existing Paperclip/OA operational projection before JEV/gating/`wfri1`;
+- fail-closed denial before semantic/provider work for non-enrolled targets or empty effective capability sets;
+- bounded non-secret runtime configuration;
+- a persistent `compose.semantic-fast-read-rollout.yaml` separate from the attestation-only overlay;
+- CI coverage for the new runtime/config/Compose contract.
+
+Paperclip remains authority for managed-agent lifecycle, Connections, grants, effective tool policy, Tool Gateway execution, runs, terminal result and audit. Provider grants are not reused as Wandora product-rollout feature flags.
+
+No table, migration, service, state machine, provider mirror or durable entitlement store was created. The initial future canary is intended to use one exact customer/Ana pair with only `business.products.price`.
+
+No production effect occurred in ADR 0369: no Core recreation, no custody mount, no Fast Read opening, no Ana/VendaERP request, no customer-path provider call, no Paperclip lifecycle mutation, no Human Send/outbound activation and no PR merge.
+
+Production activation remains a separate future slice requiring fresh Git/CI/runtime/rollback/custody/Task Drain evidence, exact canary identity/scope, second adversarial review and explicit human approval.
+
+Canonical detail: `docs/decisions/0369-semantic-fast-read-scoped-rollout-admission-v1.md`.
+
 ## 2026-10-01 — ADR 0368 Semantic Fast Read supervised production re-attestation V3
 
 Status: **GREEN / ONE OWNER-BROWSER READ SUCCEEDED / EXACTLY ONE VENDAERP TOOL CALL / MANDATORY CLOSE COMPLETE / FAST READ OFF AGAIN**.
