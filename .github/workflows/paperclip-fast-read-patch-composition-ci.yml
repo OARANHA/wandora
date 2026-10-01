@@ -7,6 +7,7 @@ on:
       - 'integrations/paperclip/patches/v2026.916.1-host-operational-read-v1.patch'
       - 'integrations/paperclip/patches/v2026.916.1-fast-read-run-result-read-v1.patch'
       - 'integrations/paperclip/patches/v2026.916.1-synchronous-webhook-response-v1.patch'
+      - 'integrations/paperclip/patches/v2026.916.1-tool-gateway-log-redaction-v1.patch'
       - '.github/workflows/paperclip-fast-read-patch-composition-ci.yml'
       - 'integrations/paperclip/plugins/organization-adapter-v1/**'
   workflow_dispatch:
@@ -74,4 +75,5 @@ jobs:
             packages/plugins/sdk/tests/worker-rpc-host-webhook.test.ts \
             server/src/__tests__/plugin-tool-access-operational-read.test.ts \
             server/src/__tests__/plugin-agent-run-read.test.ts \
-            server/src/__tests__/plugin-webhook-response-routes.test.ts
+            server/src/__tests__/plugin-webhook-response-routes.test.ts \
+            server/src/__tests__/http-log-redaction.test.ts
