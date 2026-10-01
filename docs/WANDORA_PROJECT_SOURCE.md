@@ -1,5 +1,22 @@
 # CHECKPOINT ATUAL — ADR 0373 ROLLBACK FREEZE V2 GREEN / CORE 9ee338 PROTECTED
 
+## ADR 0374 — Semantic Fast Read Scoped Rollout Activation-Oriented Preflight V1
+
+Status: **BLOCKED / FAIL-CLOSED / NO ACTIVATION / NO CUSTOMER EFFECT**.
+
+Fresh state after ADR 0373 still proves live/stable Core `9ee338303292...`, exact 14-file gates-OFF topology, Paperclip `v2026.916.1`, OA `0.6.1 ready`, external `wandora_mastra@0.6.0`, Task Drain `false/0/0/quiescent`, Human Send OFF and Gateway outbound OFF. The ADR0373 `ROLLBACK_FREEZE_V2_OK` receipt still matches the live baseline.
+
+Fresh evidence also reconfirms the live Wandora 28PRO/Ana pair, Paperclip 28PRO/Ana identities, and an official non-consuming Tool Policy decision of `allow/allow_profile` for the known VendaERP product-read Connection.
+
+Activation remains fail-closed because the exact persistent rollout-overlay live-host identity/materialization is not yet proven, a fresh Organization Adapter operational projection is still required immediately before effect, and custody metadata must be freshly read through the existing dedicated managed-admin metadata capability. No new subsystem is justified.
+
+JEV second adversarial review returned `block=0.63`, `deep_review=0.33`. No `adm_...` activation ticket was generated.
+
+Next boundary: **Semantic Fast Read Scoped Rollout Host Materialization + Immediate Effect Attestation V1 — NO CUSTOMER CALL**.
+
+Canonical detail: `docs/decisions/0374-semantic-fast-read-scoped-rollout-activation-oriented-preflight-v1.md`.
+
+
 O slice ADR 0373 foi concluído em **GREEN**.
 
 - Core live/stable continua `wandora/core:organization-adapter-candidate-9ee338303292`;
