@@ -271,6 +271,58 @@ test('classifies product response failures with safe enumerated reasons', async 
   );
 });
 
+test('party search preserves explicit role booleans and bounded pagination in the provider request', async () => {
+  const calls = [];
+  const client = createVendaErpClient({
+    tenant,
+    credentials,
+    fetchImpl: async (url) => {
+      calls.push(new URL(url));
+      return jsonResponse([{
+        id: 'party-1',
+        nomeFantasia: 'João Silva',
+        razaoSocial: 'João Silva Comércio Ltda',
+        cnpJ_CPF: '12.345.678/0001-90',
+        email: 'joao@example.test',
+        telefone: '5133333333',
+        cliente: true,
+        fonecedor: false,
+        senha: 'must-not-leak',
+        salt: 'must-not-leak',
+      }]);
+    },
+  });
+
+  const result = await client.searchParties({
+    displayName: 'João Silva',
+    customer: true,
+    supplier: false,
+    pageSize: 5,
+    skip: 0,
+  });
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].pathname, '/api/request/Pessoas/Pesquisar');
+  assert.equal(calls[0].searchParams.get('nomefantasia'), 'João Silva');
+  assert.equal(calls[0].searchParams.get('cliente'), 'true');
+  assert.equal(calls[0].searchParams.get('fornecedor'), 'false');
+  assert.equal(calls[0].searchParams.get('pageSize'), '5');
+  assert.equal(calls[0].searchParams.get('skip'), '0');
+
+  assert.deepEqual(result, [{
+    externalRef: 'party-1',
+    displayName: 'João Silva',
+    legalName: 'João Silva Comércio Ltda',
+    taxId: '12.345.678/0001-90',
+    email: 'joao@example.test',
+    phone: '5133333333',
+    customer: true,
+    supplier: false,
+  }]);
+  const serialized = JSON.stringify(result);
+  assert.equal(serialized.includes('must-not-leak'), false);
+});
+
 test('stock read sends exact product code + location and never invents a missing quantity', async () => {
   const calls = [];
   const client = createVendaErpClient({

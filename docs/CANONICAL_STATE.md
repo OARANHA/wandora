@@ -1,3 +1,19 @@
+## 2026-10-01 — ADR 0382 Semantic Fast Read Existing VendaERP Capability Reuse — Parties V1
+
+Status: **QUALIFIED / CODE HEAD 9/9 RELEVANT WORKFLOWS GREEN / CODE + SYNTHETIC TESTS ONLY / NO PRODUCTION EFFECT**.
+
+Parties V1 reuses the existing `business.parties.search` capability and exact existing `vendaerp_search_parties` / `Pessoas/Pesquisar` boundary. ADR 0380 classifies the operation READ_SENSITIVE, so V1 narrows the semantic contract to one explicit party name plus exactly one explicit business role (`customer` or `supplier`). CPF/CNPJ/document, e-mail, phone, provider IDs and raw `Pessoa` fields are not authorized for customer presentation; sensitive or underspecified requests fail closed into deterministic clarification before dispatch.
+
+Execution remains one bounded first-page provider read (`pageSize=5`, `skip=0`) with explicit customer/supplier booleans. Results are exact-post-filtered by normalized name plus role: zero exact matches become `not_found`, one becomes safe facts, and multiple exact matches become a bounded safe list. No fuzzy ranking, first-row trust, retry, fallback or second ERP call is added. The bounded `PartySelector` is carried by the existing signed `wfri1` authorization.
+
+The mandatory pre-code adversarial review first returned `deep_review=0.77`. After proving that both provider query builders serialize boolean `false` and that the existing Fast Read bridge requires owner/admin authorization, the focused review returned `proceed_fast=0.68` with no unresolved factual blocker. Exact code head `1c8d15cc3fd45ac255aeabb472f4536935099a09` completed 9/9 relevant workflows GREEN. Because the Candidate Artifact completed before Core CI + Semantic Fast Read CI, only its job was rerun after both primary gates were GREEN; post-gate job `110615339488` completed GREEN. Completion review classified the slice `complete` with probability 0.96.
+
+No production/VPS/runtime mutation, rollout expansion, real provider/customer call, WRITE/DESTRUCTIVE operation, Human Send, outbound, secret change or merge occurred.
+
+Canonical detail: `docs/decisions/0382-semantic-fast-read-existing-vendaerp-capability-reuse-parties-v1.md`.
+
+---
+
 ## 2026-10-01 — ADR 0381 Semantic Fast Read Existing VendaERP Capability Reuse — Stock V1
 
 Status: **QUALIFIED / 12/12 EXACT-HEAD WORKFLOWS GREEN / CODE + SYNTHETIC TESTS ONLY / NO PRODUCTION EFFECT**.

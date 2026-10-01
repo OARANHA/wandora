@@ -3,6 +3,7 @@ import type { RuntimeReadCapabilityAdapter } from '../agent-runtime/runtime-read
 import type { RuntimeReadTool } from '../agent-runtime/task-runtime.js';
 import type {
   BusinessCapability,
+  PartySelector,
   ProductSelector,
   SemanticSelector,
   StockSelector,
@@ -10,13 +11,16 @@ import type {
 
 const VENDAERP_PRODUCT_TOOL = 'vendaerp_search_products';
 const VENDAERP_STOCK_TOOL = 'vendaerp_get_product_stock';
+const VENDAERP_PARTY_TOOL = 'vendaerp_search_parties';
 const MAX_PRODUCTS = 5;
 const MAX_STOCK_ROWS = 8;
+const MAX_PARTIES = 5;
 
 export const VENDAERP_FAST_READ_CAPABILITIES = [
   'business.products.search',
   'business.products.price',
   'business.stock.read',
+  'business.parties.search',
 ] as const satisfies readonly BusinessCapability[];
 
 type ProductRow = {
@@ -33,6 +37,13 @@ type StockRow = {
   location: string;
   quantity: number;
   lastUpdatedAt?: string;
+};
+
+type PartyRow = {
+  displayName?: string;
+  legalName?: string;
+  customer: boolean;
+  supplier: boolean;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -82,6 +93,24 @@ function productRow(value: unknown): ProductRow {
   };
 }
 
+function partyRow(value: unknown): PartyRow {
+  if (!isRecord(value)) throw new Error('vendaerp_fast_read_invalid_party_result');
+  const displayName = boundedText(value.displayName, 160);
+  const legalName = boundedText(value.legalName, 200);
+  if (!displayName && !legalName) {
+    throw new Error('vendaerp_fast_read_invalid_party_result');
+  }
+  if (typeof value.customer !== 'boolean' || typeof value.supplier !== 'boolean') {
+    throw new Error('vendaerp_fast_read_invalid_party_result');
+  }
+  return {
+    ...(displayName ? { displayName } : {}),
+    ...(legalName ? { legalName } : {}),
+    customer: value.customer,
+    supplier: value.supplier,
+  };
+}
+
 function stockRow(value: unknown): StockRow {
   if (!isRecord(value)) throw new Error('vendaerp_fast_read_invalid_stock_result');
   const location = boundedText(value.location, 512);
@@ -120,12 +149,20 @@ function exactVendaErpStockTool(tool: RuntimeReadTool): boolean {
   return tool.providerToolName === VENDAERP_STOCK_TOOL;
 }
 
+function exactVendaErpPartyTool(tool: RuntimeReadTool): boolean {
+  return tool.providerToolName === VENDAERP_PARTY_TOOL;
+}
+
 function productSelector(selector: SemanticSelector | null): ProductSelector | null {
   return selector?.kind === 'product' ? selector : null;
 }
 
 function stockSelector(selector: SemanticSelector | null): StockSelector | null {
   return selector?.kind === 'stock' ? selector : null;
+}
+
+function partySelector(selector: SemanticSelector | null): PartySelector | null {
+  return selector?.kind === 'party' ? selector : null;
 }
 
 function normalizedName(value: string): string {
@@ -148,6 +185,34 @@ function selectorInput(selector: ProductSelector): Record<string, unknown> {
     [selector.by]: selector.value,
     pageSize: MAX_PRODUCTS,
     skip: 0,
+  };
+}
+
+function partyMatches(party: PartyRow, selector: PartySelector): boolean {
+  const nameMatches = [party.displayName, party.legalName]
+    .filter((value): value is string => typeof value === 'string')
+    .some((value) => normalizedName(value) === normalizedName(selector.value));
+  if (!nameMatches) return false;
+  return selector.role === 'customer' ? party.customer : party.supplier;
+}
+
+function partyRoleLabel(party: PartyRow): string {
+  if (party.customer && party.supplier) return 'Cliente e fornecedor';
+  if (party.customer) return 'Cliente';
+  if (party.supplier) return 'Fornecedor';
+  return 'Sem classificação comercial';
+}
+
+function partyFact(party: PartyRow, index: number): { label: string; value: string } {
+  const display = party.displayName ?? party.legalName!;
+  const details: string[] = [];
+  if (party.legalName && normalizedName(party.legalName) !== normalizedName(display)) {
+    details.push(`Razão social ${party.legalName}`);
+  }
+  details.push(`Tipo ${partyRoleLabel(party)}`);
+  return {
+    label: `${index + 1}. ${display}`,
+    value: details.join(' · '),
   };
 }
 
@@ -192,10 +257,62 @@ export function createVendaErpFastReadCapabilityAdapter(): RuntimeReadCapability
       if (exactVendaErpStockTool(tool)) {
         return ['business.stock.read'];
       }
+      if (exactVendaErpPartyTool(tool)) {
+        return ['business.parties.search'];
+      }
       return [];
     },
 
     async execute({ tool, capability, selector }): Promise<DeterministicReadNormalizedResult> {
+      if (capability === 'business.parties.search') {
+        if (!exactVendaErpPartyTool(tool)) {
+          throw new Error('vendaerp_fast_read_capability_unavailable');
+        }
+        const selectedParty = partySelector(selector);
+        if (!selectedParty) {
+          throw new Error('vendaerp_fast_read_selector_required');
+        }
+
+        const result = await tool.execute({
+          displayName: selectedParty.value,
+          customer: selectedParty.role === 'customer',
+          supplier: selectedParty.role === 'supplier',
+          pageSize: MAX_PARTIES,
+          skip: 0,
+        });
+        if (!Array.isArray(result) || result.length > MAX_PARTIES) {
+          throw new Error('vendaerp_fast_read_invalid_party_result');
+        }
+        const parties = result.map(partyRow);
+        const exactMatches = parties.filter((party) => partyMatches(party, selectedParty));
+        if (exactMatches.length === 0) {
+          return {
+            kind: 'not_found',
+            message: 'Nenhum cliente ou fornecedor corresponde exatamente ao nome e tipo autorizados.',
+          };
+        }
+        if (exactMatches.length === 1) {
+          const party = exactMatches[0]!;
+          const subject = party.displayName ?? party.legalName!;
+          const facts = [
+            ...(party.legalName && normalizedName(party.legalName) !== normalizedName(subject)
+              ? [{ label: 'Razão social', value: party.legalName }]
+              : []),
+            { label: 'Tipo', value: partyRoleLabel(party) },
+          ];
+          return {
+            kind: 'facts',
+            subject,
+            facts,
+          };
+        }
+        return {
+          kind: 'facts',
+          subject: 'Cadastros correspondentes',
+          facts: exactMatches.map(partyFact),
+        };
+      }
+
       if (capability === 'business.stock.read') {
         if (!exactVendaErpStockTool(tool)) {
           throw new Error('vendaerp_fast_read_capability_unavailable');

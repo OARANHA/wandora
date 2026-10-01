@@ -326,3 +326,83 @@ test('invalid constructor configuration fails closed', () => {
     /mastra_mistral_selector_invalid_timeout/,
   );
 });
+
+
+for (const example of [
+  {
+    label: 'customer',
+    request: 'Procure o cliente João Silva.',
+    role: 'customer' as const,
+  },
+  {
+    label: 'supplier',
+    request: 'Procure o fornecedor Tintas Exemplo.',
+    role: 'supplier' as const,
+  },
+]) {
+  test(`extracts a bounded party name + role selector for an explicit ${example.label}`, async () => {
+    const provider = providerWith(async (received) => {
+      assert.equal(received.request, example.request);
+      assert.equal(received.capability, 'business.parties.search');
+      return {
+        selector: {
+          kind: 'party',
+          by: 'name',
+          value: example.role === 'customer' ? 'João Silva' : 'Tintas Exemplo',
+          role: example.role,
+        },
+        confidence: 0.98,
+        ambiguity: 'none',
+      };
+    });
+
+    const decision = await provider.select(input(example.request, 'business.parties.search'));
+    assert.deepEqual(decision.selector, {
+      kind: 'party',
+      by: 'name',
+      value: example.role === 'customer' ? 'João Silva' : 'Tintas Exemplo',
+      role: example.role,
+    });
+    assert.equal(decision.ambiguity, 'none');
+  });
+}
+
+test('sensitive party identifier request remains fail-closed at the selector boundary', async () => {
+  const provider = providerWith(async (received) => {
+    assert.equal(received.capability, 'business.parties.search');
+    return {
+      selector: null,
+      confidence: 0.97,
+      ambiguity: 'unknown',
+    };
+  });
+
+  const decision = await provider.select(input(
+    'Qual cliente tem o CNPJ 12.345.678/0001-90?',
+    'business.parties.search',
+  ));
+  assert.equal(decision.selector, null);
+  assert.equal(decision.ambiguity, 'unknown');
+});
+
+test('party selector rejects unsupported roles and selector fields', async () => {
+  const invalidRole = providerWith(async () => ({
+    selector: { kind: 'party', by: 'name', value: 'João Silva', role: 'prospect' },
+    confidence: 0.99,
+    ambiguity: 'none',
+  }));
+  await assert.rejects(
+    invalidRole.select(input('Procure João Silva.', 'business.parties.search')),
+    /mastra_mistral_selector_invalid_response/,
+  );
+
+  const invalidField = providerWith(async () => ({
+    selector: { kind: 'party', by: 'document', value: '123', role: 'customer' },
+    confidence: 0.99,
+    ambiguity: 'none',
+  }));
+  await assert.rejects(
+    invalidField.select(input('Procure o cliente pelo documento 123.', 'business.parties.search')),
+    /mastra_mistral_selector_invalid_response/,
+  );
+});
