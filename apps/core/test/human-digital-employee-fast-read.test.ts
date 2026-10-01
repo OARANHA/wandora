@@ -827,3 +827,49 @@ test('rollout policy intersects provider capabilities before semantic admission'
   assert.equal(result.kind, 'completed');
   assert.equal(dispatchCalls, 1);
 });
+
+
+test('rollout with no operational capability fails closed before semantic decision or dispatch', async () => {
+  let semanticDecisionCalls = 0;
+  let dispatchCalls = 0;
+
+  const service = new HumanDigitalEmployeeFastReadService({
+    intentSecret: SECRET,
+    policy: POLICY,
+    rolloutPolicy: {
+      targets: [{ organizationId: ORG, employeeId: EMPLOYEE }],
+      capabilities: ['business.products.price'],
+    },
+    semanticDecisionProvider: {
+      async decide() {
+        semanticDecisionCalls += 1;
+        return deterministicDecision({
+          capability: 'business.products.price',
+          selector: { kind: 'product', by: 'name', value: 'PREMIUM PLUS' },
+        });
+      },
+    },
+    bridge: {
+      async getAvailableCapabilities() {
+        return ['business.products.search'];
+      },
+      async dispatchFastRead() {
+        dispatchCalls += 1;
+        throw new Error('must not dispatch');
+      },
+    },
+  });
+
+  assert.deepEqual(await service.execute({
+    organizationId: ORG,
+    actorUserId: USER,
+    employeeId: EMPLOYEE,
+    request: 'Qual é o preço do produto PREMIUM PLUS?',
+  }), {
+    kind: 'fallback',
+    reason: 'capability-not-advertised',
+  });
+
+  assert.equal(semanticDecisionCalls, 0);
+  assert.equal(dispatchCalls, 0);
+});
