@@ -1037,3 +1037,159 @@ test('rollout with no operational capability fails closed before semantic decisi
   assert.equal(semanticDecisionCalls, 0);
   assert.equal(dispatchCalls, 0);
 });
+
+
+test('party Fast Read reaches selector once and dispatches only after an explicit name + role selector', async () => {
+  let selectorCalls = 0;
+  let dispatchCalls = 0;
+  const request = 'Procure o cliente João Silva.';
+  const service = new HumanDigitalEmployeeFastReadService({
+    intentSecret: SECRET,
+    policy: POLICY,
+    createCorrelationId: () => CORRELATION,
+    now: () => 1_790_000_000_000,
+    semanticDecisionProvider: {
+      async decide() {
+        return deterministicDecision({
+          capability: 'business.parties.search',
+          selector: null,
+        });
+      },
+    },
+    semanticSelectorProvider: {
+      async select(input) {
+        selectorCalls += 1;
+        assert.equal(input.capability, 'business.parties.search');
+        assert.equal(input.request, request);
+        return {
+          selector: {
+            kind: 'party',
+            by: 'name',
+            value: 'João Silva',
+            role: 'customer',
+          },
+          confidence: 0.98,
+          ambiguity: 'none',
+        };
+      },
+    },
+    bridge: {
+      async getAvailableCapabilities() {
+        return ['business.parties.search'];
+      },
+      async dispatchFastRead(input) {
+        dispatchCalls += 1;
+        assert.match(input.intentToken, /^wfri1\./);
+        return {
+          model: 'wandora-deterministic-read-v1',
+          summary: 'João Silva\nTipo: Cliente',
+          usage: { inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, totalTokens: 0 },
+        };
+      },
+    },
+  });
+
+  const result = await service.execute({
+    organizationId: ORG,
+    actorUserId: USER,
+    employeeId: EMPLOYEE,
+    request,
+  });
+
+  assert.equal(result.kind, 'completed');
+  assert.equal(selectorCalls, 1);
+  assert.equal(dispatchCalls, 1);
+});
+
+test('party request without explicit customer/supplier role returns a bounded clarification with zero dispatch', async () => {
+  let selectorCalls = 0;
+  let dispatchCalls = 0;
+  const service = new HumanDigitalEmployeeFastReadService({
+    intentSecret: SECRET,
+    policy: POLICY,
+    semanticDecisionProvider: {
+      async decide() {
+        return deterministicDecision({
+          capability: 'business.parties.search',
+          selector: null,
+        });
+      },
+    },
+    semanticSelectorProvider: {
+      async select() {
+        selectorCalls += 1;
+        return {
+          selector: null,
+          confidence: 0.97,
+          ambiguity: 'missing_entity',
+        };
+      },
+    },
+    bridge: {
+      async getAvailableCapabilities() {
+        return ['business.parties.search'];
+      },
+      async dispatchFastRead() {
+        dispatchCalls += 1;
+        throw new Error('must not dispatch');
+      },
+    },
+  });
+
+  assert.deepEqual(await service.execute({
+    organizationId: ORG,
+    actorUserId: USER,
+    employeeId: EMPLOYEE,
+    request: 'Procure João Silva.',
+  }), {
+    kind: 'clarification',
+    prompt: 'Para consultar cadastros com segurança, informe um único nome e diga se é cliente ou fornecedor. CPF/CNPJ, e-mail e telefone não estão habilitados nesta leitura.',
+  });
+  assert.equal(selectorCalls, 1);
+  assert.equal(dispatchCalls, 0);
+});
+
+test('sensitive party identifier request stays fail-closed before deterministic dispatch', async () => {
+  let dispatchCalls = 0;
+  const service = new HumanDigitalEmployeeFastReadService({
+    intentSecret: SECRET,
+    policy: POLICY,
+    semanticDecisionProvider: {
+      async decide() {
+        return deterministicDecision({
+          capability: 'business.parties.search',
+          selector: null,
+        });
+      },
+    },
+    semanticSelectorProvider: {
+      async select() {
+        return {
+          selector: null,
+          confidence: 0.98,
+          ambiguity: 'unknown',
+        };
+      },
+    },
+    bridge: {
+      async getAvailableCapabilities() {
+        return ['business.parties.search'];
+      },
+      async dispatchFastRead() {
+        dispatchCalls += 1;
+        throw new Error('must not dispatch');
+      },
+    },
+  });
+
+  assert.deepEqual(await service.execute({
+    organizationId: ORG,
+    actorUserId: USER,
+    employeeId: EMPLOYEE,
+    request: 'Qual cliente tem o CNPJ 12.345.678/0001-90?',
+  }), {
+    kind: 'clarification',
+    prompt: 'Para consultar cadastros com segurança, informe um único nome e diga se é cliente ou fornecedor. CPF/CNPJ, e-mail e telefone não estão habilitados nesta leitura.',
+  });
+  assert.equal(dispatchCalls, 0);
+});
