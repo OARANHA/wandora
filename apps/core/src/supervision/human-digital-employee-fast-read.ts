@@ -72,25 +72,32 @@ function requireDeterministicResult(
   }
 }
 
-function stockClarification(
+function boundedClarification(
   decision: SemanticRouteDecision,
   reason: SemanticRouteGateReason,
 ): HumanFastReadAdmissionResult | null {
-  if (
-    decision.capability !== 'business.stock.read'
-    || ![
-      'needs-more-context',
-      'ambiguous',
-      'missing-selector',
-      'invalid-selector',
-      'selector-not-applicable',
-    ].includes(reason)
-  ) return null;
+  const selectorReasons = [
+    'needs-more-context',
+    'ambiguous',
+    'missing-selector',
+    'invalid-selector',
+    'selector-not-applicable',
+  ];
+  if (!selectorReasons.includes(reason)) return null;
 
-  return {
-    kind: 'clarification',
-    prompt: 'Para consultar estoque com segurança, informe um único código de produto e um único depósito/local de estoque.',
-  };
+  if (decision.capability === 'business.stock.read') {
+    return {
+      kind: 'clarification',
+      prompt: 'Para consultar estoque com segurança, informe um único código de produto e um único depósito/local de estoque.',
+    };
+  }
+  if (decision.capability === 'business.parties.search') {
+    return {
+      kind: 'clarification',
+      prompt: 'Para consultar cadastros com segurança, informe um único nome e diga se é cliente ou fornecedor. CPF/CNPJ, e-mail e telefone não estão habilitados nesta leitura.',
+    };
+  }
+  return null;
 }
 
 export class HumanDigitalEmployeeFastReadService {
@@ -210,7 +217,7 @@ export class HumanDigitalEmployeeFastReadService {
     }
 
     if (!gate.allowed) {
-      return stockClarification(decision, gate.reason)
+      return boundedClarification(decision, gate.reason)
         ?? { kind: 'fallback', reason: gate.reason };
     }
 
