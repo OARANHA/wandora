@@ -1,3 +1,23 @@
+## 2026-09-30 — ADR 0361 Post-ADR0358 Rollback Freeze V2 root precheck execution
+
+Status: **ROOT PRECHECK GREEN / CAPTURE NOT EXECUTED / POST-ADR0358 RECEIPT ABSENT / CUSTOMER EFFECT NONE**.
+
+Fresh provenance before effect kept `main=e4c7c36bb1091ba38d39b85fa259bae94553fc52` and PR #369 branch head `3c2782368c9c942114e44d5b59162d3183599c12`. The qualified source ancestor `e8170a6adca24314854e7ee53f4cbb06591886ec` remained 17/17 GREEN. The current documentation head had 16/17 success, 0 failures and only Paperclip Fast Read Production Candidate CI still in progress; no workflow was rerun.
+
+Fresh runtime reconciliation proved seven Wandora containers running/healthy, Paperclip `wandora/paperclip:v2026.916.1`, Core `wandora/core:organization-adapter-candidate-f279acc98687`, Messaging Gateway healthy, Task Drain `false / 0 / 0 / quiescent=true`, exactly one Organization Adapter `0.6.1` ready, and external `wandora_mastra@0.6.0` loaded/enabled at the exact `2e97da6d...` package. The historical ADR 0356 receipt remained intact and the post-ADR0358 receipt remained absent.
+
+The existing managed-admin capability was reused without any allowlist or authority change. A fresh second adversarial review returned `confirm=0.83`, confidence `0.79`. Human approval `adm_3f7d861bf488a0b31c27c0a3` then authorized only the zero-argument program `wandora-rollback-freeze-v2-precheck`.
+
+The governed apply executed exactly once and returned `executed=true`, `exit_code=0`, `timed_out=false`, empty stderr and terminal marker `ROLLBACK_FREEZE_V2_PRECHECK_OK`. The output also recorded `activation_performed=false`, `provider_call_performed=false`, `customer_effect=false`, and `outbound_effect=false`.
+
+Post-execution validation proved the future receipt still absent, the historical ADR 0356 receipt still intact, all seven containers still healthy and Task Drain still `false / 0 / 0 / quiescent=true`.
+
+**ROOT PRECHECK EXECUTED = YES. CAPTURE NOT EXECUTED. SEMANTIC FAST READ NOT EXECUTED. PRODUCTION CUSTOMER EFFECT = NONE.**
+
+Canonical detail: `docs/decisions/0361-post-adr0358-rollback-freeze-v2-root-precheck-execution-v1.md`.
+
+Next boundary: **Post-ADR0358 Rollback Freeze V2 — PERSISTENT CAPTURE EXECUTION V1**. It must begin from fresh state, decision, second adversarial review, a new `host_admin_prepare`, explicit human approval and exactly one execution of `wandora-rollback-freeze-v2-capture`. Do not reuse the precheck approval. After capture GREEN, the next slice is the supervised activation required to execute the first real Ana read and return a visible functional result; do not open non-essential structural work before that demonstration.
+
 ## Post-ADR0358 exact-byte host deployment checkpoint — ADR 0360
 
 Status: **LIVE HELPER+WRAPPERS EXACT / ROOT PRECHECK NOT EXECUTED / POST-ADR0358 CAPTURE ABSENT / CUSTOMER EFFECT NONE**.
