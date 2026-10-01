@@ -1,3 +1,25 @@
+## 2026-10-01 — ADR 0373 current 9ee338 Rollback Freeze V2 GREEN
+
+Status: **GREEN / CURRENT-BASELINE ROLLBACK FREEZE V2 READY / CORE 9ee338 ANCHORED / ALL EFFECT GATES OFF / NO CUSTOMER OR OUTBOUND EFFECT**.
+
+The existing Rollback Freeze V2 mechanism was repinned and requalified for live/stable Core `9ee338303292...` without creating any new backup/lifecycle/orchestration subsystem. Exact qualified live blobs are helper `1b26ca7a...`, precheck `6000e8e5...`, capture `770a2853...`; code head `04c4572e...` is 12/12 GREEN.
+
+The dedicated root precheck executed once and returned `ROLLBACK_FREEZE_V2_PRECHECK_OK` with all effect flags false. The separately approved persistent capture executed once in 36.975s and returned `ROLLBACK_FREEZE_V2_OK`.
+
+Current safe receipt:
+
+`/opt/wandora/ops-workspace/production-rollback-freeze-v2-post-adr0372-9ee338303292173db8e1b21bef9c8c5067c104a4-mastra060-2e97da6d.metadata`
+
+Receipt validation proves official Paperclip backup created + gzip-valid, PostgreSQL 18.1 restore/schema equality GREEN, exact Core/Paperclip/OA/Mastra/Gateway anchors, gates OFF, custody/attestation overlays absent, Task Drain quiescent and `activation/provider/customer/outbound=false`.
+
+Post-capture Core/Paperclip/Gateway remain healthy with restart 0; selector remains exact `9ee338...`. ADR 0367 is historical for `83baca...`.
+
+**No scoped rollout is authorized by this checkpoint.** The next 28PRO/Ana/`business.products.price` slice must begin from fresh REAL NOW and separate review/approval.
+
+Canonical detail: `docs/decisions/0373-current-9ee338-core-rollback-freeze-v2-requalification-v1.md`.
+
+---
+
 ## 2026-10-01 — ADR 0372 exact Core candidate promoted; 9ee338 is live/stable
 
 Status: **GREEN / CORE 9ee338 LIVE / EXACT 14-FILE BASELINE / ALL EFFECT GATES OFF / NO CUSTOMER OR OUTBOUND EFFECT**.

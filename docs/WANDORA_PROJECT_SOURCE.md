@@ -1,3 +1,37 @@
+# CHECKPOINT ATUAL — ADR 0373 ROLLBACK FREEZE V2 GREEN / CORE 9ee338 PROTECTED
+
+O slice ADR 0373 foi concluído em **GREEN**.
+
+- Core live/stable continua `wandora/core:organization-adapter-candidate-9ee338303292`;
+- revision `9ee338303292173db8e1b21bef9c8c5067c104a4`;
+- OCI manifest `sha256:fbb3c420b25fc9ae141f8ece5ab69bec9daef203a36e268eea4c363da3a84a5f`;
+- exact 14-file production topology preservada;
+- Core/Paperclip/Messaging Gateway healthy, restart 0;
+- Task Drain `false / 0 / 0 / quiescent=true`;
+- stable selector permanece em `9ee338...`;
+- Fast Read Execution, Semantic Fast Read, Semantic Selector, Human Send e Gateway outbound permanecem OFF;
+- helper/wrappers Rollback Freeze V2 live agora são os bytes qualificados `1b26ca7a...`, `6000e8e5...`, `770a2853...`;
+- precheck root retornou `ROLLBACK_FREEZE_V2_PRECHECK_OK`;
+- persistent capture retornou `ROLLBACK_FREEZE_V2_OK` em 36.975s, sem timeout;
+- receipt atual:
+  `/opt/wandora/ops-workspace/production-rollback-freeze-v2-post-adr0372-9ee338303292173db8e1b21bef9c8c5067c104a4-mastra060-2e97da6d.metadata`;
+- official backup criado e gzip-valid;
+- PostgreSQL 18.1 restore/schema equality GREEN;
+- `activation_performed=false`;
+- `provider_call_performed=false`;
+- `customer_effect=false`;
+- `outbound_effect=false`.
+
+ADR 0367 permanece apenas como evidência histórica do baseline `83baca...`.
+
+**Próximo boundary:** somente em um novo slice, reconciliar novamente REAL NOW e então avaliar o rollout escopado 28PRO / Ana / `business.products.price`. O ADR 0373 não autoriza ativação por implicação e nenhum approval deste slice deve ser reutilizado.
+
+Detalhe canônico: `docs/decisions/0373-current-9ee338-core-rollback-freeze-v2-requalification-v1.md`.
+
+Este arquivo é bootstrap apenas. Depois siga `AGENTS.md`, ADRs relevantes, `docs/CAPABILITY_AUTHORITY.md`, `docs/architecture.md`, `docs/CANONICAL_STATE.md`, runbooks, GitHub e runtime real.
+
+---
+
 # CHECKPOINT ATUAL — ADR 0372 PROMOTION GREEN / CORE 9ee338 LIVE
 
 O slice ADR 0372 foi concluído em **GREEN**.
