@@ -1,0 +1,16 @@
+services:
+  core:
+    environment:
+      # Persistent scoped rollout overlay. Append only after the gates-OFF
+      # convergence and custody overlays in a separately authorized promotion.
+      WANDORA_FAST_READ_EXECUTION_ENABLED: "true"
+      WANDORA_SEMANTIC_FAST_READ_ENABLED: "true"
+      WANDORA_SEMANTIC_SELECTOR_ENABLED: "true"
+
+      # Human/customer outbound remains outside Semantic Fast Read rollout.
+      WANDORA_HUMAN_SEND_PROPOSAL_ENABLED: "false"
+
+      # Deployment-owned, non-secret admission scope. Both values are required.
+      # Targets use comma-separated exact organizationId:employeeId UUID pairs.
+      WANDORA_SEMANTIC_FAST_READ_ROLLOUT_TARGETS: "${WANDORA_SEMANTIC_FAST_READ_ROLLOUT_TARGETS:?set exact organizationId:employeeId rollout targets}"
+      WANDORA_SEMANTIC_FAST_READ_ROLLOUT_CAPABILITIES: "${WANDORA_SEMANTIC_FAST_READ_ROLLOUT_CAPABILITIES:?set allowed BusinessCapability list}"

@@ -142,6 +142,8 @@ jobs:
           WANDORA_MODEL_API_KEY_FILE_HOST: ${{ runner.temp }}/model-provider.synthetic
           WANDORA_ORGANIZATION_ADAPTER_SECRET_DIR_HOST: ${{ runner.temp }}/organization-adapter.synthetic
           WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE_HOST: ${{ runner.temp }}/paperclip-execution-bridge.synthetic
+          WANDORA_SEMANTIC_FAST_READ_ROLLOUT_TARGETS: 11111111-1111-4111-8111-111111111111:22222222-2222-4222-8222-222222222222
+          WANDORA_SEMANTIC_FAST_READ_ROLLOUT_CAPABILITIES: business.products.price
         run: |
           set -euo pipefail
 
@@ -203,6 +205,37 @@ jobs:
 
           test "$(grep -c 'WANDORA_.*_ENABLED:' infra/stacks/core/compose.semantic-fast-read-attestation.yaml)" -eq 4
           ! grep -Eq '^[[:space:]]+(volumes|ports|image|build|networks|secrets):' infra/stacks/core/compose.semantic-fast-read-attestation.yaml
+          ! grep -q 'WANDORA_SEMANTIC_FAST_READ_ROLLOUT_' <<<"$attestation_effective"
+
+          # Persistent rollout is a separate effect overlay. It requires an
+          # exact Wandora-owned target/capability admission scope while leaving
+          # Paperclip operational authority, Human Send and Gateway outbound unchanged.
+          rollout_effective="$(docker compose \
+            -f infra/stacks/core/compose.yaml \
+            -f infra/stacks/core/compose.agent-runtime-model.yaml \
+            -f infra/stacks/core/compose.human-api.yaml \
+            -f infra/stacks/core/compose.organization-adapter.yaml \
+            -f infra/stacks/core/compose.paperclip-execution-bridge.yaml \
+            -f infra/stacks/core/compose.semantic-fast-read.yaml \
+            -f infra/stacks/core/compose.semantic-fast-read-custody.yaml \
+            -f infra/stacks/core/compose.semantic-fast-read-rollout.yaml \
+            config)"
+
+          grep -q 'WANDORA_FAST_READ_EXECUTION_ENABLED: "true"' <<<"$rollout_effective"
+          grep -q 'WANDORA_SEMANTIC_FAST_READ_ENABLED: "true"' <<<"$rollout_effective"
+          grep -q 'WANDORA_SEMANTIC_SELECTOR_ENABLED: "true"' <<<"$rollout_effective"
+          grep -q 'WANDORA_HUMAN_SEND_PROPOSAL_ENABLED: "false"' <<<"$rollout_effective"
+          grep -Fq 'WANDORA_SEMANTIC_FAST_READ_ROLLOUT_TARGETS: 11111111-1111-4111-8111-111111111111:22222222-2222-4222-8222-222222222222' <<<"$rollout_effective"
+          grep -Fq 'WANDORA_SEMANTIC_FAST_READ_ROLLOUT_CAPABILITIES: business.products.price' <<<"$rollout_effective"
+          grep -Fq "source: $WANDORA_TYPESAFE_JEV_API_KEY_FILE_HOST" <<<"$rollout_effective"
+          grep -Fq "source: $WANDORA_FAST_READ_INTENT_SECRET_FILE_HOST" <<<"$rollout_effective"
+          grep -Fq "source: $WANDORA_MODEL_API_KEY_FILE_HOST" <<<"$rollout_effective"
+          ! grep -q 'WANDORA_MESSAGING_GATEWAY_OUTBOUND_URL' <<<"$rollout_effective"
+          ! grep -q 'WANDORA_CORE_OUTBOUND_SECRET_FILE' <<<"$rollout_effective"
+          ! grep -q 'WANDORA_HUMAN_SEND_PROPOSAL_CONNECTION_ID' <<<"$rollout_effective"
+          test "$(grep -c 'WANDORA_.*_ENABLED:' infra/stacks/core/compose.semantic-fast-read-rollout.yaml)" -eq 4
+          ! grep -Eq '^[[:space:]]+(volumes|ports|image|build|networks|secrets):' infra/stacks/core/compose.semantic-fast-read-rollout.yaml
 
           echo 'SEMANTIC_FAST_READ_BOUNDED_ATTESTATION_CONTRACT_V1_OK'
+          echo 'SEMANTIC_FAST_READ_SCOPED_ROLLOUT_CONTRACT_V1_OK'
           echo 'SEMANTIC_FAST_READ_PRODUCTION_ACTIVATION_CONTRACT_V1_OK'
