@@ -166,6 +166,25 @@ A future authorized production composition must append the rollout overlay after
 
 Messaging Gateway outbound remains separately controlled and must remain OFF for the initial Fast Read rollout.
 
+## Observability and stop conditions
+
+Core startup exposes only the boolean `semanticFastReadRollout`; it does not emit rollout tenant IDs, employee IDs, customer text or secret material. Existing Fast Read latency stages, Paperclip terminal run state and governed Connection activity remain the operational evidence surfaces.
+
+A future canary must stop and return to the previous gates-OFF baseline if any of the following is observed:
+
+- a non-enrolled target reaches JEV, selector, Paperclip dispatch or ERP execution;
+- a capability outside the explicitly authorized canary set is selected or executed;
+- an unexpected retry or second tool execution occurs;
+- a write or destructive tool is selected;
+- the logical result model differs from `wandora-deterministic-read-v1`;
+- token usage is not exactly zero;
+- Core, Paperclip or Organization Adapter loses the qualified healthy/ready posture;
+- Connection, organization grant or effective Tool Policy drifts from the qualified read-only posture;
+- Human Send or Messaging Gateway outbound becomes enabled;
+- source, image, Compose provenance, custody or rollback evidence no longer matches the effect decision.
+
+These are future effect-window stop conditions only; this code-only ADR did not open an effect window.
+
 ## TDD evidence
 
 The slice was implemented test-first.
