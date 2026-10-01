@@ -1,5 +1,22 @@
 ## 2026-10-01 — ADR 0373 current 9ee338 Rollback Freeze V2 GREEN
 
+## ADR 0374 — Semantic Fast Read Scoped Rollout Activation-Oriented Preflight V1
+
+Status: **BLOCKED / FAIL-CLOSED / NO ACTIVATION / NO CUSTOMER EFFECT**.
+
+Fresh state after ADR 0373 still proves live/stable Core `9ee338303292...`, exact 14-file gates-OFF topology, Paperclip `v2026.916.1`, OA `0.6.1 ready`, external `wandora_mastra@0.6.0`, Task Drain `false/0/0/quiescent`, Human Send OFF and Gateway outbound OFF. The ADR0373 `ROLLBACK_FREEZE_V2_OK` receipt still matches the live baseline.
+
+Fresh evidence also reconfirms the live Wandora 28PRO/Ana pair, Paperclip 28PRO/Ana identities, and an official non-consuming Tool Policy decision of `allow/allow_profile` for the known VendaERP product-read Connection.
+
+Activation remains fail-closed because the exact persistent rollout-overlay live-host identity/materialization is not yet proven, a fresh Organization Adapter operational projection is still required immediately before effect, and custody metadata must be freshly read through the existing dedicated managed-admin metadata capability. No new subsystem is justified.
+
+JEV second adversarial review returned `block=0.63`, `deep_review=0.33`. No `adm_...` activation ticket was generated.
+
+Next boundary: **Semantic Fast Read Scoped Rollout Host Materialization + Immediate Effect Attestation V1 — NO CUSTOMER CALL**.
+
+Canonical detail: `docs/decisions/0374-semantic-fast-read-scoped-rollout-activation-oriented-preflight-v1.md`.
+
+
 Status: **GREEN / CURRENT-BASELINE ROLLBACK FREEZE V2 READY / CORE 9ee338 ANCHORED / ALL EFFECT GATES OFF / NO CUSTOMER OR OUTBOUND EFFECT**.
 
 The existing Rollback Freeze V2 mechanism was repinned and requalified for live/stable Core `9ee338303292...` without creating any new backup/lifecycle/orchestration subsystem. Exact qualified live blobs are helper `1b26ca7a...`, precheck `6000e8e5...`, capture `770a2853...`; code head `04c4572e...` is 12/12 GREEN.
