@@ -1,3 +1,19 @@
+# CHECKPOINT ATUAL — ADR 0382 PARTIES V1 REUSE QUALIFIED
+
+Status: **QUALIFIED / CODE HEAD 9/9 RELEVANT WORKFLOWS GREEN / EXISTING CAPABILITY + TOOL REUSE / NO PRODUCTION EFFECT**.
+
+Parties V1 reuses `business.parties.search` and the exact existing `vendaerp_search_parties` / `Pessoas/Pesquisar` boundary. The READ_SENSITIVE contract is deliberately narrow: one explicit party name plus exactly one explicit role (`customer` or `supplier`), one bounded provider call (`pageSize=5`, `skip=0`), exact name+role post-filtering, and customer presentation limited to display/legal name plus provider-proven business type. CPF/CNPJ/document, e-mail, phone, provider IDs and raw `Pessoa` fields remain outside Parties V1 and sensitive/underspecified requests fail closed before deterministic dispatch.
+
+The existing provider tool, Organization Adapter projection, Paperclip Tool Gateway authority and signed `wfri1` path are reused; no new provider endpoint/tool, durable state, registry, lifecycle, retry or orchestration subsystem was added. The pre-code JEV review first required deep review; after boolean-filter and owner/admin authorization proof, the focused review returned `proceed_fast=0.68`. Exact code head `1c8d15cc3fd45ac255aeabb472f4536935099a09` completed 9/9 relevant workflows GREEN, and the post-gate Candidate job `110615339488` completed GREEN after Core CI + Semantic Fast Read CI. Completion review classified the slice `complete=0.96`.
+
+PR #382 remains draft/unmerged and stacked on #381. No production, VPS, rollout, real provider/customer call, WRITE/DESTRUCTIVE capability, Human Send, outbound, secret change or merge occurred.
+
+Canonical detail: `docs/decisions/0382-semantic-fast-read-existing-vendaerp-capability-reuse-parties-v1.md`.
+
+This file is bootstrap only. Continue with `AGENTS.md`, relevant ADRs, `docs/CAPABILITY_AUTHORITY.md`, `docs/architecture.md`, `docs/CANONICAL_STATE.md`, component runbooks, GitHub and live runtime.
+
+---
+
 # CHECKPOINT ATUAL — ADR 0381 STOCK V1 REUSE QUALIFIED
 
 Status: **QUALIFIED / 12/12 EXACT-HEAD WORKFLOWS GREEN / EXISTING CAPABILITY + TOOL REUSE / NO PRODUCTION EFFECT**.
