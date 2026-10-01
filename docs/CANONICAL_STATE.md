@@ -1,3 +1,31 @@
+# ADR 0371 checkpoint — Semantic Fast Read Scoped Rollout Current-Main Core Convergence V1
+
+Status: **QUALIFIED / CURRENT-MAIN-COMPATIBLE CORE CANDIDATE GREEN / PRODUCTION NO-GO / NO PRODUCTION EFFECT**
+
+- live `main`: `e4c7c36bb1091ba38d39b85fa259bae94553fc52`;
+- PR #369 remained unchanged at head `bf5c82319f0815562d45cad90a2db0ea57b9251b`, 17/17 GREEN; its current-main merge ref is `c78266bb08c2d903d942d0ad87d6cb03438811a4`;
+- PR #377 remained unchanged at head `54b6120c81b735fd86d8e042e7bc18f0b0f96595`, 12/12 GREEN;
+- convergence PR #378 is draft/mergeable and was created from frozen base `c78266...` plus exact rollout head `54b6120...`;
+- qualified code merge/source: `9ee338303292173db8e1b21bef9c8c5067c104a4`;
+- PR #378 code-head workflow set: 12/12 GREEN;
+- Core Candidate was rerun only after Core CI + Semantic Fast Read CI GREEN;
+- qualified post-gates candidate artifact: `11153574632`;
+- artifact digest: `sha256:fdca91b452d73e68b53be4608fe016e6bf6e2222803cd38ce14ae4083692217b`;
+- archive SHA-256: `612f04b1e60ad40a97ea0663c293af03fce65793a10358f46c8a85865b801724`;
+- OCI config: `sha256:6e7e5bab6dcd9d19a6d314ae04b1c2495c210bee3708ea06d5e32126008131b7`;
+- OCI manifest: `sha256:fbb3c420b25fc9ae141f8ece5ab69bec9daef203a36e268eea4c363da3a84a5f`;
+- contract `organization-adapter-core-v1`, image user `node`, portable verifier GREEN;
+- rejected artifact `11151382368` remains forbidden for production use;
+- scoped rollout contract remains exact 28PRO / Ana / `business.products.price`, fail-closed before semantic/provider work for non-enrolled targets and capabilities;
+- production remains Core `83baca411096...`, Paperclip `916.1`, OA `0.6.1`, Mastra `0.6.0`, Task Drain quiescent, Fast/Semantic/Selector/Human Send/outbound OFF;
+- ADR 0367 remains rollback authority for the live `83baca...` baseline;
+- next production boundary is promotion preflight for exact candidate `11153574632` with every effect gate OFF; the actual managed-admin/root promotion apply will require a fresh one-use `APPROVE adm_...`;
+- no PR merge and no production/provider/customer/outbound effect occurred.
+
+See `docs/decisions/0371-semantic-fast-read-scoped-rollout-current-main-core-convergence-v1.md`.
+
+---
+
 ## ADR 0370 — Semantic Fast Read Scoped Production Canary Activation Preflight V1
 
 Status: **PREFLIGHT COMPLETE / PREPARATION GO AS SPLIT TASK / ACTIVATION NOT AUTHORIZED / NO PRODUCTION EFFECT**.
