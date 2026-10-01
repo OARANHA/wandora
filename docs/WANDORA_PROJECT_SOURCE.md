@@ -1,3 +1,21 @@
+## 2026-09-30 — ADR 0363 Semantic Fast Read Paperclip upstream tool identity compatibility
+
+Status: **INCIDENT RECONCILED / CODE FIX QUALIFIED / 17/17 CI GREEN / PRODUCTION CLOSED**.
+
+The one supervised owner/browser Fast Read for 28PRO/Ana and `Qual é o preço do produto PREMIUM PLUS?` returned HTTP 500 `internal-error`. Exactly one Paperclip Fast Read run was created: `e97f51a7-ef74-4646-8664-5f770ca8f590`. The `wandora_mastra@0.6.0` path reached Core, created a Tool Gateway session and listed authorized tools, then failed once with `wandora_execution_failed_409` before any `tools/call`. Governed activity for that exact run + `vendaerp_search_products` is zero, so VendaERP was not called. Mandatory close restored the exact f279acc 14-file gates-OFF baseline; Core/Paperclip/Gateway remain healthy, Task Drain quiescent and Gateway outbound OFF.
+
+Root cause is the existing Core↔Paperclip adapter translation. Paperclip connected MCP descriptors use a unique namespaced gateway `name` for execution and expose the provider/catalog identity separately as `upstreamToolName`. Core preserved `name` but dropped `upstreamToolName`; the VendaERP Fast Read adapter then incorrectly required `RuntimeReadTool.name === "vendaerp_search_products"`, yielding zero deterministic capability bindings and `fast-read-capability-unavailable`.
+
+The code-only fix keeps the namespaced Paperclip alias unchanged for Mastra and `/tool-gateway/tools/call`, adds optional ephemeral `RuntimeReadTool.providerToolName`, maps exact Paperclip `upstreamToolName` into it, and makes the VendaERP adapter recognize only exact `providerToolName === "vendaerp_search_products"`. No suffix matching, hard-coded Connection ID, registry, cache, lifecycle or duplicated Paperclip state was added. Duplicate semantic bindings still fail closed.
+
+Qualified source head `b15743a17162b4e14ad863d8f41fd5ca69ee9acf` completed **17/17 workflows GREEN**. Merge ref `deac494c48a2367589d1d1c3fc91777918819668` has parents exactly current `main=e4c7c36bb1091ba38d39b85fa259bae94553fc52` + that source head. Core Candidate Artifact run `36803695852` produced artifact id `11137080605`, name `core-organization-adapter-candidate-deac494c48a2367589d1d1c3fc91777918819668`, digest `sha256:b11a3f95323d3b1e302f7b9a3bd2be902b39130dbd243ea4a32dcc367a660513`. It is **not** production-live.
+
+Current production remains Core `wandora/core:organization-adapter-candidate-f279acc98687` / revision `f279acc98687da894a1ce6570273b5949552a8c7`, exact 14-file gates-OFF chain, `fastReadExecution=false`, `semanticFastRead=false`, `humanSendProposal=false`; Messaging Gateway `outboundEnabled=false`; Paperclip/Core/Gateway healthy; Task Drain `false / 0 / 0 / quiescent=true`.
+
+Canonical detail: `docs/decisions/0363-semantic-fast-read-paperclip-upstream-tool-identity-compatibility-v1.md`.
+
+Next boundary: **Core Paperclip Upstream Tool Identity Compatibility Promotion V1 — GATES OFF / NO HUMAN FAST READ**. Qualify exact candidate bytes and promote only the reviewed Core candidate under fresh reconciliation/review. A new live Core revision would make the ADR 0362 rollback receipt historical for f279acc, so refresh current-baseline rollback readiness before any later supervised Fast Read opening. Do not perform a second real Ana request during the promotion slice.
+
 ## 2026-09-30 — ADR 0362 Post-ADR0358 Rollback Freeze V2 persistent capture execution
 
 Status: **PERSISTENT CAPTURE GREEN / ROLLBACK FREEZE V2 READY / SEMANTIC FAST READ STILL OFF / CUSTOMER EFFECT NONE**.
