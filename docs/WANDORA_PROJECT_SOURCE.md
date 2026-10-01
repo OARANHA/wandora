@@ -1,3 +1,34 @@
+# CHECKPOINT ATUAL — ADR 0372 PROMOTION GREEN / CORE 9ee338 LIVE
+
+O slice ADR 0372 foi concluído em **GREEN**.
+
+- Core live/stable: `wandora/core:organization-adapter-candidate-9ee338303292`;
+- revision: `9ee338303292173db8e1b21bef9c8c5067c104a4`;
+- OCI manifest: `sha256:fbb3c420b25fc9ae141f8ece5ab69bec9daef203a36e268eea4c363da3a84a5f`;
+- exact 14-file production topology preserved;
+- Core healthy / restart 0;
+- Fast Read Execution OFF;
+- Semantic Fast Read OFF;
+- Semantic Selector OFF;
+- Human Send OFF;
+- Gateway outbound remains OFF;
+- Paperclip and Messaging Gateway remained healthy and were not recreated;
+- Task Drain remained quiescent;
+- stable selector now points to `9ee338303292...`;
+- no provider/customer/VendaERP call, no rollout activation, no migration and no outbound effect occurred.
+
+Remote-Ops image-load authority was repaired through its existing capability boundary, not by adding a new loader/lifecycle subsystem. Current Remote-Ops main relevant sequence: `5558aa7e...` → `ce008d5b...` → `e1805623...`; final workflows GREEN.
+
+ADR 0367 remains rollback evidence for prior `83baca...` but is historical for the current live baseline.
+
+**Próximo boundary obrigatório:** fresh Rollback Freeze V2 repin/capture for live `9ee338...`. Do not activate 28PRO / Ana / `business.products.price` rollout until that new current-baseline rollback proof is GREEN.
+
+Detalhe canônico: `docs/decisions/0372-exact-core-candidate-production-promotion-preflight-v1.md`.
+
+Este arquivo é bootstrap apenas. Depois siga `AGENTS.md`, ADRs relevantes, `docs/CAPABILITY_AUTHORITY.md`, `docs/architecture.md`, `docs/CANONICAL_STATE.md`, runbooks, GitHub e runtime real.
+
+---
+
 # CHECKPOINT ATUAL — ADR 0372 / Exact Core Candidate Production Promotion Preflight V1
 
 O último slice encerrou em **PRE-FLIGHT NO-GO operacional / candidato ainda qualificado / produção intacta**.
