@@ -303,7 +303,7 @@ test('unsupported capability fails before any provider call', async () => {
   });
 
   await assert.rejects(
-    provider.select(input('qual o pedido?', 'business.orders.search')),
+    provider.select(input('liste as empresas', 'business.companies.list')),
     /mastra_mistral_selector_unsupported_capability/,
   );
   assert.equal(calls, 0);
@@ -405,4 +405,57 @@ test('party selector rejects unsupported roles and selector fields', async () =>
     invalidField.select(input('Procure o cliente pelo documento 123.', 'business.parties.search')),
     /mastra_mistral_selector_invalid_response/,
   );
+});
+
+
+test('extracts exactly one positive numeric order code for Orders V1', async () => {
+  const request = 'Ana, procure o pedido 1542.';
+  const provider = providerWith(async (received) => {
+    assert.equal(received.request, request);
+    assert.equal(received.capability, 'business.orders.search');
+    return {
+      selector: { kind: 'order', by: 'code', value: 1542 },
+      confidence: 0.99,
+      ambiguity: 'none',
+    };
+  });
+
+  assert.deepEqual(await provider.select(input(request, 'business.orders.search')), {
+    selector: { kind: 'order', by: 'code', value: 1542 },
+    confidence: 0.99,
+    ambiguity: 'none',
+    providerEvidence: {
+      provider: 'mastra-mistral',
+      model: QUALIFIED_MISTRAL_SELECTOR_MODEL,
+    },
+  });
+});
+
+test('Orders V1 rejects malformed order codes and keeps non-code lookup fail-closed', async () => {
+  for (const value of [0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
+    const malformed = providerWith(async () => ({
+      selector: { kind: 'order', by: 'code', value },
+      confidence: 0.99,
+      ambiguity: 'none',
+    }));
+    await assert.rejects(
+      malformed.select(input('pedido inválido', 'business.orders.search')),
+      /mastra_mistral_selector_invalid_response/,
+    );
+  }
+
+  const noCode = providerWith(async (received) => {
+    assert.equal(received.capability, 'business.orders.search');
+    return {
+      selector: null,
+      confidence: 0.98,
+      ambiguity: 'missing_entity',
+    };
+  });
+  const decision = await noCode.select(input(
+    'Localize o pedido do cliente Cliente Exemplo.',
+    'business.orders.search',
+  ));
+  assert.equal(decision.selector, null);
+  assert.equal(decision.ambiguity, 'missing_entity');
 });

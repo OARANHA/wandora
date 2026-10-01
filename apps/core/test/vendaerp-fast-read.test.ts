@@ -20,13 +20,14 @@ function tool(
   };
 }
 
-test('VendaERP Fast Read adapter maps product, stock, and party capabilities only from their exact existing read tools', () => {
+test('VendaERP Fast Read adapter maps product, stock, party, and order capabilities only from their exact existing read tools', () => {
   const adapter = createVendaErpFastReadCapabilityAdapter();
   assert.deepEqual(VENDAERP_FAST_READ_CAPABILITIES, [
     'business.products.search',
     'business.products.price',
     'business.stock.read',
     'business.parties.search',
+    'business.orders.search',
   ]);
   assert.deepEqual(adapter.capabilitiesFor(tool(
     'mcp.wandora-vendaerp-read-only-v1-72222222:vendaerp-search-products',
@@ -51,6 +52,11 @@ test('VendaERP Fast Read adapter maps product, stock, and party capabilities onl
     async () => [],
     'vendaerp_search_parties',
   )), ['business.parties.search']);
+  assert.deepEqual(adapter.capabilitiesFor(tool(
+    'mcp.wandora-vendaerp-read-only-v1-72222222:vendaerp-search-orders',
+    async () => [],
+    'vendaerp_search_orders',
+  )), ['business.orders.search']);
   assert.deepEqual(adapter.capabilitiesFor(tool('prefix:vendaerp_search_products', async () => [])), []);
   assert.deepEqual(adapter.capabilitiesFor(tool('vendaerp_search_price_table_products', async () => [])), []);
 });
@@ -465,4 +471,164 @@ test('party capability rejects a non-party tool before provider execution', asyn
     selector: { kind: 'party', by: 'name', value: 'João Silva', role: 'customer' },
   }), /vendaerp_fast_read_capability_unavailable/);
   assert.equal(calls, 0);
+});
+
+
+test('order V1 uses one code-only existing tool call and exposes only bounded safe order facts', async () => {
+  let calls = 0;
+  let input: unknown;
+  const adapter = createVendaErpFastReadCapabilityAdapter();
+  const result = await adapter.execute({
+    tool: tool('vendaerp_search_orders', async (value) => {
+      calls += 1;
+      input = value;
+      return [
+        {
+          code: 1541,
+          customerName: 'Outro Cliente',
+          status: 'Aberto',
+          invoiceNumber: '111',
+        },
+        {
+          externalRef: 'provider-order-private',
+          code: 1542,
+          customerName: 'Cliente Exemplo',
+          status: 'Faturado',
+          total: 1234.56,
+          createdAt: '2026-10-01T12:00:00Z',
+          invoiceNumber: '98765',
+          customerTaxId: '12.345.678/0001-90',
+          customerEmail: 'private@example.test',
+          phone: '51999999999',
+          accessKey: 'NFE-ACCESS-KEY-MUST-NOT-LEAK',
+          danfeURL: 'https://provider.invalid/danfe/private',
+        },
+      ];
+    }),
+    capability: 'business.orders.search',
+    request: 'Ana, procure o pedido 1542.',
+    selector: { kind: 'order', by: 'code', value: 1542 },
+  });
+
+  assert.equal(calls, 1);
+  assert.deepEqual(input, { code: 1542, pageSize: 5, skip: 0 });
+  assert.deepEqual(result, {
+    kind: 'facts',
+    subject: 'Pedido 1542',
+    facts: [
+      { label: 'Código', value: '1542' },
+      { label: 'Cliente', value: 'Cliente Exemplo' },
+      { label: 'Status', value: 'Faturado' },
+      { label: 'Nota fiscal', value: '98765' },
+    ],
+  });
+  const rendered = JSON.stringify(result);
+  for (const forbidden of [
+    'provider-order-private',
+    '1234.56',
+    '2026-10-01T12:00:00Z',
+    '12.345.678/0001-90',
+    'private@example.test',
+    '51999999999',
+    'NFE-ACCESS-KEY-MUST-NOT-LEAK',
+    'provider.invalid',
+  ]) assert.equal(rendered.includes(forbidden), false);
+});
+
+test('order V1 never invents invoice presence, never selects the first row, and never retries', async () => {
+  const adapter = createVendaErpFastReadCapabilityAdapter();
+
+  let absentCalls = 0;
+  const absentInvoice = await adapter.execute({
+    tool: tool('vendaerp_search_orders', async () => {
+      absentCalls += 1;
+      return [{ code: 1542, customerName: 'Cliente Exemplo', status: 'Aberto' }];
+    }),
+    capability: 'business.orders.search',
+    request: 'Procure o pedido 1542.',
+    selector: { kind: 'order', by: 'code', value: 1542 },
+  });
+  assert.equal(absentCalls, 1);
+  assert.deepEqual(absentInvoice, {
+    kind: 'facts',
+    subject: 'Pedido 1542',
+    facts: [
+      { label: 'Código', value: '1542' },
+      { label: 'Cliente', value: 'Cliente Exemplo' },
+      { label: 'Status', value: 'Aberto' },
+      { label: 'Nota fiscal', value: 'Não informada no resultado desta consulta.' },
+    ],
+  });
+
+  let duplicateCalls = 0;
+  const duplicate = await adapter.execute({
+    tool: tool('vendaerp_search_orders', async () => {
+      duplicateCalls += 1;
+      return [
+        { code: 1542, customerName: 'Cliente A' },
+        { code: 1542, customerName: 'Cliente B' },
+      ];
+    }),
+    capability: 'business.orders.search',
+    request: 'Procure o pedido 1542.',
+    selector: { kind: 'order', by: 'code', value: 1542 },
+  });
+  assert.equal(duplicateCalls, 1);
+  assert.deepEqual(duplicate, {
+    kind: 'clarification',
+    prompt: 'A consulta retornou mais de um registro com o mesmo código de pedido. Não vou escolher automaticamente.',
+    options: ['Revise o código do pedido no VendaERP antes de tentar novamente.'],
+  });
+});
+
+test('order V1 rejects missing selector, wrong tool, malformed and over-bounded results fail-closed', async () => {
+  const adapter = createVendaErpFastReadCapabilityAdapter();
+
+  let missingCalls = 0;
+  await assert.rejects(adapter.execute({
+    tool: tool('vendaerp_search_orders', async () => {
+      missingCalls += 1;
+      return [];
+    }),
+    capability: 'business.orders.search',
+    request: 'Procure um pedido.',
+    selector: null,
+  }), /vendaerp_fast_read_selector_required/);
+  assert.equal(missingCalls, 0);
+
+  let wrongToolCalls = 0;
+  await assert.rejects(adapter.execute({
+    tool: tool('vendaerp_search_parties', async () => {
+      wrongToolCalls += 1;
+      return [];
+    }),
+    capability: 'business.orders.search',
+    request: 'Procure o pedido 1542.',
+    selector: { kind: 'order', by: 'code', value: 1542 },
+  }), /vendaerp_fast_read_capability_unavailable/);
+  assert.equal(wrongToolCalls, 0);
+
+  let malformedCalls = 0;
+  await assert.rejects(adapter.execute({
+    tool: tool('vendaerp_search_orders', async () => {
+      malformedCalls += 1;
+      return [{ code: '1542' }];
+    }),
+    capability: 'business.orders.search',
+    request: 'Procure o pedido 1542.',
+    selector: { kind: 'order', by: 'code', value: 1542 },
+  }), /vendaerp_fast_read_invalid_order_result/);
+  assert.equal(malformedCalls, 1);
+
+  let oversizedCalls = 0;
+  await assert.rejects(adapter.execute({
+    tool: tool('vendaerp_search_orders', async () => {
+      oversizedCalls += 1;
+      return Array.from({ length: 6 }, () => ({ code: 1542 }));
+    }),
+    capability: 'business.orders.search',
+    request: 'Procure o pedido 1542.',
+    selector: { kind: 'order', by: 'code', value: 1542 },
+  }), /vendaerp_fast_read_invalid_order_result/);
+  assert.equal(oversizedCalls, 1);
 });

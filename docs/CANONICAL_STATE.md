@@ -1,3 +1,21 @@
+## 2026-10-01 — ADR 0383 Semantic Fast Read Existing VendaERP Capability Reuse — Orders V1
+
+Status: **QUALIFIED / CODE HEAD 9/9 WORKFLOWS GREEN / POST-GATE CANDIDATE GREEN / CODE + SYNTHETIC TESTS ONLY / NO PRODUCTION EFFECT**.
+
+Orders V1 reuses the existing `business.orders.search` capability, exact existing `vendaerp_search_orders` tool, VendaERP `GET /api/request/Pedidos/Pesquisar` provider implementation, Organization Adapter projection and generic Paperclip Fast Read / Tool Gateway path. The operation is READ_SENSITIVE, so the semantic contract is narrower than both the existing tool and raw Swagger: exactly one explicit positive numeric order code.
+
+An authorized read performs one bounded call `{code,pageSize:5,skip:0}`, then exact numeric post-filtering. Zero exact matches become `not_found`; one becomes bounded facts; duplicate exact-code rows clarify/fail closed. There is no fuzzy lookup, first-row trust, retry, fallback, customer-name/CPF/status/date/invoice-number search or second ERP call. Presentation is limited to code plus optional customer name, status and invoice number; provider IDs, tax/e-mail/phone/address/items/payments/fiscal keys/DANFE/SEFAZ URLs and raw payload remain outside the customer boundary.
+
+Raw `Pedido` contains no phone/celular, while `Pessoa` does, so the future order-to-WhatsApp chain requires a separately reviewed order->party/contact linkage and sensitive contact-read projection. Detailed fiscal document retrieval is also separate. Human Send/WhatsApp remains an independent outbound capability and is not coupled to VendaERP.
+
+The mandatory pre-code JEV review returned `proceed_fast=0.71`. Corrected exact code head `fc9fc149d4f8f28fe7b7c555b160ce86badc19ef` completed 9/9 workflows GREEN after one stale negative E2E fixture was diagnosed and corrected without weakening product gates. Because Candidate Artifact completed before Core CI + Semantic Fast Read CI, only its job was rerun after both primary gates were GREEN; post-gate job `110630324910` completed GREEN. Completion review classified the slice `complete=0.94`.
+
+No production/VPS/runtime mutation, rollout, real provider/customer call, fiscal fetch, Paperclip mutation, migration, secret access, Human Send/WhatsApp/outbound or merge occurred. PR #383 remains draft/unmerged.
+
+Canonical detail: `docs/decisions/0383-semantic-fast-read-existing-vendaerp-capability-reuse-orders-v1.md`.
+
+---
+
 ## 2026-10-01 — ADR 0382 Semantic Fast Read Existing VendaERP Capability Reuse — Parties V1
 
 Status: **QUALIFIED / CODE HEAD 9/9 RELEVANT WORKFLOWS GREEN / CODE + SYNTHETIC TESTS ONLY / NO PRODUCTION EFFECT**.

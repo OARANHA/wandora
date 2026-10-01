@@ -1193,3 +1193,111 @@ test('sensitive party identifier request stays fail-closed before deterministic 
   });
   assert.equal(dispatchCalls, 0);
 });
+
+
+test('Orders V1 reaches selector once and dispatches only after one explicit numeric order code', async () => {
+  let selectorCalls = 0;
+  let dispatchCalls = 0;
+  const request = 'Ana, procure o pedido 1542.';
+  const service = new HumanDigitalEmployeeFastReadService({
+    intentSecret: SECRET,
+    policy: POLICY,
+    createCorrelationId: () => CORRELATION,
+    now: () => 1_790_000_000_000,
+    semanticDecisionProvider: {
+      async decide() {
+        return deterministicDecision({
+          capability: 'business.orders.search',
+          selector: null,
+        });
+      },
+    },
+    semanticSelectorProvider: {
+      async select(input) {
+        selectorCalls += 1;
+        assert.equal(input.capability, 'business.orders.search');
+        assert.equal(input.request, request);
+        return {
+          selector: { kind: 'order' as const, by: 'code' as const, value: 1542 },
+          confidence: 0.99,
+          ambiguity: 'none' as const,
+        };
+      },
+    },
+    bridge: {
+      async getAvailableCapabilities() {
+        return ['business.orders.search'];
+      },
+      async dispatchFastRead(input) {
+        dispatchCalls += 1;
+        const payload = JSON.parse(
+          Buffer.from(input.intentToken.split('.')[1]!, 'base64url').toString('utf8'),
+        );
+        assert.deepEqual(payload.sel, { kind: 'order', by: 'code', value: 1542 });
+        return {
+          model: 'wandora-deterministic-read-v1',
+          summary: 'Pedido 1542\\nCódigo: 1542\\nCliente: Cliente Exemplo\\nStatus: Faturado\\nNota fiscal: 98765',
+          usage: { inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, totalTokens: 0 },
+        };
+      },
+    },
+  });
+
+  const result = await service.execute({
+    organizationId: ORG,
+    actorUserId: USER,
+    employeeId: EMPLOYEE,
+    request,
+  });
+  assert.equal(result.kind, 'completed');
+  assert.equal(selectorCalls, 1);
+  assert.equal(dispatchCalls, 1);
+});
+
+test('Orders V1 without one explicit order code returns bounded clarification and zero dispatch', async () => {
+  let selectorCalls = 0;
+  let dispatchCalls = 0;
+  const service = new HumanDigitalEmployeeFastReadService({
+    intentSecret: SECRET,
+    policy: POLICY,
+    semanticDecisionProvider: {
+      async decide() {
+        return deterministicDecision({
+          capability: 'business.orders.search',
+          selector: null,
+        });
+      },
+    },
+    semanticSelectorProvider: {
+      async select() {
+        selectorCalls += 1;
+        return {
+          selector: null,
+          confidence: 0.98,
+          ambiguity: 'missing_entity' as const,
+        };
+      },
+    },
+    bridge: {
+      async getAvailableCapabilities() {
+        return ['business.orders.search'];
+      },
+      async dispatchFastRead() {
+        dispatchCalls += 1;
+        throw new Error('must not dispatch');
+      },
+    },
+  });
+
+  assert.deepEqual(await service.execute({
+    organizationId: ORG,
+    actorUserId: USER,
+    employeeId: EMPLOYEE,
+    request: 'Localize o pedido do cliente Cliente Exemplo.',
+  }), {
+    kind: 'clarification',
+    prompt: 'Para consultar pedidos com segurança nesta versão, informe um único código numérico do pedido. Busca por cliente, CPF/CNPJ, nota, status ou período não está habilitada nesta leitura.',
+  });
+  assert.equal(selectorCalls, 1);
+  assert.equal(dispatchCalls, 0);
+});

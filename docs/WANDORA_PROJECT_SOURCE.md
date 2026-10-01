@@ -1,3 +1,21 @@
+# CHECKPOINT ATUAL — ADR 0383 ORDERS V1 REUSE QUALIFIED
+
+Status: **QUALIFIED / CODE HEAD 9/9 WORKFLOWS GREEN / POST-GATE CANDIDATE GREEN / EXISTING CAPABILITY + TOOL REUSE / NO PRODUCTION EFFECT**.
+
+Orders V1 reuses the canonical `business.orders.search` capability and the exact existing `vendaerp_search_orders` / `GET /api/request/Pedidos/Pesquisar` boundary. The raw operation is READ_SENSITIVE, but the admitted semantic contract is deliberately narrower: one explicit positive numeric order code, exactly one bounded provider-tool call (`pageSize=5`, `skip=0`), exact code post-filtering, no retry/second lookup/first-row selection, and customer presentation limited to code plus optional customer name, status and invoice number.
+
+The provider/tool, Organization Adapter projection, Paperclip Tool Gateway/generic Fast Read flow, signed `wfri1` path and owner/admin admission were reused. No new provider, table, migration, registry, cache, state machine, lifecycle, retry or operational subsystem was added. Customer-name, CPF/CNPJ, status/date, invoice-number/NFe and fuzzy order searches remain outside V1. Raw `Pedido` has no phone/celular; contact remains a separate later party/contact boundary.
+
+The mandatory pre-code JEV review returned `proceed_fast=0.71`. Exact code head `fc9fc149d4f8f28fe7b7c555b160ce86badc19ef` completed 9/9 workflows GREEN. Candidate precedence was corrected by rerunning only the Candidate job after Core CI + Semantic Fast Read CI were GREEN; post-gate job `110630324910` completed GREEN. Completion review classified the slice `complete=0.94`.
+
+PR #383 remains draft/unmerged and stacked on #382. No production/VPS change, rollout, real VendaERP call, canary, Paperclip mutation, migration, secret access, fiscal fetch, Human Send/WhatsApp/outbound or merge occurred.
+
+Canonical detail: `docs/decisions/0383-semantic-fast-read-existing-vendaerp-capability-reuse-orders-v1.md`.
+
+This file is bootstrap only. Continue with `AGENTS.md`, relevant ADRs, `docs/CAPABILITY_AUTHORITY.md`, `docs/architecture.md`, `docs/CANONICAL_STATE.md`, component runbooks, GitHub and live runtime.
+
+---
+
 # CHECKPOINT ATUAL — ADR 0382 PARTIES V1 REUSE QUALIFIED
 
 Status: **QUALIFIED / CODE HEAD 9/9 RELEVANT WORKFLOWS GREEN / EXISTING CAPABILITY + TOOL REUSE / NO PRODUCTION EFFECT**.

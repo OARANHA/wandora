@@ -465,7 +465,7 @@ test "$expired_after" = "$expired_before"
 
 unauthorized_before="$(tool_count)"
 UNAUTHORIZED_CORRELATION="99999999-9999-4999-8999-999999999999"
-UNAUTHORIZED_TOKEN="$(make_intent "$UNAUTHORIZED_CORRELATION" business.orders.search 0 120)"
+UNAUTHORIZED_TOKEN="$(make_intent "$UNAUTHORIZED_CORRELATION" business.companies.list 0 120)"
 signed_webhook_expect_fast_read_failure "/api/plugins/wandora.organization-adapter-v1/webhooks/employee-fast-read" "$(make_body "$UNAUTHORIZED_CORRELATION" "$UNAUTHORIZED_TOKEN")"
 UNAUTHORIZED_RUN_ID="$(latest_fast_run)"
 test "$(wait_terminal "$UNAUTHORIZED_RUN_ID")" = "failed"
