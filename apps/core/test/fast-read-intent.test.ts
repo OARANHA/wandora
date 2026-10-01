@@ -419,3 +419,50 @@ test('missing or duplicate authorized capability fails closed before any tool ex
   }
   assert.equal(toolCalls, 0);
 });
+
+
+test('order selector is gate-validated, signed, and round-trips unchanged', () => {
+  const request = 'Ana, procure o pedido 1542.';
+  const intent = issueFastReadIntent({
+    secret: SECRET,
+    organizationId: ORG,
+    employeeId: EMPLOYEE,
+    correlationId: CORRELATION,
+    request,
+    decision: {
+      ...DECISION,
+      capability: 'business.orders.search',
+      selector: { kind: 'order', by: 'code', value: 1542 },
+    },
+    availableCapabilities: ['business.orders.search'],
+    policy: POLICY,
+    nowMs: NOW,
+  });
+  const claims = verifyFastReadIntent({
+    secret: SECRET,
+    token: intent,
+    request,
+    expectedOrganizationId: ORG,
+    expectedEmployeeId: EMPLOYEE,
+    expectedCorrelationId: CORRELATION,
+    nowMs: NOW,
+  });
+  assert.equal(claims.capability, 'business.orders.search');
+  assert.deepEqual(claims.selector, { kind: 'order', by: 'code', value: 1542 });
+
+  assert.throws(() => issueFastReadIntent({
+    secret: SECRET,
+    organizationId: ORG,
+    employeeId: EMPLOYEE,
+    correlationId: CORRELATION,
+    request,
+    decision: {
+      ...DECISION,
+      capability: 'business.orders.search',
+      selector: null,
+    },
+    availableCapabilities: ['business.orders.search'],
+    policy: POLICY,
+    nowMs: NOW,
+  }), (error: unknown) => error instanceof FastReadIntentError && error.code === 'not-authorized');
+});

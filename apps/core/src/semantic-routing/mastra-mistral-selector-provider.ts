@@ -22,6 +22,7 @@ const SELECTOR_CAPABILITIES = new Set<BusinessCapability>([
   'business.products.price',
   'business.stock.read',
   'business.parties.search',
+  'business.orders.search',
 ]);
 
 const productSelectorSchema = z.object({
@@ -37,6 +38,12 @@ const partySelectorSchema = z.object({
   role: z.enum(['customer', 'supplier']),
 }).strict();
 
+const orderSelectorSchema = z.object({
+  kind: z.literal('order'),
+  by: z.literal('code'),
+  value: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+}).strict();
+
 const stockSelectorSchema = z.object({
   kind: z.literal('stock'),
   product: z.object({
@@ -47,7 +54,12 @@ const stockSelectorSchema = z.object({
   location: z.string().trim().min(1).max(MAX_SELECTOR_CHARS),
 }).strict();
 
-const selectorSchema = z.union([productSelectorSchema, partySelectorSchema, stockSelectorSchema]);
+const selectorSchema = z.union([
+  productSelectorSchema,
+  partySelectorSchema,
+  stockSelectorSchema,
+  orderSelectorSchema,
+]);
 
 const selectorDecisionSchema = z.object({
   selector: selectorSchema.nullable(),
@@ -70,6 +82,10 @@ const SELECTOR_INSTRUCTIONS = [
   'For stock, copy the explicit product code into product.by=code and preserve the explicit stock location or deposit in location.',
   'For business.parties.search V1, return kind=party only for one explicitly named party and exactly one explicit business role: customer or supplier.',
   'For party selectors use by=name, preserve the explicit party name, and map the business role to role=customer or role=supplier.',
+  'For business.orders.search V1, return kind=order only when the request explicitly provides exactly one numeric order code.',
+  'For order selectors use by=code and preserve the explicit positive integer order code as a number.',
+  'Do not emit an order selector for customer name, CPF/CNPJ, status, date/period, invoice/NFe number, phone, address, or unfiltered order listing even if provider fields may exist.',
+  'If the order code is missing, return selector=null and ambiguity=missing_entity. If multiple order codes are requested or equally intended, return selector=null and ambiguity=multiple_matches.',
   'Do not emit a party selector when the request asks for CPF/CNPJ, tax/document identifiers, e-mail, phone, address, or other sensitive party details; return selector=null and ambiguity=unknown.',
   'Do not emit a party selector for document, e-mail, phone, code, city, state, or changed-after lookup even if such provider fields may exist.',
   'If a party name or the customer/supplier role is missing, return selector=null and ambiguity=missing_entity.',

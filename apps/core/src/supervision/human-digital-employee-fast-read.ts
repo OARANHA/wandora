@@ -97,6 +97,12 @@ function boundedClarification(
       prompt: 'Para consultar cadastros com segurança, informe um único nome e diga se é cliente ou fornecedor. CPF/CNPJ, e-mail e telefone não estão habilitados nesta leitura.',
     };
   }
+  if (decision.capability === 'business.orders.search') {
+    return {
+      kind: 'clarification',
+      prompt: 'Para consultar pedidos com segurança nesta versão, informe um único código numérico do pedido. Busca por cliente, CPF/CNPJ, nota, status ou período não está habilitada nesta leitura.',
+    };
+  }
   return null;
 }
 

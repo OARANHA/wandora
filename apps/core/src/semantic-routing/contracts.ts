@@ -41,7 +41,13 @@ export type StockSelector = {
   location: string;
 };
 
-export type SemanticSelector = ProductSelector | PartySelector | StockSelector;
+export type OrderSelector = {
+  kind: 'order';
+  by: 'code';
+  value: number;
+};
+
+export type SemanticSelector = ProductSelector | PartySelector | StockSelector | OrderSelector;
 
 function canonicalProductSelector(value: unknown): ProductSelector | null {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
@@ -81,11 +87,30 @@ function canonicalPartySelector(value: unknown): PartySelector | null {
   };
 }
 
+function canonicalOrderSelector(value: unknown): OrderSelector | null {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
+  const selector = value as Record<string, unknown>;
+  if (
+    selector.kind !== 'order'
+    || selector.by !== 'code'
+    || typeof selector.value !== 'number'
+    || !Number.isSafeInteger(selector.value)
+    || selector.value < 1
+  ) return null;
+  return {
+    kind: 'order',
+    by: 'code',
+    value: selector.value,
+  };
+}
+
 export function canonicalSemanticSelector(value: unknown): SemanticSelector | null {
   const product = canonicalProductSelector(value);
   if (product) return product;
   const party = canonicalPartySelector(value);
   if (party) return party;
+  const order = canonicalOrderSelector(value);
+  if (order) return order;
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
   const selector = value as Record<string, unknown>;
   if (
@@ -273,7 +298,8 @@ export function gateDeterministicRead(
   if (
     (decision.capability === 'business.products.price'
       || decision.capability === 'business.stock.read'
-      || decision.capability === 'business.parties.search')
+      || decision.capability === 'business.parties.search'
+      || decision.capability === 'business.orders.search')
     && !selector
   ) {
     return { allowed: false, reason: 'missing-selector' };
@@ -289,6 +315,9 @@ export function gateDeterministicRead(
     return { allowed: false, reason: 'selector-not-applicable' };
   }
   if (selector?.kind === 'party' && decision.capability !== 'business.parties.search') {
+    return { allowed: false, reason: 'selector-not-applicable' };
+  }
+  if (selector?.kind === 'order' && decision.capability !== 'business.orders.search') {
     return { allowed: false, reason: 'selector-not-applicable' };
   }
 

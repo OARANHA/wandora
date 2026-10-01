@@ -3,6 +3,7 @@ import type { RuntimeReadCapabilityAdapter } from '../agent-runtime/runtime-read
 import type { RuntimeReadTool } from '../agent-runtime/task-runtime.js';
 import type {
   BusinessCapability,
+  OrderSelector,
   PartySelector,
   ProductSelector,
   SemanticSelector,
@@ -12,15 +13,18 @@ import type {
 const VENDAERP_PRODUCT_TOOL = 'vendaerp_search_products';
 const VENDAERP_STOCK_TOOL = 'vendaerp_get_product_stock';
 const VENDAERP_PARTY_TOOL = 'vendaerp_search_parties';
+const VENDAERP_ORDER_TOOL = 'vendaerp_search_orders';
 const MAX_PRODUCTS = 5;
 const MAX_STOCK_ROWS = 8;
 const MAX_PARTIES = 5;
+const MAX_ORDERS = 5;
 
 export const VENDAERP_FAST_READ_CAPABILITIES = [
   'business.products.search',
   'business.products.price',
   'business.stock.read',
   'business.parties.search',
+  'business.orders.search',
 ] as const satisfies readonly BusinessCapability[];
 
 type ProductRow = {
@@ -44,6 +48,13 @@ type PartyRow = {
   legalName?: string;
   customer: boolean;
   supplier: boolean;
+};
+
+type OrderRow = {
+  code: number;
+  customerName?: string;
+  status?: string;
+  invoiceNumber?: string;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -111,6 +122,23 @@ function partyRow(value: unknown): PartyRow {
   };
 }
 
+function orderRow(value: unknown): OrderRow {
+  if (!isRecord(value)) throw new Error('vendaerp_fast_read_invalid_order_result');
+  const code = finiteNumber(value.code);
+  if (code === undefined || !Number.isSafeInteger(code) || code < 1) {
+    throw new Error('vendaerp_fast_read_invalid_order_result');
+  }
+  const customerName = boundedText(value.customerName, 200);
+  const status = boundedText(value.status, 120);
+  const invoiceNumber = boundedText(value.invoiceNumber, 120);
+  return {
+    code,
+    ...(customerName ? { customerName } : {}),
+    ...(status ? { status } : {}),
+    ...(invoiceNumber ? { invoiceNumber } : {}),
+  };
+}
+
 function stockRow(value: unknown): StockRow {
   if (!isRecord(value)) throw new Error('vendaerp_fast_read_invalid_stock_result');
   const location = boundedText(value.location, 512);
@@ -153,6 +181,10 @@ function exactVendaErpPartyTool(tool: RuntimeReadTool): boolean {
   return tool.providerToolName === VENDAERP_PARTY_TOOL;
 }
 
+function exactVendaErpOrderTool(tool: RuntimeReadTool): boolean {
+  return tool.providerToolName === VENDAERP_ORDER_TOOL;
+}
+
 function productSelector(selector: SemanticSelector | null): ProductSelector | null {
   return selector?.kind === 'product' ? selector : null;
 }
@@ -163,6 +195,10 @@ function stockSelector(selector: SemanticSelector | null): StockSelector | null 
 
 function partySelector(selector: SemanticSelector | null): PartySelector | null {
   return selector?.kind === 'party' ? selector : null;
+}
+
+function orderSelector(selector: SemanticSelector | null): OrderSelector | null {
+  return selector?.kind === 'order' ? selector : null;
 }
 
 function normalizedName(value: string): string {
@@ -260,10 +296,62 @@ export function createVendaErpFastReadCapabilityAdapter(): RuntimeReadCapability
       if (exactVendaErpPartyTool(tool)) {
         return ['business.parties.search'];
       }
+      if (exactVendaErpOrderTool(tool)) {
+        return ['business.orders.search'];
+      }
       return [];
     },
 
     async execute({ tool, capability, selector }): Promise<DeterministicReadNormalizedResult> {
+      if (capability === 'business.orders.search') {
+        if (!exactVendaErpOrderTool(tool)) {
+          throw new Error('vendaerp_fast_read_capability_unavailable');
+        }
+        const selectedOrder = orderSelector(selector);
+        if (!selectedOrder) {
+          throw new Error('vendaerp_fast_read_selector_required');
+        }
+
+        const result = await tool.execute({
+          code: selectedOrder.value,
+          pageSize: MAX_ORDERS,
+          skip: 0,
+        });
+        if (!Array.isArray(result) || result.length > MAX_ORDERS) {
+          throw new Error('vendaerp_fast_read_invalid_order_result');
+        }
+        const orders = result.map(orderRow);
+        const exactMatches = orders.filter((order) => order.code === selectedOrder.value);
+        if (exactMatches.length === 0) {
+          return {
+            kind: 'not_found',
+            message: 'Nenhum pedido corresponde exatamente ao código autorizado.',
+          };
+        }
+        if (exactMatches.length > 1) {
+          return {
+            kind: 'clarification',
+            prompt: 'A consulta retornou mais de um registro com o mesmo código de pedido. Não vou escolher automaticamente.',
+            options: ['Revise o código do pedido no VendaERP antes de tentar novamente.'],
+          };
+        }
+
+        const order = exactMatches[0]!;
+        return {
+          kind: 'facts',
+          subject: `Pedido ${order.code}`,
+          facts: [
+            { label: 'Código', value: String(order.code) },
+            ...(order.customerName ? [{ label: 'Cliente', value: order.customerName }] : []),
+            ...(order.status ? [{ label: 'Status', value: order.status }] : []),
+            {
+              label: 'Nota fiscal',
+              value: order.invoiceNumber ?? 'Não informada no resultado desta consulta.',
+            },
+          ],
+        };
+      }
+
       if (capability === 'business.parties.search') {
         if (!exactVendaErpPartyTool(tool)) {
           throw new Error('vendaerp_fast_read_capability_unavailable');
