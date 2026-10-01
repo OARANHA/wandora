@@ -74,6 +74,65 @@ for (const example of [
   });
 }
 
+test('extracts a bounded stock selector only from explicit product code + location', async () => {
+  const request = 'Quanto tem do produto código 123 no depósito LOJA-01?';
+  const provider = providerWith(async (received) => {
+    assert.equal(received.request, request);
+    assert.equal(received.capability, 'business.stock.read');
+    return {
+      selector: {
+        kind: 'stock',
+        product: { kind: 'product', by: 'code', value: '123' },
+        location: 'LOJA-01',
+      },
+      confidence: 0.98,
+      ambiguity: 'none',
+    };
+  });
+
+  assert.deepEqual(await provider.select(input(request, 'business.stock.read')), {
+    selector: {
+      kind: 'stock',
+      product: { kind: 'product', by: 'code', value: '123' },
+      location: 'LOJA-01',
+    },
+    confidence: 0.98,
+    ambiguity: 'none',
+    providerEvidence: {
+      provider: 'mastra-mistral',
+      model: QUALIFIED_MISTRAL_SELECTOR_MODEL,
+    },
+  });
+});
+
+test('stock selector fails closed when code/location contract is not satisfied', async () => {
+  const nameOnly = providerWith(async () => ({
+    selector: {
+      kind: 'stock',
+      product: { kind: 'product', by: 'name', value: 'PREMIUM PLUS' },
+      location: 'LOJA-01',
+    },
+    confidence: 0.99,
+    ambiguity: 'none',
+  }));
+  await assert.rejects(
+    nameOnly.select(input('Tem PREMIUM PLUS na LOJA-01?', 'business.stock.read')),
+    /mastra_mistral_selector_invalid_response/,
+  );
+
+  const missingLocation = providerWith(async () => ({
+    selector: null,
+    confidence: 0.95,
+    ambiguity: 'missing_entity',
+  }));
+  const decision = await missingLocation.select(input(
+    'Quantas unidades do produto código 123 temos?',
+    'business.stock.read',
+  ));
+  assert.equal(decision.selector, null);
+  assert.equal(decision.ambiguity, 'missing_entity');
+});
+
 test('sends only bounded request + capability to the generator boundary', async () => {
   const provider = providerWith(async (received) => {
     assert.deepEqual(
@@ -244,7 +303,7 @@ test('unsupported capability fails before any provider call', async () => {
   });
 
   await assert.rejects(
-    provider.select(input('qual o estoque?', 'business.stock.read')),
+    provider.select(input('qual o pedido?', 'business.orders.search')),
     /mastra_mistral_selector_unsupported_capability/,
   );
   assert.equal(calls, 0);
