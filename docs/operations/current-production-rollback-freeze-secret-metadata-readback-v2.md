@@ -1,3 +1,23 @@
+## Post-ADR0358 exact-byte host deployment checkpoint — ADR 0360
+
+Status: **LIVE HELPER+WRAPPERS EXACT / ROOT PRECHECK NOT EXECUTED / POST-ADR0358 CAPTURE ABSENT / CUSTOMER EFFECT NONE**.
+
+Final live Git blobs:
+
+- helper: `31742060143e8ff7c86a9753045400364b98c9c9`;
+- precheck wrapper: `94d47e50d25e733799a345d7c5cfb4ff243ee74a`;
+- capture wrapper: `5fa90bd0432c51a72ec050e3f2d78ce1ebb73737`.
+
+Final metadata remains helper `root:root 0750`, wrappers `root:root 0755`. A separate governed root `git hash-object --no-filters` readback matched all three qualified bytes exactly.
+
+The future receipt remains absent:
+
+`/opt/wandora/ops-workspace/production-rollback-freeze-v2-post-adr0358-f279acc98687da894a1ce6570273b5949552a8c7-mastra060-2e97da6d.metadata`
+
+The historical ADR 0356 receipt remains untouched. Runtime stayed healthy/inert and Task Drain stayed false/0/0/quiescent.
+
+**Do not execute the precheck from this checkpoint.** Start a fresh root-precheck slice with new state reconciliation, decision, second adversarial review, new managed-admin approval and exactly one apply of the existing dedicated precheck wrapper. Persistent capture remains a later third slice only after precheck GREEN. Semantic Fast Read remains prohibited.
+
 ## Post-ADR0358 source requalification checkpoint — ADR 0359
 
 Status: **SOURCE QUALIFIED / 17/17 EXACT-HEAD CI GREEN / LIVE HELPER+WRAPPERS NOT UPDATED / POST-ADR0358 CAPTURE ABSENT**.
