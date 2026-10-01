@@ -1,3 +1,15 @@
+## 2026-10-01 — ADR 0366 checkpoint: corrected Core 83baca live, gates OFF
+
+Current Core production baseline is `wandora/core:organization-adapter-candidate-83baca411096` / image id `sha256:f8f09f785ed2b1f8fd86c9b9120c8ba09956d8f30b239190b93a110efd462d7f` / revision `83baca4110966989b484341b5c58bb42d1eb5407`, healthy/restart 0 on the exact 14-file gates-OFF composition.
+
+The correction is the minimal Paperclip Tool Gateway success-envelope adaptation: exact normalized MCP `result.data.structuredContent.data` is unwrapped before the existing success fallbacks. Exact source head `c524f3f30bc20f3e6a6941f3cafed1cfe5c49871` was 17/17 GREEN; merge ref `83baca...` is exactly current main + source head. Candidate artifact passed exact digest/provenance checks and `PORTABLE_CANDIDATE_ARCHIVE_V1_OK`.
+
+Stable selector `/opt/wandora/ops-workspace/core-runtime-image.env` points to the new candidate and approved stable render resolves exactly that image.
+
+Current effect posture remains: Fast Read OFF, Semantic Fast Read OFF, Human Send OFF, Messaging Gateway outbound OFF, Task Drain quiescent. No second Ana/VendaERP request is authorized during the next rollback-refresh slice.
+
+Next boundary: repin/requalify the existing Rollback Freeze V2 mechanism for current `83baca...`, then execute one precheck + one capture only after fresh reviews/approvals.
+
 ## 2026-10-01 — ADR 0365 Current 9d0a4ba Core Rollback Freeze V2 refresh
 
 Status: **EXECUTED / GREEN / CURRENT-BASELINE ROLLBACK FREEZE V2 READY / NO CUSTOMER EFFECT**.
