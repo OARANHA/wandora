@@ -522,11 +522,20 @@ export function createVendaErpClient({
           'Business system stock response is invalid.',
         );
       }
-      return rows.map((row) => ({
-        location: text(row.deposito) ?? location,
-        quantity: number(row.saldo) ?? 0,
-        ...optional(text(row.lastUpdate), 'lastUpdatedAt'),
-      }));
+      return rows.map((row) => {
+        const quantity = number(row.saldo);
+        if (quantity === undefined) {
+          throw new VendaErpAdapterError(
+            'invalid-provider-response',
+            'Business system stock row is missing its quantity.',
+          );
+        }
+        return {
+          location: text(row.deposito) ?? location,
+          quantity,
+          ...optional(text(row.lastUpdate), 'lastUpdatedAt'),
+        };
+      });
     },
 
     async listPriceTables(input = {}) {
