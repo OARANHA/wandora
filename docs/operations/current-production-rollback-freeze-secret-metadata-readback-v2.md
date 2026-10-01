@@ -1,3 +1,37 @@
+## Post-ADR0372 current-9ee338 persistent capture checkpoint — ADR 0373
+
+Status: **PERSISTENT CAPTURE EXECUTED + VALIDATED / CURRENT-BASELINE ROLLBACK V2 READY / SCOPED ROLLOUT NOT AUTHORIZED**.
+
+The existing Rollback Freeze V2 implementation was repinned to live Core `9ee338303292...` and qualified on exact code head `04c4572e148c9c383d8de7546e2ac24d5e1f8444`, which completed 12/12 workflows GREEN.
+
+Qualified/live Git blobs:
+
+- helper: `1b26ca7ac2bd8b13d896a7440d142cb14da090a8`;
+- precheck wrapper: `6000e8e5f960071d39b78765a85b0bd507fa79e8`;
+- capture wrapper: `770a2853169f964146a8c33285650ffcd1489612`.
+
+A fresh root hash readback proved the exact bytes after deployment. Generic shell was not used.
+
+The separately approved root precheck executed once, exit 0, no timeout, terminal marker `ROLLBACK_FREEZE_V2_PRECHECK_OK`, with all effect flags false and the current receipt still absent.
+
+The separately approved persistent capture then executed exactly once with `timeout_ms=120000`, exit 0, no timeout, duration 36975 ms and terminal marker `ROLLBACK_FREEZE_V2_OK`.
+
+Current receipt:
+
+`/opt/wandora/ops-workspace/production-rollback-freeze-v2-post-adr0372-9ee338303292173db8e1b21bef9c8c5067c104a4-mastra060-2e97da6d.metadata`
+
+Protected rollback root:
+
+`/home/wandora-admin/backups/paperclip-v9161-fast-read-rollback-freeze-v2-post-adr0372-9ee338303292-mastra060-2e97da6d-20261001T141000116448565Z`
+
+Independent receipt readback validates exact Core/Paperclip/Gateway/OA/Mastra anchors, Task Drain quiescent, all semantic/effect gates OFF, official backup created + gzip-valid, PostgreSQL 18.1 restore/schema equality GREEN, safe custody metadata, and `activation/provider/customer/outbound=false`.
+
+Post-capture Core, Paperclip and Gateway remain healthy with restart 0; selector remains `9ee338...`; Task Drain remains false/0/0/quiescent.
+
+**Do not run capture again for this same baseline.** The receipt is now the canonical current-baseline rollback evidence. This does not authorize 28PRO/Ana scoped rollout activation. Start any activation-oriented work as a fresh slice with new REAL NOW, new second review and new approvals.
+
+Canonical detail: `docs/decisions/0373-current-9ee338-core-rollback-freeze-v2-requalification-v1.md`.
+
 ## Post-ADR0358 persistent capture execution checkpoint — ADR 0362
 
 Status: **PERSISTENT CAPTURE EXECUTED + VALIDATED / ROLLBACK V2 READY / SEMANTIC FAST READ NOT EXECUTED**.

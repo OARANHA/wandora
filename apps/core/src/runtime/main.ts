@@ -165,6 +165,9 @@ const humanDigitalEmployeeFastReadService = organizationAdapterService
         : {}),
       policy: config.semanticFastRead.policy,
       intentSecret: config.fastReadExecution.intentSecret,
+      ...(config.semanticFastRead.rollout
+        ? { rolloutPolicy: config.semanticFastRead.rollout }
+        : {}),
       recordLatency: fastReadLatencyRecorder,
     })
   : undefined;
@@ -268,6 +271,7 @@ server.listen(config.port, '0.0.0.0', () => {
     paperclipExecutionBridge: Boolean(handlePaperclipExecution),
     fastReadExecution: Boolean(paperclipFastReadService),
     semanticFastRead: Boolean(humanDigitalEmployeeFastReadService),
+    semanticFastReadRollout: Boolean(config.semanticFastRead?.rollout),
     humanApi: Boolean(handleHumanSupervision),
     customerCompanyOnboarding: Boolean(humanCompanyProfileService),
     humanSendProposal: Boolean(humanSendProposalService),

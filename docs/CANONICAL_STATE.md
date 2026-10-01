@@ -1,3 +1,209 @@
+## 2026-10-01 — ADR 0378 Semantic Fast Read Owner-Browser Single Real Canary Execution V3
+
+Status: **SUCCESS / EXACTLY ONE OWNER-BROWSER REQUEST / EXACTLY ONE GOVERNED READ-ONLY VENDAERP EXECUTION**.
+
+Fresh deterministic gates were GREEN at execution time: live main `e4c7c36...`, PR #378 head `b2270175...`, current merge provenance, 12/12 exact-head workflows successful, browser owner precheck GREEN with zero Fast Read POSTs, same ADR0375 live Core/custody/rollout provenance, OA ready, Mastra loaded/enabled, Ana healthy/idle, provider Connection/grant/install/tool projection GREEN, Tool Policy `allow/allow_profile`, Task Drain quiescent, Human Send OFF and Gateway outbound OFF.
+
+Wandora deterministic decision was GO. One minimized JEV advisory review returned `allow=0.72`, confidence `0.63`, with no new concrete factual gap.
+
+Exactly one browser POST executed the frozen request. It returned HTTP 200, `completed`, correlation `e31a9039-362d-4a8d-8643-2f10dcd8cea6`, model `wandora-deterministic-read-v1`, and `PREMIUM PLUS / Código: 3 / Preço: R$ 890,00`.
+
+Post-effect reconciliation proves exactly one new Ana run `38468c3b-4a89-4ba1-898b-c74bfc5263a6`, succeeded on attempt 1 with no retry lineage or scheduled retry. Safe Connection activity has exactly one `policy_decision` and one `call_completed` for the same namespaced VendaERP product-search tool; they represent one governed read-only tool execution. No second tool, write/destructive tool, fallback or second customer request occurred.
+
+Runtime remained healthy; Gateway outbound and Human Send remained OFF; Task Drain remained quiescent. PR #378 remains unmerged. This success is bounded to the exact enrolled 28PRO/Ana/`business.products.price` scope and does not authorize rollout expansion.
+
+Canonical detail: `docs/decisions/0378-semantic-fast-read-owner-browser-single-real-canary-execution-v3.md`.
+
+# ADR 0377 — JEV advisory / deterministic Wandora effect authority
+
+Status: **ACCEPTED / GOVERNANCE CLARIFICATION / NO CUSTOMER OR PROVIDER EFFECT**.
+
+JEV/TypeSafe remains mandatory second-review evidence but is advisory only. Wandora-owned deterministic policy is the effect authorization authority. A probabilistically uncertain JEV result does not independently veto an otherwise fully proven deterministic Wandora GO unless it identifies a concrete factual gap that remains unresolved. Deterministic DENY or missing evidence always remains fail-closed.
+
+ADR 0377 supersedes only ADR 0376's conflicting interpretation that a clear JEV GO is itself an authorization condition. ADR 0376's historical no-canary result remains unchanged.
+
+Canonical detail: `docs/decisions/0377-jev-advisory-deterministic-wandora-effect-authority-v1.md`.
+
+---
+
+## 2026-10-01 — ADR 0376 Semantic Fast Read Single Real Canary Read V1
+
+Status: **BLOCKED / FAIL-CLOSED / PRECHECK GREEN / SINGLE REAL CANARY NOT EXECUTED / NO CUSTOMER OR VENDAERP EFFECT**.
+
+Fresh Git/CI/runtime evidence was GREEN: PR #378 remained open/draft/mergeable/unmerged at `d808718e...` with 12/12 GREEN; Core remained the immutable ADR0375 `9ee338...` activated container, healthy/restart 0 with exact 16-file custody+rollout provenance; Human Send remained OFF; Gateway outbound remained OFF; Task Drain remained `false/0/0/quiescent=true`.
+
+Fresh Paperclip/OA evidence also remained GREEN: OA `0.6.1 ready`, `wandora_mastra@0.6.0` loaded/enabled, Ana idle with the same historical successful run and no post-activation run, provider-owned operational projection healthy for the VendaERP read-only Connection, and official non-consuming Tool Policy test `allow/allow_profile` with `auditEvent=null`.
+
+The only proposed request was `Qual é o preço do produto PREMIUM PLUS?`, exactly one attempt, no retry and no second request. The mandatory effect-adjacent JEV review was not clear enough to authorize the effect (`allow=0.46`, confidence `0.28`); a focused follow-up returned `fetch failed` without a decision. The canonical authenticated owner-browser execution surface was not available to this session, and browser credentials were not copied into Remote-Ops/MCP.
+
+**FAIL-CLOSED:** no customer Fast Read, new Ana run, VendaERP tool execution, Human Send, Gateway outbound, rollout expansion or PR merge occurred.
+
+Next boundary: fresh REAL NOW + clear effect review + canonical authenticated owner-browser authority before any future single canary attempt. No review/approval from ADR0376 may be reused.
+
+Canonical detail: `docs/decisions/0376-semantic-fast-read-single-real-canary-read-v1.md`.
+
+## 2026-10-01 — ADR 0375 Semantic Fast Read Scoped Rollout Activation + Immediate Runtime Attestation V1
+
+Status: **GREEN / SCOPED ACTIVATION LIVE / NO CUSTOMER OR PROVIDER CALL IN THIS CHECKPOINT**.
+
+The exact qualified rollout overlay is now materialized at the canonical host path with Git blob `b58c6a91fe1dbbabd047bdf13189ccd90c5c24d9`. Fresh custody metadata is GREEN without secret-value reads. A human-approved managed-admin render of the exact live 14-file baseline plus custody + rollout proved the intended 28PRO/Ana/`business.products.price` scope, same Core image `9ee338...`, Human Send OFF and read-only custody mounts.
+
+After a fresh second adversarial review returned `confirm`, the one-use human-approved activation recreated only `wandora-core` with `--no-deps --force-recreate --no-build --pull never --wait`.
+
+Immediate readback is GREEN: Core container `28c86cd5de7d...`, same revision `9ee338303292...` and OCI manifest `sha256:fbb3c420...`, restart 0, healthy, exact 16-file provenance (prior 14 + custody + rollout), TypeSafe/Fast-Read mounts read-only, `fastReadExecution=true`, `semanticFastRead=true`, `semanticFastReadRollout=true`, Human Send OFF, Gateway outbound OFF and Task Drain `false/0/0/quiescent=true`.
+
+Fresh Paperclip operational projection remains healthy/read-only and a non-consuming Tool Policy test for Ana + the known VendaERP Connection + `vendaerp_search_products` remains `allow/allow_profile` with no audit event.
+
+**No customer/browser request, Ana execution, VendaERP/provider call, outbound effect, migration, Paperclip lifecycle mutation or PR merge occurred in this checkpoint.**
+
+Next boundary: separately governed **single real canary read** for the exact enrolled tuple. Fresh REAL NOW + effect review are mandatory; no approval from ADR 0375 may be reused.
+
+Canonical detail: `docs/decisions/0375-semantic-fast-read-scoped-rollout-activation-immediate-runtime-attestation-v1.md`.
+
+## 2026-10-01 — ADR 0374 Semantic Fast Read Scoped Rollout Activation-Oriented Preflight V1
+
+Status: **BLOCKED / FAIL-CLOSED / NO ACTIVATION / NO CUSTOMER EFFECT**.
+
+Fresh state after ADR 0373 still proves live/stable Core `9ee338303292...`, exact 14-file gates-OFF topology, Paperclip `v2026.916.1`, OA `0.6.1 ready`, external `wandora_mastra@0.6.0`, Task Drain `false/0/0/quiescent`, Human Send OFF and Gateway outbound OFF. The ADR0373 `ROLLBACK_FREEZE_V2_OK` receipt still matches the live baseline.
+
+Fresh evidence also reconfirms the live Wandora 28PRO/Ana pair, Paperclip 28PRO/Ana identities, and an official non-consuming Tool Policy decision of `allow/allow_profile` for the known VendaERP product-read Connection.
+
+Activation remains fail-closed because the exact persistent rollout-overlay live-host identity/materialization is not yet proven, a fresh Organization Adapter operational projection is still required immediately before effect, and custody metadata must be freshly read through the existing dedicated managed-admin metadata capability. No new subsystem is justified.
+
+JEV second adversarial review returned `block=0.63`, `deep_review=0.33`. No `adm_...` activation ticket was generated.
+
+Next boundary: **Semantic Fast Read Scoped Rollout Host Materialization + Immediate Effect Attestation V1 — NO CUSTOMER CALL**.
+
+Canonical detail: `docs/decisions/0374-semantic-fast-read-scoped-rollout-activation-oriented-preflight-v1.md`.
+
+## 2026-10-01 — ADR 0373 current 9ee338 Rollback Freeze V2 GREEN
+
+Status: **GREEN / CURRENT-BASELINE ROLLBACK FREEZE V2 READY / CORE 9ee338 ANCHORED / ALL EFFECT GATES OFF / NO CUSTOMER OR OUTBOUND EFFECT**.
+
+The existing Rollback Freeze V2 mechanism was repinned and requalified for live/stable Core `9ee338303292...` without creating any new backup/lifecycle/orchestration subsystem. Exact qualified live blobs are helper `1b26ca7a...`, precheck `6000e8e5...`, capture `770a2853...`; code head `04c4572e...` is 12/12 GREEN.
+
+The dedicated root precheck executed once and returned `ROLLBACK_FREEZE_V2_PRECHECK_OK` with all effect flags false. The separately approved persistent capture executed once in 36.975s and returned `ROLLBACK_FREEZE_V2_OK`.
+
+Current safe receipt:
+
+`/opt/wandora/ops-workspace/production-rollback-freeze-v2-post-adr0372-9ee338303292173db8e1b21bef9c8c5067c104a4-mastra060-2e97da6d.metadata`
+
+Receipt validation proves official Paperclip backup created + gzip-valid, PostgreSQL 18.1 restore/schema equality GREEN, exact Core/Paperclip/OA/Mastra/Gateway anchors, gates OFF, custody/attestation overlays absent, Task Drain quiescent and `activation/provider/customer/outbound=false`.
+
+Post-capture Core/Paperclip/Gateway remain healthy with restart 0; selector remains exact `9ee338...`. ADR 0367 is historical for `83baca...`.
+
+**No scoped rollout is authorized by this checkpoint.** The next 28PRO/Ana/`business.products.price` slice must begin from fresh REAL NOW and separate review/approval.
+
+Canonical detail: `docs/decisions/0373-current-9ee338-core-rollback-freeze-v2-requalification-v1.md`.
+
+---
+
+## 2026-10-01 — ADR 0372 exact Core candidate promoted; 9ee338 is live/stable
+
+Status: **GREEN / CORE 9ee338 LIVE / EXACT 14-FILE BASELINE / ALL EFFECT GATES OFF / NO CUSTOMER OR OUTBOUND EFFECT**.
+
+The frozen current-main-compatible candidate from artifact `11153574632` was imported through the existing governed Remote-Ops `load_image` capability after its containerized proxy filesystem boundary was repaired canonically on Remote-Ops main (`5558aa7e...`, `ce008d5b...`, `e1805623...`). No new Portainer stack, loader subsystem or Core lifecycle capability was created.
+
+Exact candidate identity remained `wandora/core:organization-adapter-candidate-9ee338303292`, revision `9ee338303292173db8e1b21bef9c8c5067c104a4`, OCI manifest `sha256:fbb3c420b25fc9ae141f8ece5ab69bec9daef203a36e268eea4c363da3a84a5f`, contract `organization-adapter-core-v1`, user `node`.
+
+A human-approved managed-admin action recreated only `core` on the exact canonical 14-file topology with `--no-deps --force-recreate --no-build --pull never --wait`. Post-readback is GREEN: exact candidate image/revision/contract, healthy/restart 0, exact topology, Fast Read OFF, Semantic Fast Read OFF, Semantic Selector OFF, Human Send OFF, TypeSafe/Fast-Read secret mounts absent, Paperclip and Gateway ids unchanged/healthy, Task Drain quiescent.
+
+Stable selector `/opt/wandora/ops-workspace/core-runtime-image.env` now points to `9ee338303292...` and preserves mode `0640`, uid `999`, gid `1003`.
+
+ADR 0367 is now historical rollback evidence for prior `83baca...`; it is not the current-baseline freeze. **Before any 28PRO/Ana scoped rollout activation, capture a fresh Rollback Freeze V2 for live `9ee338...`.**
+
+Canonical detail: `docs/decisions/0372-exact-core-candidate-production-promotion-preflight-v1.md`.
+
+---
+
+## 2026-10-01 — ADR 0372 operational blocker update: execution broker now 48 active sessions
+
+Remote-Ops PR #44 is merged at `48a4d370187b013a4a196af293225c134ec55eb1`. The production execution broker was updated through managed-admin and only `wandora-ops-exec-broker.service` was restarted. Live `process.list` now reports `max_active_sessions=48`, `active_sessions=0`; completed/signaled sessions no longer consume active capacity. Core, Paperclip and Messaging Gateway remained healthy and unchanged. The former 16-session broker-capacity blocker from ADR 0372 is resolved; all other ADR 0372 promotion/authority guardrails remain in force.
+
+# ADR 0372 checkpoint — Exact Core Candidate Production Promotion Preflight V1
+
+Status: **PRE-FLIGHT NO-GO / CANDIDATE STILL QUALIFIED / EXECUTION AUTHORITY BLOCKED / NO PRODUCTION EFFECT**.
+
+Fresh evidence preserved `main=e4c7c36bb1091ba38d39b85fa259bae94553fc52`, PR #369 `bf5c823...`, PR #377 `54b6120...`, PR #378 `1ffb885...`, and exact artifact `11153574632` unexpired with GitHub digest `sha256:fdca91b452d73e68b53be4608fe016e6bf6e2222803cd38ce14ae4083692217b`. Host verification reproduced the exact ZIP digest and internal archive SHA `612f04b1e60ad40a97ea0663c293af03fce65793a10358f46c8a85865b801724`; source/OCI/contract/User remain the ADR 0371 frozen values.
+
+Production stayed unchanged on Core `83baca411096...`, Paperclip `v2026.916.1`, OA `0.6.1 ready`, external `wandora_mastra@0.6.0`, exact 14-file gates-OFF Core composition, Gateway outbound OFF and Task Drain `false/0/0/quiescent=true`. ADR 0367 rollback receipt remains `ROLLBACK_FREEZE_V2_OK`.
+
+Promotion was not prepared for human apply because the ordinary execution broker is at its fixed 16-session retention guard and managed-admin correctly hard-denies generic `bash`; the Docker candidate lifecycle is also Web-only. No allowlist/control-plane change was made to bypass those controls. A reviewed helper was renamed `.blocked`; no `adm_...` ticket and no production mutation occurred.
+
+Next: resume the same promotion preflight from fresh REAL NOW after ordinary session retention naturally reaps; finish exact image import/Compose render without widening authority, then fresh adversarial review + one-use already-authorized managed-admin boundary + explicit human approval. Scoped rollout remains out of scope.
+
+Canonical detail: `docs/decisions/0372-exact-core-candidate-production-promotion-preflight-v1.md`.
+
+---
+
+# ADR 0371 checkpoint — Semantic Fast Read Scoped Rollout Current-Main Core Convergence V1
+
+Status: **QUALIFIED / CURRENT-MAIN-COMPATIBLE CORE CANDIDATE GREEN / PRODUCTION NO-GO / NO PRODUCTION EFFECT**
+
+- live `main`: `e4c7c36bb1091ba38d39b85fa259bae94553fc52`;
+- PR #369 remained unchanged at head `bf5c82319f0815562d45cad90a2db0ea57b9251b`, 17/17 GREEN; its current-main merge ref is `c78266bb08c2d903d942d0ad87d6cb03438811a4`;
+- PR #377 remained unchanged at head `54b6120c81b735fd86d8e042e7bc18f0b0f96595`, 12/12 GREEN;
+- convergence PR #378 is draft/mergeable and was created from frozen base `c78266...` plus exact rollout head `54b6120...`;
+- qualified code merge/source: `9ee338303292173db8e1b21bef9c8c5067c104a4`;
+- PR #378 code-head workflow set: 12/12 GREEN;
+- Core Candidate was rerun only after Core CI + Semantic Fast Read CI GREEN;
+- qualified post-gates candidate artifact: `11153574632`;
+- artifact digest: `sha256:fdca91b452d73e68b53be4608fe016e6bf6e2222803cd38ce14ae4083692217b`;
+- archive SHA-256: `612f04b1e60ad40a97ea0663c293af03fce65793a10358f46c8a85865b801724`;
+- OCI config: `sha256:6e7e5bab6dcd9d19a6d314ae04b1c2495c210bee3708ea06d5e32126008131b7`;
+- OCI manifest: `sha256:fbb3c420b25fc9ae141f8ece5ab69bec9daef203a36e268eea4c363da3a84a5f`;
+- contract `organization-adapter-core-v1`, image user `node`, portable verifier GREEN;
+- rejected artifact `11151382368` remains forbidden for production use;
+- scoped rollout contract remains exact 28PRO / Ana / `business.products.price`, fail-closed before semantic/provider work for non-enrolled targets and capabilities;
+- production remains Core `83baca411096...`, Paperclip `916.1`, OA `0.6.1`, Mastra `0.6.0`, Task Drain quiescent, Fast/Semantic/Selector/Human Send/outbound OFF;
+- ADR 0367 remains rollback authority for the live `83baca...` baseline;
+- next production boundary is promotion preflight for exact candidate `11153574632` with every effect gate OFF; the actual managed-admin/root promotion apply will require a fresh one-use `APPROVE adm_...`;
+- no PR merge and no production/provider/customer/outbound effect occurred.
+
+See `docs/decisions/0371-semantic-fast-read-scoped-rollout-current-main-core-convergence-v1.md`.
+
+---
+
+## ADR 0370 — Semantic Fast Read Scoped Production Canary Activation Preflight V1
+
+Status: **PREFLIGHT COMPLETE / PREPARATION GO AS SPLIT TASK / ACTIVATION NOT AUTHORIZED / NO PRODUCTION EFFECT**.
+
+Fresh production evidence fixes the first future canary to Wandora 28PRO `7a531811-9fea-4395-b0b2-2e2b0fce0570` + Ana `7b401163-8102-42db-b595-3a2017f54003` and only `business.products.price`. Paperclip provider state remains healthy for company `5d7ec217-118c-4292-8136-0a9ab16926ea`, Ana `428b6730-3df4-4b92-b90a-a87f87c401f9` and VendaERP Connection `8e2c23f4-73f5-444a-8647-71428819ea91`; grant/install/effective profile are GREEN and Tool Policy test is `allow/allow_profile`.
+
+Production remains Core `83baca...` on the exact 14-file gates-OFF baseline, Human Send OFF, Gateway outbound OFF and Task Drain quiescent. ADR 0367 Rollback Freeze V2 still matches this live baseline.
+
+The existing PR #377 candidate artifact `11151382368` is not production-authorized because it is built from the stacked PR369→PR377 merge `5f6ad99...` and does not close over current main `e4c7c36...`. Preparation must therefore split: current-main-compatible Core candidate/convergence first, refreshed rollback second, separately approved scoped activation third. No production/customer/provider effect occurred.
+
+See `docs/decisions/0370-semantic-fast-read-scoped-production-canary-activation-preflight-v1.md`.
+
+## 2026-10-01 — ADR 0369 Semantic Fast Read scoped rollout admission V1
+
+Status: **GREEN / CODE-ONLY QUALIFIED / SCOPED CUSTOMER+EMPLOYEE+CAPABILITY ADMISSION / NO PRODUCTION ACTIVATION**.
+
+ADR 0368 already proved the real owner-browser Ana → Paperclip → VendaERP product-price path. ADR 0369 does not repeat that attestation. It converts the proof into a bounded rollout contract.
+
+Implementation head `3b63623f249c050536c0484c8db26a1d505ffae7` completed **7/7 triggered workflows GREEN**, including Core CI, Semantic Fast Read CI and Paperclip Mastra Adapter CI.
+
+A new stacked draft PR #377 (`feat/semantic-fast-read-scoped-rollout-v1` over PR #369 head) adds only:
+
+- exact Wandora rollout target pairs `organizationId:employeeId`;
+- a canonical `BusinessCapability` allowlist;
+- intersection of rollout capabilities with the existing Paperclip/OA operational projection before JEV/gating/`wfri1`;
+- fail-closed denial before semantic/provider work for non-enrolled targets or empty effective capability sets;
+- bounded non-secret runtime configuration;
+- a persistent `compose.semantic-fast-read-rollout.yaml` separate from the attestation-only overlay;
+- CI coverage for the new runtime/config/Compose contract.
+
+Paperclip remains authority for managed-agent lifecycle, Connections, grants, effective tool policy, Tool Gateway execution, runs, terminal result and audit. Provider grants are not reused as Wandora product-rollout feature flags.
+
+No table, migration, service, state machine, provider mirror or durable entitlement store was created. The initial future canary is intended to use one exact customer/Ana pair with only `business.products.price`.
+
+No production effect occurred in ADR 0369: no Core recreation, no custody mount, no Fast Read opening, no Ana/VendaERP request, no customer-path provider call, no Paperclip lifecycle mutation, no Human Send/outbound activation and no PR merge.
+
+Production activation remains a separate future slice requiring fresh Git/CI/runtime/rollback/custody/Task Drain evidence, exact canary identity/scope, second adversarial review and explicit human approval.
+
+Canonical detail: `docs/decisions/0369-semantic-fast-read-scoped-rollout-admission-v1.md`.
+
 ## 2026-10-01 — ADR 0368 Semantic Fast Read supervised production re-attestation V3
 
 Status: **GREEN / ONE OWNER-BROWSER READ SUCCEEDED / EXACTLY ONE VENDAERP TOOL CALL / MANDATORY CLOSE COMPLETE / FAST READ OFF AGAIN**.

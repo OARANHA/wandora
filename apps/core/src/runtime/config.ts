@@ -1,6 +1,6 @@
 import { readFile, stat } from 'node:fs/promises';
 import { isAbsolute } from 'node:path';
-import type { SemanticRoutePolicy } from '../semantic-routing/contracts.js';
+import { BUSINESS_CAPABILITIES, type BusinessCapability, type SemanticRoutePolicy } from '../semantic-routing/contracts.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -91,12 +91,21 @@ export type RuntimeSemanticSelectorConfig = {
   timeoutMs: number;
 };
 
+export type RuntimeSemanticFastReadRolloutConfig = {
+  targets: Array<{
+    organizationId: string;
+    employeeId: string;
+  }>;
+  capabilities: BusinessCapability[];
+};
+
 export type RuntimeSemanticFastReadConfig = {
   provider: 'typesafe-jev';
   apiKey: string;
   timeoutMs: number;
   policy: SemanticRoutePolicy;
   selector?: RuntimeSemanticSelectorConfig;
+  rollout?: RuntimeSemanticFastReadRolloutConfig;
 };
 
 export type RuntimeConfig = {
@@ -184,6 +193,64 @@ const parseAgentRuntimeMode = (value: string | undefined): RuntimeAgentMode => {
 const canonicalUuid = (value: string, name: string): string => {
   if (!UUID_RE.test(value)) throw new Error(`${name} must be a canonical UUID.`);
   return value.toLowerCase();
+};
+
+const parseSemanticFastReadRollout = (
+  env: NodeJS.ProcessEnv,
+): RuntimeSemanticFastReadRolloutConfig | undefined => {
+  const targetsValue = env.WANDORA_SEMANTIC_FAST_READ_ROLLOUT_TARGETS?.trim();
+  const capabilitiesValue = env.WANDORA_SEMANTIC_FAST_READ_ROLLOUT_CAPABILITIES?.trim();
+
+  if (!targetsValue && !capabilitiesValue) return undefined;
+  if (!targetsValue || !capabilitiesValue) {
+    throw new Error('Semantic Fast Read rollout targets and capabilities must be configured together.');
+  }
+  if (targetsValue.length > 8_192 || capabilitiesValue.length > 2_048) {
+    throw new Error('Semantic Fast Read rollout configuration exceeds the bounded size.');
+  }
+
+  const targetValues = targetsValue.split(',').map((value) => value.trim()).filter(Boolean);
+  if (targetValues.length < 1 || targetValues.length > 64) {
+    throw new Error('Semantic Fast Read rollout target count must be between 1 and 64.');
+  }
+
+  const targets = targetValues.map((value) => {
+    const parts = value.split(':');
+    if (
+      parts.length !== 2
+      || !parts[0]
+      || !parts[1]
+      || !UUID_RE.test(parts[0])
+      || !UUID_RE.test(parts[1])
+    ) {
+      throw new Error(`invalid rollout target: ${value}`);
+    }
+    return {
+      organizationId: parts[0].toLowerCase(),
+      employeeId: parts[1].toLowerCase(),
+    };
+  });
+
+  const uniqueTargets = new Map(
+    targets.map((target) => [`${target.organizationId}:${target.employeeId}`, target]),
+  );
+
+  const capabilityValues = capabilitiesValue.split(',').map((value) => value.trim()).filter(Boolean);
+  if (capabilityValues.length < 1 || capabilityValues.length > BUSINESS_CAPABILITIES.length) {
+    throw new Error('Semantic Fast Read rollout capability count is invalid.');
+  }
+
+  const capabilities = capabilityValues.map((value) => {
+    if (!BUSINESS_CAPABILITIES.includes(value as BusinessCapability)) {
+      throw new Error(`unsupported rollout capability: ${value}`);
+    }
+    return value as BusinessCapability;
+  });
+
+  return {
+    targets: [...uniqueTargets.values()],
+    capabilities: [...new Set(capabilities)],
+  };
 };
 
 const validateMessagingGatewayOutboundUrl = (value: string): string => {
@@ -655,6 +722,7 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
     if (apiKey.length < 20 || apiKey.length > 4_096 || /\s/.test(apiKey)) {
       throw new Error('Wandora TypeSafe JEV API key is invalid.');
     }
+    const rollout = parseSemanticFastReadRollout(env);
     semanticFastRead = {
       provider: 'typesafe-jev',
       apiKey,
@@ -671,6 +739,7 @@ export async function loadRuntimeConfig(env: NodeJS.ProcessEnv = process.env): P
         maximumNeedsHumanReview: 0.1,
         minimumNeedsDataOrToolLookup: 0.9,
       },
+      ...(rollout ? { rollout } : {}),
       ...(semanticSelectorEnabled
         ? {
             selector: {

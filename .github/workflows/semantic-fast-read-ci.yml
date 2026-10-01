@@ -7,7 +7,14 @@ on:
       - 'apps/core/src/agent-runtime/**'
       - 'apps/core/src/organization-adapter/**'
       - 'apps/core/src/supervision/human-digital-employee-fast-read.ts'
+      - 'apps/core/src/runtime/config.ts'
+      - 'apps/core/src/runtime/main.ts'
       - 'apps/core/src/business-system/vendaerp-fast-read.ts'
+      - 'apps/core/test/runtime.test.ts'
+      - 'infra/stacks/core/compose.semantic-fast-read.yaml'
+      - 'infra/stacks/core/compose.semantic-fast-read-custody.yaml'
+      - 'infra/stacks/core/compose.semantic-fast-read-attestation.yaml'
+      - 'infra/stacks/core/compose.semantic-fast-read-rollout.yaml'
       - 'apps/core/test/human-digital-employee-fast-read.test.ts'
       - 'apps/core/test/mastra-mistral-semantic-selector-provider.test.ts'
       - 'apps/core/test/vendaerp-fast-read.test.ts'
@@ -47,7 +54,14 @@ on:
       - 'apps/core/src/agent-runtime/**'
       - 'apps/core/src/organization-adapter/**'
       - 'apps/core/src/supervision/human-digital-employee-fast-read.ts'
+      - 'apps/core/src/runtime/config.ts'
+      - 'apps/core/src/runtime/main.ts'
       - 'apps/core/src/business-system/vendaerp-fast-read.ts'
+      - 'apps/core/test/runtime.test.ts'
+      - 'infra/stacks/core/compose.semantic-fast-read.yaml'
+      - 'infra/stacks/core/compose.semantic-fast-read-custody.yaml'
+      - 'infra/stacks/core/compose.semantic-fast-read-attestation.yaml'
+      - 'infra/stacks/core/compose.semantic-fast-read-rollout.yaml'
       - 'apps/core/test/human-digital-employee-fast-read.test.ts'
       - 'apps/core/test/mastra-mistral-semantic-selector-provider.test.ts'
       - 'apps/core/test/vendaerp-fast-read.test.ts'
@@ -287,9 +301,9 @@ jobs:
               'PC_IMAGE="wandora/paperclip:v2026.916.1"',
               'PC_IMAGE_ID="sha256:7b72d43e87d54fcb9aa48b665150e062750c0cacb270e069f94297d58caa91e5"',
               'PC_COMMIT="d554c4789ed3930f8a53ac9fdf6503b3187097da"',
-              'CORE_IMAGE="wandora/core:organization-adapter-candidate-83baca411096"',
-              'CORE_IMAGE_ID="sha256:f8f09f785ed2b1f8fd86c9b9120c8ba09956d8f30b239190b93a110efd462d7f"',
-              'CORE_REVISION="83baca4110966989b484341b5c58bb42d1eb5407"',
+              'CORE_IMAGE="wandora/core:organization-adapter-candidate-9ee338303292"',
+              'CORE_IMAGE_ID="sha256:fbb3c420b25fc9ae141f8ece5ab69bec9daef203a36e268eea4c363da3a84a5f"',
+              'CORE_REVISION="9ee338303292173db8e1b21bef9c8c5067c104a4"',
               'OA_VERSION="0.6.1"',
               '80373a61f08d87772c3aab738ffa6905bddcb49c783e9574c1540247cb3b258f/package',
               'MASTRA_TYPE="wandora_mastra"',
@@ -308,8 +322,8 @@ jobs:
               'safe_secret_meta_line vigia "${VIGIA}"',
               'semantic-fast-read custody overlay is live',
               'semantic-fast-read attestation overlay is live',
-              'RECEIPT="/opt/wandora/ops-workspace/production-rollback-freeze-v2-post-adr0366-83baca4110966989b484341b5c58bb42d1eb5407-mastra060-2e97da6d.metadata"',
-              'root="${BACKUP_PARENT}/paperclip-v9161-fast-read-rollback-freeze-v2-post-adr0366-83baca411096-mastra060-2e97da6d-${stamp}"',
+              'RECEIPT="/opt/wandora/ops-workspace/production-rollback-freeze-v2-post-adr0372-9ee338303292173db8e1b21bef9c8c5067c104a4-mastra060-2e97da6d.metadata"',
+              'root="${BACKUP_PARENT}/paperclip-v9161-fast-read-rollback-freeze-v2-post-adr0372-9ee338303292-mastra060-2e97da6d-${stamp}"',
               'ROLLBACK_FREEZE_V2_PRECHECK_OK',
               'ROLLBACK_FREEZE_V2_OK',
               'pg18_live_dump probe /dev/null',
@@ -327,6 +341,11 @@ jobs:
 
           forbidden = [
               'docker pull', 'target_agent_', 'eval ', 'sudo ',
+              'CORE_IMAGE="wandora/core:organization-adapter-candidate-83baca411096"',
+              'CORE_IMAGE_ID="sha256:f8f09f785ed2b1f8fd86c9b9120c8ba09956d8f30b239190b93a110efd462d7f"',
+              'CORE_REVISION="83baca4110966989b484341b5c58bb42d1eb5407"',
+              'RECEIPT="/opt/wandora/ops-workspace/production-rollback-freeze-v2-post-adr0366-83baca4110966989b484341b5c58bb42d1eb5407-mastra060-2e97da6d.metadata"',
+              'root="${BACKUP_PARENT}/paperclip-v9161-fast-read-rollback-freeze-v2-post-adr0366-83baca411096-mastra060-2e97da6d-${stamp}"',
               'CORE_IMAGE="wandora/core:organization-adapter-candidate-9d0a4ba577fe"',
               'CORE_IMAGE_ID="sha256:3ae9e4eae1949cc9da7e191cea841e1564d1a1577385f994991561c49c715e7d"',
               'CORE_REVISION="9d0a4ba577fe41d9efd8a5d2c4e5539ec0e7afeb"',

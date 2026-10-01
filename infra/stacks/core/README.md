@@ -238,3 +238,57 @@ WANDORA_HUMAN_SEND_PROPOSAL_ENABLED=false
 It adds no secret, volume, image, build, network or port. Mistral continues to use the existing platform model credential from `compose.agent-runtime-model.yaml`. Messaging Gateway outbound and WhatsApp are outside this overlay and must remain OFF/absent.
 
 Do not apply this overlay from historical evidence. The future execution requires fresh rollback/runtime/custody/Task Drain reconciliation, an exact bounded effect decision and a second adversarial review immediately before mutation. The full future window/close contract is in `docs/operations/semantic-fast-read-bounded-attestation-v1.md`.
+
+## Scoped persistent Semantic Fast Read rollout contract — ADR 0369
+
+`compose.semantic-fast-read-rollout.yaml` is the persistent **scoped rollout** effect overlay. It is separate from `compose.semantic-fast-read-attestation.yaml`; the attestation overlay remains for bounded supervised proof windows and must not be used as customer-rollout configuration.
+
+The rollout overlay keeps the same coarse kill switches deliberately explicit:
+
+```text
+WANDORA_FAST_READ_EXECUTION_ENABLED=true
+WANDORA_SEMANTIC_FAST_READ_ENABLED=true
+WANDORA_SEMANTIC_SELECTOR_ENABLED=true
+WANDORA_HUMAN_SEND_PROPOSAL_ENABLED=false
+```
+
+and additionally requires both deployment-owned, non-secret admission values:
+
+```text
+WANDORA_SEMANTIC_FAST_READ_ROLLOUT_TARGETS=<organization-uuid>:<employee-uuid>[,...]
+WANDORA_SEMANTIC_FAST_READ_ROLLOUT_CAPABILITIES=business.products.price[,...]
+```
+
+The target key is an exact Wandora organization/employee pair. Capabilities reuse the canonical Wandora `BusinessCapability` contract; this overlay does not create a second provider/tool registry.
+
+When rollout configuration is present, Core:
+
+1. denies a non-enrolled organization/employee pair before capability projection, JEV, selector or Paperclip dispatch;
+2. obtains the existing operational capability projection through the Organization Adapter/Paperclip boundary;
+3. intersects that operational projection with the rollout capability allowlist;
+4. fails closed before semantic decision when the effective set is empty;
+5. passes only the effective capability set into semantic decision, deterministic-read gating and signed Fast Read intent issuance.
+
+Paperclip remains operational authority for Connection health, grants, tool policy, runs, tool execution and audit. The rollout policy is only Wandora product/effect admission and does not mirror provider state.
+
+A render-only example for a future separately authorized canary is:
+
+```bash
+export WANDORA_SEMANTIC_FAST_READ_ROLLOUT_TARGETS='<organization-uuid>:<employee-uuid>'
+export WANDORA_SEMANTIC_FAST_READ_ROLLOUT_CAPABILITIES='business.products.price'
+
+docker compose \
+  -f infra/stacks/core/compose.yaml \
+  -f infra/stacks/core/compose.agent-runtime-model.yaml \
+  -f infra/stacks/core/compose.human-api.yaml \
+  -f infra/stacks/core/compose.organization-adapter.yaml \
+  -f infra/stacks/core/compose.paperclip-execution-bridge.yaml \
+  -f infra/stacks/core/compose.semantic-fast-read.yaml \
+  -f infra/stacks/core/compose.semantic-fast-read-custody.yaml \
+  -f infra/stacks/core/compose.semantic-fast-read-rollout.yaml \
+  config
+```
+
+That render command is not production authorization. A real promotion still requires fresh live provenance, rollback readiness, custody, Task Drain/quiescence, operational capability/policy evidence, stop conditions, second adversarial review and explicit human approval immediately before the effect.
+
+For the first future canary, ADR 0369 qualifies only `business.products.price`. Human Send and Messaging Gateway outbound remain outside the rollout contract and must remain OFF.
