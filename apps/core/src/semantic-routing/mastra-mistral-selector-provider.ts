@@ -21,12 +21,20 @@ const SELECTOR_CAPABILITIES = new Set<BusinessCapability>([
   'business.products.search',
   'business.products.price',
   'business.stock.read',
+  'business.parties.search',
 ]);
 
 const productSelectorSchema = z.object({
   kind: z.literal('product'),
   by: z.enum(['name', 'code', 'barcode']),
   value: z.string().trim().min(1).max(MAX_SELECTOR_CHARS),
+}).strict();
+
+const partySelectorSchema = z.object({
+  kind: z.literal('party'),
+  by: z.literal('name'),
+  value: z.string().trim().min(1).max(MAX_SELECTOR_CHARS),
+  role: z.enum(['customer', 'supplier']),
 }).strict();
 
 const stockSelectorSchema = z.object({
@@ -39,7 +47,7 @@ const stockSelectorSchema = z.object({
   location: z.string().trim().min(1).max(MAX_SELECTOR_CHARS),
 }).strict();
 
-const selectorSchema = z.union([productSelectorSchema, stockSelectorSchema]);
+const selectorSchema = z.union([productSelectorSchema, partySelectorSchema, stockSelectorSchema]);
 
 const selectorDecisionSchema = z.object({
   selector: selectorSchema.nullable(),
@@ -60,6 +68,11 @@ const SELECTOR_INSTRUCTIONS = [
   'For product selectors use by=name for an explicit product name, by=code for an explicit product code, and by=barcode for an explicit barcode.',
   'For business.stock.read V1, return kind=stock only when the request explicitly provides both one product code and one stock location or deposit.',
   'For stock, copy the explicit product code into product.by=code and preserve the explicit stock location or deposit in location.',
+  'For business.parties.search V1, return kind=party only for one explicitly named party and exactly one explicit business role: customer or supplier.',
+  'For party selectors use by=name, preserve the explicit party name, and map the business role to role=customer or role=supplier.',
+  'Do not emit a party selector when the request asks for CPF/CNPJ, tax/document identifiers, e-mail, phone, address, or other sensitive party details; return selector=null and ambiguity=unknown.',
+  'Do not emit a party selector for document, e-mail, phone, code, city, state, or changed-after lookup even if such provider fields may exist.',
+  'If a party name or the customer/supplier role is missing, return selector=null and ambiguity=missing_entity.',
   'A product name or barcode alone is not enough for business.stock.read V1; do not derive or invent a product code.',
   'If stock location or required product code is missing, return selector=null and ambiguity=missing_entity.',
   'Preserve selector values semantically; only surrounding whitespace may be removed.',
