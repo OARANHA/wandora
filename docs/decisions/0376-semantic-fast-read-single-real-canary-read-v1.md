@@ -209,3 +209,22 @@ Do not repeat the canary from historical evidence.
 A future canary attempt must again begin from fresh REAL NOW, re-prove the same exact rollout/runtime/Paperclip/Connection state, obtain a clear effect-adjacent adversarial GO, and use the canonical authenticated owner-browser Human Fast Read authority without copying browser credentials into operator/MCP state.
 
 No approval or review result from this checkpoint may be reused.
+
+
+## 2026-10-01 — Owner-Browser Single Real Canary Execution V2
+
+Status: **BLOCKED AT OWNER-BROWSER PROOF GATE / NO REQUEST EXECUTED**.
+
+This session read the bootstrap, AGENTS, ADR0376, capability authority, architecture, canonical state and Core README. Fresh GitHub evidence: main e4c7c36bb1091ba38d39b85fa259bae94553fc52; PR378 open/draft/unmerged; pre-checkpoint head 2d7a4baa1aeeee90cac2b15cfe90141a11804719, 12/12 workflows successful.
+
+Fresh runtime: Core 28c86cd5de7d, revision 9ee338303292173db8e1b21bef9c8c5067c104a4, manifest sha256:fbb3c420b25fc9ae141f8ece5ab69bec9daef203a36e268eea4c363da3a84a5f, healthy/restart 0, exact 16-file custody/rollout provenance and read-only mounts. Startup reports fastReadExecution/semanticFastRead/semanticFastReadRollout true, humanSendProposal false; Gateway outboundEnabled false. Task Drain false/0/0/quiescent. Non-consuming frozen Ana/Connection/tool policy test: allow/allow_profile, auditEvent null.
+
+The user manually authenticated the controlled Cloud Browser. UI reads proved the authenticated customer shell, 28PRO selected, and one displayed active supervised Ana. They did not prove membership role owner. Company editing controls cannot distinguish owner from admin.
+
+Document-bound WebMCP returned no tools. The available browser evaluation API is read-only and DOM-scoped; no supported authenticated API preflight/execution mechanism was established. Dar trabalho para Ana was not submitted as a substitute for Semantic Fast Read. No console script or credential extraction was used.
+
+Reuse decision: retain existing Human Fast Read, Organization Adapter and Paperclip Tool Gateway; no bypass/new subsystem. Fresh OA operational projection and effect review remain outstanding. Overall execution preflight is NOT GREEN. The owner-browser proof gate failed before second adversarial review; no effect review or request followed.
+
+Session effects: frozen customer question submissions=0; VendaERP calls issued=0; retry=0; fallback=0; credential transport=0; production mutation=0; rollout expansion=0; PR378 merge=0. This documentation checkpoint does not claim CI for its resulting commit.
+
+Next: establish a supported browser-owned read-only preflight proving owner for the exact 28PRO organization and canonical Fast Read submission mechanism; refresh Git/CI/runtime/OA evidence before adversarial review and a single submission. Historical evidence cannot replace these gates.
