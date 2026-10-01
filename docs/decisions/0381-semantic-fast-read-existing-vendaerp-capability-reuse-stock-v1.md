@@ -2,7 +2,7 @@
 
 Date: 2026-10-01
 
-Status: **CANDIDATE / CODE + SYNTHETIC TESTS ONLY / EXACT-HEAD CI PENDING / NO PRODUCTION EFFECT**
+Status: **QUALIFIED / 12/12 EXACT-HEAD WORKFLOWS GREEN / CODE + SYNTHETIC TESTS ONLY / NO PRODUCTION EFFECT**
 
 ## Context
 
@@ -162,7 +162,30 @@ Synthetic tests must prove:
 - existing product search/price behavior remains compatible;
 - VendaERP adapter still performs GET-only, no retry.
 
-Exact-head CI remains required before this ADR can be marked qualified.
+## Validation result
+
+The exact code head `2ed98b9e856616f5a8fd5bfaadcbc0c988d4e9ec`
+completed **12/12 pull-request workflows GREEN** with zero failures and zero
+pending runs.
+
+Key qualification runs:
+
+- VendaERP Read-Only MCP CI: `36930271012` — GREEN;
+- Semantic Fast Read CI: `36930271113` — GREEN;
+- Core CI: `36930271298` — GREEN;
+- Core Candidate Artifact: `36930271052`.
+
+The Candidate Artifact had completed before Core CI. It was therefore rerun
+only after both Core CI and Semantic Fast Read CI were GREEN. The post-gate
+candidate job `110599281091` completed GREEN, preserving qualification
+precedence.
+
+A post-validation JEV completion review classified the slice as
+`complete` with probability approximately `0.93`.
+
+The deliberate limitations remain part of the contract, not open defects:
+there is no aggregate/default stock semantics, no name/barcode-to-code hidden
+resolver, and no real stock canary in this code-only slice.
 
 ## Production boundary
 
