@@ -1,3 +1,27 @@
+## Post-ADR0358 persistent capture execution checkpoint — ADR 0362
+
+Status: **PERSISTENT CAPTURE EXECUTED + VALIDATED / ROLLBACK V2 READY / SEMANTIC FAST READ NOT EXECUTED**.
+
+ADR 0361 root precheck remains the only precheck execution and was not repeated.
+
+Fresh governed capture approval `adm_f28834e7718648c65ae378e7` authorized only the zero-argument program `wandora-rollback-freeze-v2-capture`. A prior ticket `adm_d2d6f18c31a906ccd8f9f102` had expired before execution; state-first readback proved no effect before the fresh ticket was created.
+
+The capture apply executed exactly once and returned `exit_code=0`, `timed_out=false`, empty stderr and terminal marker `ROLLBACK_FREEZE_V2_OK`.
+
+Current post-ADR0358 receipt:
+
+`/opt/wandora/ops-workspace/production-rollback-freeze-v2-post-adr0358-f279acc98687da894a1ce6570273b5949552a8c7-mastra060-2e97da6d.metadata`
+
+Protected rollback root:
+
+`/home/wandora-admin/backups/paperclip-v9161-fast-read-rollback-freeze-v2-post-adr0358-f279acc98687-mastra060-2e97da6d-20261001T010644333186230Z`
+
+Independent readback validates Paperclip v2026.916.1, Core `f279acc...`, Gateway healthy, OA `0.6.1 ready`, `wandora_mastra@0.6.0` loaded/enabled, retained `0.5.0` rollback package, gates OFF, Task Drain quiescent, official backup gzip-valid, PostgreSQL restore/schema equality GREEN and all effect flags false. Historical ADR 0356 receipt remains intact.
+
+**Do not run capture again.** Any timeout/ambiguity rule is now moot because this execution returned an unambiguous GREEN result. The receipt path is collision-protected and must be treated as canonical evidence for this post-ADR0358 baseline.
+
+Next slice is exclusively **Semantic Fast Read — SUPERVISED ACTIVATION + FIRST REAL ANA READ V1**. Start from fresh state and separate activation authorization; do not treat rollback readiness as activation authority.
+
 ## 2026-09-30 — ADR 0361 Post-ADR0358 Rollback Freeze V2 root precheck execution
 
 Status: **ROOT PRECHECK GREEN / CAPTURE NOT EXECUTED / POST-ADR0358 RECEIPT ABSENT / CUSTOMER EFFECT NONE**.

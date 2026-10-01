@@ -1,3 +1,31 @@
+## 2026-10-01 — ADR 0362 Post-ADR0358 Rollback Freeze V2 persistent capture execution
+
+Status: **PERSISTENT CAPTURE GREEN / ROLLBACK FREEZE V2 READY / SEMANTIC FAST READ STILL OFF / CUSTOMER EFFECT NONE**.
+
+Fresh state reconciliation preserved `main=e4c7c36bb1091ba38d39b85fa259bae94553fc52`, PR #369 head `4b4864eaea8e6d0c2b0eab03ec425b0d503041f4`, and merge ref `074e77360401d601e643b7cdb2b9c302518329b4` with parents exactly current main + PR head. The current PR head completed 17/17 workflows GREEN without rerun. Compare from the ADR 0360 qualified source ancestor `e8170a6adca24314854e7ee53f4cbb06591886ec` to the capture head changed documentation only; helper/wrapper blobs remained exact.
+
+ADR 0361 remained the one and only root-precheck execution: `ROLLBACK_FREEZE_V2_PRECHECK_OK`, exit 0, no timeout. It was not rerun.
+
+Immediately before capture, all seven Wandora containers were healthy; Paperclip remained `wandora/paperclip:v2026.916.1`; Core remained `wandora/core:organization-adapter-candidate-f279acc98687`; Messaging Gateway remained healthy; Task Drain remained `false / 0 / 0 / quiescent=true`; exactly one Organization Adapter `0.6.1` remained ready; external `wandora_mastra@0.6.0` remained loaded/enabled at the exact `2e97da6d...` package. The historical ADR 0356 receipt was intact and the post-ADR0358 receipt was absent.
+
+The first capture approval prepared in this slice, `adm_d2d6f18c31a906ccd8f9f102`, expired before execution and was rejected by the broker as nonexistent/expired. State-first reconciliation then proved no capture had occurred and the future receipt remained absent. A fresh adversarial review returned `confirm=0.83`, confidence `0.77`, and a new approval `adm_f28834e7718648c65ae378e7` was prepared. The human explicitly approved that exact ticket.
+
+`host_admin_apply` then executed `wandora-rollback-freeze-v2-capture` exactly once, with zero arguments. Result: `executed=true`, `exit_code=0`, `timed_out=false`, empty stderr, duration `35735 ms`, terminal marker `ROLLBACK_FREEZE_V2_OK`.
+
+Published receipt:
+
+`/opt/wandora/ops-workspace/production-rollback-freeze-v2-post-adr0358-f279acc98687da894a1ce6570273b5949552a8c7-mastra060-2e97da6d.metadata`
+
+Independent readback proved the receipt anchors the live Paperclip/Core/Gateway identities, OA `0.6.1`, external `wandora_mastra@0.6.0`, retained rollback package `0.5.0`, Semantic/Fast Read gates OFF, custody/attestation overlays absent, Task Drain quiescent, official backup created + gzip-valid, PostgreSQL restore/schema proof GREEN, and `activation_performed=false`, `provider_call_performed=false`, `customer_effect=false`, `outbound_effect=false`. The protected rollback root is `/home/wandora-admin/backups/paperclip-v9161-fast-read-rollback-freeze-v2-post-adr0358-f279acc98687-mastra060-2e97da6d-20261001T010644333186230Z`.
+
+Post-capture readback kept all seven containers healthy, Task Drain `false / 0 / 0 / quiescent=true`, OA `0.6.1 ready`, `wandora_mastra@0.6.0` loaded/enabled, Core `fastReadExecution=false`, `semanticFastRead=false`, `humanSendProposal=false`, and Gateway `outboundEnabled=false`. The historical ADR 0356 receipt remains intact.
+
+**ROOT PRECHECK PREVIOUSLY GREEN = YES. PERSISTENT CAPTURE EXECUTED = YES. ROLLBACK FREEZE V2 READY = YES. SEMANTIC FAST READ NOT EXECUTED. ANA REAL READ NOT EXECUTED. PRODUCTION CUSTOMER EFFECT = NONE.**
+
+Canonical detail: `docs/decisions/0362-post-adr0358-rollback-freeze-v2-persistent-capture-execution-v1.md`.
+
+Next boundary: **Semantic Fast Read — SUPERVISED ACTIVATION + FIRST REAL ANA READ V1**. The next slice must aim directly at one supervised activation and one real Ana read with a visible functional result. Do not insert non-essential structural ADRs or architecture work before that demonstration.
+
 ## 2026-09-30 — ADR 0361 Post-ADR0358 Rollback Freeze V2 root precheck execution
 
 Status: **ROOT PRECHECK GREEN / CAPTURE NOT EXECUTED / POST-ADR0358 RECEIPT ABSENT / CUSTOMER EFFECT NONE**.
