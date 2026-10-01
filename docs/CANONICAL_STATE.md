@@ -1,3 +1,23 @@
+## 2026-09-30 — ADR 0364 Core Paperclip upstream tool identity compatibility production promotion
+
+Status: **GREEN / EXACT CORRECTED CORE LIVE / ALL FAST-READ + OUTBOUND EFFECT GATES OFF / NO SECOND ANA READ**.
+
+PR #369 source head before documentation was `6392d75a8e77518537351173c356958e937be663`, exact-head CI **17/17 GREEN**, with merge ref `9d0a4ba577fe41d9efd8a5d2c4e5539ec0e7afeb` whose parents were exactly current `main=e4c7c36bb1091ba38d39b85fa259bae94553fc52` + that head.
+
+Core Candidate Artifact run `36805036147` / artifact `11137207336` was independently qualified on-host. GitHub ZIP digest matched `sha256:34c8cbbec7c628fa5c6c18936feaafee02c0a265d3bc45a99d8bf1c69ea36d11`; internal archive SHA-256 matched `00761e2e1c7501bfff57e7e4b13a27938e16243262873bbed0f2bb52514559e1`; portable verification returned `PORTABLE_CANDIDATE_ARCHIVE_V1_OK`. Exact candidate identity: image `wandora/core:organization-adapter-candidate-9d0a4ba577fe`, OCI/image id `sha256:3ae9e4eae1949cc9da7e191cea841e1564d1a1577385f994991561c49c715e7d`, revision `9d0a4ba577fe41d9efd8a5d2c4e5539ec0e7afeb`, contract `organization-adapter-core-v1`, user `node`.
+
+A separately approved `docker load` loaded only that image. Read-only image inspect and exact 14-file production Compose renders then proved the loaded identity and `config --quiet` GREEN; `config --images` resolved exactly to the candidate. No custody/attestation overlay was included.
+
+A fresh adversarial review returned `allow`. One human-approved managed-admin action recreated only `wandora-core` with `--no-deps --force-recreate --no-build --pull never --wait`. Post-promotion readback is GREEN: exact candidate image/revision, healthy/restart 0, `ReadonlyRootfs=true`, `CapDrop=ALL`, `no-new-privileges=true`, exact 14-file provenance, no custody/attestation mounts. Core startup remains `fastReadExecution=false`, `semanticFastRead=false`, `humanSendProposal=false`, `vigiaTelemetry=true`; Paperclip and Gateway remained healthy without restart; Gateway remains `outboundEnabled=false`; Task Drain remains `false / 0 / 0 / quiescent=true`.
+
+Stable non-secret selector `/opt/wandora/ops-workspace/core-runtime-image.env` now points to `wandora/core:organization-adapter-candidate-9d0a4ba577fe`; a separately approved read-only stable render resolved exactly that image without another restart.
+
+No second Ana request, Semantic Fast Read opening, TypeSafe/Mistral customer-path call, Paperclip Fast Read run, VendaERP call, Human Send, outbound effect, migration or other service recreation occurred.
+
+Canonical detail: `docs/decisions/0364-core-paperclip-upstream-tool-identity-compatibility-production-promotion-v1.md`.
+
+Next boundary: **Current 9d0a4ba Core Rollback Freeze V2 Refresh V1 — NO FAST READ / NO CUSTOMER EFFECT**. ADR 0362 remains valid rollback evidence for prior f279acc, but is historical for the now-live Core. Refresh current-baseline rollback readiness using the existing mechanism before any later supervised Ana re-attestation.
+
 ## 2026-09-30 — ADR 0363 Semantic Fast Read Paperclip upstream tool identity compatibility
 
 Status: **INCIDENT RECONCILED / CODE FIX QUALIFIED / 17/17 CI GREEN / PRODUCTION CLOSED**.
