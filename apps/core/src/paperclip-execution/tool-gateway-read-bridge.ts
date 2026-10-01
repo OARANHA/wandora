@@ -255,6 +255,12 @@ export function createPaperclipToolGatewayReadBridge(deps: {
               if (data?.isError === true || result.error === 'MCP tool returned an error result') {
                 throw new PaperclipToolGatewayReadBridgeError('tool-failed');
               }
+              const structuredContent = data && isRecord(data.structuredContent)
+                ? data.structuredContent
+                : undefined;
+              if (structuredContent && Object.hasOwn(structuredContent, 'data')) {
+                return structuredContent.data;
+              }
               if ('data' in result) return result.data;
               if ('content' in result) return result.content;
               return result;
