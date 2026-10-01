@@ -409,8 +409,7 @@ test('Semantic Fast Read rollout config is bounded, exact, and fail-closed', asy
       WANDORA_SEMANTIC_FAST_READ_ROLLOUT_CAPABILITIES: 'business.products.price',
     });
 
-    const semanticConfig = config.semanticFastRead as unknown as { rollout?: unknown };
-    assert.deepEqual(semanticConfig.rollout, {
+    assert.deepEqual(config.semanticFastRead?.rollout, {
       targets: [{
         organizationId: '11111111-1111-4111-8111-111111111111',
         employeeId: '22222222-2222-4222-8222-222222222222',
