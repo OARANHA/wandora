@@ -1,6 +1,6 @@
 ## 2026-10-01 — ADR 0381 Semantic Fast Read Existing VendaERP Capability Reuse — Stock V1
 
-Status: **CANDIDATE / CODE + SYNTHETIC TESTS ONLY / EXACT-HEAD CI PENDING / NO PRODUCTION EFFECT**.
+Status: **QUALIFIED / 12/12 EXACT-HEAD WORKFLOWS GREEN / CODE + SYNTHETIC TESTS ONLY / NO PRODUCTION EFFECT**.
 
 Stock V1 reuses the existing `business.stock.read` capability and exact existing `vendaerp_get_product_stock` provider tool. The supplied VendaERP contract proves `Produtos/GetSaldo` requires both `produtoCodigo` and `deposito`; no evidence proves `Produto.estoqueSaldo` / projected `stockBalance` is an aggregate or default-deposit total.
 
@@ -8,7 +8,7 @@ Decision: Stock V1 means one explicit product code + one explicit stock location
 
 Generic product Fast Read no longer presents unqualified `stockBalance` as customer-facing “Estoque”. No new capability, table, migration, lifecycle, registry, cache, state machine or provider subsystem is created.
 
-Mandatory second adversarial review ran before code changes; primary route was `proceed_fast` with moderate confidence, so the implementation remained deliberately narrow.
+Mandatory second adversarial review ran before code changes; primary route was `proceed_fast` with moderate confidence, so the implementation remained deliberately narrow. Exact code head `2ed98b9e856616f5a8fd5bfaadcbc0c988d4e9ec` completed 12/12 workflows GREEN. Because the Candidate Artifact finished before Core CI, it was rerun after Core CI + Semantic Fast Read CI were GREEN; post-gate job `110599281091` completed GREEN. Completion review classified the slice `complete` (~0.93).
 
 No production/VPS mutation, rollout expansion, provider/customer call, WRITE/DESTRUCTIVE operation, Human Send, outbound or merge occurred.
 
