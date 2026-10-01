@@ -20,12 +20,13 @@ function tool(
   };
 }
 
-test('VendaERP Fast Read adapter maps product and stock capabilities only from their exact existing read tools', () => {
+test('VendaERP Fast Read adapter maps product, stock, and party capabilities only from their exact existing read tools', () => {
   const adapter = createVendaErpFastReadCapabilityAdapter();
   assert.deepEqual(VENDAERP_FAST_READ_CAPABILITIES, [
     'business.products.search',
     'business.products.price',
     'business.stock.read',
+    'business.parties.search',
   ]);
   assert.deepEqual(adapter.capabilitiesFor(tool(
     'mcp.wandora-vendaerp-read-only-v1-72222222:vendaerp-search-products',
@@ -45,6 +46,11 @@ test('VendaERP Fast Read adapter maps product and stock capabilities only from t
     async () => [],
     'vendaerp_get_product_stock',
   )), ['business.stock.read']);
+  assert.deepEqual(adapter.capabilitiesFor(tool(
+    'mcp.wandora-vendaerp-read-only-v1-72222222:vendaerp-search-parties',
+    async () => [],
+    'vendaerp_search_parties',
+  )), ['business.parties.search']);
   assert.deepEqual(adapter.capabilitiesFor(tool('prefix:vendaerp_search_products', async () => [])), []);
   assert.deepEqual(adapter.capabilitiesFor(tool('vendaerp_search_price_table_products', async () => [])), []);
 });
@@ -270,4 +276,193 @@ test('unsupported capability and malformed provider result fail closed without r
     selector: null,
   }), /vendaerp_fast_read_invalid_product_result/);
   assert.equal(malformedCalls, 1);
+});
+
+
+test('party search uses one bounded existing tool call and renders only safe party identity fields', async () => {
+  let calls = 0;
+  let input: unknown;
+  const adapter = createVendaErpFastReadCapabilityAdapter();
+  const result = await adapter.execute({
+    tool: tool('vendaerp_search_parties', async (value) => {
+      calls += 1;
+      input = value;
+      return [{
+        externalRef: 'provider-party-1',
+        displayName: 'João Silva',
+        legalName: 'João Silva Comércio Ltda',
+        taxId: '12.345.678/0001-90',
+        email: 'joao@example.test',
+        phone: '51999999999',
+        customer: true,
+        supplier: false,
+        senha: 'must-not-leak',
+      }];
+    }),
+    capability: 'business.parties.search',
+    request: 'Procure o cliente João Silva.',
+    selector: { kind: 'party', by: 'name', value: 'João Silva', role: 'customer' },
+  });
+
+  assert.equal(calls, 1);
+  assert.deepEqual(input, {
+    displayName: 'João Silva',
+    customer: true,
+    supplier: false,
+    pageSize: 5,
+    skip: 0,
+  });
+  assert.deepEqual(result, {
+    kind: 'facts',
+    subject: 'João Silva',
+    facts: [
+      { label: 'Razão social', value: 'João Silva Comércio Ltda' },
+      { label: 'Tipo', value: 'Cliente' },
+    ],
+  });
+  const rendered = JSON.stringify(result);
+  for (const forbidden of [
+    'provider-party-1',
+    '12.345.678/0001-90',
+    'joao@example.test',
+    '51999999999',
+    'must-not-leak',
+  ]) {
+    assert.equal(rendered.includes(forbidden), false);
+  }
+});
+
+test('party search returns not_found for zero exact matches without a second provider call', async () => {
+  let calls = 0;
+  const adapter = createVendaErpFastReadCapabilityAdapter();
+  const result = await adapter.execute({
+    tool: tool('vendaerp_search_parties', async () => {
+      calls += 1;
+      return [{
+        displayName: 'João Souza',
+        legalName: 'João Souza Ltda',
+        customer: true,
+        supplier: false,
+      }];
+    }),
+    capability: 'business.parties.search',
+    request: 'Procure o cliente João Silva.',
+    selector: { kind: 'party', by: 'name', value: 'João Silva', role: 'customer' },
+  });
+
+  assert.equal(calls, 1);
+  assert.deepEqual(result, {
+    kind: 'not_found',
+    message: 'Nenhum cliente ou fornecedor corresponde exatamente ao nome e tipo autorizados.',
+  });
+});
+
+test('multiple exact party matches return a bounded safe list and never choose the first row', async () => {
+  let calls = 0;
+  const adapter = createVendaErpFastReadCapabilityAdapter();
+  const result = await adapter.execute({
+    tool: tool('vendaerp_search_parties', async () => {
+      calls += 1;
+      return [
+        {
+          displayName: 'João Silva',
+          legalName: 'João Silva Matriz Ltda',
+          taxId: 'must-not-leak-1',
+          customer: true,
+          supplier: false,
+        },
+        {
+          displayName: '  joão   silva ',
+          legalName: 'João Silva Filial Ltda',
+          taxId: 'must-not-leak-2',
+          customer: true,
+          supplier: true,
+        },
+      ];
+    }),
+    capability: 'business.parties.search',
+    request: 'Procure o cliente João Silva.',
+    selector: { kind: 'party', by: 'name', value: 'João Silva', role: 'customer' },
+  });
+
+  assert.equal(calls, 1);
+  assert.deepEqual(result, {
+    kind: 'facts',
+    subject: 'Cadastros correspondentes',
+    facts: [
+      {
+        label: '1. João Silva',
+        value: 'Razão social João Silva Matriz Ltda · Tipo Cliente',
+      },
+      {
+        label: '2. joão   silva',
+        value: 'Razão social João Silva Filial Ltda · Tipo Cliente e fornecedor',
+      },
+    ],
+  });
+  const rendered = JSON.stringify(result);
+  assert.equal(rendered.includes('must-not-leak-1'), false);
+  assert.equal(rendered.includes('must-not-leak-2'), false);
+});
+
+test('party search rejects missing selector and malformed or over-bounded provider results without retry', async () => {
+  const adapter = createVendaErpFastReadCapabilityAdapter();
+  let missingSelectorCalls = 0;
+  await assert.rejects(adapter.execute({
+    tool: tool('vendaerp_search_parties', async () => {
+      missingSelectorCalls += 1;
+      return [];
+    }),
+    capability: 'business.parties.search',
+    request: 'Procure um cliente.',
+    selector: null,
+  }), /vendaerp_fast_read_selector_required/);
+  assert.equal(missingSelectorCalls, 0);
+
+  let malformedCalls = 0;
+  await assert.rejects(adapter.execute({
+    tool: tool('vendaerp_search_parties', async () => {
+      malformedCalls += 1;
+      return [{ customer: true, supplier: false }];
+    }),
+    capability: 'business.parties.search',
+    request: 'Procure o cliente João Silva.',
+    selector: { kind: 'party', by: 'name', value: 'João Silva', role: 'customer' },
+  }), /vendaerp_fast_read_invalid_party_result/);
+  assert.equal(malformedCalls, 1);
+
+  let oversizedCalls = 0;
+  await assert.rejects(adapter.execute({
+    tool: tool('vendaerp_search_parties', async () => {
+      oversizedCalls += 1;
+      return Array.from({ length: 6 }, (_, index) => ({
+        displayName: `João Silva ${index}`,
+        customer: true,
+        supplier: false,
+      }));
+    }),
+    capability: 'business.parties.search',
+    request: 'Procure o cliente João Silva.',
+    selector: { kind: 'party', by: 'name', value: 'João Silva', role: 'customer' },
+  }), /vendaerp_fast_read_invalid_party_result/);
+  assert.equal(oversizedCalls, 1);
+});
+
+test('party capability rejects a non-party tool before provider execution', async () => {
+  let calls = 0;
+  const adapter = createVendaErpFastReadCapabilityAdapter();
+  await assert.rejects(adapter.execute({
+    tool: tool(
+      'mcp.wandora-vendaerp-read-only-v1:vendaerp-search-products',
+      async () => {
+        calls += 1;
+        return [];
+      },
+      'vendaerp_search_products',
+    ),
+    capability: 'business.parties.search',
+    request: 'Procure o cliente João Silva.',
+    selector: { kind: 'party', by: 'name', value: 'João Silva', role: 'customer' },
+  }), /vendaerp_fast_read_capability_unavailable/);
+  assert.equal(calls, 0);
 });
