@@ -40,13 +40,13 @@ The supplied project Swagger is:
 
 The 98-path count matches ADR 0202.
 
-A current public-doc cross-check of `apiv1-docs.vendaerp.com.br` exposes the same API family but an indexed **104-operation** surface. The supplied project artifact contains three operations not present in that public index:
+A current public-doc cross-check of `apiv1-docs.vendaerp.com.br` exposes the same API family but an indexed **104-operation** surface. Its group counts are lower by one `ContasBancarias` operation and two `Fiscal` operations. Targeted public-doc searches returned no matches for:
 
 - `ContasBancarias/GetTodasContasBancarias`;
 - `Fiscal/ConsultarNfePeriodo`;
 - `Fiscal/CalcularImpostos`.
 
-Those three are retained in the inventory because they exist in the exact supplied Swagger, but they are not implementation-ready solely from that evidence. Any future provider extension using them must first reconfirm current provider support.
+This is treated as a documentation-version delta, not as proof that the live provider rejects those operations. They remain in the inventory because they exist in the exact supplied Swagger, but any future provider extension using them must first reconfirm current provider support.
 
 ## Exact inventory
 
