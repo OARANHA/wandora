@@ -1,3 +1,19 @@
+# CHECKPOINT ATUAL — ADR 0377 JEV ADVISORY / WANDORA DETERMINISTIC EFFECT AUTHORITY
+
+Status: **ACCEPTED / GOVERNANCE CLARIFICATION / NO CUSTOMER OR PROVIDER EFFECT**.
+
+JEV/TypeSafe aconselha; Wandora decide. A segunda revisão adversarial continua obrigatória, mas é evidência advisory, não autoridade independente de autorização ou veto. A autorização de efeito permanece Wandora-owned e determinística. Qualquer gap factual apontado pelo review deve ser resolvido; mera incerteza probabilística do JEV não substitui os gates determinísticos.
+
+ADR 0377 supersede somente a interpretação conflitante do ADR 0376 que exigia um JEV GO claro como condição autônoma de execução. O fato histórico do ADR 0376 — nenhuma canary executada — permanece intacto.
+
+Nenhuma canary, chamada VendaERP, mutação de produção, Human Send, outbound, expansão de rollout ou merge ocorreu nesta correção.
+
+Canonical detail: `docs/decisions/0377-jev-advisory-deterministic-wandora-effect-authority-v1.md`.
+
+Este arquivo é bootstrap apenas. Depois siga `AGENTS.md`, ADRs relevantes, `docs/CAPABILITY_AUTHORITY.md`, `docs/architecture.md`, `docs/CANONICAL_STATE.md`, runbooks, GitHub e runtime real.
+
+---
+
 # CHECKPOINT ATUAL — ADR 0376 SINGLE REAL CANARY FAIL-CLOSED / PRECHECK GREEN / NO CUSTOMER CALL
 
 ## ADR 0376 — Semantic Fast Read Single Real Canary Read V1
