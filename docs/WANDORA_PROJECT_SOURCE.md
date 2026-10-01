@@ -1,3 +1,19 @@
+# CHECKPOINT ATUAL — ADR 0378 OWNER-BROWSER SINGLE REAL CANARY V3 SUCCESS
+
+Status: **SUCCESS / EXACTLY ONE OWNER-BROWSER FAST READ / EXACTLY ONE GOVERNED VENDAERP READ**.
+
+The exact 28PRO owner-browser canary for active Ana executed once with the frozen request `Qual é o preço do produto PREMIUM PLUS?`. Browser result was HTTP 200 / `completed`, correlation `e31a9039-362d-4a8d-8643-2f10dcd8cea6`, model `wandora-deterministic-read-v1`, summary `PREMIUM PLUS / Código: 3 / Preço: R$ 890,00`.
+
+Post-effect reconciliation proved exactly one new Paperclip run, `38468c3b-4a89-4ba1-898b-c74bfc5263a6`, `succeeded`, attempt 1, no retry lineage and no scheduled retry. Safe Connection activity contains exactly `policy_decision` + `call_completed` for the same namespaced VendaERP product-search tool; these are two audit records for one governed read-only tool execution.
+
+Core/Paperclip/Gateway remained healthy, Human Send and Gateway outbound remained OFF, Task Drain remained false/0/0/quiescent. No second customer request, fallback, write/destructive tool, rollout expansion, migration, provider bypass or PR merge occurred.
+
+Canonical detail: `docs/decisions/0378-semantic-fast-read-owner-browser-single-real-canary-execution-v3.md`.
+
+This file is bootstrap only. Continue with `AGENTS.md`, relevant ADRs, `docs/CAPABILITY_AUTHORITY.md`, `docs/architecture.md`, `docs/CANONICAL_STATE.md`, component runbooks, GitHub and live runtime.
+
+---
+
 # CHECKPOINT ATUAL — ADR 0377 JEV ADVISORY / WANDORA DETERMINISTIC EFFECT AUTHORITY
 
 Status: **ACCEPTED / GOVERNANCE CLARIFICATION / NO CUSTOMER OR PROVIDER EFFECT**.

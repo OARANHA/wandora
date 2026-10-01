@@ -1,3 +1,19 @@
+## 2026-10-01 — ADR 0378 Semantic Fast Read Owner-Browser Single Real Canary Execution V3
+
+Status: **SUCCESS / EXACTLY ONE OWNER-BROWSER REQUEST / EXACTLY ONE GOVERNED READ-ONLY VENDAERP EXECUTION**.
+
+Fresh deterministic gates were GREEN at execution time: live main `e4c7c36...`, PR #378 head `b2270175...`, current merge provenance, 12/12 exact-head workflows successful, browser owner precheck GREEN with zero Fast Read POSTs, same ADR0375 live Core/custody/rollout provenance, OA ready, Mastra loaded/enabled, Ana healthy/idle, provider Connection/grant/install/tool projection GREEN, Tool Policy `allow/allow_profile`, Task Drain quiescent, Human Send OFF and Gateway outbound OFF.
+
+Wandora deterministic decision was GO. One minimized JEV advisory review returned `allow=0.72`, confidence `0.63`, with no new concrete factual gap.
+
+Exactly one browser POST executed the frozen request. It returned HTTP 200, `completed`, correlation `e31a9039-362d-4a8d-8643-2f10dcd8cea6`, model `wandora-deterministic-read-v1`, and `PREMIUM PLUS / Código: 3 / Preço: R$ 890,00`.
+
+Post-effect reconciliation proves exactly one new Ana run `38468c3b-4a89-4ba1-898b-c74bfc5263a6`, succeeded on attempt 1 with no retry lineage or scheduled retry. Safe Connection activity has exactly one `policy_decision` and one `call_completed` for the same namespaced VendaERP product-search tool; they represent one governed read-only tool execution. No second tool, write/destructive tool, fallback or second customer request occurred.
+
+Runtime remained healthy; Gateway outbound and Human Send remained OFF; Task Drain remained quiescent. PR #378 remains unmerged. This success is bounded to the exact enrolled 28PRO/Ana/`business.products.price` scope and does not authorize rollout expansion.
+
+Canonical detail: `docs/decisions/0378-semantic-fast-read-owner-browser-single-real-canary-execution-v3.md`.
+
 # ADR 0377 — JEV advisory / deterministic Wandora effect authority
 
 Status: **ACCEPTED / GOVERNANCE CLARIFICATION / NO CUSTOMER OR PROVIDER EFFECT**.
