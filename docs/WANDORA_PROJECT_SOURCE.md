@@ -1,3 +1,24 @@
+## 2026-10-01 — ADR 0365 Current 9d0a4ba Core Rollback Freeze V2 refresh
+
+Status: **EXECUTED / GREEN / CURRENT-BASELINE ROLLBACK FREEZE V2 READY / NO CUSTOMER EFFECT**.
+
+The existing Rollback Freeze V2 mechanism was repinned only to the now-live Core `wandora/core:organization-adapter-candidate-9d0a4ba577fe` / image id `sha256:3ae9e4eae1949cc9da7e191cea841e1564d1a1577385f994991561c49c715e7d` / revision `9d0a4ba577fe41d9efd8a5d2c4e5539ec0e7afeb`. No backup/restore algorithm or provider authority changed.
+
+Qualified source head `7279e643ae1ffff4357b4e2400f035a5f118563a` completed **17/17 GREEN**. Qualified exact program blobs: helper `dced46d7ac9a6b2fd2a936c2a7d0f029273c41cc`, precheck wrapper `a25904eb5e7018568741be0b31f59839a82e8e6a`, capture wrapper `41cdc1fed738deaf96e6b2dec9777d46d0eb8fb8`. These bytes were installed at the existing canonical root paths and independently re-hashed live to the same blobs.
+
+Exactly one root precheck executed via the zero-argument managed-admin wrapper and returned `ROLLBACK_FREEZE_V2_PRECHECK_OK`, exit 0, no timeout/stderr, with activation/provider/customer/outbound all false. The precheck was not repeated.
+
+Exactly one persistent capture then executed via the zero-argument capture wrapper and returned `ROLLBACK_FREEZE_V2_OK`, exit 0, no timeout/stderr. New current-baseline receipt:
+`/opt/wandora/ops-workspace/production-rollback-freeze-v2-post-adr0364-9d0a4ba577fe41d9efd8a5d2c4e5539ec0e7afeb-mastra060-2e97da6d.metadata`.
+
+Receipt validation proves official backup created/gzip-valid, disposable PostgreSQL 18.1 restore GREEN, `schema_restore=true`, `schema_equal=true`, Paperclip v2026.916.1 exact/healthy, current Core exact/healthy/restart 0, Gateway healthy/restart 0, OA 0.6.1 ready, external `wandora_mastra@0.6.0` loaded/enabled with retained 0.5.0 rollback package, exact 14-file gates-OFF Core provenance, custody/attestation overlays absent, Task Drain quiescent, and activation/provider/customer/outbound all false.
+
+Current runtime remains: Fast Read OFF, Semantic Fast Read OFF, Human Send OFF, Gateway outbound OFF.
+
+Canonical detail: `docs/decisions/0365-current-9d0a4ba-core-rollback-freeze-v2-refresh-v1.md`.
+
+Next boundary: **Semantic Fast Read — SUPERVISED RE-ATTESTATION + ONE REAL ANA READ V2** for exactly `Qual é o preço do produto PREMIUM PLUS?`. Fresh policy/operational qualification must immediately precede opening; exactly one browser-triggered request is allowed; no retry or second ERP read; mandatory close restores the 14-file gates-OFF baseline after success/fallback/error.
+
 ## 2026-09-30 — ADR 0364 Core Paperclip upstream tool identity compatibility production promotion
 
 Status: **GREEN / EXACT CORRECTED CORE LIVE / ALL FAST-READ + OUTBOUND EFFECT GATES OFF / NO SECOND ANA READ**.
