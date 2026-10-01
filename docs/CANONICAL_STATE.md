@@ -1,3 +1,19 @@
+# ADR 0372 checkpoint — Exact Core Candidate Production Promotion Preflight V1
+
+Status: **PRE-FLIGHT NO-GO / CANDIDATE STILL QUALIFIED / EXECUTION AUTHORITY BLOCKED / NO PRODUCTION EFFECT**.
+
+Fresh evidence preserved `main=e4c7c36bb1091ba38d39b85fa259bae94553fc52`, PR #369 `bf5c823...`, PR #377 `54b6120...`, PR #378 `1ffb885...`, and exact artifact `11153574632` unexpired with GitHub digest `sha256:fdca91b452d73e68b53be4608fe016e6bf6e2222803cd38ce14ae4083692217b`. Host verification reproduced the exact ZIP digest and internal archive SHA `612f04b1e60ad40a97ea0663c293af03fce65793a10358f46c8a85865b801724`; source/OCI/contract/User remain the ADR 0371 frozen values.
+
+Production stayed unchanged on Core `83baca411096...`, Paperclip `v2026.916.1`, OA `0.6.1 ready`, external `wandora_mastra@0.6.0`, exact 14-file gates-OFF Core composition, Gateway outbound OFF and Task Drain `false/0/0/quiescent=true`. ADR 0367 rollback receipt remains `ROLLBACK_FREEZE_V2_OK`.
+
+Promotion was not prepared for human apply because the ordinary execution broker is at its fixed 16-session retention guard and managed-admin correctly hard-denies generic `bash`; the Docker candidate lifecycle is also Web-only. No allowlist/control-plane change was made to bypass those controls. A reviewed helper was renamed `.blocked`; no `adm_...` ticket and no production mutation occurred.
+
+Next: resume the same promotion preflight from fresh REAL NOW after ordinary session retention naturally reaps; finish exact image import/Compose render without widening authority, then fresh adversarial review + one-use already-authorized managed-admin boundary + explicit human approval. Scoped rollout remains out of scope.
+
+Canonical detail: `docs/decisions/0372-exact-core-candidate-production-promotion-preflight-v1.md`.
+
+---
+
 # ADR 0371 checkpoint — Semantic Fast Read Scoped Rollout Current-Main Core Convergence V1
 
 Status: **QUALIFIED / CURRENT-MAIN-COMPATIBLE CORE CANDIDATE GREEN / PRODUCTION NO-GO / NO PRODUCTION EFFECT**
