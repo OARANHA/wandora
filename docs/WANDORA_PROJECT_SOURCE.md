@@ -1,3 +1,27 @@
+# CHECKPOINT ATUAL — ADR 0372 / Exact Core Candidate Production Promotion Preflight V1
+
+O último slice encerrou em **PRE-FLIGHT NO-GO operacional / candidato ainda qualificado / produção intacta**.
+
+- `main=e4c7c36bb1091ba38d39b85fa259bae94553fc52`;
+- artifact autorizado continua `11153574632`, digest `sha256:fdca91b452d73e68b53be4608fe016e6bf6e2222803cd38ce14ae4083692217b`;
+- archive SHA permanece `612f04b1e60ad40a97ea0663c293af03fce65793a10358f46c8a85865b801724`;
+- candidate source permanece `9ee338303292173db8e1b21bef9c8c5067c104a4`;
+- produção continua no Core `83baca411096...`, com Fast Read/Semantic/Selector/Human Send e Gateway outbound OFF;
+- Paperclip/OA/Mastra permanecem saudáveis/inalterados;
+- Task Drain permanece quiescent;
+- ADR 0367 permanece rollback authority para a baseline live;
+- nenhum `adm_...` foi gerado e nenhuma mutação de produção ocorreu.
+
+Blocker operacional provado: o execution broker mantém no máximo 16 sessões e só reap completed sessions após 30 minutos; o managed-admin hard-deny generic `bash`; Docker candidate lifecycle atual é Web-only. Não reinicie broker nem altere allowlists apenas para ultrapassar esse guardrail.
+
+Próximo boundary: retomar **o mesmo production promotion preflight** por REAL NOW quando a capacidade ordinária estiver novamente disponível, terminar exact candidate import/render proof, fazer nova revisão adversarial e somente então preparar um one-use managed-admin usando boundary já autorizado. Não ativar scoped rollout neste slice.
+
+Detalhe canônico: `docs/decisions/0372-exact-core-candidate-production-promotion-preflight-v1.md`.
+
+Este arquivo continua sendo bootstrap apenas. Depois siga `AGENTS.md`, ADRs relevantes, `docs/CAPABILITY_AUTHORITY.md`, `docs/architecture.md`, `docs/CANONICAL_STATE.md` e runbooks.
+
+---
+
 # CHECKPOINT ATUAL — ADR 0371 / Current-Main Scoped Rollout Core Convergence V1
 
 O último slice concluído é o ADR 0371:
