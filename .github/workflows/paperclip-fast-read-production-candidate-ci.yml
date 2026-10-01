@@ -7,6 +7,7 @@ on:
       - 'integrations/paperclip/patches/v2026.916.1-host-operational-read-v1.patch'
       - 'integrations/paperclip/patches/v2026.916.1-fast-read-run-result-read-v1.patch'
       - 'integrations/paperclip/patches/v2026.916.1-synchronous-webhook-response-v1.patch'
+      - 'integrations/paperclip/patches/v2026.916.1-tool-gateway-log-redaction-v1.patch'
       - 'integrations/paperclip/plugins/organization-adapter-v1/compatibility.json'
       - 'integrations/paperclip/plugins/organization-adapter-v1/package.json'
       - '.github/workflows/paperclip-fast-read-production-candidate-ci.yml'
@@ -160,9 +161,11 @@ jobs:
           host_patch='integrations/paperclip/patches/v2026.916.1-host-operational-read-v1.patch'
           run_patch='integrations/paperclip/patches/v2026.916.1-fast-read-run-result-read-v1.patch'
           webhook_patch='integrations/paperclip/patches/v2026.916.1-synchronous-webhook-response-v1.patch'
+          redaction_patch='integrations/paperclip/patches/v2026.916.1-tool-gateway-log-redaction-v1.patch'
           host_patch_sha="$(sha256sum "$host_patch" | awk '{print $1}')"
           run_patch_sha="$(sha256sum "$run_patch" | awk '{print $1}')"
           webhook_patch_sha="$(sha256sum "$webhook_patch" | awk '{print $1}')"
+          redaction_patch_sha="$(sha256sum "$redaction_patch" | awk '{print $1}')"
 
           export CANDIDATE_OUT="$out"
           export ARCHIVE_SHA="$archive_sha"
@@ -170,6 +173,7 @@ jobs:
           export HOST_PATCH_SHA="$host_patch_sha"
           export RUN_PATCH_SHA="$run_patch_sha"
           export WEBHOOK_PATCH_SHA="$webhook_patch_sha"
+          export REDACTION_PATCH_SHA="$redaction_patch_sha"
           node <<'NODE'
           const fs = require('node:fs');
           const path = require('node:path');
@@ -196,6 +200,10 @@ jobs:
               {
                 path: 'integrations/paperclip/patches/v2026.916.1-synchronous-webhook-response-v1.patch',
                 sha256: process.env.WEBHOOK_PATCH_SHA,
+              },
+              {
+                path: 'integrations/paperclip/patches/v2026.916.1-tool-gateway-log-redaction-v1.patch',
+                sha256: process.env.REDACTION_PATCH_SHA,
               },
             ],
             dockerArchiveSha256: process.env.ARCHIVE_SHA,
