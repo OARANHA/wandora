@@ -1,6 +1,4 @@
-## 2026-10-01 — ADR 0373 current 9ee338 Rollback Freeze V2 GREEN
-
-## ADR 0374 — Semantic Fast Read Scoped Rollout Activation-Oriented Preflight V1
+## 2026-10-01 — ADR 0374 Semantic Fast Read Scoped Rollout Activation-Oriented Preflight V1
 
 Status: **BLOCKED / FAIL-CLOSED / NO ACTIVATION / NO CUSTOMER EFFECT**.
 
@@ -16,6 +14,7 @@ Next boundary: **Semantic Fast Read Scoped Rollout Host Materialization + Immedi
 
 Canonical detail: `docs/decisions/0374-semantic-fast-read-scoped-rollout-activation-oriented-preflight-v1.md`.
 
+## 2026-10-01 — ADR 0373 current 9ee338 Rollback Freeze V2 GREEN
 
 Status: **GREEN / CURRENT-BASELINE ROLLBACK FREEZE V2 READY / CORE 9ee338 ANCHORED / ALL EFFECT GATES OFF / NO CUSTOMER OR OUTBOUND EFFECT**.
 
