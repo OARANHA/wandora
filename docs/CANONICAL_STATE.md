@@ -1,3 +1,21 @@
+## 2026-10-01 — ADR 0375 Semantic Fast Read Scoped Rollout Activation + Immediate Runtime Attestation V1
+
+Status: **GREEN / SCOPED ACTIVATION LIVE / NO CUSTOMER OR PROVIDER CALL IN THIS CHECKPOINT**.
+
+The exact qualified rollout overlay is now materialized at the canonical host path with Git blob `b58c6a91fe1dbbabd047bdf13189ccd90c5c24d9`. Fresh custody metadata is GREEN without secret-value reads. A human-approved managed-admin render of the exact live 14-file baseline plus custody + rollout proved the intended 28PRO/Ana/`business.products.price` scope, same Core image `9ee338...`, Human Send OFF and read-only custody mounts.
+
+After a fresh second adversarial review returned `confirm`, the one-use human-approved activation recreated only `wandora-core` with `--no-deps --force-recreate --no-build --pull never --wait`.
+
+Immediate readback is GREEN: Core container `28c86cd5de7d...`, same revision `9ee338303292...` and OCI manifest `sha256:fbb3c420...`, restart 0, healthy, exact 16-file provenance (prior 14 + custody + rollout), TypeSafe/Fast-Read mounts read-only, `fastReadExecution=true`, `semanticFastRead=true`, `semanticFastReadRollout=true`, Human Send OFF, Gateway outbound OFF and Task Drain `false/0/0/quiescent=true`.
+
+Fresh Paperclip operational projection remains healthy/read-only and a non-consuming Tool Policy test for Ana + the known VendaERP Connection + `vendaerp_search_products` remains `allow/allow_profile` with no audit event.
+
+**No customer/browser request, Ana execution, VendaERP/provider call, outbound effect, migration, Paperclip lifecycle mutation or PR merge occurred in this checkpoint.**
+
+Next boundary: separately governed **single real canary read** for the exact enrolled tuple. Fresh REAL NOW + effect review are mandatory; no approval from ADR 0375 may be reused.
+
+Canonical detail: `docs/decisions/0375-semantic-fast-read-scoped-rollout-activation-immediate-runtime-attestation-v1.md`.
+
 ## 2026-10-01 — ADR 0374 Semantic Fast Read Scoped Rollout Activation-Oriented Preflight V1
 
 Status: **BLOCKED / FAIL-CLOSED / NO ACTIVATION / NO CUSTOMER EFFECT**.
