@@ -117,6 +117,80 @@ test('Paperclip read bridge exposes only authorized connection-backed read tools
   });
 });
 
+test('Paperclip read bridge unwraps successful normalized MCP structured content data', async () => {
+  const fetchImpl: typeof fetch = async (input) => {
+    const url = String(input);
+    if (url.endsWith('/api/tool-gateway/sessions')) {
+      return new Response(JSON.stringify({
+        sessionId: 'session-structured-success',
+        token: 'ephemeral-gateway-token',
+        expiresAt: new Date(Date.now() + 60_000).toISOString(),
+      }), { status: 201, headers: { 'content-type': 'application/json' } });
+    }
+    if (url.endsWith('/api/tool-gateway/tools')) {
+      return new Response(JSON.stringify([{
+        name: GATEWAY_PRODUCT,
+        upstreamToolName: 'vendaerp_search_products',
+        displayName: 'VendaERP Search Products',
+        description: 'Read products.',
+        parametersSchema: { type: 'object' },
+        providerType: 'mcp_local_stdio',
+        risk: 'read',
+        connectionId: CONNECTION,
+        catalogEntryId: CATALOG,
+      }]), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    if (url.endsWith('/api/tool-gateway/tools/call')) {
+      return new Response(JSON.stringify({
+        invocationId: 'invocation-structured-success',
+        status: 'completed',
+        tool: GATEWAY_PRODUCT,
+        result: {
+          content: '[{"name":"PREMIUM PLUS","code":"3","salePrice":890}]',
+          data: {
+            content: [{
+              type: 'text',
+              text: '[{"name":"PREMIUM PLUS","code":"3","salePrice":890}]',
+            }],
+            structuredContent: {
+              data: [{
+                name: 'PREMIUM PLUS',
+                code: '3',
+                salePrice: 890,
+              }],
+            },
+            isError: false,
+            transport: 'local_stdio',
+            spawnedLocalProcess: true,
+          },
+        },
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    throw new Error('unexpected request');
+  };
+
+  const bridge = createPaperclipToolGatewayReadBridge({
+    agentMeUrl: 'http://wandora-paperclip:3100/api/agents/me',
+    fetchImpl,
+  });
+  const tools = await bridge({
+    runToken: 'opaque-run-token',
+    paperclipRunId: RUN,
+  });
+
+  const result = await tools[0]!.execute({
+    name: 'PREMIUM PLUS',
+    pageSize: 5,
+    skip: 0,
+  });
+
+  assert.deepEqual(result, [{
+    name: 'PREMIUM PLUS',
+    code: '3',
+    salePrice: 890,
+  }]);
+});
+
 test('Paperclip read bridge fails closed on noncanonical endpoints and denied gateway calls', async () => {
   assert.throws(
     () => createPaperclipToolGatewayReadBridge({
