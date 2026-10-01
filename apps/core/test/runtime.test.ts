@@ -366,94 +366,6 @@ test('WANDORA CORE PRIVATE RUNTIME V1', async (t) => {
 });
 
 
-test('Semantic Fast Read rollout policy is explicit, bounded, and capability-scoped', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'wandora-core-semantic-rollout-'));
-  const dbSecret = join(dir, 'db-password');
-  const gatewaySecret = join(dir, 'gateway-secret');
-  const bridgeSecret = join(dir, 'paperclip-bridge-secret');
-  const fastReadSecret = join(dir, 'fast-read-secret');
-  const typesafeKey = join(dir, 'typesafe-jev-api-key');
-  try {
-    await writeFile(dbSecret, 'synthetic-test-password\n', { mode: 0o600 });
-    await writeFile(gatewaySecret, 'gateway-test-secret-0123456789abcdef0123456789abcdef\n', { mode: 0o600 });
-    await writeFile(bridgeSecret, 'paperclip-bridge-secret-0123456789abcdef0123456789abcdef\n', { mode: 0o600 });
-    await writeFile(fastReadSecret, 'fast-read-intent-secret-0123456789abcdef0123456789abcdef\n', { mode: 0o600 });
-    await writeFile(typesafeKey, 'typesafe-test-key-0123456789abcdef0123456789abcdef\n', { mode: 0o600 });
-
-    const enabledEnv = {
-      WANDORA_CORE_MODE: 'database',
-      WANDORA_CORE_DB_PASSWORD_FILE: dbSecret,
-      WANDORA_GATEWAY_INGRESS_ENABLED: 'true',
-      WANDORA_GATEWAY_INGRESS_SECRET_FILE: gatewaySecret,
-      WANDORA_AGENT_RUNTIME_MODE: 'mastra-deterministic',
-      WANDORA_PAPERCLIP_EXECUTION_BRIDGE_ENABLED: 'true',
-      WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE: bridgeSecret,
-      WANDORA_FAST_READ_EXECUTION_ENABLED: 'true',
-      WANDORA_FAST_READ_INTENT_SECRET_FILE: fastReadSecret,
-      WANDORA_HUMAN_API_ENABLED: 'true',
-      WANDORA_AUTH_JWKS_URL: 'https://auth.test.example/.well-known/jwks.json',
-      WANDORA_AUTH_ISSUER: 'https://auth.test.example',
-      WANDORA_AUTH_AUDIENCE: 'authenticated',
-      WANDORA_ORGANIZATION_ADAPTER_ENABLED: 'true',
-      WANDORA_ORGANIZATION_ADAPTER_SECRET_DIRECTORY: dir,
-      WANDORA_ORGANIZATION_ADAPTER_WEBHOOK_URL:
-        'http://wandora-paperclip:3100/api/plugins/wandora.organization-adapter-v1/webhooks/employee-reconcile',
-      WANDORA_SEMANTIC_FAST_READ_ENABLED: 'true',
-      WANDORA_TYPESAFE_JEV_API_KEY_FILE: typesafeKey,
-    };
-
-    const attestationCompatible = await loadRuntimeConfig(enabledEnv);
-    assert.equal(attestationCompatible.semanticFastRead?.rolloutPolicy, undefined);
-
-    const rollout = await loadRuntimeConfig({
-      ...enabledEnv,
-      WANDORA_SEMANTIC_FAST_READ_ROLLOUT_ENABLED: 'true',
-      WANDORA_SEMANTIC_FAST_READ_ROLLOUT_TARGETS:
-        '11111111-1111-4111-8111-111111111111:22222222-2222-4222-8222-222222222222',
-      WANDORA_SEMANTIC_FAST_READ_ROLLOUT_CAPABILITIES: 'business.products.price',
-    });
-    assert.deepEqual(rollout.semanticFastRead?.rolloutPolicy, {
-      targets: [{
-        organizationId: '11111111-1111-4111-8111-111111111111',
-        employeeId: '22222222-2222-4222-8222-222222222222',
-      }],
-      capabilities: ['business.products.price'],
-    });
-
-    await assert.rejects(
-      loadRuntimeConfig({
-        ...enabledEnv,
-        WANDORA_SEMANTIC_FAST_READ_ROLLOUT_ENABLED: 'true',
-        WANDORA_SEMANTIC_FAST_READ_ROLLOUT_TARGETS: 'not-a-target',
-        WANDORA_SEMANTIC_FAST_READ_ROLLOUT_CAPABILITIES: 'business.products.price',
-      }),
-      /WANDORA_SEMANTIC_FAST_READ_ROLLOUT_TARGETS/,
-    );
-
-    await assert.rejects(
-      loadRuntimeConfig({
-        ...enabledEnv,
-        WANDORA_SEMANTIC_FAST_READ_ROLLOUT_ENABLED: 'true',
-        WANDORA_SEMANTIC_FAST_READ_ROLLOUT_TARGETS:
-          '11111111-1111-4111-8111-111111111111:22222222-2222-4222-8222-222222222222',
-        WANDORA_SEMANTIC_FAST_READ_ROLLOUT_CAPABILITIES: 'business.products.delete',
-      }),
-      /WANDORA_SEMANTIC_FAST_READ_ROLLOUT_CAPABILITIES/,
-    );
-
-    await assert.rejects(
-      loadRuntimeConfig({
-        WANDORA_CORE_MODE: 'standby',
-        WANDORA_SEMANTIC_FAST_READ_ROLLOUT_ENABLED: 'true',
-      }),
-      /Semantic Fast Read Rollout cannot be enabled while Wandora Core is in standby/,
-    );
-  } finally {
-    await rm(dir, { recursive: true, force: true });
-  }
-});
-
-
 test('Semantic Fast Read rollout config is bounded, exact, and fail-closed', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'wandora-core-semantic-rollout-'));
   const dbSecret = join(dir, 'db-password');
@@ -497,7 +409,8 @@ test('Semantic Fast Read rollout config is bounded, exact, and fail-closed', asy
       WANDORA_SEMANTIC_FAST_READ_ROLLOUT_CAPABILITIES: 'business.products.price',
     });
 
-    assert.deepEqual(config.semanticFastRead?.rollout, {
+    const semanticConfig = config.semanticFastRead as unknown as { rollout?: unknown };
+    assert.deepEqual(semanticConfig.rollout, {
       targets: [{
         organizationId: '11111111-1111-4111-8111-111111111111',
         employeeId: '22222222-2222-4222-8222-222222222222',
