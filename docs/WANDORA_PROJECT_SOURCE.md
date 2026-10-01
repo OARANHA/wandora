@@ -1,3 +1,23 @@
+# CHECKPOINT ATUAL — ADR 0375 SCOPED ACTIVATION LIVE / ATTESTATION GREEN / NO CUSTOMER CALL
+
+## ADR 0375 — Semantic Fast Read Scoped Rollout Activation + Immediate Runtime Attestation V1
+
+Status: **GREEN / SCOPED ACTIVATION LIVE / NO CUSTOMER OR PROVIDER CALL IN THIS CHECKPOINT**.
+
+The exact rollout overlay is now present at the canonical host path with Git-qualified blob `b58c6a91...`. Fresh custody metadata, Paperclip operational projection and non-consuming Tool Policy evidence were GREEN. A read-only exact Compose render proved the sole rollout tuple 28PRO/Ana/`business.products.price`, same Core `9ee338...`, custody mounts read-only and Human Send OFF.
+
+After the mandatory second adversarial review returned `confirm`, the explicit one-use managed-admin approval recreated only Core. Immediate runtime attestation proves container `28c86cd5de7d...`, same revision/manifest, healthy/restart 0, exact 16-file provenance (14 baseline + custody + rollout), Fast Read Execution/Semantic Fast Read/rollout ON, Human Send OFF, Gateway outbound OFF and Task Drain quiescent.
+
+No customer/browser request, Ana execution, VendaERP/provider call, outbound effect, migration, Paperclip lifecycle mutation or PR merge occurred.
+
+Next boundary: **separately governed single real canary read for the exact enrolled tuple**. Begin from fresh REAL NOW, fresh effect review and a new one-use approval if required. Do not reuse approvals from ADR 0375.
+
+Canonical detail: `docs/decisions/0375-semantic-fast-read-scoped-rollout-activation-immediate-runtime-attestation-v1.md`.
+
+Este arquivo é bootstrap apenas. Depois siga `AGENTS.md`, ADRs relevantes, `docs/CAPABILITY_AUTHORITY.md`, `docs/architecture.md`, `docs/CANONICAL_STATE.md`, runbooks, GitHub e runtime real.
+
+---
+
 # CHECKPOINT ATUAL — ADR 0374 ACTIVATION PREFLIGHT BLOCKED / CORE 9ee338 PROTECTED / NO EFFECT
 
 ## ADR 0374 — Semantic Fast Read Scoped Rollout Activation-Oriented Preflight V1
