@@ -10,7 +10,9 @@ Date: 2026-10-01
 - Exact artifact SHA-256: `7e686ad743b4263d0aee53b50c7983c6c5cfcbabfc36573903eb15e7ed4089`.
 - Provider-declared limit: 1,000 requests/hour per API key.
 - Exact inventory: **98 paths / 107 operations**.
-- The 98-path count matches the source recorded by ADR 0202. No newer VendaERP Swagger/OpenAPI artifact or repository copy was found in this review.
+- The 98-path count matches the source recorded by ADR 0202.
+- Current public official docs at `apiv1-docs.vendaerp.com.br` were cross-checked on 2026-10-01. The indexed public surface exposes the same API family but currently lists **104 operations**, not 107: it omits the `ContasBancarias` group and lists only 5 `Fiscal` operations. The supplied project artifact therefore contains **3 operations not present in the public indexed docs**: `ContasBancarias/GetTodasContasBancarias`, `Fiscal/ConsultarNfePeriodo`, and `Fiscal/CalcularImpostos`.
+- Because the project artifact is the exact source supplied for this integration and is internally consistent with the repository's prior 98-path record, this inventory keeps all 107 operations. The 3 public-doc delta operations are **not implementation-ready solely from this discrepancy**; any future provider extension using them must first reconfirm current provider support without broad customer-call testing.
 
 Every operation in the supplied Swagger requires the same three provider headers: `Authorization-Token`, `User`, and `App`. Tenant/customer isolation for Wandora must therefore continue to come from the governed Paperclip Connection/company binding and credential custody; the endpoint itself does not establish Wandora tenant authority.
 
