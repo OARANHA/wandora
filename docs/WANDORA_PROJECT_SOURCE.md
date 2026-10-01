@@ -1,3 +1,25 @@
+# CHECKPOINT ATUAL — ADR 0376 SINGLE REAL CANARY FAIL-CLOSED / PRECHECK GREEN / NO CUSTOMER CALL
+
+## ADR 0376 — Semantic Fast Read Single Real Canary Read V1
+
+Status: **BLOCKED / FAIL-CLOSED / PRECHECK GREEN / SINGLE REAL CANARY NOT EXECUTED / NO CUSTOMER OR VENDAERP EFFECT**.
+
+Fresh Git/CI/runtime reconciliation was GREEN: PR #378 remained open/draft/mergeable/unmerged on `d808718e...` with 12/12 GREEN; live Core remained the exact ADR0375 `9ee338...` container/manifest, healthy/restart 0, 16-file custody+rollout provenance, Fast Read/Semantic/rollout ON, Human Send OFF; Gateway outbound remained OFF; Task Drain remained quiescent.
+
+Fresh Paperclip evidence remained GREEN: OA `0.6.1 ready`, external `wandora_mastra@0.6.0` loaded/enabled, Ana idle with no post-activation run, VendaERP Connection active/enabled/healthy with organization grant active and installed for Ana, `vendaerp_search_products` read-only/non-destructive/effective-profile allowed, and Tool Policy `allow/allow_profile` with no audit event.
+
+The single frozen request was `Qual é o preço do produto PREMIUM PLUS?`, one attempt only. The effect-adjacent JEV review did not yield a sufficiently clear GO (`allow=0.46`, confidence `0.28`), and the focused follow-up returned `fetch failed` without a decision. The canonical authenticated owner-browser execution surface was also unavailable in this session; no browser credential was copied or bypassed.
+
+Result: **FAIL-CLOSED**. No customer Fast Read, Ana run, VendaERP tool execution, Human Send, Gateway outbound, rollout expansion or PR merge occurred.
+
+Next boundary: fresh REAL NOW + clear effect review + canonical authenticated owner-browser authority before any new single canary attempt.
+
+Canonical detail: `docs/decisions/0376-semantic-fast-read-single-real-canary-read-v1.md`.
+
+Este arquivo é bootstrap apenas. Depois siga `AGENTS.md`, ADRs relevantes, `docs/CAPABILITY_AUTHORITY.md`, `docs/architecture.md`, `docs/CANONICAL_STATE.md`, runbooks, GitHub e runtime real.
+
+---
+
 # CHECKPOINT ATUAL — ADR 0375 SCOPED ACTIVATION LIVE / ATTESTATION GREEN / NO CUSTOMER CALL
 
 ## ADR 0375 — Semantic Fast Read Scoped Rollout Activation + Immediate Runtime Attestation V1

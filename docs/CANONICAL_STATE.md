@@ -1,3 +1,19 @@
+## 2026-10-01 — ADR 0376 Semantic Fast Read Single Real Canary Read V1
+
+Status: **BLOCKED / FAIL-CLOSED / PRECHECK GREEN / SINGLE REAL CANARY NOT EXECUTED / NO CUSTOMER OR VENDAERP EFFECT**.
+
+Fresh Git/CI/runtime evidence was GREEN: PR #378 remained open/draft/mergeable/unmerged at `d808718e...` with 12/12 GREEN; Core remained the immutable ADR0375 `9ee338...` activated container, healthy/restart 0 with exact 16-file custody+rollout provenance; Human Send remained OFF; Gateway outbound remained OFF; Task Drain remained `false/0/0/quiescent=true`.
+
+Fresh Paperclip/OA evidence also remained GREEN: OA `0.6.1 ready`, `wandora_mastra@0.6.0` loaded/enabled, Ana idle with the same historical successful run and no post-activation run, provider-owned operational projection healthy for the VendaERP read-only Connection, and official non-consuming Tool Policy test `allow/allow_profile` with `auditEvent=null`.
+
+The only proposed request was `Qual é o preço do produto PREMIUM PLUS?`, exactly one attempt, no retry and no second request. The mandatory effect-adjacent JEV review was not clear enough to authorize the effect (`allow=0.46`, confidence `0.28`); a focused follow-up returned `fetch failed` without a decision. The canonical authenticated owner-browser execution surface was not available to this session, and browser credentials were not copied into Remote-Ops/MCP.
+
+**FAIL-CLOSED:** no customer Fast Read, new Ana run, VendaERP tool execution, Human Send, Gateway outbound, rollout expansion or PR merge occurred.
+
+Next boundary: fresh REAL NOW + clear effect review + canonical authenticated owner-browser authority before any future single canary attempt. No review/approval from ADR0376 may be reused.
+
+Canonical detail: `docs/decisions/0376-semantic-fast-read-single-real-canary-read-v1.md`.
+
 ## 2026-10-01 — ADR 0375 Semantic Fast Read Scoped Rollout Activation + Immediate Runtime Attestation V1
 
 Status: **GREEN / SCOPED ACTIVATION LIVE / NO CUSTOMER OR PROVIDER CALL IN THIS CHECKPOINT**.
