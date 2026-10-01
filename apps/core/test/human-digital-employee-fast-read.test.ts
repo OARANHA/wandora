@@ -725,3 +725,105 @@ test('selector ambiguity remains fail-closed with one selector call and zero dis
   assert.equal(dispatchCalls, 0);
 });
 
+
+
+test('rollout policy denies a non-enrolled target before semantic or provider work', async () => {
+  let capabilityProjectionCalls = 0;
+  let semanticDecisionCalls = 0;
+  let dispatchCalls = 0;
+
+  const service = new HumanDigitalEmployeeFastReadService({
+    intentSecret: SECRET,
+    policy: POLICY,
+    rolloutPolicy: {
+      targets: [{
+        organizationId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        employeeId: EMPLOYEE,
+      }],
+      capabilities: ['business.products.price'],
+    },
+    semanticDecisionProvider: {
+      async decide() {
+        semanticDecisionCalls += 1;
+        return deterministicDecision({
+          capability: 'business.products.price',
+          selector: { kind: 'product', by: 'name', value: 'PREMIUM PLUS' },
+        });
+      },
+    },
+    bridge: {
+      async getAvailableCapabilities() {
+        capabilityProjectionCalls += 1;
+        return ['business.products.price'];
+      },
+      async dispatchFastRead() {
+        dispatchCalls += 1;
+        throw new Error('must not dispatch');
+      },
+    },
+  });
+
+  assert.deepEqual(await service.execute({
+    organizationId: ORG,
+    actorUserId: USER,
+    employeeId: EMPLOYEE,
+    request: 'Qual é o preço do produto PREMIUM PLUS?',
+  }), {
+    kind: 'fallback',
+    reason: 'rollout-not-enabled',
+  });
+
+  assert.equal(capabilityProjectionCalls, 0);
+  assert.equal(semanticDecisionCalls, 0);
+  assert.equal(dispatchCalls, 0);
+});
+
+test('rollout policy intersects provider capabilities before semantic admission', async () => {
+  let dispatchCalls = 0;
+
+  const service = new HumanDigitalEmployeeFastReadService({
+    intentSecret: SECRET,
+    policy: POLICY,
+    rolloutPolicy: {
+      targets: [{ organizationId: ORG, employeeId: EMPLOYEE }],
+      capabilities: ['business.products.price'],
+    },
+    semanticDecisionProvider: {
+      async decide(input) {
+        assert.deepEqual(input.availableCapabilities, ['business.products.price']);
+        return deterministicDecision({
+          capability: 'business.products.price',
+          selector: { kind: 'product', by: 'name', value: 'PREMIUM PLUS' },
+        });
+      },
+    },
+    bridge: {
+      async getAvailableCapabilities() {
+        return ['business.products.search', 'business.products.price'];
+      },
+      async dispatchFastRead() {
+        dispatchCalls += 1;
+        return {
+          model: 'wandora-deterministic-read-v1',
+          summary: 'PREMIUM PLUS\nCódigo: 3\nPreço: R$ 890,00',
+          usage: {
+            inputTokens: 0,
+            outputTokens: 0,
+            cachedInputTokens: 0,
+            totalTokens: 0,
+          },
+        };
+      },
+    },
+  });
+
+  const result = await service.execute({
+    organizationId: ORG,
+    actorUserId: USER,
+    employeeId: EMPLOYEE,
+    request: 'Qual é o preço do produto PREMIUM PLUS?',
+  });
+
+  assert.equal(result.kind, 'completed');
+  assert.equal(dispatchCalls, 1);
+});
