@@ -24,7 +24,7 @@ diff --git a/server/src/__tests__/http-log-redaction.test.ts b/server/src/__test
      expect(HTTP_LOG_REDACT_PATHS).toContain(
        'req.headers["x-telegram-bot-api-secret-token"]',
      );
-@@ -389,6 +392,38 @@ describe("HTTP logger redaction", () => {
+@@ -389,6 +392,40 @@ describe("HTTP logger redaction", () => {
      expect(log.res.headers["set-cookie"]).toBe("[Redacted]");
    });
  
