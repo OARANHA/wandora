@@ -1,3 +1,15 @@
+# ADR 0377 — JEV advisory / deterministic Wandora effect authority
+
+Status: **ACCEPTED / GOVERNANCE CLARIFICATION / NO CUSTOMER OR PROVIDER EFFECT**.
+
+JEV/TypeSafe remains mandatory second-review evidence but is advisory only. Wandora-owned deterministic policy is the effect authorization authority. A probabilistically uncertain JEV result does not independently veto an otherwise fully proven deterministic Wandora GO unless it identifies a concrete factual gap that remains unresolved. Deterministic DENY or missing evidence always remains fail-closed.
+
+ADR 0377 supersedes only ADR 0376's conflicting interpretation that a clear JEV GO is itself an authorization condition. ADR 0376's historical no-canary result remains unchanged.
+
+Canonical detail: `docs/decisions/0377-jev-advisory-deterministic-wandora-effect-authority-v1.md`.
+
+---
+
 ## 2026-10-01 — ADR 0376 Semantic Fast Read Single Real Canary Read V1
 
 Status: **BLOCKED / FAIL-CLOSED / PRECHECK GREEN / SINGLE REAL CANARY NOT EXECUTED / NO CUSTOMER OR VENDAERP EFFECT**.
