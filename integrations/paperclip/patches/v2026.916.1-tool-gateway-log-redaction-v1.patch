@@ -1,0 +1,67 @@
+diff --git a/server/src/middleware/http-log-redaction.ts b/server/src/middleware/http-log-redaction.ts
+--- a/server/src/middleware/http-log-redaction.ts
++++ b/server/src/middleware/http-log-redaction.ts
+@@ -9,6 +9,9 @@ export const HTTP_LOG_REDACT_PATHS = [
+   'req.headers["x-csrf-token"]',
+   'req.headers["x-xsrf-token"]',
+   'req.headers["x-api-key"]',
++  // Tool Gateway session tokens authorize run-scoped tool access and must
++  // never be serialized into request logs.
++  'req.headers["x-paperclip-tool-gateway-token"]',
+   // Telegram's optional webhook verification header is a reusable bearer
+   // secret sent on every provider callback.
+   'req.headers["x-telegram-bot-api-secret-token"]',
+diff --git a/server/src/__tests__/http-log-redaction.test.ts b/server/src/__tests__/http-log-redaction.test.ts
+--- a/server/src/__tests__/http-log-redaction.test.ts
++++ b/server/src/__tests__/http-log-redaction.test.ts
+@@ -314,6 +314,9 @@ describe("HTTP logger redaction", () => {
+     expect(HTTP_LOG_REDACT_PATHS).toContain('req.headers["x-csrf-token"]');
+     expect(HTTP_LOG_REDACT_PATHS).toContain('req.headers["x-xsrf-token"]');
+     expect(HTTP_LOG_REDACT_PATHS).toContain('req.headers["x-api-key"]');
++    expect(HTTP_LOG_REDACT_PATHS).toContain(
++      'req.headers["x-paperclip-tool-gateway-token"]',
++    );
+     expect(HTTP_LOG_REDACT_PATHS).toContain(
+       'req.headers["x-telegram-bot-api-secret-token"]',
+     );
+@@ -389,6 +392,40 @@ describe("HTTP logger redaction", () => {
+     expect(log.res.headers["set-cookie"]).toBe("[Redacted]");
+   });
+ 
++  it.each([200, 403, 500])(
++    "redacts Tool Gateway session tokens from HTTP %i logs",
++    async (status) => {
++      const token = "tool-gateway-session-canary-7b91f4";
++      const chunks: string[] = [];
++      const stream = new Writable({
++        write(chunk, _encoding, callback) {
++          chunks.push(chunk.toString());
++          callback();
++        },
++      });
++      const app = express();
++      app.use(createHttpLogger(pino({ redact: [...HTTP_LOG_REDACT_PATHS] }, stream)));
++      app.get("/api/tool-gateway/tools", (_req, res) => {
++        res.status(status).json({ status });
++      });
++
++      await request(app)
++        .get("/api/tool-gateway/tools")
++        .set("X-Paperclip-Tool-Gateway-Token", token)
++        .expect(status);
++
++      const output = chunks.join("");
++      expect(output).not.toContain(token);
++      const log = JSON.parse(output.trim()) as {
++        req: { headers: Record<string, string> };
++        res: { statusCode: number };
++      };
++      expect(log.req.headers["x-paperclip-tool-gateway-token"]).toBe("[Redacted]");
++      expect(log.req.url).toBe("/api/tool-gateway/tools");
++      expect(log.res.statusCode).toBe(status);
++    },
++  );
++
+   it("drops OAuth callback query data from the message and structured request", async () => {
+     const chunks: string[] = [];
+     const stream = new Writable({

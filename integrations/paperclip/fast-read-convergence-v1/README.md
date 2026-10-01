@@ -19,7 +19,12 @@ and composes exactly these retained patches:
 
 - `v2026.916.1-host-operational-read-v1.patch`;
 - `v2026.916.1-fast-read-run-result-read-v1.patch`;
-- `v2026.916.1-synchronous-webhook-response-v1.patch`.
+- `v2026.916.1-synchronous-webhook-response-v1.patch`;
+- `v2026.916.1-tool-gateway-log-redaction-v1.patch`.
+
+The redaction patch changes no Paperclip capability surface. It reuses the
+provider's native HTTP logger redaction boundary so the run-scoped Tool Gateway
+session token is never serialized into request logs, with synthetic logger tests.
 
 No additional Paperclip capability may enter the production candidate without a
 new qualification decision.
