@@ -1,3 +1,34 @@
+## 2026-10-01 — ADR 0380 VendaERP Read Capability Coverage V1
+
+Status: **INVENTORY COMPLETE / REUSE-FIRST DECISION / NO PRODUCTION EFFECT**.
+
+The exact supplied VendaERP OpenAPI v1 artifact contains **98 paths / 107 operations**. Semantic classification reconciles all 107 operations: 11 READ_SAFE, 42 READ_SENSITIVE, 38 WRITE, 11 DESTRUCTIVE, 4 OUT_OF_SCOPE and 1 QUARANTINE. There are 53 proven commercially useful non-mutating reads/computes. The current VendaERP MCP boundary already represents 8 of those endpoint operations through 8 tools (plus operational ping), and the Organization Adapter already projects 9 canonical BusinessCapabilities.
+
+The principal near-term gap is therefore not provider breadth: customer-facing deterministic Fast Read currently binds only `business.products.search` and `business.products.price`. Decision: reuse existing tools/capabilities first, starting with a fresh stock semantics slice; then parties/orders; only later qualify sensitive fiscal/financial provider extensions.
+
+A current public-doc cross-check exposes a 104-operation indexed surface, three operations fewer than the supplied artifact. Those three delta operations remain in inventory but require provider-support reconfirmation before any future implementation.
+
+No new customer call, provider write, rollout expansion, table/migration, second ERP subsystem or provider bypass occurred. Before any new real customer canary, the ADR 0379 Paperclip redaction correction must be separately promoted and revalidated.
+
+Canonical detail: `docs/decisions/0380-vendaerp-read-capability-coverage-v1.md`.
+Full matrix: `docs/research/vendaerp-read-capability-coverage-v1.md`.
+
+---
+
+## 2026-10-01 — ADR 0379 Paperclip Tool Gateway Sensitive Credential Log Redaction Qualification V1
+
+Status: **QUALIFIED IN CODE/CI / NOT PROMOTED / NO PRODUCTION EFFECT**.
+
+Paperclip's native pino HTTP redaction list on exact source `v2026.916.1@d554c478...` omitted the Tool Gateway session header. Current upstream reviewed in this slice also omitted it, so the minimal correction is provider-owned: one retained patch adds the header path to Paperclip's existing redaction mechanism and synthetic 200/403/500 tests.
+
+The corrected exact code head `0d47451737d3f7000352b7c289e4e5838ebb62f2` completed **7/7 workflows GREEN**. Composed provider tests were 5 files / 84 tests GREEN; the HTTP log redaction suite was 54 tests GREEN. Candidate provenance includes the redaction patch, Docker config digest `sha256:181be547...` and compressed artifact SHA-256 `3c8aeca90f...`.
+
+No real credential value was copied or used. No customer/VendaERP call, Paperclip promotion, rollout expansion or PR #378 merge occurred.
+
+Canonical detail: `docs/decisions/0379-paperclip-tool-gateway-sensitive-credential-log-redaction-qualification-v1.md`.
+
+---
+
 ## 2026-10-01 — ADR 0378 Semantic Fast Read Owner-Browser Single Real Canary Execution V3
 
 Status: **SUCCESS / EXACTLY ONE OWNER-BROWSER REQUEST / EXACTLY ONE GOVERNED READ-ONLY VENDAERP EXECUTION**.
