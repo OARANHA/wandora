@@ -1,3 +1,33 @@
+# CHECKPOINT ATUAL — ADR 0371 / Current-Main Scoped Rollout Core Convergence V1
+
+O último slice concluído é o ADR 0371:
+`docs/decisions/0371-semantic-fast-read-scoped-rollout-current-main-core-convergence-v1.md`.
+
+Estado qualificado a ser sempre reconciliado, nunca assumido:
+
+- current `main` observado: `e4c7c36bb1091ba38d39b85fa259bae94553fc52`;
+- PR #369 preservado em `bf5c82319f0815562d45cad90a2db0ea57b9251b`; current-main merge ref `c78266bb08c2d903d942d0ad87d6cb03438811a4`;
+- PR #377 preservado em `54b6120c81b735fd86d8e042e7bc18f0b0f96595`;
+- PR #378 criado somente para convergência/provenance, draft, sem merge;
+- qualified Core source/merge: `9ee338303292173db8e1b21bef9c8c5067c104a4`;
+- qualified post-gates Core artifact: `11153574632`;
+- GitHub artifact digest: `sha256:fdca91b452d73e68b53be4608fe016e6bf6e2222803cd38ce14ae4083692217b`;
+- archive SHA-256: `612f04b1e60ad40a97ea0663c293af03fce65793a10358f46c8a85865b801724`;
+- OCI config: `sha256:6e7e5bab6dcd9d19a6d314ae04b1c2495c210bee3708ea06d5e32126008131b7`;
+- OCI manifest: `sha256:fbb3c420b25fc9ae141f8ece5ab69bec9daef203a36e268eea4c363da3a84a5f`;
+- code convergence workflow set: 12/12 GREEN;
+- production remained unchanged on Core `83baca411096...`; Fast Read, Semantic Fast Read, Semantic Selector, Human Send and Gateway outbound remain OFF; Task Drain quiescent;
+- ADR 0367 remains rollback authority for the currently live `83baca...` baseline;
+- old artifact `11151382368` remains explicitly non-authorized.
+
+The next production-bound slice is NOT the scoped canary activation. It is a fresh pre-mutation review for promotion of the exact frozen Core candidate `11153574632` while every effect gate remains OFF. Only the actual one-use managed-admin/root apply for that future Core promotion is expected to require the next `APPROVE adm_...`.
+
+After a successful promotion, capture a fresh rollback baseline before separately considering 28PRO / Ana / `business.products.price` rollout activation.
+
+This file is bootstrap only. Continue to follow `AGENTS.md`, relevant ADRs, `docs/CAPABILITY_AUTHORITY.md`, `docs/architecture.md`, `docs/CANONICAL_STATE.md`, runbooks, GitHub and runtime real.
+
+---
+
 ## 2026-10-01 — ADR 0370 Semantic Fast Read scoped production canary activation preflight V1
 
 Status: **PREFLIGHT COMPLETE / PREPARATION GO AS SPLIT TASK / ACTIVATION NOT AUTHORIZED / NO PRODUCTION EFFECT**.
