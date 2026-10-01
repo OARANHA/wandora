@@ -21,6 +21,16 @@ export type ProductSelector = {
   value: string;
 };
 
+export const PARTY_SELECTOR_ROLES = ['customer', 'supplier'] as const;
+export type PartySelectorRole = typeof PARTY_SELECTOR_ROLES[number];
+
+export type PartySelector = {
+  kind: 'party';
+  by: 'name';
+  value: string;
+  role: PartySelectorRole;
+};
+
 export type StockSelector = {
   kind: 'stock';
   product: {
@@ -31,7 +41,7 @@ export type StockSelector = {
   location: string;
 };
 
-export type SemanticSelector = ProductSelector | StockSelector;
+export type SemanticSelector = ProductSelector | PartySelector | StockSelector;
 
 function canonicalProductSelector(value: unknown): ProductSelector | null {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
@@ -51,9 +61,31 @@ function canonicalProductSelector(value: unknown): ProductSelector | null {
   };
 }
 
+function canonicalPartySelector(value: unknown): PartySelector | null {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
+  const selector = value as Record<string, unknown>;
+  if (
+    selector.kind !== 'party'
+    || selector.by !== 'name'
+    || typeof selector.value !== 'string'
+    || typeof selector.role !== 'string'
+    || !PARTY_SELECTOR_ROLES.includes(selector.role as PartySelectorRole)
+  ) return null;
+  const normalized = selector.value.trim();
+  if (!normalized || normalized.length > 512) return null;
+  return {
+    kind: 'party',
+    by: 'name',
+    value: normalized,
+    role: selector.role as PartySelectorRole,
+  };
+}
+
 export function canonicalSemanticSelector(value: unknown): SemanticSelector | null {
   const product = canonicalProductSelector(value);
   if (product) return product;
+  const party = canonicalPartySelector(value);
+  if (party) return party;
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
   const selector = value as Record<string, unknown>;
   if (
@@ -240,7 +272,8 @@ export function gateDeterministicRead(
   }
   if (
     (decision.capability === 'business.products.price'
-      || decision.capability === 'business.stock.read')
+      || decision.capability === 'business.stock.read'
+      || decision.capability === 'business.parties.search')
     && !selector
   ) {
     return { allowed: false, reason: 'missing-selector' };
@@ -253,6 +286,9 @@ export function gateDeterministicRead(
     return { allowed: false, reason: 'selector-not-applicable' };
   }
   if (selector?.kind === 'stock' && decision.capability !== 'business.stock.read') {
+    return { allowed: false, reason: 'selector-not-applicable' };
+  }
+  if (selector?.kind === 'party' && decision.capability !== 'business.parties.search') {
     return { allowed: false, reason: 'selector-not-applicable' };
   }
 
