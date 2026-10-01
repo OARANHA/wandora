@@ -12,7 +12,7 @@ O último slice encerrou em **PRE-FLIGHT NO-GO operacional / candidato ainda qua
 - ADR 0367 permanece rollback authority para a baseline live;
 - nenhum `adm_...` foi gerado e nenhuma mutação de produção ocorreu.
 
-Blocker operacional provado: o execution broker mantém no máximo 16 sessões e só reap completed sessions após 30 minutos; o managed-admin hard-deny generic `bash`; Docker candidate lifecycle atual é Web-only. Não reinicie broker nem altere allowlists apenas para ultrapassar esse guardrail.
+Atualização operacional pós-ADR 0372: o blocker de capacidade do execution broker foi resolvido por Remote-Ops PR #44 (`48a4d370...`) e deploy governado. O broker live agora reporta `max_active_sessions=48`, conta apenas sessões ativas e não deixa sessões concluídas/sinalizadas consumir capacidade. O managed-admin continua hard-deny para generic `bash` e o Docker candidate lifecycle continua Web-only; esses guardrails permanecem. Não expanda allowlists nem contorne authority boundaries para promover Core.
 
 Próximo boundary: retomar **o mesmo production promotion preflight** por REAL NOW quando a capacidade ordinária estiver novamente disponível, terminar exact candidate import/render proof, fazer nova revisão adversarial e somente então preparar um one-use managed-admin usando boundary já autorizado. Não ativar scoped rollout neste slice.
 
