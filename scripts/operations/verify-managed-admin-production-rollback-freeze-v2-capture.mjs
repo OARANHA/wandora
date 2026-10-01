@@ -4,7 +4,7 @@ import fs from "node:fs";
 
 const helperPath = "scripts/operations/production-rollback-freeze-v2.sh";
 const entrypointPath = "scripts/operations/managed-admin-production-rollback-freeze-v2-capture.sh";
-const expectedBlob = "31742060143e8ff7c86a9753045400364b98c9c9";
+const expectedBlob = "dced46d7ac9a6b2fd2a936c2a7d0f029273c41cc";
 
 const helper = fs.readFileSync(helperPath);
 const gitBlob = crypto
@@ -19,11 +19,11 @@ if (gitBlob !== expectedBlob) {
 
 const helperText = helper.toString("utf8");
 const currentCoreContract = [
-  'CORE_IMAGE="wandora/core:organization-adapter-candidate-f279acc98687"',
-  'CORE_IMAGE_ID="sha256:c8994cc7b9a6bff15b212eba215d5a1360ee217b84df18a1b59409fb9fd1a4d8"',
-  'CORE_REVISION="f279acc98687da894a1ce6570273b5949552a8c7"',
-  'RECEIPT="/opt/wandora/ops-workspace/production-rollback-freeze-v2-post-adr0358-f279acc98687da894a1ce6570273b5949552a8c7-mastra060-2e97da6d.metadata"',
-  'root="${BACKUP_PARENT}/paperclip-v9161-fast-read-rollback-freeze-v2-post-adr0358-f279acc98687-mastra060-2e97da6d-${stamp}"',
+  'CORE_IMAGE="wandora/core:organization-adapter-candidate-9d0a4ba577fe"',
+  'CORE_IMAGE_ID="sha256:3ae9e4eae1949cc9da7e191cea841e1564d1a1577385f994991561c49c715e7d"',
+  'CORE_REVISION="9d0a4ba577fe41d9efd8a5d2c4e5539ec0e7afeb"',
+  'RECEIPT="/opt/wandora/ops-workspace/production-rollback-freeze-v2-post-adr0364-9d0a4ba577fe41d9efd8a5d2c4e5539ec0e7afeb-mastra060-2e97da6d.metadata"',
+  'root="${BACKUP_PARENT}/paperclip-v9161-fast-read-rollback-freeze-v2-post-adr0364-9d0a4ba577fe-mastra060-2e97da6d-${stamp}"',
 ];
 currentCoreContract.push(
   'OA_VERSION="0.6.1"',
@@ -47,6 +47,11 @@ if (missingCurrentCoreContract.length) {
 }
 
 const historicalOrStaleCurrentAnchors = [
+  'CORE_IMAGE="wandora/core:organization-adapter-candidate-f279acc98687"',
+  'CORE_IMAGE_ID="sha256:c8994cc7b9a6bff15b212eba215d5a1360ee217b84df18a1b59409fb9fd1a4d8"',
+  'CORE_REVISION="f279acc98687da894a1ce6570273b5949552a8c7"',
+  'RECEIPT="/opt/wandora/ops-workspace/production-rollback-freeze-v2-post-adr0358-f279acc98687da894a1ce6570273b5949552a8c7-mastra060-2e97da6d.metadata"',
+  'root="${BACKUP_PARENT}/paperclip-v9161-fast-read-rollback-freeze-v2-post-adr0358-f279acc98687-mastra060-2e97da6d-${stamp}",'
   'CORE_IMAGE="wandora/core:organization-adapter-candidate-a49504c7c41e"',
   'CORE_IMAGE_ID="sha256:ec37d2f730e0069521745fc620085f5d2353dc583117808d955f9e6975604005"',
   'CORE_REVISION="a49504c7c41ee255fa25cc3944ef0f718cc9a696"',
