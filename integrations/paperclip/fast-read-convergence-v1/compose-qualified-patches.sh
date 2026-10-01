@@ -20,6 +20,7 @@ fi
 operational_patch="$WANDORA_ROOT/integrations/paperclip/patches/v2026.916.1-host-operational-read-v1.patch"
 run_patch="$WANDORA_ROOT/integrations/paperclip/patches/v2026.916.1-fast-read-run-result-read-v1.patch"
 webhook_patch="$WANDORA_ROOT/integrations/paperclip/patches/v2026.916.1-synchronous-webhook-response-v1.patch"
+redaction_patch="$WANDORA_ROOT/integrations/paperclip/patches/v2026.916.1-tool-gateway-log-redaction-v1.patch"
 
 tmp_root="$(mktemp -d)"
 cleanup() {
@@ -132,6 +133,12 @@ git -C "$PAPERCLIP_ROOT" apply --check "$webhook_patch"
 git -C "$PAPERCLIP_ROOT" apply "$webhook_patch"
 git -C "$PAPERCLIP_ROOT" add -A
 
+# 4) Keep Tool Gateway credential-log hardening provider-owned. This patch
+#    reuses Paperclip's native pino redaction boundary and synthetic logger tests.
+git -C "$PAPERCLIP_ROOT" apply --check "$redaction_patch"
+git -C "$PAPERCLIP_ROOT" apply "$redaction_patch"
+git -C "$PAPERCLIP_ROOT" add -A
+
 if grep -RInE '^(<<<<<<<|=======|>>>>>>>)'   "$PAPERCLIP_ROOT/packages/plugins/sdk/src"   "$PAPERCLIP_ROOT/server/src/services/plugin-host-services.ts"   "$PAPERCLIP_ROOT/server/src/routes/plugins.ts" >/dev/null; then
   echo "merge conflict markers remain in composed Paperclip source" >&2
   exit 1
@@ -139,7 +146,8 @@ fi
 
 git -C "$PAPERCLIP_ROOT" diff --check
 
-for marker in   '"tools.operational.read"'   '"agent.runs.read"'   'PLUGIN_WEBHOOK_RESPONSE_MAX_BYTES'
+for marker in   '"tools.operational.read"'   '"agent.runs.read"'   'PLUGIN_WEBHOOK_RESPONSE_MAX_BYTES' \
+  'Tool Gateway session tokens authorize run-scoped tool access'
 do
   if ! git -C "$PAPERCLIP_ROOT" grep -q "$marker"; then
     echo "missing composed marker: $marker" >&2
