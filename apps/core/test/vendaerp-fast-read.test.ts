@@ -5,9 +5,14 @@ import {
   VENDAERP_FAST_READ_CAPABILITIES,
 } from '../src/business-system/vendaerp-fast-read.js';
 
-function tool(name: string, execute: (input: unknown) => Promise<unknown>) {
+function tool(
+  name: string,
+  execute: (input: unknown) => Promise<unknown>,
+  providerToolName = name,
+) {
   return {
     name,
+    providerToolName,
     title: name,
     description: 'synthetic authorized read tool',
     inputSchema: { type: 'object' },
