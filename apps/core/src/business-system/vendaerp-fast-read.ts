@@ -91,7 +91,7 @@ function productFact(product: ProductRow, index: number): { label: string; value
 }
 
 function exactVendaErpProductTool(tool: RuntimeReadTool): boolean {
-  return tool.name === VENDAERP_PRODUCT_TOOL;
+  return tool.providerToolName === VENDAERP_PRODUCT_TOOL;
 }
 
 function productSelector(selector: SemanticSelector | null): ProductSelector | null {
