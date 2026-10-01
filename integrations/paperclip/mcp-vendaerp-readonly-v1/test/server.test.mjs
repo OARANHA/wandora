@@ -271,6 +271,47 @@ test('classifies product response failures with safe enumerated reasons', async 
   );
 });
 
+test('stock read sends exact product code + location and never invents a missing quantity', async () => {
+  const calls = [];
+  const client = createVendaErpClient({
+    tenant,
+    credentials,
+    fetchImpl: async (url) => {
+      calls.push(new URL(url));
+      return jsonResponse([{
+        deposito: 'LOJA-01',
+        saldo: 7,
+        lastUpdate: '2026-10-01T12:00:00Z',
+      }]);
+    },
+  });
+
+  assert.deepEqual(await client.getProductStock({
+    productCode: '123',
+    location: 'LOJA-01',
+  }), [{
+    location: 'LOJA-01',
+    quantity: 7,
+    lastUpdatedAt: '2026-10-01T12:00:00Z',
+  }]);
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].pathname, '/api/request/Produtos/GetSaldo');
+  assert.equal(calls[0].searchParams.get('produtoCodigo'), '123');
+  assert.equal(calls[0].searchParams.get('deposito'), 'LOJA-01');
+
+  const malformed = createVendaErpClient({
+    tenant,
+    credentials,
+    fetchImpl: async () => jsonResponse([{ deposito: 'LOJA-01' }]),
+  });
+  await assert.rejects(
+    malformed.getProductStock({ productCode: '123', location: 'LOJA-01' }),
+    (error) => error instanceof VendaErpAdapterError
+      && error.code === 'invalid-provider-response',
+  );
+});
+
 test('maps all eight tools to the frozen read-only endpoint allowlist', async () => {
   const calls = [];
   const bodies = new Map([
