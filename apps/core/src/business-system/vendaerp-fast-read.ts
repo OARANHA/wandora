@@ -5,14 +5,18 @@ import type {
   BusinessCapability,
   ProductSelector,
   SemanticSelector,
+  StockSelector,
 } from '../semantic-routing/contracts.js';
 
 const VENDAERP_PRODUCT_TOOL = 'vendaerp_search_products';
+const VENDAERP_STOCK_TOOL = 'vendaerp_get_product_stock';
 const MAX_PRODUCTS = 5;
+const MAX_STOCK_ROWS = 8;
 
 export const VENDAERP_FAST_READ_CAPABILITIES = [
   'business.products.search',
   'business.products.price',
+  'business.stock.read',
 ] as const satisfies readonly BusinessCapability[];
 
 type ProductRow = {
@@ -23,7 +27,12 @@ type ProductRow = {
   brand?: string;
   unit?: string;
   salePrice?: number;
-  stockBalance?: number;
+};
+
+type StockRow = {
+  location: string;
+  quantity: number;
+  lastUpdatedAt?: string;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -61,7 +70,6 @@ function productRow(value: unknown): ProductRow {
   const brand = boundedText(value.brand, 120);
   const unit = boundedText(value.unit, 40);
   const salePrice = finiteNumber(value.salePrice);
-  const stockBalance = finiteNumber(value.stockBalance);
 
   return {
     name,
@@ -71,7 +79,21 @@ function productRow(value: unknown): ProductRow {
     ...(brand ? { brand } : {}),
     ...(unit ? { unit } : {}),
     ...(salePrice !== undefined ? { salePrice } : {}),
-    ...(stockBalance !== undefined ? { stockBalance } : {}),
+  };
+}
+
+function stockRow(value: unknown): StockRow {
+  if (!isRecord(value)) throw new Error('vendaerp_fast_read_invalid_stock_result');
+  const location = boundedText(value.location, 512);
+  const quantity = finiteNumber(value.quantity);
+  const lastUpdatedAt = boundedText(value.lastUpdatedAt, 128);
+  if (!location || quantity === undefined) {
+    throw new Error('vendaerp_fast_read_invalid_stock_result');
+  }
+  return {
+    location,
+    quantity,
+    ...(lastUpdatedAt ? { lastUpdatedAt } : {}),
   };
 }
 
@@ -82,7 +104,7 @@ function productFact(product: ProductRow, index: number): { label: string; value
   if (product.brand) details.push(`Marca ${product.brand}`);
   if (product.unit) details.push(`Unidade ${product.unit}`);
   if (product.salePrice !== undefined) details.push(`Preço ${brl(product.salePrice)}`);
-  if (product.stockBalance !== undefined) details.push(`Estoque ${product.stockBalance}`);
+
 
   return {
     label: `${index + 1}. ${product.name}`,
@@ -94,8 +116,16 @@ function exactVendaErpProductTool(tool: RuntimeReadTool): boolean {
   return tool.providerToolName === VENDAERP_PRODUCT_TOOL;
 }
 
+function exactVendaErpStockTool(tool: RuntimeReadTool): boolean {
+  return tool.providerToolName === VENDAERP_STOCK_TOOL;
+}
+
 function productSelector(selector: SemanticSelector | null): ProductSelector | null {
   return selector?.kind === 'product' ? selector : null;
+}
+
+function stockSelector(selector: SemanticSelector | null): StockSelector | null {
+  return selector?.kind === 'stock' ? selector : null;
 }
 
 function normalizedName(value: string): string {
@@ -156,12 +186,59 @@ function selectedProductResult(
 export function createVendaErpFastReadCapabilityAdapter(): RuntimeReadCapabilityAdapter {
   return {
     capabilitiesFor(tool) {
-      return exactVendaErpProductTool(tool)
-        ? VENDAERP_FAST_READ_CAPABILITIES
-        : [];
+      if (exactVendaErpProductTool(tool)) {
+        return ['business.products.search', 'business.products.price'];
+      }
+      if (exactVendaErpStockTool(tool)) {
+        return ['business.stock.read'];
+      }
+      return [];
     },
 
     async execute({ tool, capability, selector }): Promise<DeterministicReadNormalizedResult> {
+      if (capability === 'business.stock.read') {
+        if (!exactVendaErpStockTool(tool)) {
+          throw new Error('vendaerp_fast_read_capability_unavailable');
+        }
+        const selectedStock = stockSelector(selector);
+        if (!selectedStock) {
+          throw new Error('vendaerp_fast_read_selector_required');
+        }
+
+        const result = await tool.execute({
+          productCode: selectedStock.product.value,
+          location: selectedStock.location,
+        });
+        if (!Array.isArray(result) || result.length > MAX_STOCK_ROWS) {
+          throw new Error('vendaerp_fast_read_invalid_stock_result');
+        }
+        const rows = result.map(stockRow);
+        if (rows.length === 0) {
+          return {
+            kind: 'not_found',
+            message: 'Nenhum saldo de estoque foi retornado para o produto e local informados.',
+          };
+        }
+        if (rows.length > 1) {
+          return {
+            kind: 'clarification',
+            prompt: 'A consulta retornou mais de um saldo de estoque. Qual local você quer considerar?',
+            options: rows.map((row) => row.location).slice(0, MAX_STOCK_ROWS),
+          };
+        }
+
+        const row = rows[0]!;
+        return {
+          kind: 'facts',
+          subject: `Estoque do produto ${selectedStock.product.value}`,
+          facts: [
+            { label: 'Local', value: row.location },
+            { label: 'Quantidade', value: String(row.quantity) },
+            ...(row.lastUpdatedAt ? [{ label: 'Atualizado em', value: row.lastUpdatedAt }] : []),
+          ],
+        };
+      }
+
       if (
         (capability !== 'business.products.search' && capability !== 'business.products.price')
         || !exactVendaErpProductTool(tool)
