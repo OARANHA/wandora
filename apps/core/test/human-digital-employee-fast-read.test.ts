@@ -632,10 +632,58 @@ test('stock without explicit location fails closed before selector/provider disp
     employeeId: EMPLOYEE,
     request: 'Quantas unidades do produto código 123 temos?',
   }), {
-    kind: 'fallback',
-    reason: 'needs-more-context',
+    kind: 'clarification',
+    prompt: 'Para consultar estoque com segurança, informe um único código de produto e um único depósito/local de estoque.',
   });
   assert.equal(selectorCalls, 0);
+  assert.equal(dispatchCalls, 0);
+});
+
+test('stock name-only request fails closed with a user clarification and zero dispatch', async () => {
+  let selectorCalls = 0;
+  let dispatchCalls = 0;
+  const service = new HumanDigitalEmployeeFastReadService({
+    intentSecret: SECRET,
+    policy: POLICY,
+    semanticDecisionProvider: {
+      async decide() {
+        return deterministicDecision({
+          capability: 'business.stock.read',
+          needsMoreContext: 0.08,
+        });
+      },
+    },
+    semanticSelectorProvider: {
+      async select() {
+        selectorCalls += 1;
+        return {
+          selector: null,
+          confidence: 0.95,
+          ambiguity: 'missing_entity',
+        };
+      },
+    },
+    bridge: {
+      async getAvailableCapabilities() {
+        return ['business.stock.read'];
+      },
+      async dispatchFastRead() {
+        dispatchCalls += 1;
+        throw new Error('must not dispatch');
+      },
+    },
+  });
+
+  assert.deepEqual(await service.execute({
+    organizationId: ORG,
+    actorUserId: USER,
+    employeeId: EMPLOYEE,
+    request: 'Tem PREMIUM PLUS em estoque?',
+  }), {
+    kind: 'clarification',
+    prompt: 'Para consultar estoque com segurança, informe um único código de produto e um único depósito/local de estoque.',
+  });
+  assert.equal(selectorCalls, 1);
   assert.equal(dispatchCalls, 0);
 });
 
