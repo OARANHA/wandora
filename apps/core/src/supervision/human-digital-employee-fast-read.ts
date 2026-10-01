@@ -139,6 +139,9 @@ export class HumanDigitalEmployeeFastReadService {
     const availableCapabilities = rolloutCapabilities === undefined
       ? operationalCapabilities
       : operationalCapabilities.filter((capability) => rolloutCapabilities.includes(capability));
+    if (rolloutCapabilities !== undefined && availableCapabilities.length === 0) {
+      return { kind: 'fallback', reason: 'capability-not-advertised' };
+    }
 
     let decision = await timed(
       'jev.semantic_decision',
