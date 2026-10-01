@@ -26,10 +26,19 @@ test('VendaERP Fast Read adapter maps search and price only from the exact exist
     'business.products.search',
     'business.products.price',
   ]);
-  assert.deepEqual(adapter.capabilitiesFor(tool('vendaerp_search_products', async () => [])), [
+  assert.deepEqual(adapter.capabilitiesFor(tool(
+    'mcp.wandora-vendaerp-read-only-v1-72222222:vendaerp-search-products',
+    async () => [],
+    'vendaerp_search_products',
+  )), [
     'business.products.search',
     'business.products.price',
   ]);
+  assert.deepEqual(adapter.capabilitiesFor(tool(
+    'vendaerp_search_products',
+    async () => [],
+    'vendaerp_search_price_table_products',
+  )), []);
   assert.deepEqual(adapter.capabilitiesFor(tool('prefix:vendaerp_search_products', async () => [])), []);
   assert.deepEqual(adapter.capabilitiesFor(tool('vendaerp_search_price_table_products', async () => [])), []);
 });
