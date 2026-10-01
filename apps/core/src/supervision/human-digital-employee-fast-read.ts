@@ -24,6 +24,14 @@ import type {
 export type HumanFastReadDispatchResult = OrganizationAdapterFastReadResult;
 export type HumanFastReadBridge = OrganizationAdapterFastReadBridge;
 
+export type SemanticFastReadRolloutPolicy = {
+  targets: readonly {
+    organizationId: string;
+    employeeId: string;
+  }[];
+  capabilities: readonly BusinessCapability[];
+};
+
 export type HumanFastReadAdmissionResult =
   | {
       kind: 'completed';
@@ -34,7 +42,7 @@ export type HumanFastReadAdmissionResult =
     }
   | {
       kind: 'fallback';
-      reason: SemanticRouteGateReason;
+      reason: SemanticRouteGateReason | 'rollout-not-enabled';
     };
 
 function boundedRequest(value: string): string {
@@ -67,6 +75,7 @@ export class HumanDigitalEmployeeFastReadService {
     semanticSelectorProvider?: SemanticSelectorProvider;
     policy: SemanticRoutePolicy;
     intentSecret: string;
+    rolloutPolicy?: SemanticFastReadRolloutPolicy;
     createCorrelationId?: () => string;
     now?: () => number;
     recordLatency?: FastReadLatencyRecorder;
@@ -80,6 +89,18 @@ export class HumanDigitalEmployeeFastReadService {
     request: string;
   }): Promise<HumanFastReadAdmissionResult> {
     const request = boundedRequest(input.request);
+    const rolloutCapabilities = this.deps.rolloutPolicy
+      ? this.deps.rolloutPolicy.targets.some((target) => (
+          target.organizationId.toLowerCase() === input.organizationId.toLowerCase()
+          && target.employeeId.toLowerCase() === input.employeeId.toLowerCase()
+        ))
+        ? this.deps.rolloutPolicy.capabilities
+        : null
+      : undefined;
+    if (rolloutCapabilities === null) {
+      return { kind: 'fallback', reason: 'rollout-not-enabled' };
+    }
+
     const correlationId = (this.deps.createCorrelationId ?? randomUUID)();
     const monotonicNow = this.deps.monotonicNow ?? fastReadMonotonicNow;
     const timed = async <T>(
@@ -107,7 +128,7 @@ export class HumanDigitalEmployeeFastReadService {
       }
     };
 
-    const availableCapabilities = await timed(
+    const operationalCapabilities = await timed(
       'core.capability_projection',
       () => this.deps.bridge.getAvailableCapabilities({
         organizationId: input.organizationId,
@@ -115,6 +136,9 @@ export class HumanDigitalEmployeeFastReadService {
         employeeId: input.employeeId,
       }),
     );
+    const availableCapabilities = rolloutCapabilities === undefined
+      ? operationalCapabilities
+      : operationalCapabilities.filter((capability) => rolloutCapabilities.includes(capability));
 
     let decision = await timed(
       'jev.semantic_decision',
