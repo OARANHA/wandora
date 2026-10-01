@@ -140,6 +140,28 @@ ADR 0350 clarifies the semantic admission boundary without relaxing policy: `nee
 
 This runtime wiring does not connect WhatsApp to Fast Read and does not authorize a live provider/VendaERP call or production activation.
 
+
+### Scoped persistent rollout admission — ADR 0369
+
+ADR 0369 adds a deployment-configured Wandora product admission boundary without replacing Paperclip operational authorization.
+
+When rollout configuration is absent, the bounded attestation path remains unchanged. When rollout configuration is present, Core requires an exact `organizationId:employeeId` target and intersects the configured Wandora capability allowlist with the existing Paperclip/Organization Adapter operational capability projection before semantic routing or `wfri1` issuance.
+
+Configuration:
+
+```text
+WANDORA_SEMANTIC_FAST_READ_ROLLOUT_TARGETS=<organization-uuid>:<employee-uuid>[,...]
+WANDORA_SEMANTIC_FAST_READ_ROLLOUT_CAPABILITIES=business.products.price[,...]
+```
+
+Both values must be supplied together. The target list is bounded to 64 exact pairs and capability values must belong to the canonical `BUSINESS_CAPABILITIES` set.
+
+A target outside the rollout stops before JEV/Mistral/Paperclip work. An enrolled target with no overlap between rollout and operational capabilities stops before semantic decision and dispatch.
+
+This is product rollout admission only. Paperclip remains authority for managed-agent lifecycle, Connections, organization grants, effective tool policy, Tool Gateway execution, runs, terminal results and audit. No table, migration, rollout service or durable entitlement mirror is introduced.
+
+The first future production canary is intended to admit only one exact customer/Ana pair and `business.products.price`. Production activation remains a separate effect-authorized slice.
+
 ## Human session and read APIs
 
 ADRs 0017–0021 define the current customer human read boundary.
