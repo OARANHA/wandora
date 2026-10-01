@@ -20,11 +20,12 @@ function tool(
   };
 }
 
-test('VendaERP Fast Read adapter maps search and price only from the exact existing product read tool', () => {
+test('VendaERP Fast Read adapter maps product and stock capabilities only from their exact existing read tools', () => {
   const adapter = createVendaErpFastReadCapabilityAdapter();
   assert.deepEqual(VENDAERP_FAST_READ_CAPABILITIES, [
     'business.products.search',
     'business.products.price',
+    'business.stock.read',
   ]);
   assert.deepEqual(adapter.capabilitiesFor(tool(
     'mcp.wandora-vendaerp-read-only-v1-72222222:vendaerp-search-products',
@@ -39,6 +40,11 @@ test('VendaERP Fast Read adapter maps search and price only from the exact exist
     async () => [],
     'vendaerp_search_price_table_products',
   )), []);
+  assert.deepEqual(adapter.capabilitiesFor(tool(
+    'mcp.wandora-vendaerp-read-only-v1-72222222:vendaerp-get-product-stock',
+    async () => [],
+    'vendaerp_get_product_stock',
+  )), ['business.stock.read']);
   assert.deepEqual(adapter.capabilitiesFor(tool('prefix:vendaerp_search_products', async () => [])), []);
   assert.deepEqual(adapter.capabilitiesFor(tool('vendaerp_search_price_table_products', async () => [])), []);
 });
@@ -167,20 +173,92 @@ test('price without selector is rejected before any tool call', async () => {
   assert.equal(calls, 0);
 });
 
-test('unsupported capability and malformed provider result fail closed without retry', async () => {
+test('stock read uses exactly one existing stock tool call with explicit code + location', async () => {
+  let calls = 0;
+  let input: unknown;
+  const adapter = createVendaErpFastReadCapabilityAdapter();
+  const result = await adapter.execute({
+    tool: tool('vendaerp_get_product_stock', async (value) => {
+      calls += 1;
+      input = value;
+      return [{
+        location: 'LOJA-01',
+        quantity: 7,
+        lastUpdatedAt: '2026-10-01T12:00:00Z',
+      }];
+    }),
+    capability: 'business.stock.read',
+    request: 'Quanto tem do produto código 123 no depósito LOJA-01?',
+    selector: {
+      kind: 'stock',
+      product: { kind: 'product', by: 'code', value: '123' },
+      location: 'LOJA-01',
+    },
+  });
+
+  assert.equal(calls, 1);
+  assert.deepEqual(input, { productCode: '123', location: 'LOJA-01' });
+  assert.deepEqual(result, {
+    kind: 'facts',
+    subject: 'Estoque do produto 123',
+    facts: [
+      { label: 'Local', value: 'LOJA-01' },
+      { label: 'Quantidade', value: '7' },
+      { label: 'Atualizado em', value: '2026-10-01T12:00:00Z' },
+    ],
+  });
+});
+
+test('stock read never converts empty or malformed provider results into quantity zero', async () => {
+  const adapter = createVendaErpFastReadCapabilityAdapter();
+  const empty = await adapter.execute({
+    tool: tool('vendaerp_get_product_stock', async () => []),
+    capability: 'business.stock.read',
+    request: 'Quanto tem do produto código 123 no depósito LOJA-01?',
+    selector: {
+      kind: 'stock',
+      product: { kind: 'product', by: 'code', value: '123' },
+      location: 'LOJA-01',
+    },
+  });
+  assert.deepEqual(empty, {
+    kind: 'not_found',
+    message: 'Nenhum saldo de estoque foi retornado para o produto e local informados.',
+  });
+
+  await assert.rejects(adapter.execute({
+    tool: tool('vendaerp_get_product_stock', async () => [{
+      location: 'LOJA-01',
+      quantity: 'not-a-number',
+    }]),
+    capability: 'business.stock.read',
+    request: 'Quanto tem do produto código 123 no depósito LOJA-01?',
+    selector: {
+      kind: 'stock',
+      product: { kind: 'product', by: 'code', value: '123' },
+      location: 'LOJA-01',
+    },
+  }), /vendaerp_fast_read_invalid_stock_result/);
+});
+
+test('stock read rejects a missing stock selector before provider execution', async () => {
   let calls = 0;
   const adapter = createVendaErpFastReadCapabilityAdapter();
   await assert.rejects(adapter.execute({
-    tool: tool('vendaerp_search_products', async () => {
+    tool: tool('vendaerp_get_product_stock', async () => {
       calls += 1;
       return [];
     }),
     capability: 'business.stock.read',
-    request: 'Qual o estoque?',
+    request: 'Tem PREMIUM PLUS em estoque?',
     selector: null,
-  }), /vendaerp_fast_read_capability_unavailable/);
+  }), /vendaerp_fast_read_selector_required/);
   assert.equal(calls, 0);
+});
 
+test('unsupported capability and malformed provider result fail closed without retry', async () => {
+  let calls = 0;
+  const adapter = createVendaErpFastReadCapabilityAdapter();
   let malformedCalls = 0;
   await assert.rejects(adapter.execute({
     tool: tool('vendaerp_search_products', async () => {
