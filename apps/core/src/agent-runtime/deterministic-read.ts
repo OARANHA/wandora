@@ -1,6 +1,7 @@
 import type {
   BusinessCapability,
   SemanticRouteDecision,
+  SemanticSelector,
   SemanticRouteGateReason,
   SemanticRoutePolicy,
 } from '../semantic-routing/contracts.js';
@@ -29,7 +30,10 @@ export type DeterministicReadNormalizedResult =
 
 export type DeterministicReadBinding = {
   capability: BusinessCapability;
-  execute: (request: string) => Promise<DeterministicReadNormalizedResult>;
+  execute: (
+    request: string,
+    selector: SemanticSelector | null,
+  ) => Promise<DeterministicReadNormalizedResult>;
 };
 
 export type DeterministicReadExecution =
@@ -95,6 +99,7 @@ export class DeterministicReadExecutor {
   private async executeCapability(input: {
     request: string;
     capability: BusinessCapability;
+    selector: SemanticSelector | null;
     bindings: readonly DeterministicReadBinding[];
   }): Promise<DeterministicReadExecution> {
     const request = nonEmptyText(input.request, 12_000);
@@ -103,7 +108,7 @@ export class DeterministicReadExecutor {
       return { kind: 'fallback', reason: 'capability-binding-unavailable', toolCalls: 0 };
     }
 
-    const normalized = await matches[0]!.execute(request);
+    const normalized = await matches[0]!.execute(request, input.selector);
     return {
       kind: 'completed',
       capability: input.capability,
@@ -122,6 +127,7 @@ export class DeterministicReadExecutor {
   async executeAuthorizedIntent(input: {
     request: string;
     capability: BusinessCapability;
+    selector: SemanticSelector | null;
     bindings: readonly DeterministicReadBinding[];
   }): Promise<DeterministicReadExecution> {
     return this.executeCapability(input);
@@ -142,6 +148,7 @@ export class DeterministicReadExecutor {
     return this.executeCapability({
       request,
       capability: gate.capability,
+      selector: gate.selector,
       bindings: input.bindings,
     });
   }

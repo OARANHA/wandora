@@ -557,3 +557,41 @@ test('stdio tool failure logs only safe normalized error metadata', async () => 
   assert.equal(serializedErr.includes('must-not-log-app'), false);
   assert.equal(serializedErr.includes('pageSize'), false);
 });
+
+test('VendaERP provider latency event is operation-bounded and contains no request, credential or provider payload', async () => {
+  const events = [];
+  const ticks = [50, 63];
+  const client = createVendaErpClient({
+    tenant,
+    credentials,
+    monotonicNow: () => ticks.shift() ?? 63,
+    recordLatency: (event) => events.push(event),
+    fetchImpl: async () => jsonResponse([{
+      nome: 'must-not-log-product-name',
+      codigo: 'must-not-log-code',
+    }]),
+  });
+
+  await client.searchProducts({ name: 'must-not-log-query', pageSize: 5, skip: 0 });
+  assert.deepEqual(events, [{
+    event: 'wandora.latency.v1',
+    path: 'vendaerp-readonly-v1',
+    stage: 'vendaerp.tool_api',
+    operation: 'products.search',
+    durationMs: 13,
+    outcome: 'success',
+  }]);
+
+  const serialized = JSON.stringify(events);
+  for (const forbidden of [
+    credentials.authorizationToken,
+    credentials.user,
+    credentials.app,
+    'must-not-log-query',
+    'must-not-log-product-name',
+    'must-not-log-code',
+    origin,
+  ]) {
+    assert.equal(serialized.includes(forbidden), false);
+  }
+});

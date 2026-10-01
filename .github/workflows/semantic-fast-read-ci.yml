@@ -5,26 +5,80 @@ on:
     paths:
       - 'apps/core/src/semantic-routing/**'
       - 'apps/core/src/agent-runtime/**'
+      - 'apps/core/src/organization-adapter/**'
+      - 'apps/core/src/supervision/human-digital-employee-fast-read.ts'
+      - 'apps/core/src/business-system/vendaerp-fast-read.ts'
+      - 'apps/core/test/human-digital-employee-fast-read.test.ts'
+      - 'apps/core/test/mastra-mistral-semantic-selector-provider.test.ts'
+      - 'apps/core/test/vendaerp-fast-read.test.ts'
+      - 'apps/core/test/paperclip-organization-adapter-provider.test.ts'
       - 'apps/core/src/paperclip-execution/**'
       - 'apps/core/test/fast-read-intent.test.ts'
       - 'integrations/paperclip/adapters/wandora-mastra-v1/**'
       - 'integrations/paperclip/plugins/organization-adapter-v1/**'
       - '.github/workflows/semantic-fast-read-ci.yml'
+      - 'scripts/operations/production-rollback-freeze-v1.sh'
+      - 'scripts/operations/production-rollback-freeze-v2.sh'
+      - 'scripts/operations/managed-admin-production-rollback-freeze-v2-precheck.sh'
+      - 'scripts/operations/verify-managed-admin-production-rollback-freeze-v2-precheck.mjs'
+      - 'scripts/operations/managed-admin-production-rollback-freeze-v2-capture.sh'
+      - 'scripts/operations/verify-managed-admin-production-rollback-freeze-v2-capture.mjs'
+      - 'scripts/operations/managed-admin-semantic-fast-read-custody-metadata-v1.sh'
+      - 'scripts/operations/verify-managed-admin-semantic-fast-read-custody-metadata-v1.mjs'
+      - 'docs/decisions/0339-semantic-fast-read-custody-metadata-readback-capability-qualification-v1.md'
+      - 'docs/decisions/0314-managed-admin-v2-persistent-capture-capability-governance-v1.md'
+      - 'scripts/operations/prepare-postgres-18-1-recovery-image-v1.sh'
+      - 'docs/decisions/0299-production-rollback-freeze-secret-metadata-readback-v1.md'
+      - 'docs/decisions/0309-current-rollback-custody-precheck-owner-browser-trigger-preparation-v1.md'
+      - 'docs/decisions/0300-postgresql-18-1-recovery-image-acquisition-v1.md'
+      - 'docs/operations/postgresql-18-1-recovery-image-acquisition-v1.md'
+      - 'docs/operations/production-rollback-freeze-secret-metadata-readback-v1.md'
+      - 'docs/operations/current-production-rollback-freeze-secret-metadata-readback-v2.md'
       - 'docs/decisions/0277-semantic-fast-read-intent-disposable-paperclip-attestation-v1.md'
       - 'docs/CANONICAL_STATE.md'
+      - 'docs/decisions/0295-semantic-fast-read-production-convergence-artifact-activation-contract-v1.md'
+      - 'docs/operations/paperclip-v2026-916-1-fast-read-production-promotion-v1.md'
+      - 'infra/stacks/paperclip/compose.semantic-fast-read-candidate.yaml'
       - 'docs/WANDORA_PROJECT_SOURCE.md'
   push:
     branches: [main]
     paths:
       - 'apps/core/src/semantic-routing/**'
       - 'apps/core/src/agent-runtime/**'
+      - 'apps/core/src/organization-adapter/**'
+      - 'apps/core/src/supervision/human-digital-employee-fast-read.ts'
+      - 'apps/core/src/business-system/vendaerp-fast-read.ts'
+      - 'apps/core/test/human-digital-employee-fast-read.test.ts'
+      - 'apps/core/test/mastra-mistral-semantic-selector-provider.test.ts'
+      - 'apps/core/test/vendaerp-fast-read.test.ts'
+      - 'apps/core/test/paperclip-organization-adapter-provider.test.ts'
       - 'apps/core/src/paperclip-execution/**'
       - 'apps/core/test/fast-read-intent.test.ts'
       - 'integrations/paperclip/adapters/wandora-mastra-v1/**'
       - 'integrations/paperclip/plugins/organization-adapter-v1/**'
       - '.github/workflows/semantic-fast-read-ci.yml'
+      - 'scripts/operations/production-rollback-freeze-v1.sh'
+      - 'scripts/operations/production-rollback-freeze-v2.sh'
+      - 'scripts/operations/managed-admin-production-rollback-freeze-v2-precheck.sh'
+      - 'scripts/operations/verify-managed-admin-production-rollback-freeze-v2-precheck.mjs'
+      - 'scripts/operations/managed-admin-production-rollback-freeze-v2-capture.sh'
+      - 'scripts/operations/verify-managed-admin-production-rollback-freeze-v2-capture.mjs'
+      - 'scripts/operations/managed-admin-semantic-fast-read-custody-metadata-v1.sh'
+      - 'scripts/operations/verify-managed-admin-semantic-fast-read-custody-metadata-v1.mjs'
+      - 'docs/decisions/0339-semantic-fast-read-custody-metadata-readback-capability-qualification-v1.md'
+      - 'docs/decisions/0314-managed-admin-v2-persistent-capture-capability-governance-v1.md'
+      - 'scripts/operations/prepare-postgres-18-1-recovery-image-v1.sh'
+      - 'docs/decisions/0299-production-rollback-freeze-secret-metadata-readback-v1.md'
+      - 'docs/decisions/0309-current-rollback-custody-precheck-owner-browser-trigger-preparation-v1.md'
+      - 'docs/decisions/0300-postgresql-18-1-recovery-image-acquisition-v1.md'
+      - 'docs/operations/postgresql-18-1-recovery-image-acquisition-v1.md'
+      - 'docs/operations/production-rollback-freeze-secret-metadata-readback-v1.md'
+      - 'docs/operations/current-production-rollback-freeze-secret-metadata-readback-v2.md'
       - 'docs/decisions/0277-semantic-fast-read-intent-disposable-paperclip-attestation-v1.md'
       - 'docs/CANONICAL_STATE.md'
+      - 'docs/decisions/0295-semantic-fast-read-production-convergence-artifact-activation-contract-v1.md'
+      - 'docs/operations/paperclip-v2026-916-1-fast-read-production-promotion-v1.md'
+      - 'infra/stacks/paperclip/compose.semantic-fast-read-candidate.yaml'
       - 'docs/WANDORA_PROJECT_SOURCE.md'
   workflow_dispatch:
 
@@ -45,13 +99,471 @@ jobs:
         with:
           persist-credentials: false
 
+
+      - name: Paperclip v916.1 promotion Compose qualification
+        shell: bash
+        env:
+          BETTER_AUTH_SECRET: ci-only-placeholder
+          PAPERCLIP_AGENT_JWT_SECRET: ci-only-placeholder
+          PAPERCLIP_TOOL_ACTION_SIGNING_SECRET: ci-only-placeholder
+          WANDORA_PAPERCLIP_EXECUTION_BRIDGE_SECRET_FILE_HOST: /tmp/ci-paperclip-execution-bridge-hmac
+        run: |
+          set -euo pipefail
+          base=infra/stacks/paperclip/compose.yaml
+          bridge=infra/stacks/paperclip/compose.paperclip-execution-bridge.yaml
+          candidate=infra/stacks/paperclip/compose.semantic-fast-read-candidate.yaml
+
+          docker compose -f "$base" -f "$bridge" config --format json > /tmp/paperclip-baseline.json
+          docker compose -f "$base" -f "$bridge" -f "$candidate" config --format json > /tmp/paperclip-candidate.json
+
+          python3 - <<'PY'
+          import copy
+          import json
+          from pathlib import Path
+
+          baseline = json.loads(Path("/tmp/paperclip-baseline.json").read_text())
+          candidate = json.loads(Path("/tmp/paperclip-candidate.json").read_text())
+
+          expected = copy.deepcopy(baseline)
+          service = expected["services"]["paperclip"]
+          service.pop("build", None)
+          service["image"] = "wandora/paperclip:v2026.916.1"
+          service["pull_policy"] = "never"
+
+          actual = candidate["services"]["paperclip"]
+          if "build" in actual:
+              raise SystemExit("paperclip_candidate_build_not_reset")
+          if actual.get("image") != "wandora/paperclip:v2026.916.1":
+              raise SystemExit(f"paperclip_candidate_image_mismatch:{actual.get('image')}")
+          if actual.get("pull_policy") != "never":
+              raise SystemExit(f"paperclip_candidate_pull_policy_mismatch:{actual.get('pull_policy')}")
+
+          if candidate != expected:
+              keys = sorted(set(candidate) | set(expected))
+              changed = [key for key in keys if candidate.get(key) != expected.get(key)]
+              raise SystemExit(f"paperclip_candidate_unexpected_render_delta:{changed}")
+
+          print("WANDORA_PAPERCLIP_V9161_PROMOTION_COMPOSE_OK")
+          PY
+
+      - name: ADR 0299 operator helper static qualification
+        shell: bash
+        run: |
+          set -euo pipefail
+          helper=scripts/operations/production-rollback-freeze-v1.sh
+          bash -n "$helper"
+          python3 - "$helper" <<'PY'
+          from pathlib import Path
+          import sys
+
+          source = Path(sys.argv[1]).read_text()
+          required = [
+              '[[ "$#" -eq 0 ]]',
+              '[[ "${EUID}" -eq 0 ]]',
+              '/home/wandora-admin/backups',
+              'production-rollback-freeze-v1.metadata',
+              'pg18_live_dump probe /dev/null',
+              '--network none',
+              '--exit-on-error',
+              "! -path './paperclip/master.key'",
+              'post_drain_proxy=',
+              'restore_created=true',
+              'parent_created=true',
+              'rollback root appeared concurrently',
+              'receipt appeared concurrently; refusing overwrite',
+              'receipt_published=true',
+              'temporary receipt cleanup failed after publication',
+              'unexpected_database_mode',
+              'unexpected_database_source',
+              'database_not_loopback',
+              'unexpected_database_port',
+              'target.mode !== "embedded-postgres"',
+              'target.port !== 54329',
+              'embedded-postgres@${target.port}',
+              'postgres://paperclip:paperclip@127.0.0.1:${target.port}/paperclip',
+              'paperclip_db_data_dir',
+              'PC_ADAPTER_REGISTRY="/paperclip/adapter-plugins.json"',
+              'Paperclip master.key source missing',
+              'Paperclip adapter registry source missing',
+              'Paperclip operator-packages source missing',
+              'Organization Adapter package source missing',
+              "PostgreSQL init process complete; ready for start up.",
+              "psql -U postgres -d postgres -Atqc 'SELECT 1'",
+              "disposable PostgreSQL 18.1 final server SQL probe not ready",
+              "-e '/^-- Dumped from database version /d'",
+              "SHOW data_directory",
+              'live PostgreSQL data_directory does not match Paperclip embedded target',
+              '--dbname="$db_url"',
+              'fromjson | select(.ok == true and .operation == "task-drain-status") | .result',
+              'POSTGRES_CLIENT_INDEX_DIGEST="sha256:1090bc3a8ccfb0b55f78a494d76f8d603434f7e4553543d6e807bc7bd6bbd17f"',
+              'POSTGRES_CLIENT_PLATFORM="linux/amd64"',
+              'RepoDigests',
+              'ROLLBACK_FREEZE_V1_OK',
+          ]
+          missing = [item for item in required if item not in source]
+          if missing:
+              raise SystemExit(f"adr0299_helper_missing:{missing}")
+
+          drain_decode = 'fromjson | select(.ok == true and .operation == "task-drain-status") | .result'
+          if source.count(drain_decode) != 2:
+              raise SystemExit('adr0299_task_drain_envelope_decode_count')
+
+          forbidden = [
+              'docker pull', 'target_agent_', 'eval ', 'sudo ',
+              'CORE_IMAGE="wandora/core:organization-adapter-candidate-a49504c7c41e"',
+              'CORE_IMAGE_ID="sha256:ec37d2f730e0069521745fc620085f5d2353dc583117808d955f9e6975604005"',
+              'CORE_REVISION="a49504c7c41ee255fa25cc3944ef0f718cc9a696"',
+              'RECEIPT="/opt/wandora/ops-workspace/production-rollback-freeze-v2-a49504c7c41ee255fa25cc3944ef0f718cc9a696.metadata"',
+              'root="${BACKUP_PARENT}/paperclip-v9161-fast-read-rollback-freeze-v2-a49504c7c41e-${stamp}"',
+              'CORE_IMAGE="wandora/core:organization-adapter-candidate-14534e57256f"',
+              'CORE_IMAGE_ID="sha256:ac253a9479338f0d47954937209323229314ef513125a71dd266558b3bfe1c8b"',
+              'CORE_REVISION="14534e57256f0a73c49feb3944a1068921468f94"',
+              'RECEIPT="/opt/wandora/ops-workspace/production-rollback-freeze-v2-14534e57256f0a73c49feb3944a1068921468f94.metadata"',
+              'root="${BACKUP_PARENT}/paperclip-v9161-fast-read-rollback-freeze-v2-14534e57256f-${stamp}"',
+              'resolveMigrationConnection', 'export PGDATABASE="$db_url"',
+              'pg_isready -U postgres -d postgres',
+          ]
+          if r'\\n        unset db_url' in source:
+              raise SystemExit('adr0299_literal_newline_escape')
+
+          if source.count('--dbname="$db_url"') != 3:
+              raise SystemExit('adr0299_dbname_connection_string_count')
+
+          present = [item for item in forbidden if item in source]
+          if present:
+              raise SystemExit(f"adr0299_helper_forbidden:{present}")
+
+          precheck = source.index('pg18_live_dump probe /dev/null')
+          first_write = source.index('# First write begins here')
+          if precheck > first_write:
+              raise SystemExit('adr0299_schema_probe_after_first_write')
+
+          custody_prechecks = [
+              'Paperclip master.key source missing',
+              'Paperclip adapter registry source missing',
+              'Paperclip operator-packages source missing',
+              'Organization Adapter package source missing',
+          ]
+          for item in custody_prechecks:
+              if source.index(item) > first_write:
+                  raise SystemExit(f'adr0299_custody_precheck_after_first_write:{item}')
+
+          marker = source.index('PostgreSQL init process complete; ready for start up.')
+          sql_probe = source.index("psql -U postgres -d postgres -Atqc 'SELECT 1'")
+          createdb = source.index('createdb -U postgres paperclip_restore')
+          if not (marker < sql_probe < createdb):
+              raise SystemExit('adr0299_restore_final_server_gate_order')
+
+          normalize = source[source.index('normalize_schema() {'):source.index('# ---------------------------\n# Fresh pre-effect checks')]
+          if normalize.count("-e '/^-- Dumped from database version /d'") != 1:
+              raise SystemExit('adr0299_schema_version_comment_normalization_mismatch')
+          if '-- Dumped by pg_dump version' in normalize:
+              raise SystemExit('adr0299_pg_dump_version_anchor_must_remain')
+
+          if 'mv -- "${tmp_receipt}" "${RECEIPT}"' in source:
+              raise SystemExit('adr0299_receipt_overwrite_path')
+
+          receipt = source[source.index('# Safe MCP-readable receipt'):]
+          for forbidden_receipt in ('postgres18_image_id', 'postgres_server_version', 'master.key'):
+              if forbidden_receipt in receipt:
+                  raise SystemExit(f"adr0299_receipt_forbidden:{forbidden_receipt}")
+
+          print('WANDORA_ADR0299_OPERATOR_HELPER_STATIC_OK')
+          PY
+
+      - name: ADR 0309 canonical V2 rollback helper static qualification
+        shell: bash
+        run: |
+          set -euo pipefail
+          helper=scripts/operations/production-rollback-freeze-v2.sh
+          bash -n "$helper"
+          python3 - "$helper" <<'PY'
+          from pathlib import Path
+          import sys
+
+          source = Path(sys.argv[1]).read_text()
+          required = [
+              '[[ "$1" == "--precheck-only" ]]',
+              'PC_IMAGE="wandora/paperclip:v2026.916.1"',
+              'PC_IMAGE_ID="sha256:7b72d43e87d54fcb9aa48b665150e062750c0cacb270e069f94297d58caa91e5"',
+              'PC_COMMIT="d554c4789ed3930f8a53ac9fdf6503b3187097da"',
+              'CORE_IMAGE="wandora/core:organization-adapter-candidate-83baca411096"',
+              'CORE_IMAGE_ID="sha256:f8f09f785ed2b1f8fd86c9b9120c8ba09956d8f30b239190b93a110efd462d7f"',
+              'CORE_REVISION="83baca4110966989b484341b5c58bb42d1eb5407"',
+              'OA_VERSION="0.6.1"',
+              '80373a61f08d87772c3aab738ffa6905bddcb49c783e9574c1540247cb3b258f/package',
+              'MASTRA_TYPE="wandora_mastra"',
+              'MASTRA_SOURCE="external"',
+              'MASTRA_VERSION="0.6.0"',
+              '2e97da6dabfe8cc81c60c35ce74b071329078835373eb3ca39ce63017e9b9ecf/package',
+              '64795ff7d2c519ef6303ab0944bac02d27aadf8b919860b832c2e6fac4defb62/package',
+              'assert_mastra_adapter',
+              'mastra_adapter_rollback_package_preserved=true',
+              'compose.semantic-fast-read-candidate.yaml',
+              'semantic-fast-read gates-OFF overlay missing',
+              'agent runtime model overlay missing',
+              'VIGIA="/opt/wandora/ops-workspace/.credentials/vigia-core-production"',
+              'Vigia overlay missing',
+              'assert_regular_secret_meta "${VIGIA}" "wandora-exec"',
+              'safe_secret_meta_line vigia "${VIGIA}"',
+              'semantic-fast-read custody overlay is live',
+              'semantic-fast-read attestation overlay is live',
+              'RECEIPT="/opt/wandora/ops-workspace/production-rollback-freeze-v2-post-adr0366-83baca4110966989b484341b5c58bb42d1eb5407-mastra060-2e97da6d.metadata"',
+              'root="${BACKUP_PARENT}/paperclip-v9161-fast-read-rollback-freeze-v2-post-adr0366-83baca411096-mastra060-2e97da6d-${stamp}"',
+              'ROLLBACK_FREEZE_V2_PRECHECK_OK',
+              'ROLLBACK_FREEZE_V2_OK',
+              'pg18_live_dump probe /dev/null',
+              '--network none',
+              '--exit-on-error',
+              "! -path './paperclip/master.key'",
+              'post_drain_proxy=',
+              'target.mode !== "embedded-postgres"',
+              'target.port !== 54329',
+              'SHOW data_directory',
+          ]
+          missing = [item for item in required if item not in source]
+          if missing:
+              raise SystemExit(f"adr0309_v2_helper_missing:{missing}")
+
+          forbidden = [
+              'docker pull', 'target_agent_', 'eval ', 'sudo ',
+              'CORE_IMAGE="wandora/core:organization-adapter-candidate-9d0a4ba577fe"',
+              'CORE_IMAGE_ID="sha256:3ae9e4eae1949cc9da7e191cea841e1564d1a1577385f994991561c49c715e7d"',
+              'CORE_REVISION="9d0a4ba577fe41d9efd8a5d2c4e5539ec0e7afeb"',
+              'RECEIPT="/opt/wandora/ops-workspace/production-rollback-freeze-v2-post-adr0364-9d0a4ba577fe41d9efd8a5d2c4e5539ec0e7afeb-mastra060-2e97da6d.metadata"',
+              'root="${BACKUP_PARENT}/paperclip-v9161-fast-read-rollback-freeze-v2-post-adr0364-9d0a4ba577fe-mastra060-2e97da6d-${stamp}"',
+              'resolveMigrationConnection', 'export PGDATABASE="$db_url"',
+              'pg_isready -U postgres -d postgres',
+              'ROLLBACK_FREEZE_V1_OK',
+              'production-rollback-freeze-v1.metadata',
+              'CORE_IMAGE="wandora/core:organization-adapter-candidate-f279acc98687"',
+              'CORE_IMAGE_ID="sha256:c8994cc7b9a6bff15b212eba215d5a1360ee217b84df18a1b59409fb9fd1a4d8"',
+              'CORE_REVISION="f279acc98687da894a1ce6570273b5949552a8c7"',
+              'RECEIPT="/opt/wandora/ops-workspace/production-rollback-freeze-v2-post-adr0358-f279acc98687da894a1ce6570273b5949552a8c7-mastra060-2e97da6d.metadata"',
+              'root="${BACKUP_PARENT}/paperclip-v9161-fast-read-rollback-freeze-v2-post-adr0358-f279acc98687-mastra060-2e97da6d-${stamp}"',
+              'CORE_IMAGE="wandora/core:organization-adapter-candidate-e4c7c36bb109"',
+              'CORE_IMAGE_ID="sha256:ee5db7ffa1114b78670e713f374801730ab556d33a02183e19ef87742c121846"',
+              'CORE_REVISION="e4c7c36bb1091ba38d39b85fa259bae94553fc52"',
+              'RECEIPT="/opt/wandora/ops-workspace/production-rollback-freeze-v2-e4c7c36bb1091ba38d39b85fa259bae94553fc52.metadata"',
+              'root="${BACKUP_PARENT}/paperclip-v9161-fast-read-rollback-freeze-v2-e4c7c36bb109-${stamp}"',
+              'CORE_IMAGE="wandora/core:organization-adapter-candidate-2c2142237c9c"',
+              'CORE_IMAGE_ID="sha256:d3ed5494c03c0720419387befc54f6f6cb124e5407fc619150ecf3dde03dfed7"',
+              'CORE_REVISION="2c2142237c9cccc1f7a90d6ae056cd12cc5f4754"',
+              'RECEIPT="/opt/wandora/ops-workspace/production-rollback-freeze-v2.metadata"',
+              'CORE_IMAGE="wandora/core:organization-adapter-candidate-b2cffbb54089"',
+              'CORE_IMAGE_ID="sha256:15a2eca7f74c4e6f7f6ea07bb461d6b711dffd0a70807a3f8e7773f6e6a27c49"',
+              'CORE_REVISION="b2cffbb54089212844ef177827e7a616b1008144"',
+              'OA_VERSION="0.5.0"',
+              'f4e733613e72e771eb18361dbdbf420c810c5b8bbe31361a64040a2081cc2ae2/package',
+              'RECEIPT="/opt/wandora/ops-workspace/production-rollback-freeze-v2-b2cffbb54089212844ef177827e7a616b1008144.metadata"',
+              'RECEIPT="/opt/wandora/ops-workspace/production-rollback-freeze-v2-f279acc98687da894a1ce6570273b5949552a8c7.metadata"',
+              'root="${BACKUP_PARENT}/paperclip-v9161-fast-read-rollback-freeze-v2-f279acc98687-${stamp}"',
+          ]
+          present = [item for item in forbidden if item in source]
+          if present:
+              raise SystemExit(f"adr0309_v2_helper_forbidden:{present}")
+
+          precheck = source.index('ROLLBACK_FREEZE_V2_PRECHECK_OK')
+          first_write = source.index('# First write begins here')
+          if precheck > first_write:
+              raise SystemExit('adr0309_precheck_after_first_write')
+          if source.count('ROLLBACK_FREEZE_V2_OK') != 2:
+              raise SystemExit('adr0309_v2_terminal_marker_count')
+
+          print("WANDORA_ADR0309_CANONICAL_V2_HELPER_STATIC_OK")
+          PY
+
+      - name: ADR 0310 managed-admin V2 precheck entrypoint qualification
+        shell: bash
+        run: |
+          set -euo pipefail
+          entrypoint=scripts/operations/managed-admin-production-rollback-freeze-v2-precheck.sh
+          bash -n "$entrypoint"
+          node scripts/operations/verify-managed-admin-production-rollback-freeze-v2-precheck.mjs
+
+          set +e
+          rejection="$(bash "$entrypoint" unexpected 2>&1)"
+          status=$?
+          set -e
+          test "$status" -ne 0
+          grep -Fq 'caller arguments are forbidden' <<<"$rejection"
+
+          printf 'WANDORA_ADR0310_MANAGED_ADMIN_PRECHECK_CI_OK\n'
+
+      - name: ADR 0314 managed-admin V2 persistent capture entrypoint qualification
+        shell: bash
+        run: |
+          set -euo pipefail
+          entrypoint=scripts/operations/managed-admin-production-rollback-freeze-v2-capture.sh
+          bash -n "$entrypoint"
+          node scripts/operations/verify-managed-admin-production-rollback-freeze-v2-capture.mjs
+
+          set +e
+          rejection="$(bash "$entrypoint" unexpected 2>&1)"
+          status=$?
+          set -e
+          test "$status" -ne 0
+          grep -Fq 'caller arguments are forbidden' <<<"$rejection"
+
+          printf 'WANDORA_ADR0314_MANAGED_ADMIN_CAPTURE_CI_OK\n'
+
+      - name: ADR 0339 Semantic Fast Read custody metadata managed-admin qualification
+        shell: bash
+        run: |
+          set -euo pipefail
+          entrypoint=scripts/operations/managed-admin-semantic-fast-read-custody-metadata-v1.sh
+          bash -n "$entrypoint"
+          node scripts/operations/verify-managed-admin-semantic-fast-read-custody-metadata-v1.mjs
+
+          set +e
+          rejection="$(bash "$entrypoint" unexpected 2>&1)"
+          status=$?
+          set -e
+          test "$status" -ne 0
+          grep -Fq 'SEMANTIC_FAST_READ_CUSTODY_METADATA_V1_ERROR' <<<"$rejection"
+
+          printf 'WANDORA_ADR0339_CUSTODY_METADATA_CAPABILITY_CI_OK\n'
+
+      - name: ADR 0300 PostgreSQL 18.1 recovery image helper static qualification
+        shell: bash
+        run: |
+          set -euo pipefail
+          helper=scripts/operations/prepare-postgres-18-1-recovery-image-v1.sh
+          bash -n "$helper"
+          python3 - "$helper" <<'PY'
+          from pathlib import Path
+          import sys
+
+          source = Path(sys.argv[1]).read_text()
+          required = [
+              '[[ "$#" -eq 0 ]]',
+              '[[ "${EUID}" -eq 0 ]]',
+              'SOURCE_INDEX_DIGEST="sha256:1090bc3a8ccfb0b55f78a494d76f8d603434f7e4553543d6e807bc7bd6bbd17f"',
+              'SOURCE_REF="postgres@${SOURCE_INDEX_DIGEST}"',
+              'TARGET_TAG="postgres:18.1"',
+              'EXPECTED_PLATFORM="linux/amd64"',
+              'docker pull --platform "${EXPECTED_PLATFORM}" "${SOURCE_REF}"',
+              '--network none',
+              '--entrypoint postgres',
+              'docker tag "${SOURCE_REF}" "${TARGET_TAG}"',
+              'postgres-18-1-recovery-image-v1.metadata',
+              'POSTGRES_18_1_RECOVERY_IMAGE_V1_OK',
+          ]
+          missing = [item for item in required if item not in source]
+          if missing:
+              raise SystemExit(f"adr0300_helper_missing:{missing}")
+
+          if source.count('docker pull ') != 1:
+              raise SystemExit('adr0300_docker_pull_count')
+
+          forbidden = [
+              'sudo ', 'docker compose', 'docker stop', 'docker restart',
+              'systemctl ', 'target_agent_', '/home/wandora-admin/backups',
+          ]
+          present = [item for item in forbidden if item in source]
+          if present:
+              raise SystemExit(f"adr0300_helper_forbidden:{present}")
+
+          print('WANDORA_ADR0300_POSTGRES_RECOVERY_IMAGE_HELPER_STATIC_OK')
+          PY
+
       - name: Checkout pinned Paperclip source
         uses: actions/checkout@v4
         with:
           repository: paperclipai/paperclip
-          ref: dffc2b3ca1b9e88fa21cb17493083e682dffd1ca
+          ref: d554c4789ed3930f8a53ac9fdf6503b3187097da
           path: .paperclip
           persist-credentials: false
+          fetch-depth: 2
+
+      - name: ADR 0299 pinned production embedded PostgreSQL contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          production_commit=dffc2b3ca1b9e88fa21cb17493083e682dffd1ca
+          git -C .paperclip cat-file -e "${production_commit}^{commit}"
+          git -C .paperclip show "${production_commit}:cli/src/commands/db-backup.ts" > /tmp/paperclip-production-db-backup.ts
+          git -C .paperclip show "${production_commit}:packages/db/src/backup-lib.ts" > /tmp/paperclip-production-backup-lib.ts
+          git -C .paperclip show "${production_commit}:server/src/services/adapter-plugin-store.ts" > /tmp/paperclip-production-adapter-plugin-store.ts
+          git -C .paperclip show "${production_commit}:packages/shared/src/home-paths.ts" > /tmp/paperclip-production-home-paths.ts
+          python3 - <<'PY'
+          from pathlib import Path
+
+          upstream = Path("/tmp/paperclip-production-db-backup.ts").read_text()
+          backup_lib = Path("/tmp/paperclip-production-backup-lib.ts").read_text()
+          adapter_store = Path("/tmp/paperclip-production-adapter-plugin-store.ts").read_text()
+          home_paths = Path("/tmp/paperclip-production-home-paths.ts").read_text()
+          helper = Path("scripts/operations/production-rollback-freeze-v1.sh").read_text()
+
+          upstream_contract = 'postgres://paperclip:paperclip@127.0.0.1:${port}/paperclip'
+          helper_contract = 'postgres://paperclip:paperclip@127.0.0.1:${target.port}/paperclip'
+
+          if upstream_contract not in upstream:
+              raise SystemExit("adr0299_upstream_embedded_connection_contract_missing")
+          if 'source: `embedded-postgres@${port}`' not in upstream:
+              raise SystemExit("adr0299_upstream_embedded_source_contract_missing")
+          if backup_lib.count('--dbname=${opts.connectionString}') < 2:
+              raise SystemExit("adr0299_upstream_dbname_connection_contract_missing")
+          if 'path.join(paperclipDir, "adapter-plugins.json")' not in adapter_store:
+              raise SystemExit("adr0299_upstream_adapter_registry_contract_missing")
+          if 'resolvePaperclipHomeDir()' not in adapter_store:
+              raise SystemExit("adr0299_upstream_adapter_home_resolver_missing")
+          if 'process.env.PAPERCLIP_HOME?.trim()' not in home_paths:
+              raise SystemExit("adr0299_upstream_paperclip_home_env_contract_missing")
+          if 'PC_ADAPTER_REGISTRY="/paperclip/adapter-plugins.json"' not in helper:
+              raise SystemExit("adr0299_helper_adapter_registry_path_mismatch")
+          if helper_contract not in helper:
+              raise SystemExit("adr0299_helper_embedded_connection_contract_missing")
+          if 'target.mode !== "embedded-postgres"' not in helper:
+              raise SystemExit("adr0299_helper_embedded_mode_guard_missing")
+          if 'target.port !== 54329' not in helper:
+              raise SystemExit("adr0299_helper_embedded_port_guard_missing")
+          if "SHOW data_directory" not in helper:
+              raise SystemExit("adr0299_helper_data_dir_guard_missing")
+
+          print("WANDORA_ADR0299_EMBEDDED_POSTGRES_CONTRACT_OK")
+          PY
+
+      - name: ADR 0309 canonical V2 pinned Paperclip v916.1 contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          upstream = Path(".paperclip/cli/src/commands/db-backup.ts").read_text()
+          backup_lib = Path(".paperclip/packages/db/src/backup-lib.ts").read_text()
+          adapter_store = Path(".paperclip/server/src/services/adapter-plugin-store.ts").read_text()
+          home_paths = Path(".paperclip/packages/shared/src/home-paths.ts").read_text()
+          helper = Path("scripts/operations/production-rollback-freeze-v2.sh").read_text()
+
+          upstream_contract = 'postgres://paperclip:paperclip@127.0.0.1:${port}/paperclip'
+          helper_contract = 'postgres://paperclip:paperclip@127.0.0.1:${target.port}/paperclip'
+
+          if upstream_contract not in upstream:
+              raise SystemExit("adr0309_upstream_embedded_connection_contract_missing")
+          if 'source: `embedded-postgres@${port}`' not in upstream:
+              raise SystemExit("adr0309_upstream_embedded_source_contract_missing")
+          if backup_lib.count('--dbname=${opts.connectionString}') < 2:
+              raise SystemExit("adr0309_upstream_dbname_connection_contract_missing")
+          if 'path.join(paperclipDir, "adapter-plugins.json")' not in adapter_store:
+              raise SystemExit("adr0309_upstream_adapter_registry_contract_missing")
+          if 'resolvePaperclipHomeDir()' not in adapter_store:
+              raise SystemExit("adr0309_upstream_adapter_home_resolver_missing")
+          if 'process.env.PAPERCLIP_HOME?.trim()' not in home_paths:
+              raise SystemExit("adr0309_upstream_paperclip_home_env_contract_missing")
+          if helper_contract not in helper:
+              raise SystemExit("adr0309_helper_embedded_connection_contract_missing")
+
+          print("WANDORA_ADR0309_CANONICAL_V2_PAPERCLIP_CONTRACT_OK")
+          PY
+
+      - name: Compose qualified Paperclip Fast Read provider deltas
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x integrations/paperclip/fast-read-convergence-v1/compose-qualified-patches.sh
+          integrations/paperclip/fast-read-convergence-v1/compose-qualified-patches.sh "$GITHUB_WORKSPACE/.paperclip"
 
       - name: Set up Node 24.21.0
         uses: actions/setup-node@v4
@@ -82,7 +594,13 @@ jobs:
 
       - name: Focused fast-read Core tests
         working-directory: apps/core
-        run: node --import tsx --test test/fast-read-intent.test.ts
+        run: >-
+          node --import tsx --test
+          test/fast-read-intent.test.ts
+          test/human-digital-employee-fast-read.test.ts
+          test/mastra-mistral-semantic-selector-provider.test.ts
+          test/vendaerp-fast-read.test.ts
+          test/paperclip-organization-adapter-provider.test.ts
 
       - name: Adapter contract tests
         working-directory: integrations/paperclip/adapters/wandora-mastra-v1
@@ -101,16 +619,6 @@ jobs:
           sed -i "s/:get_value/:get-value/g" integrations/paperclip/adapters/wandora-mastra-v1/disposable-fast-read-core.mjs
           sed -i "s/'Wandora Fast Read Disposable','active','deny'/'Wandora Fast Read Agent Profile','active','deny'/g" integrations/paperclip/adapters/wandora-mastra-v1/verify-fast-read-disposable-e2e.sh
           sed -i "s/'Wandora Fast Read Disposable','active','deny'/'Wandora Fast Read Binding Disposable','active','deny'/g" integrations/paperclip/adapters/wandora-mastra-v1/verify-fast-read-disposable-e2e.sh
-          python3 - <<'PY'
-          from pathlib import Path
-          path = Path("integrations/paperclip/adapters/wandora-mastra-v1/verify-fast-read-disposable-e2e.sh")
-          source = path.read_text()
-          old = """test "$(pc_sql "select coalesce(result_json->>'model','') from heartbeat_runs where id='$SUCCESS_RUN_ID'::uuid;")" = "wandora-deterministic-read-v1" """
-          new = """test -n "$(pc_sql "select coalesce(result_json->>'executionId','') from heartbeat_runs where id='$SUCCESS_RUN_ID'::uuid;")" """
-          if old.strip() not in source:
-              raise SystemExit("fast_read_result_model_assertion_not_found")
-          path.write_text(source.replace(old.strip(), new.strip(), 1))
-          PY
           python3 - <<'PY'
           from pathlib import Path
           path = Path("integrations/paperclip/adapters/wandora-mastra-v1/verify-fast-read-disposable-e2e.sh")

@@ -8,6 +8,7 @@ import {
 const RUN = '71111111-1111-4111-8111-111111111111';
 const CONNECTION = '72222222-2222-4222-8222-222222222222';
 const CATALOG = '73333333-3333-4333-8333-333333333333';
+const GATEWAY_PRODUCT = 'mcp.wandora-vendaerp-read-only-v1-72222222:vendaerp-search-products';
 
 test('Paperclip read bridge exposes only authorized connection-backed read tools', async () => {
   const requests: Array<{ url: string; init: RequestInit | undefined }> = [];
@@ -24,7 +25,8 @@ test('Paperclip read bridge exposes only authorized connection-backed read tools
     if (url.endsWith('/api/tool-gateway/tools')) {
       return new Response(JSON.stringify([
         {
-          name: 'vendaerp_search_products',
+          name: GATEWAY_PRODUCT,
+          upstreamToolName: 'vendaerp_search_products',
           displayName: 'VendaERP Search Products',
           description: 'Read products.',
           parametersSchema: {
@@ -39,7 +41,8 @@ test('Paperclip read bridge exposes only authorized connection-backed read tools
           catalogEntryId: CATALOG,
         },
         {
-          name: 'dangerous_write',
+          name: 'mcp.wandora-vendaerp-read-only-v1-72222222:dangerous-write',
+          upstreamToolName: 'dangerous_write',
           displayName: 'Dangerous Write',
           description: 'Must not cross the bridge.',
           parametersSchema: { type: 'object' },
@@ -64,7 +67,7 @@ test('Paperclip read bridge exposes only authorized connection-backed read tools
       return new Response(JSON.stringify({
         invocationId: 'invocation-success',
         status: 'completed',
-        tool: 'vendaerp_search_products',
+        tool: GATEWAY_PRODUCT,
         result: {
           content: 'ignored fallback',
           data: { items: [{ code: 'P1', name: 'Tinta' }] },
@@ -84,7 +87,8 @@ test('Paperclip read bridge exposes only authorized connection-backed read tools
   });
 
   assert.equal(tools.length, 1);
-  assert.equal(tools[0]?.name, 'vendaerp_search_products');
+  assert.equal(tools[0]?.name, GATEWAY_PRODUCT);
+  assert.equal(tools[0]?.providerToolName, 'vendaerp_search_products');
   assert.deepEqual(tools[0]?.inputSchema, {
     type: 'object',
     properties: { name: { type: 'string' } },
@@ -107,10 +111,84 @@ test('Paperclip read bridge exposes only authorized connection-backed read tools
   assert.equal(callHeaders['x-paperclip-tool-gateway-token'], 'ephemeral-gateway-token');
   assert.equal(JSON.stringify(requests[2]).includes('opaque-run-token'), false);
   assert.deepEqual(JSON.parse(String(requests[2]!.init?.body)), {
-    tool: 'vendaerp_search_products',
+    tool: GATEWAY_PRODUCT,
     parameters: { name: 'Tinta' },
     timeoutMs: 5000,
   });
+});
+
+test('Paperclip read bridge unwraps successful normalized MCP structured content data', async () => {
+  const fetchImpl: typeof fetch = async (input) => {
+    const url = String(input);
+    if (url.endsWith('/api/tool-gateway/sessions')) {
+      return new Response(JSON.stringify({
+        sessionId: 'session-structured-success',
+        token: 'ephemeral-gateway-token',
+        expiresAt: new Date(Date.now() + 60_000).toISOString(),
+      }), { status: 201, headers: { 'content-type': 'application/json' } });
+    }
+    if (url.endsWith('/api/tool-gateway/tools')) {
+      return new Response(JSON.stringify([{
+        name: GATEWAY_PRODUCT,
+        upstreamToolName: 'vendaerp_search_products',
+        displayName: 'VendaERP Search Products',
+        description: 'Read products.',
+        parametersSchema: { type: 'object' },
+        providerType: 'mcp_local_stdio',
+        risk: 'read',
+        connectionId: CONNECTION,
+        catalogEntryId: CATALOG,
+      }]), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    if (url.endsWith('/api/tool-gateway/tools/call')) {
+      return new Response(JSON.stringify({
+        invocationId: 'invocation-structured-success',
+        status: 'completed',
+        tool: GATEWAY_PRODUCT,
+        result: {
+          content: '[{"name":"PREMIUM PLUS","code":"3","salePrice":890}]',
+          data: {
+            content: [{
+              type: 'text',
+              text: '[{"name":"PREMIUM PLUS","code":"3","salePrice":890}]',
+            }],
+            structuredContent: {
+              data: [{
+                name: 'PREMIUM PLUS',
+                code: '3',
+                salePrice: 890,
+              }],
+            },
+            isError: false,
+            transport: 'local_stdio',
+            spawnedLocalProcess: true,
+          },
+        },
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    throw new Error('unexpected request');
+  };
+
+  const bridge = createPaperclipToolGatewayReadBridge({
+    agentMeUrl: 'http://wandora-paperclip:3100/api/agents/me',
+    fetchImpl,
+  });
+  const tools = await bridge({
+    runToken: 'opaque-run-token',
+    paperclipRunId: RUN,
+  });
+
+  const result = await tools[0]!.execute({
+    name: 'PREMIUM PLUS',
+    pageSize: 5,
+    skip: 0,
+  });
+
+  assert.deepEqual(result, [{
+    name: 'PREMIUM PLUS',
+    code: '3',
+    salePrice: 890,
+  }]);
 });
 
 test('Paperclip read bridge fails closed on noncanonical endpoints and denied gateway calls', async () => {
@@ -145,7 +223,8 @@ test('Paperclip read bridge collapses identical read calls per run while preserv
     }
     if (url.endsWith('/api/tool-gateway/tools')) {
       return new Response(JSON.stringify([{
-        name: 'vendaerp_search_products',
+        name: GATEWAY_PRODUCT,
+        upstreamToolName: 'vendaerp_search_products',
         displayName: 'VendaERP Search Products',
         description: 'Read products.',
         parametersSchema: { type: 'object' },
@@ -202,7 +281,8 @@ test('Paperclip read bridge does not retry an identical denied read call inside 
     }
     if (url.endsWith('/api/tool-gateway/tools')) {
       return new Response(JSON.stringify([{
-        name: 'vendaerp_probe',
+        name: 'mcp.wandora-vendaerp-read-only-v1-72222222:vendaerp-probe',
+        upstreamToolName: 'vendaerp_probe',
         displayName: 'VendaERP Probe',
         description: 'Read connection health.',
         parametersSchema: { type: 'object' },
@@ -248,7 +328,8 @@ test('Paperclip read bridge fails closed on a non-completed Tool Gateway executi
     }
     if (url.endsWith('/api/tool-gateway/tools')) {
       return new Response(JSON.stringify([{
-        name: 'vendaerp_search_products',
+        name: GATEWAY_PRODUCT,
+        upstreamToolName: 'vendaerp_search_products',
         displayName: 'VendaERP Search Products',
         description: 'Read products.',
         parametersSchema: { type: 'object' },
@@ -262,7 +343,7 @@ test('Paperclip read bridge fails closed on a non-completed Tool Gateway executi
       return new Response(JSON.stringify({
         invocationId: 'invocation-pending',
         status: 'pending',
-        tool: 'vendaerp_search_products',
+        tool: GATEWAY_PRODUCT,
         result: null,
       }), { status: 200, headers: { 'content-type': 'application/json' } });
     }
@@ -292,7 +373,8 @@ test('Paperclip read bridge fails closed and collapses repeated MCP isError resu
     }
     if (url.endsWith('/api/tool-gateway/tools')) {
       return new Response(JSON.stringify([{
-        name: 'vendaerp_search_products',
+        name: GATEWAY_PRODUCT,
+        upstreamToolName: 'vendaerp_search_products',
         displayName: 'VendaERP Search Products',
         description: 'Read products.',
         parametersSchema: { type: 'object' },
@@ -307,7 +389,7 @@ test('Paperclip read bridge fails closed and collapses repeated MCP isError resu
       return new Response(JSON.stringify({
         invocationId: 'invocation-mcp-error',
         status: 'completed',
-        tool: 'vendaerp_search_products',
+        tool: GATEWAY_PRODUCT,
         result: {
           content: '{"error":"provider-unavailable"}',
           data: {

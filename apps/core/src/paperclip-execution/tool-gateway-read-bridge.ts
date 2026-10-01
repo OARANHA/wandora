@@ -20,6 +20,7 @@ export class PaperclipToolGatewayReadBridgeError extends Error {
 
 type GatewayDescriptor = {
   name: string;
+  upstreamToolName: string;
   displayName: string;
   description: string;
   parametersSchema: Record<string, unknown>;
@@ -56,6 +57,9 @@ function readDescriptor(value: unknown): GatewayDescriptor | undefined {
     typeof value.name !== 'string'
     || !value.name.trim()
     || value.name.length > 512
+    || typeof value.upstreamToolName !== 'string'
+    || !value.upstreamToolName.trim()
+    || value.upstreamToolName.length > 512
     || typeof value.description !== 'string'
     || typeof value.displayName !== 'string'
     || !isRecord(value.parametersSchema)
@@ -68,6 +72,7 @@ function readDescriptor(value: unknown): GatewayDescriptor | undefined {
   ) return undefined;
   return {
     name: value.name,
+    upstreamToolName: value.upstreamToolName,
     displayName: value.displayName,
     description: value.description,
     parametersSchema: value.parametersSchema,
@@ -201,6 +206,7 @@ export function createPaperclipToolGatewayReadBridge(deps: {
         const identicalReadCalls = new Map<string, Promise<unknown>>();
         return {
           name: tool.name,
+          providerToolName: tool.upstreamToolName,
           title: tool.displayName,
           description: tool.description,
           inputSchema: tool.parametersSchema,
@@ -248,6 +254,12 @@ export function createPaperclipToolGatewayReadBridge(deps: {
               const data = isRecord(result.data) ? result.data : undefined;
               if (data?.isError === true || result.error === 'MCP tool returned an error result') {
                 throw new PaperclipToolGatewayReadBridgeError('tool-failed');
+              }
+              const structuredContent = data && isRecord(data.structuredContent)
+                ? data.structuredContent
+                : undefined;
+              if (structuredContent && Object.hasOwn(structuredContent, 'data')) {
+                return structuredContent.data;
               }
               if ('data' in result) return result.data;
               if ('content' in result) return result.content;

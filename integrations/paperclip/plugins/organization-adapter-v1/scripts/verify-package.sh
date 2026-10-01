@@ -61,8 +61,10 @@ JSON
   --outfile="$ROOT/.test-build/work.mjs" --alias:@paperclipai/plugin-sdk="$SDK_JS"
 "$ESBUILD" "$ROOT/src/fast-read.ts" --bundle --platform=node --format=esm --target=node24 \
   --outfile="$ROOT/.test-build/fast-read.mjs" --alias:@paperclipai/plugin-sdk="$SDK_JS"
+"$ESBUILD" "$ROOT/src/integration-capability.ts" --bundle --platform=node --format=esm --target=node24 \
+  --outfile="$ROOT/.test-build/integration-capability.mjs" --alias:@paperclipai/plugin-sdk="$SDK_JS"
 
-node --test "$ROOT/test/contract.test.mjs" "$ROOT/test/activation.test.mjs" "$ROOT/test/work.test.mjs" "$ROOT/test/fast-read.test.mjs"
+node --test "$ROOT/test/contract.test.mjs" "$ROOT/test/activation.test.mjs" "$ROOT/test/work.test.mjs" "$ROOT/test/fast-read.test.mjs" "$ROOT/test/integration-capability.test.mjs"
 node "$ROOT/scripts/verify-artifact.mjs"
 node --check "$ROOT/dist/manifest.js"
 node --check "$ROOT/dist/worker.js"
@@ -70,6 +72,7 @@ node --check "$ROOT/dist/worker.js"
 TSX="$(find "$PAPERCLIP_ROOT/node_modules/.pnpm" -path '*/tsx/dist/cli.mjs' -print -quit)"
 [[ -n "$TSX" ]] || { echo 'Paperclip tsx runtime is missing' >&2; exit 1; }
 PAPERCLIP_ROOT="$PAPERCLIP_ROOT" node "$TSX" "$ROOT/scripts/validate-paperclip.ts"
+PAPERCLIP_ROOT="$PAPERCLIP_ROOT" node "$ROOT/scripts/verify-operator-read-surface.mjs"
 
 mkdir -p "$VERIFY_DIR/pack1" "$VERIFY_DIR/pack2"
 (
@@ -101,7 +104,7 @@ FILTERED_HITS="$VERIFY_DIR/forbidden-material-filtered.txt"
 grep -RInE 'wandora_mastra_spike|127\.0\.0\.1:3140|company-test-only|synthetic-test-only|-----BEGIN (RSA |OPENSSH |EC )?PRIVATE KEY-----|service_role|x-wandora-paperclip-run-token' \
   "$VERIFY_DIR/extracted/package" >"$FORBIDDEN_HITS" || true
 
-# Paperclip v2026.916.0's bundled public SDK contains one literal placeholder
+# Paperclip's bundled public SDK contains one literal placeholder
 # used by upstream SDK code. Exclude only that exact known placeholder hit from
 # dist/worker.js; any other private-key marker or forbidden material still fails.
 awk '
@@ -121,7 +124,7 @@ printf '%s  %s\n' "$HASH2" "$(basename "$PACK2")" > "$ROOT/artifacts/package-sha
 cat > "$ROOT/artifacts/provenance.txt" <<EOF
 wandora_source_sha=${WANDORA_SOURCE_SHA:-unversioned}
 paperclip_source_commit=$EXPECTED_COMMIT
-paperclip_image=wandora/paperclip:v2026.916.0
+paperclip_image=wandora/paperclip:v2026.916.1
 plugin_package=$(basename "$PACK2")
 plugin_package_sha256=$HASH2
 EOF

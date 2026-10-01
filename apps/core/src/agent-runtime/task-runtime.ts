@@ -34,6 +34,7 @@ export type RuntimeGroundingProjection = RuntimeOrganizationGroundingProjection 
 
 export type RuntimeReadTool = {
   name: string;
+  providerToolName?: string;
   title: string;
   description: string;
   inputSchema: Record<string, unknown>;

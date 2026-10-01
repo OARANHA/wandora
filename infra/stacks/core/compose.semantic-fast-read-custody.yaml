@@ -1,0 +1,10 @@
+services:
+  core:
+    volumes:
+      # Future TypeSafe/System One credential. This file is mounted only after
+      # its production purpose/custody is separately proven and authorized.
+      - "${WANDORA_TYPESAFE_JEV_API_KEY_FILE_HOST:?set the operator-controlled TypeSafe JEV API key file}:/run/secrets/wandora/typesafe-jev.api-key:ro"
+
+      # Wandora-owned wfri1 signing material. It must remain distinct from
+      # Gateway, outbound, Paperclip execution-bridge and Organization Adapter HMACs.
+      - "${WANDORA_FAST_READ_INTENT_SECRET_FILE_HOST:?set the operator-controlled Fast Read intent HMAC file}:/run/secrets/wandora/fast-read-intent.hmac:ro"

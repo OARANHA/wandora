@@ -1,10 +1,13 @@
 import { createHash } from 'node:crypto';
+import { performance } from 'node:perf_hooks';
 import type { PluginContext } from '@paperclipai/plugin-sdk';
 import { CATALOG_KEY } from './catalog.js';
 
 export const FAST_READ_STATE_NAMESPACE = 'wandora-fast-read-dispatch-v1';
 export const FAST_READ_REASON = 'wandora_fast_read_v1';
 export const FAST_READ_PROMPT_PREFIX = 'WANDORA_FAST_READ_V1 ';
+export const FAST_READ_RESULT_MAX_ATTEMPTS = 25;
+export const FAST_READ_RESULT_POLL_INTERVAL_MS = 200;
 
 type FastReadInput = {
   companyId: string;
@@ -13,12 +16,63 @@ type FastReadInput = {
   request: string;
 };
 
+type FastReadLatencyEvent = {
+  event: 'wandora.latency.v1';
+  path: 'semantic-fast-read-v1';
+  stage: 'paperclip.dispatch' | 'paperclip.terminal_result';
+  durationMs: number;
+  outcome: 'success' | 'error';
+  correlationId: string;
+};
+
+type FastReadLatencyRecorder = (event: FastReadLatencyEvent) => void;
+
+type FastReadLatencyOptions = {
+  recordLatency?: FastReadLatencyRecorder;
+  monotonicNow?: () => number;
+};
+
+function emitFastReadLatency(
+  recorder: FastReadLatencyRecorder | undefined,
+  input: Omit<FastReadLatencyEvent, 'event' | 'path' | 'durationMs'> & { durationMs: number },
+): void {
+  if (!recorder) return;
+  const rawDuration = input.durationMs;
+  const durationMs = !Number.isFinite(rawDuration) || rawDuration <= 0
+    ? 0
+    : Math.round(rawDuration * 1_000) / 1_000;
+  try {
+    recorder({
+      event: 'wandora.latency.v1',
+      path: 'semantic-fast-read-v1',
+      stage: input.stage,
+      durationMs,
+      outcome: input.outcome,
+      correlationId: canonicalUuid(input.correlationId),
+    });
+  } catch {
+    // Observability must never alter Paperclip execution semantics.
+  }
+}
+
 type FastReadDispatchReceipt = {
   schema: 'wandora.fast_read_dispatch_receipt.v1';
   correlationId: string;
   requestHash: string;
   status: 'dispatching' | 'dispatched';
   runId?: string;
+};
+
+export type FastReadCompletedResult = {
+  runId: string;
+  model: string;
+  summary: string;
+  usage: {
+    inputTokens: number;
+    outputTokens: number;
+    cachedInputTokens: number;
+    totalTokens: number;
+  };
 };
 
 function canonicalUuid(value: string): string {
@@ -80,7 +134,11 @@ export function encodeFastReadPrompt(input: Pick<FastReadInput, 'correlationId' 
 export async function ensureManagedCatalogEmployeeFastRead(
   ctx: Pick<PluginContext, 'agents' | 'state'>,
   input: FastReadInput,
-): Promise<{ runId: string }> {
+  options: FastReadLatencyOptions = {},
+): Promise<{ runId: string; agentId: string }> {
+  const monotonicNow = options.monotonicNow ?? (() => performance.now());
+  const dispatchStartedAt = monotonicNow();
+  try {
   const managed = await ctx.agents.managed.get(CATALOG_KEY, input.companyId);
   if (managed.status !== 'resolved' || !managed.agentId || !managed.agent) {
     throw new Error('managed_employee_missing');
@@ -95,7 +153,16 @@ export async function ensureManagedCatalogEmployeeFastRead(
     if (stored.correlationId !== correlationId || stored.requestHash !== hash) {
       throw new Error('fast_read_dispatch_receipt_conflict');
     }
-    if (stored.status === 'dispatched' && stored.runId) return { runId: stored.runId };
+    if (stored.status === 'dispatched' && stored.runId) {
+      const reused = { runId: stored.runId, agentId: managed.agentId };
+      emitFastReadLatency(options.recordLatency, {
+        stage: 'paperclip.dispatch',
+        durationMs: monotonicNow() - dispatchStartedAt,
+        outcome: 'success',
+        correlationId: input.correlationId,
+      });
+      return reused;
+    }
     throw new Error('fast_read_dispatch_uncertain');
   }
 
@@ -119,5 +186,100 @@ export async function ensureManagedCatalogEmployeeFastRead(
     runId: result.runId,
   } satisfies FastReadDispatchReceipt);
 
-  return { runId: result.runId };
+  const dispatched = { runId: result.runId, agentId: managed.agentId };
+  emitFastReadLatency(options.recordLatency, {
+    stage: 'paperclip.dispatch',
+    durationMs: monotonicNow() - dispatchStartedAt,
+    outcome: 'success',
+    correlationId: input.correlationId,
+  });
+  return dispatched;
+  } catch (error) {
+    emitFastReadLatency(options.recordLatency, {
+      stage: 'paperclip.dispatch',
+      durationMs: monotonicNow() - dispatchStartedAt,
+      outcome: 'error',
+      correlationId: input.correlationId,
+    });
+    throw error;
+  }
+}
+
+type WaitOptions = FastReadLatencyOptions & {
+  maxAttempts?: number;
+  pollIntervalMs?: number;
+  sleep?: (ms: number) => Promise<void>;
+};
+
+function defaultSleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export async function waitForManagedCatalogEmployeeFastReadResult(
+  ctx: Pick<PluginContext, 'agents' | 'state' | 'agentRuns'>,
+  input: FastReadInput,
+  options: WaitOptions = {},
+): Promise<FastReadCompletedResult> {
+  const { runId, agentId } = await ensureManagedCatalogEmployeeFastRead(ctx, input, options);
+  const monotonicNow = options.monotonicNow ?? (() => performance.now());
+  const terminalStartedAt = monotonicNow();
+  try {
+  const maxAttempts = options.maxAttempts ?? FAST_READ_RESULT_MAX_ATTEMPTS;
+  const pollIntervalMs = options.pollIntervalMs ?? FAST_READ_RESULT_POLL_INTERVAL_MS;
+  const sleep = options.sleep ?? defaultSleep;
+  if (!Number.isInteger(maxAttempts) || maxAttempts < 1 || maxAttempts > FAST_READ_RESULT_MAX_ATTEMPTS) {
+    throw new Error('fast_read_wait_attempts_invalid');
+  }
+  if (!Number.isInteger(pollIntervalMs) || pollIntervalMs < 0 || pollIntervalMs > FAST_READ_RESULT_POLL_INTERVAL_MS) {
+    throw new Error('fast_read_wait_interval_invalid');
+  }
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const run = await ctx.agentRuns.get({
+      companyId: input.companyId,
+      agentId,
+      runId,
+    });
+    if (!run) throw new Error('fast_read_run_not_found');
+
+    if (run.status === 'succeeded') {
+      if (!run.result || !run.usage) throw new Error('fast_read_result_invalid');
+      const completed = {
+        runId,
+        model: run.result.model,
+        summary: run.result.summary,
+        usage: run.usage,
+      };
+      emitFastReadLatency(options.recordLatency, {
+        stage: 'paperclip.terminal_result',
+        durationMs: monotonicNow() - terminalStartedAt,
+        outcome: 'success',
+        correlationId: input.correlationId,
+      });
+      return completed;
+    }
+
+    if (
+      run.status === 'failed'
+      || run.status === 'cancelled'
+      || run.status === 'timed_out'
+      || run.status === 'interrupted'
+      || run.status === 'scheduled_retry'
+    ) {
+      throw new Error(`fast_read_run_${run.status}`);
+    }
+
+    if (attempt < maxAttempts) await sleep(pollIntervalMs);
+  }
+
+  throw new Error('fast_read_result_timeout');
+  } catch (error) {
+    emitFastReadLatency(options.recordLatency, {
+      stage: 'paperclip.terminal_result',
+      durationMs: monotonicNow() - terminalStartedAt,
+      outcome: 'error',
+      correlationId: input.correlationId,
+    });
+    throw error;
+  }
 }

@@ -87,7 +87,6 @@ When the candidate flag is enabled, readiness additionally probes the three migr
 
 The host custody directory must be operator-controlled. Individual HMAC files use deterministic SHA-256-derived filenames resolved from the frozen provider company reference and are opened without following symlinks by the Core resolver.
 
-
 ## Vigia telemetry client wiring
 
 `compose.vigia.yaml` activates the optional Wandora -> Vigia customer integration using only Vigia's public HTTP contracts.
@@ -147,3 +146,95 @@ no customer Organization Adapter route
 ```
 
 After any future production database activation, the operator proof additionally requires `/readyz = 200` through the real `wandora_core_runtime` credential while PostgreSQL remains non-public.
+
+## Semantic Fast Read production convergence contract
+
+ADR 0294 requires compatibility convergence to remain inert before any live
+attestation. The repository therefore separates the environment contract from future
+secret custody.
+
+`compose.semantic-fast-read.yaml` is the **gates-OFF convergence overlay**. It fixes:
+
+```text
+WANDORA_FAST_READ_EXECUTION_ENABLED=false
+WANDORA_SEMANTIC_FAST_READ_ENABLED=false
+WANDORA_SEMANTIC_SELECTOR_ENABLED=false
+WANDORA_HUMAN_SEND_PROPOSAL_ENABLED=false
+```
+
+and records only the container-side file references/timeouts required by a future
+attestation. Because all three Fast Read/semantic gates are false, Core does not open
+the TypeSafe/System One API-key file or the Fast Read intent-HMAC file. This overlay
+must render and start without either new host secret.
+
+The separate `compose.semantic-fast-read-custody.yaml` is only a **future custody
+contract**. When deliberately selected by a separately authorized execution, it
+requires two operator-controlled host files and mounts them read-only:
+
+- `WANDORA_TYPESAFE_JEV_API_KEY_FILE_HOST` →
+  `/run/secrets/wandora/typesafe-jev.api-key`;
+- `WANDORA_FAST_READ_INTENT_SECRET_FILE_HOST` →
+  `/run/secrets/wandora/fast-read-intent.hmac`.
+
+The TypeSafe/System One credential purpose and custody must be proven before that
+mount is used. Do not assume a JEV MCP credential is the production System One
+credential.
+
+The Fast Read intent HMAC is Wandora-owned signing material for `wfri1` and must
+remain distinct from Gateway ingress, Core outbound, Paperclip execution-bridge and
+Organization Adapter HMACs. This repository contract does not create its value and
+does not introduce a secret manager.
+
+The semantic product selector does **not** get a new credential or mount. It continues
+to reuse the existing Wandora platform Mistral credential from
+`compose.agent-runtime-model.yaml` through
+`WANDORA_MODEL_API_KEY_FILE=/run/secrets/wandora/model-provider.api-key`.
+
+Neither convergence overlay enables Messaging Gateway outbound or connects WhatsApp
+to Fast Read. Before any future production mutation, the operator must separately
+reconcile that Gateway outbound remains OFF, capture a fresh rollback set and prove
+Task Drain/quiescence.
+
+Health/readiness must remain provider-effect free: selecting the gates-OFF overlay
+does not call TypeSafe/System One, Mistral, VendaERP or any customer system.
+
+
+
+## Production credential custody checkpoint — ADR 0297
+
+ADR 0297 completes the **host custody only** prerequisite for future Semantic/Fast Read activation.
+
+Current canonical host files:
+
+- TypeSafe/System One Core credential: `/opt/wandora/stacks/core/secrets/wandora_typesafe_jev_api_key`;
+- Fast Read intent `wfri1` HMAC: `/opt/wandora/stacks/core/secrets/wandora_fast_read_intent_hmac`;
+- existing platform Mistral credential: `/opt/wandora/stacks/core/secrets/wandora_model_provider_api_key`.
+
+Fresh metadata-only verification recorded all three as regular files owned by `wandora-admin:wandora-ops` with mode `0640`. The TypeSafe Core copy was verified equivalent to the qualified System One provider credential and the `wfri1` material was verified distinct from the current Core and Organization Adapter protected secret sets without emitting values.
+
+**Custody completion is not activation.** The running Core still does not include `compose.semantic-fast-read.yaml` or `compose.semantic-fast-read-custody.yaml`; the two new files are not mounted into the live container and all Semantic/Fast Read/Human Send effects remain off.
+
+Do not use this checkpoint as pre-mutation authorization. The next production slice must freshly capture rollback readiness, Task Drain/quiescence, exact live component state and exact candidate-artifact identity immediately adjacent to the proposed mutation.
+
+## Bounded Semantic Fast Read attestation contract — ADR 0306
+
+`compose.semantic-fast-read-attestation.yaml` is an **attestation-only effect override**. It is not part of the normal live composition and it is not customer-rollout configuration.
+
+When a future fresh production decision explicitly authorizes one bounded Human Fast Read attestation, the operator must start from the exact live Core Compose provenance and append, in order:
+
+1. the existing `compose.semantic-fast-read.yaml` gates-OFF contract;
+2. `compose.semantic-fast-read-custody.yaml` for the already-qualified TypeSafe/System One and `wfri1` read-only mounts;
+3. `compose.semantic-fast-read-attestation.yaml` **last**.
+
+The final overlay changes only:
+
+```text
+WANDORA_FAST_READ_EXECUTION_ENABLED=true
+WANDORA_SEMANTIC_FAST_READ_ENABLED=true
+WANDORA_SEMANTIC_SELECTOR_ENABLED=true
+WANDORA_HUMAN_SEND_PROPOSAL_ENABLED=false
+```
+
+It adds no secret, volume, image, build, network or port. Mistral continues to use the existing platform model credential from `compose.agent-runtime-model.yaml`. Messaging Gateway outbound and WhatsApp are outside this overlay and must remain OFF/absent.
+
+Do not apply this overlay from historical evidence. The future execution requires fresh rollback/runtime/custody/Task Drain reconciliation, an exact bounded effect decision and a second adversarial review immediately before mutation. The full future window/close contract is in `docs/operations/semantic-fast-read-bounded-attestation-v1.md`.

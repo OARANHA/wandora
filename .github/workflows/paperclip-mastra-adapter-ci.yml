@@ -69,6 +69,20 @@ jobs:
           path: .paperclip
           persist-credentials: false
 
+      - name: Verify Fast Read package identity contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq '"version": "0.6.0"' integrations/paperclip/adapters/wandora-mastra-v1/package.json
+          grep -Fq '"paperclipImage": "wandora/paperclip:v2026.916.0"' integrations/paperclip/adapters/wandora-mastra-v1/compatibility.json
+          grep -Fq '"paperclipSourceCommit": "dffc2b3ca1b9e88fa21cb17493083e682dffd1ca"' integrations/paperclip/adapters/wandora-mastra-v1/compatibility.json
+          grep -Fq '"qualifiedFastReadCandidate": {' integrations/paperclip/adapters/wandora-mastra-v1/compatibility.json
+          grep -Fq '"paperclipImage": "wandora/paperclip:v2026.916.1"' integrations/paperclip/adapters/wandora-mastra-v1/compatibility.json
+          grep -Fq '"paperclipSourceCommit": "d554c4789ed3930f8a53ac9fdf6503b3187097da"' integrations/paperclip/adapters/wandora-mastra-v1/compatibility.json
+          grep -Fq '"issueLessFastReadTransport": "paperclipWake.agentMessage/plugin_invoke-v1"' integrations/paperclip/adapters/wandora-mastra-v1/compatibility.json
+          grep -Fq 'function fastReadWake' integrations/paperclip/adapters/wandora-mastra-v1/index.mjs
+          grep -Fq "const FAST_READ_PROMPT_PREFIX = 'WANDORA_FAST_READ_V1 ';" integrations/paperclip/adapters/wandora-mastra-v1/index.mjs
+
       - name: Set up Node 24.21.0
         uses: actions/setup-node@v4
         with:
@@ -170,7 +184,7 @@ jobs:
           diff -u /tmp/wandora-mastra-expected.txt /tmp/wandora-mastra-files.txt
           cp "/tmp/wandora-mastra-pack-a/$name_a" "artifacts/$name_a"
           printf '%s  %s\n' "$sha_a" "$name_a" > "artifacts/$name_a.sha256"
-          printf 'wandora_source=%s\npaperclip_image=wandora/paperclip:v2026.916.0\npaperclip_source=dffc2b3ca1b9e88fa21cb17493083e682dffd1ca\nadapter_type=wandora_mastra\n'             "$WANDORA_SOURCE_SHA" > artifacts/provenance.txt
+          printf 'wandora_source=%s\npaperclip_image=wandora/paperclip:v2026.916.0\npaperclip_source=dffc2b3ca1b9e88fa21cb17493083e682dffd1ca\nfast_read_candidate_paperclip_image=wandora/paperclip:v2026.916.1\nfast_read_candidate_paperclip_source=d554c4789ed3930f8a53ac9fdf6503b3187097da\nadapter_type=wandora_mastra\n'             "$WANDORA_SOURCE_SHA" > artifacts/provenance.txt
           # Localhost is intentionally used only as Paperclip's server-owned wildcard-listener
           # normalization. Continue rejecting embedded local URL endpoints in the installable artifact.
           ! tar -xOzf "artifacts/$name_a" package/index.mjs | grep -E 'wandora_mastra_spike|https?://(127\.0\.0\.1|localhost)([:/]|$)|BEGIN .*PRIVATE KEY|Bearer [A-Za-z0-9_-]'
