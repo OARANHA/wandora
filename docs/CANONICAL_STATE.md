@@ -1,3 +1,41 @@
+## 2026-10-01 — ADR 0368 Semantic Fast Read supervised production re-attestation V3
+
+Status: **GREEN / ONE OWNER-BROWSER READ SUCCEEDED / EXACTLY ONE VENDAERP TOOL CALL / MANDATORY CLOSE COMPLETE / FAST READ OFF AGAIN**.
+
+Fresh preflight on PR #369 exact head `2f52e234a5ef1fd17398f22ee47253fc84c843ba` was **17/17 GREEN**. Current Core baseline remained exact `wandora/core:organization-adapter-candidate-83baca411096` / image id `sha256:f8f09f785ed2b1f8fd86c9b9120c8ba09956d8f30b239190b93a110efd462d7f` / revision `83baca4110966989b484341b5c58bb42d1eb5407`, with ADR 0367 rollback receipt GREEN.
+
+Fresh custody metadata-only readback was GREEN. Fresh Paperclip Tool Policy qualification for the 28PRO/Ana VendaERP product-read path returned `allow / allow_profile`. OA `operational-read` reported the VendaERP Connection active/enabled/healthy, organization grant active, installed for Ana and `vendaerp_search_products` read-only/allowed. Task Drain was quiescent; Human Send and Messaging Gateway outbound were OFF.
+
+Exact close/baseline and open Compose renders both resolved to the same pinned Core image. Owner-browser preflight proved 28PRO role `owner`, exactly one active Ana and `EXECUTE=false`.
+
+The bounded OPEN recreated only Core, appended custody + attestation, mounted TypeSafe and `wfri1` read-only, and produced startup `fastReadExecution=true`, `semanticFastRead=true`, `humanSendProposal=false`.
+
+Exactly one browser-owned request was then executed:
+
+`Qual é o preço do produto PREMIUM PLUS?`
+
+Browser result:
+
+- HTTP `200`;
+- correlation id `a249f6fa-4179-4e9f-aa04-d98ff2db93ce`;
+- kind `completed`;
+- model `wandora-deterministic-read-v1`;
+- summary: `PREMIUM PLUS`, code `3`, price `R$ 890,00`.
+
+No retry and no second browser request occurred.
+
+MANDATORY CLOSE ran immediately afterward, recreating only Core from the exact 14-file gates-OFF baseline. Post-close readback proves the same Core image/id/revision, custody/attestation overlays absent, TypeSafe/`wfri1` mounts absent, `fastReadExecution=false`, `semanticFastRead=false`, `humanSendProposal=false`, Gateway outbound OFF, Paperclip/OA healthy and Task Drain quiescent.
+
+Paperclip runtime now reports Ana `idle`, `errorReason=null`, `lastRunId=51170b58-99a8-4de8-aad2-d6915737e7f0`, `lastRunStatus=succeeded`.
+
+Governed Connection activity for that exact run and runtime tool `mcp.wandora-vendaerp-readonly-v1-8e2c23f4:vendaerp-search-products` contains exactly two audit records: one `policy_decision` with `allow_profile`, and one `call_completed` with `outcome=success`. This is one tool execution, not two calls.
+
+Evidence limitation: the short-lived OPEN Core container was replaced by mandatory close, so its logs were not retained post-hoc; `wandora-jev-mcp.service` also had no journal entries available when checked afterward. Do not infer or fabricate additional provider telemetry beyond the durable browser, Paperclip runtime and governed Connection evidence above.
+
+This re-attestation is evidence only. It does **not** authorize permanent Fast Read activation, broader rollout, a second test request, or PR merge.
+
+Canonical detail: `docs/decisions/0368-semantic-fast-read-supervised-production-reattestation-v3.md`.
+
 ## 2026-10-01 — ADR 0367 Current 83baca Core Rollback Freeze V2 requalification
 
 Status: **GREEN / CURRENT 83baca ROLLBACK FREEZE V2 READY / FAST READ STILL OFF / NO CUSTOMER EFFECT**.
