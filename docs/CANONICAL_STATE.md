@@ -1,3 +1,23 @@
+## 2026-10-01 — ADR 0366 Core MCP structured-content success unwrapping production promotion
+
+Status: **GREEN / EXACT CORRECTED CORE LIVE / ALL FAST-READ + OUTBOUND EFFECT GATES OFF / NO SECOND ANA READ**.
+
+PR #369 exact source head `c524f3f30bc20f3e6a6941f3cafed1cfe5c49871` completed **17/17 GREEN**. Merge ref `83baca4110966989b484341b5c58bb42d1eb5407` has parents exactly `main=e4c7c36bb1091ba38d39b85fa259bae94553fc52` + that source head.
+
+The supervised V2 Ana request had already executed exactly once before promotion and proved the corrected upstream-tool identity path reached exactly one successful VendaERP Tool Gateway call. The browser still returned HTTP 500 because the Core bridge returned the normalized MCP CallToolResult wrapper instead of `structuredContent.data`. The minimal bridge correction now unwraps exact `result.data.structuredContent.data` after fail-closed MCP error checks, while preserving prior fallbacks, namespaced execution identity and identical-read dedupe.
+
+Core Candidate Artifact run `36818003456` / artifact `11141674658` was independently qualified. ZIP digest `sha256:0bf432e2ad5942b5707d24d0c4912eec973ac6265359b5701d2f8ce5b921bd04`; internal archive SHA-256 `7698a1f3cb2e290cb3ce43f121a33d6f9dc075f4f4c157e4ca48bbe05cce6eac`; portable verifier `PORTABLE_CANDIDATE_ARCHIVE_V1_OK`. Exact image `wandora/core:organization-adapter-candidate-83baca411096`, image id `sha256:f8f09f785ed2b1f8fd86c9b9120c8ba09956d8f30b239190b93a110efd462d7f`, revision `83baca4110966989b484341b5c58bb42d1eb5407`, contract `organization-adapter-core-v1`, user `node`.
+
+After exact 3-env-file + 14-compose-file gates-OFF render and final adversarial review, one human-approved action recreated only `wandora-core` with `--no-deps --force-recreate --no-build --pull never --wait`. Post-readback: exact candidate healthy/restart 0, read-only rootfs, `CapDrop=ALL`, `no-new-privileges=true`, exact 14-file provenance; Core startup `fastReadExecution=false`, `semanticFastRead=false`, `humanSendProposal=false`; Paperclip/Gateway remain healthy; Gateway outbound OFF; Task Drain quiescent.
+
+Stable selector `/opt/wandora/ops-workspace/core-runtime-image.env` now points to `wandora/core:organization-adapter-candidate-83baca411096`. Fresh approved stable renders returned `config --quiet` exit 0 and `config --images` exactly that image.
+
+No second Ana/VendaERP request, Fast Read opening, provider/model customer-path call, Human Send, outbound effect, migration or other service recreation occurred during promotion.
+
+Canonical detail: `docs/decisions/0366-core-mcp-structured-content-success-unwrapping-production-promotion-v1.md`.
+
+Next boundary: **Current 83baca Core Rollback Freeze V2 Refresh V1 — NO FAST READ / NO CUSTOMER EFFECT**. ADR 0365 is now historical rollback evidence for prior `9d0a4ba...`; refresh the existing rollback mechanism for the current live Core before any later supervised re-attestation.
+
 ## 2026-10-01 — ADR 0365 Current 9d0a4ba Core Rollback Freeze V2 refresh
 
 Status: **EXECUTED / GREEN / CURRENT-BASELINE ROLLBACK FREEZE V2 READY / NO CUSTOMER EFFECT**.
