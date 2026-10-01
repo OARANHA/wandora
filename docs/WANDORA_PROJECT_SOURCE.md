@@ -1,3 +1,28 @@
+## 2026-10-01 — ADR 0367 Current 83baca Core Rollback Freeze V2 requalification
+
+Status: **GREEN / CURRENT 83baca ROLLBACK FREEZE V2 READY / FAST READ STILL OFF / NO CUSTOMER EFFECT**.
+
+The existing Rollback Freeze V2 mechanism was repinned only to current production Core `wandora/core:organization-adapter-candidate-83baca411096` / image id `sha256:f8f09f785ed2b1f8fd86c9b9120c8ba09956d8f30b239190b93a110efd462d7f` / revision `83baca4110966989b484341b5c58bb42d1eb5407`. No backup/restore algorithm, lifecycle authority or provider implementation was internalized or duplicated.
+
+PR #369 head before execution was `c7ea371db4b085d81457388ad68bac2eeb161008`, with **17/17 workflows GREEN**. Exact qualified program blobs: helper `83246ac1310a47c7e17a492fb76a4e4d886351e6`, precheck wrapper `7714454cee1c9f0cdc688655cbb3e6bc0433030a`, capture wrapper `ea862bb00db1c2926ce7371bb3626a52484d6052`. The three live root files were installed at the existing canonical paths and independently re-hashed to those exact blobs.
+
+Exactly one precheck completed GREEN with `ROLLBACK_FREEZE_V2_PRECHECK_OK`, exit 0, and activation/provider/customer/outbound all false.
+
+The first persistent-capture attempt used the correct zero-argument wrapper but a 30000 ms broker timeout. It was interrupted at ~30.2 s before qualification completed. State-first reconciliation proved the final receipt absent and found exactly two partial artifacts sharing timestamp `20261001T062334345096784Z`: one host rollback root (~16.4 MB) and one Paperclip temporary backup directory. The helper source proves both are the same artifacts its `cleanup()` trap removes while `qualified=false`. They were removed under separate approvals and independently proven absent before any retry.
+
+One retry then used the unchanged canonical zero-argument wrapper with broker timeout increased only to 120000 ms. It completed once with exit 0, `timed_out=false`, duration `31296 ms`, terminal marker `ROLLBACK_FREEZE_V2_OK`.
+
+Current-baseline receipt:
+`/opt/wandora/ops-workspace/production-rollback-freeze-v2-post-adr0366-83baca4110966989b484341b5c58bb42d1eb5407-mastra060-2e97da6d.metadata`.
+
+Independent receipt readback proves official backup created/gzip-valid, PostgreSQL restore/schema validation GREEN with `schema_restore=true` and `schema_equal=true`, exact Paperclip/Core/Gateway identities healthy, OA 0.6.1 ready, external `wandora_mastra@0.6.0` loaded/enabled with retained 0.5.0 rollback package, exact 14-file gates-OFF Core provenance, `semantic_fast_read_gates_off=true`, custody/attestation overlays absent, Task Drain quiescent, and activation/provider/customer/outbound all false.
+
+Post-capture runtime remains healthy and unchanged: Fast Read OFF, Semantic Fast Read OFF, Human Send OFF, Gateway outbound OFF. No Ana/VendaERP request occurred in this slice.
+
+Canonical detail: `docs/decisions/0367-current-83baca-core-rollback-freeze-v2-requalification-v1.md`.
+
+Next boundary: **Semantic Fast Read — SUPERVISED RE-ATTESTATION + ONE REAL ANA READ V3** for exactly `Qual é o preço do produto PREMIUM PLUS?`. Begin from fresh Git/CI/runtime and policy evidence; open only the required gates under fresh approvals; allow exactly one browser-triggered request and no retry/second ERP read; mandatory close must restore the 14-file gates-OFF baseline after success/fallback/error.
+
 ## 2026-10-01 — ADR 0366 checkpoint: corrected Core 83baca live, gates OFF
 
 Current Core production baseline is `wandora/core:organization-adapter-candidate-83baca411096` / image id `sha256:f8f09f785ed2b1f8fd86c9b9120c8ba09956d8f30b239190b93a110efd462d7f` / revision `83baca4110966989b484341b5c58bb42d1eb5407`, healthy/restart 0 on the exact 14-file gates-OFF composition.
