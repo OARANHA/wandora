@@ -1,3 +1,21 @@
+## 2026-10-01 — ADR 0370 Semantic Fast Read scoped production canary activation preflight V1
+
+Status: **PREFLIGHT COMPLETE / PREPARATION GO AS SPLIT TASK / ACTIVATION NOT AUTHORIZED / NO PRODUCTION EFFECT**.
+
+Fresh evidence reconfirmed current main `e4c7c36...`, PR #369 `bf5c823...` 17/17 GREEN, PR #377 `b6a8ca26...` 12/12 GREEN, live Core `83baca...` gates OFF, Paperclip/OA/Mastra healthy, Task Drain quiescent, Human Send OFF and Gateway outbound OFF.
+
+The exact canary is frozen as Wandora 28PRO `7a531811-9fea-4395-b0b2-2e2b0fce0570` + Ana `7b401163-8102-42db-b595-3a2017f54003`, provider company `5d7ec217-118c-4292-8136-0a9ab16926ea`, provider Ana `428b6730-3df4-4b92-b90a-a87f87c401f9`, VendaERP Connection `8e2c23f4-73f5-444a-8647-71428819ea91`, and only `business.products.price`.
+
+Fresh Paperclip/OA operational evidence remains GREEN: Connection active/enabled/healthy, organization grant active, installed for Ana, read-only tools effective; policy test = `allow/allow_profile` with no temporary matched policy or audit event.
+
+ADR 0367 rollback receipt still matches the live 83baca baseline and remains `ROLLBACK_FREEZE_V2_OK`; no baseline drift was found.
+
+New blocker: PR #377 candidate artifact `11151382368` / revision `5f6ad99...` is stacked-PR GREEN but not current-main-inclusive. PR #369 is one commit behind current main, so that artifact must not be promoted as-is. Second adversarial review returned `split_task=0.70`.
+
+Next: qualify a current-main + PR369 + PR377 Core candidate and converge it with all effect gates OFF. Then refresh Rollback Freeze V2 for that new baseline. Only afterward may a separately approved scoped activation mount custody + rollout overlay.
+
+Canonical detail: `docs/decisions/0370-semantic-fast-read-scoped-production-canary-activation-preflight-v1.md`.
+
 ## 2026-10-01 — ADR 0369 Semantic Fast Read scoped rollout admission V1
 
 Status: **GREEN / CODE-ONLY QUALIFIED / SCOPED CUSTOMER+EMPLOYEE+CAPABILITY ADMISSION / NO PRODUCTION ACTIVATION**.

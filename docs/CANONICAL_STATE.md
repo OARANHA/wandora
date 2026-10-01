@@ -1,3 +1,15 @@
+## ADR 0370 — Semantic Fast Read Scoped Production Canary Activation Preflight V1
+
+Status: **PREFLIGHT COMPLETE / PREPARATION GO AS SPLIT TASK / ACTIVATION NOT AUTHORIZED / NO PRODUCTION EFFECT**.
+
+Fresh production evidence fixes the first future canary to Wandora 28PRO `7a531811-9fea-4395-b0b2-2e2b0fce0570` + Ana `7b401163-8102-42db-b595-3a2017f54003` and only `business.products.price`. Paperclip provider state remains healthy for company `5d7ec217-118c-4292-8136-0a9ab16926ea`, Ana `428b6730-3df4-4b92-b90a-a87f87c401f9` and VendaERP Connection `8e2c23f4-73f5-444a-8647-71428819ea91`; grant/install/effective profile are GREEN and Tool Policy test is `allow/allow_profile`.
+
+Production remains Core `83baca...` on the exact 14-file gates-OFF baseline, Human Send OFF, Gateway outbound OFF and Task Drain quiescent. ADR 0367 Rollback Freeze V2 still matches this live baseline.
+
+The existing PR #377 candidate artifact `11151382368` is not production-authorized because it is built from the stacked PR369→PR377 merge `5f6ad99...` and does not close over current main `e4c7c36...`. Preparation must therefore split: current-main-compatible Core candidate/convergence first, refreshed rollback second, separately approved scoped activation third. No production/customer/provider effect occurred.
+
+See `docs/decisions/0370-semantic-fast-read-scoped-production-canary-activation-preflight-v1.md`.
+
 ## 2026-10-01 — ADR 0369 Semantic Fast Read scoped rollout admission V1
 
 Status: **GREEN / CODE-ONLY QUALIFIED / SCOPED CUSTOMER+EMPLOYEE+CAPABILITY ADMISSION / NO PRODUCTION ACTIVATION**.
