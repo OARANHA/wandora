@@ -131,7 +131,7 @@ diff --git a/packages/plugins/sdk/src/index.ts b/packages/plugins/sdk/src/index.
 diff --git a/packages/plugins/sdk/src/protocol.ts b/packages/plugins/sdk/src/protocol.ts
 --- a/packages/plugins/sdk/src/protocol.ts
 +++ b/packages/plugins/sdk/src/protocol.ts
-@@ -72,8 +74,10 @@
+@@ -72,11 +74,13 @@
    PluginAssignmentPreviewInput,
    PluginAuthorizationAuditEntry,
    PluginAuthorizationDecisionResult,
