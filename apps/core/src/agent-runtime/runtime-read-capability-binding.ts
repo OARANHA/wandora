@@ -41,7 +41,7 @@ export function createDeterministicReadBindingsFromAuthorizedTools(
           capability,
           request,
           selector,
-          presentation,
+          ...(presentation === undefined ? {} : { presentation }),
         }),
       });
     }
