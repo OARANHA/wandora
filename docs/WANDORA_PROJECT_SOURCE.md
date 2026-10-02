@@ -1,3 +1,33 @@
+## Reconciled checkpoint — ADR 0403 Customer 28PRO + Fiscal Read + Supervised DANFE preflight
+
+ADR 0403 is **PREFLIGHT QUALIFIED / AUTHORITY BOUNDARIES FROZEN / IMPLEMENTATION DETAILS DEFERRED / DOCUMENTATION ONLY / NO PRODUCTION EFFECT**.
+
+Fresh reconciliation started from `main@e4c7c36bb1091ba38d39b85fa259bae94553fc52`. PRs #396→#401 remain a separate open/draft/unmerged Dynamic Managed Employee stack and are intentionally not modified or used as the base for this vertical.
+
+The Reuse Gate preserves the existing authority split: Wandora owns customer-facing 28PRO semantics, tenant/effect policy, provider-neutral fiscal meaning, safe presentation and human confirmation; Paperclip remains operational authority for Tool Connections, grants/installs, company-scoped secrets, profiles/policies, Tool Gateway execution and audit; the existing stateless GET-only VendaERP MCP remains the ERP adapter; Messaging Gateway remains the provider boundary to Evolution. No new secret store, Connection/grant/tool registry, lifecycle, ERP executor or messaging subsystem is authorized.
+
+The owner-supplied OpenAPI artifact (SHA-256 `7e686ad743b4263d0aee53b50c7983c6c5b5cfcbabfc36573903eb15e7ed4089`) proves only three eligible fiscal GET contracts for this vertical: `Fiscal/InformacoesVenda`, `Fiscal/ConsultarNFE` and `Fiscal/ConsultarNfePeriodo`. It does not publish response-body schemas for those operations, so exact fiscal DTO fields and BusinessCapability identifiers remain deliberately unfrozen until fixture/controlled read evidence is qualified. Fiscal/order/stock writes remain explicitly NO-GO.
+
+Existing order projection already carries `invoiceNumber`; therefore “qual a nota do pedido X?” must reuse that read first when sufficient instead of automatically adding a second fiscal call. That reuse is not reinterpreted as a real Prorevest order-response proof.
+
+Customer self-service must terminate in Paperclip custody: the browser may submit App/User/Authorization-Token only through an authenticated owner/admin configuration command; Wandora must not persist, log, expose or return those values. The exact narrow Paperclip-owned create/rotate/disconnect boundary is a mandatory next-slice qualification. Current pinned plugin `ctx.secrets` resolves secret refs but is not assumed to provide generic secret mutation; broad Board/admin authority may not be substituted.
+
+Customer Mobile Fiscal Result V1 is a safe authenticated presentation slice, not a new runtime/channel. Raw fiscal XML is excluded from the default V1 result. “Open DANFE” remains a presentation action pending DANFE source qualification.
+
+Supervised DANFE outbound must reuse the existing Human Send/Core durable outbound attempt → Core→Gateway HMAC → Messaging Gateway → Evolution boundary. V1 requires an already-existing canonical Conversation with a qualified MessagingConnection/destination, explicit human confirmation, idempotency, `sending/succeeded/uncertain` semantics and no blind retry. Gateway may not infer WhatsApp or choose a messaging line. Evolution 2.3.7 upstream source supports document `sendMedia`, but the exact live Evolution version and real DANFE media/source behavior remain future gates; direct URL/Base64/upload strategy is not frozen here.
+
+Second adversarial review initially requested deep review. After removing premature assumptions about fiscal capability names, secret-write implementation and DANFE media transport, the final focused review returned `proceed_fast=0.93` with confidence `0.91`.
+
+Minimal slices are separated as:
+1. **Customer 28PRO Self-Service Connection V1** — provider command boundary qualification first;
+2. **28PRO Fiscal Read V1 — Prorevest** — fixture-first, GET-only;
+3. **Customer Mobile Fiscal Result V1** — safe authenticated presentation;
+4. **Supervised DANFE Document Outbound V1** — existing Conversation/Connection + explicit confirmation.
+
+The existing Prorevest connection means Fiscal Read is not technically dependent on completing customer self-service, although self-service is the first customer-product slice in the roadmap.
+
+Next executable boundary: **Customer 28PRO Self-Service Connection V1 — Provider Command Boundary Qualification / NO PRODUCTION EFFECT**. No production, migration, real ERP/provider call, secret mutation, customer work, outbound or merge occurred in ADR 0403.
+
 ## Reconciled checkpoint — ADR 0283 Semantic Fast Read production convergence preflight
 
 ADR 0283 is **PREFLIGHT COMPLETE / PRODUCTION ACTIVATION NO-GO / RUNTIME WIRING + ARTIFACT GAPS PROVEN / NO PRODUCTION EFFECT**.
