@@ -4,17 +4,15 @@ Date: 2026-10-02
 
 Status: **BLOCKED / NOT PROVEN / READ-ANALYSIS ONLY / NO PROVIDER CALL / NO SEND / NO PRODUCTION EFFECT**.
 
-Exact Evolution 2.3.7 source plus pinned Baileys 7.0.0-rc.9 prove that `POST /chat/whatsappNumbers/:instanceName` is not clean enough for the proposed Wandora destination-evidence contract. In the current Wandora `DATABASE_SAVE_IS_ON_WHATSAPP=true / 7 days` configuration, a positive uncached lookup may create/update Evolution-owned `isOnWhatsapp` rows, while a cache hit may be nearly seven days old and the returned DTO exposes neither observation timestamp nor cache/remote provenance.
+Exact Evolution 2.3.7 + Baileys 7.0.0-rc.9 review proves two distinct provider paths. `POST /chat/whatsappNumbers/:instanceName` can read/write Evolution's positive `IsOnWhatsapp` cache under the current Wandora `true / 7 days` configuration and cannot expose cache age/origin. But an existing narrower provider primitive, `POST /baileys/onWhatsapp/:instanceName`, directly calls Baileys `client.onWhatsApp(jid)` and bypasses the Evolution Contact/`IsOnWhatsapp` persistence path. Provider-native cache-off mode also exists. Therefore provider-local durable cache mutation is **avoidable without Wandora duplication**.
 
-Evolution natively supports `DATABASE_SAVE_IS_ON_WHATSAPP=false`; exact source proves that mode makes `getOnWhatsappCache` return no rows and `saveOnWhatsappCache` no-op, so ordinary phone-number checks continue through Baileys without that provider DB cache mutation. This is a useful provider-native reuse result, not an authorization to change production.
+The direct operation still sends a real Baileys IQ `type=get / xmlns=usync` contact query to WhatsApp servers. The exact reviewed client source contains no explicit message send, read receipt, presence update or contact upsert, but upstream supplies no guarantee that server processing has zero recipient/account/server-observable side effect. Absence of that effect is therefore **NOT PROVEN**. The direct `{jid, exists}` result also supplies no provider-defined observation timestamp/source/age.
 
-Baileys `onWhatsApp` itself issues an IQ `type=get / xmlns=usync` contact query to WhatsApp servers. The reviewed client code contains no explicit message send, read receipt, presence update, contact upsert or application-event emission for that lookup, but upstream does not guarantee that server processing has zero recipient-visible/remote observable side effect. That absence therefore remains **NOT PROVEN**.
+ADR 0168 remains satisfied by reuse: do not create a Wandora WhatsApp checker, provider cache, mirror or duplicate USync implementation. Messaging Gateway remains the replacement boundary and Core must not call Evolution directly. No equivalent qualified capability exists today in Gateway/Paperclip/Mastra. Canonical Connection/instance authority for order/customer Fast Read also remains unresolved; uniqueness of an instance/connection is not authority.
 
-Reuse Gate found no existing qualified equivalent in Messaging Gateway, Paperclip, Mastra or another accepted live messaging provider. Messaging Gateway remains the replacement boundary; Core must not call Evolution directly. Connection authority also remains separate: order/customer Fast Read has no canonical messaging Connection binding analogous to Human Send's `conversation.messaging_connection_id`.
+Deterministic decision: **BLOCKED / NOT PROVEN**. Final mandatory JEV review returned `block=0.84` with route confidence `0.78`. No provider/customer call, Human Send, outbound, production/config mutation, secret operation, new durable state/capability, rollout or merge occurred.
 
-Deterministic decision: **BLOCKED / NOT PROVEN**. The mandatory second adversarial JEV review agreed with `block=0.80` (confidence 0.73). No adapter, provider call, send, production/config mutation, durable state, duplicated capability, rollout or merge occurred.
-
-Next safe boundary is further provider/upstream evidence or a cleaner already-accepted provider primitive behind the same Messaging Gateway contract. Cache-off alone is insufficient because provenance/freshness and remote side-effect guarantees remain unresolved.
+The direct `/baileys/onWhatsapp/:instanceName` route is the preferred existing provider reuse candidate only if future authoritative evidence resolves remote-effect/provenance gates and a separate canonical messaging Connection binding exists.
 
 Canonical detail: `docs/decisions/0388-whatsapp-destination-evidence-provider-purity-freshness-qualification-v1.md`.
 
