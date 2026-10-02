@@ -639,7 +639,7 @@ diff --git a/server/src/services/plugin-dynamic-managed-agents.ts b/server/src/s
 new file mode 100644
 --- /dev/null
 +++ b/server/src/services/plugin-dynamic-managed-agents.ts
-@@ -0,0 +1,214 @@
+@@ -0,0 +1,217 @@
 +import { createHash } from "node:crypto";
 +import { and, eq, inArray, sql } from "drizzle-orm";
 +import type { Db } from "@paperclipai/db";
