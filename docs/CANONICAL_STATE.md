@@ -1,3 +1,23 @@
+# ADR 0385 — Semantic Fast Read Order Customer Contact Safe Preview V1
+
+Date: 2026-10-01
+
+Status: **CODE QUALIFIED / 11/11 EXACT-CODE-HEAD WORKFLOWS GREEN / DOCUMENTATION HEAD CI REQUIRED / NO PRODUCTION EFFECT**.
+
+PR #385 exact qualified code head `8fcd15bbf858e8667dae0b4c965644564528bf50` reuses the existing `business.orders.customer_contact.read` capability and ADR 0384 exact two-read maximum linkage. Wandora adds only a signed customer-presentation mode `facts | safe_contact_preview`; no new BusinessCapability, provider tool, table, migration, registry, workflow/state machine or provider-owned capability is introduced.
+
+`safe_contact_preview` is applicable only to the exact customer-contact read and is signed into `wfri1` as `prs`. The deterministic result may append `Prévia — NÃO ENVIADA` using only the bounded customer display name and exact order code. Contact presence/types remain separate facts; telephone/mobile are never auto-selected, mobile is never inferred as WhatsApp, and no raw phone/mobile/CPF/CNPJ/e-mail/address/provider ID is exposed or signed.
+
+Human Send/`wandora.work_proposals`, Messaging Gateway outbound, Paperclip approval/task state, Mastra draft/workflow state, fiscal/NFe/DANFE/SEFAZ work and all production effects remain outside the slice. Organization Adapter capability projection and the Semantic Fast Read operational/browser runbook remain unchanged.
+
+Exact code head completed 11/11 workflows GREEN. PR #385 is still draft/open/unmerged. The new documentation head must independently pass exact-head CI before full slice completion.
+
+Next only after that gate: separately reviewed **Order Customer Contact Destination/Channel Qualification V1 — NO SEND**. This ADR does not authorize destination choice, WhatsApp, Human Send, outbound, production promotion, a real provider/customer call or merge by implication.
+
+Canonical detail: `docs/decisions/0385-semantic-fast-read-order-customer-contact-safe-preview-v1.md`.
+
+---
+
 ## 2026-10-01 — ADR 0384 Semantic Fast Read Order → Customer Party/Contact Linkage V1
 
 Status: **QUALIFIED / EXACT CODE HEAD 12/12 GREEN / POST-GATE CANDIDATE ATTEMPT 2 GREEN / CODE + SYNTHETIC TESTS ONLY / NO PRODUCTION EFFECT**.

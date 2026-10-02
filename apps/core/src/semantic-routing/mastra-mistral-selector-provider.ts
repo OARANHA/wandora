@@ -86,7 +86,7 @@ const SELECTOR_INSTRUCTIONS = [
   'For business.orders.search or business.orders.customer_contact.read, return kind=order only when the request explicitly provides exactly one numeric order code.',
   'For order selectors use by=code and preserve the explicit positive integer order code as a number.',
   'For business.orders.search, do not emit an order selector for customer name, CPF/CNPJ, status, date/period, invoice/NFe number, phone, address, or unfiltered order listing even if provider fields may exist.',
-  'For business.orders.customer_contact.read, the selector is still only the explicit order code; never put CPF/CNPJ, phone, celular, WhatsApp destination, e-mail, address, or provider IDs into the selector.',
+  'For business.orders.customer_contact.read, including when the request asks for a safe message preview, the selector is still only the explicit order code; never put message text, CPF/CNPJ, phone, celular, WhatsApp destination, e-mail, address, or provider IDs into the selector.',
   'If the order code is missing, return selector=null and ambiguity=missing_entity. If multiple order codes are requested or equally intended, return selector=null and ambiguity=multiple_matches.',
   'Do not emit a party selector when the request asks for CPF/CNPJ, tax/document identifiers, e-mail, phone, address, or other sensitive party details; return selector=null and ambiguity=unknown.',
   'Do not emit a party selector for document, e-mail, phone, code, city, state, or changed-after lookup even if such provider fields may exist.',

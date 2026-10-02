@@ -9,6 +9,7 @@ import type {
   BusinessCapability,
   OrderSelector,
   PartySelector,
+  SemanticPresentationMode,
   ProductSelector,
   SemanticSelector,
   StockSelector,
@@ -332,6 +333,14 @@ function contactKinds(party: PartyRow): string[] {
   ];
 }
 
+function safeContactPreview(customerName: string, orderCode: number): string {
+  const normalizedName = customerName.normalize('NFKC').replace(/\s+/g, ' ').trim();
+  if (!normalizedName || normalizedName.length > 200) {
+    throw new Error('vendaerp_fast_read_invalid_party_result');
+  }
+  return `Olá, ${normalizedName}. Gostaríamos de falar com você sobre o pedido ${orderCode}.`;
+}
+
 function counted(
   result: DeterministicReadNormalizedResult,
   toolCalls: 1 | 2,
@@ -351,7 +360,7 @@ function createOrderCustomerContactBindings(
 
   return [{
     capability: 'business.orders.customer_contact.read',
-    async execute(_request, selector) {
+    async execute(_request, selector, presentation: SemanticPresentationMode = 'facts') {
       const selectedOrder = orderSelector(selector);
       if (!selectedOrder) throw new Error('vendaerp_fast_read_selector_required');
 
@@ -419,13 +428,20 @@ function createOrderCustomerContactBindings(
 
       const party = exactParties[0]!;
       const kinds = contactKinds(party);
+      const customerName = party.displayName ?? party.legalName!;
       return counted({
         kind: 'facts',
         subject: `Pedido ${order.code}`,
         facts: [
-          { label: 'Cliente', value: party.displayName ?? party.legalName! },
+          { label: 'Cliente', value: customerName },
           { label: 'Contato cadastrado', value: kinds.length > 0 ? 'Sim' : 'Não' },
           ...(kinds.length > 0 ? [{ label: 'Tipos disponíveis', value: kinds.join(' e ') }] : []),
+          ...(presentation === 'safe_contact_preview'
+            ? [{
+              label: 'Prévia — NÃO ENVIADA',
+              value: safeContactPreview(customerName, order.code),
+            }]
+            : []),
         ],
       }, 2);
     },

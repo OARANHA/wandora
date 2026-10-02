@@ -28,6 +28,15 @@ function validResponse(overrides: Record<string, unknown> = {}): Response {
           'business.products.search': 0.96,
         },
       },
+      presentation: {
+        type: 'choice',
+        choice: 'facts',
+        confidence: 0.99,
+        probabilities: {
+          facts: 0.99,
+          safe_contact_preview: 0.01,
+        },
+      },
       needsDataOrToolLookup: { type: 'noul', noul: 0.99 },
       needsMoreContext: { type: 'noul', noul: 0.01 },
       needsHumanReview: { type: 'noul', noul: 0.01 },
@@ -82,6 +91,7 @@ test('TypeSafe Jev adapter performs one bounded HTTPS decision without tenant/pr
       'needsDataOrToolLookup',
       'needsHumanReview',
       'needsMoreContext',
+      'presentation',
     ]);
     return validResponse();
   };
@@ -102,6 +112,7 @@ test('TypeSafe Jev adapter performs one bounded HTTPS decision without tenant/pr
   assert.deepEqual(decision, {
     mode: 'deterministic_read',
     capability: 'business.products.search',
+    presentation: 'facts',
     confidence: 0.96,
     needsDataOrToolLookup: 0.99,
     needsMoreContext: 0.01,
@@ -287,3 +298,56 @@ test('explicit named product is context-complete for later bounded selector extr
   assert.equal(decision.ambiguity, 'none');
 });
 
+
+
+test('safe contact preview is a bounded presentation choice over the existing contact-read capability', async () => {
+  const request = 'Faça uma prévia segura de mensagem para o cliente do pedido 1542, sem enviar.';
+  const provider = new TypeSafeJevSemanticDecisionProvider({
+    apiKey: API_KEY,
+    fetchImpl: async (_input, init) => {
+      const body = JSON.parse(String(init?.body)) as {
+        state: Record<string, unknown>;
+        questions: Record<string, { instructions?: string; criteria?: Record<string, string> }>;
+      };
+      assert.deepEqual(body.state, {
+        request,
+        availableCapabilities: ['business.orders.customer_contact.read'],
+      });
+      assert.match(body.questions.presentation?.instructions ?? '', /safe_contact_preview/);
+      assert.match(body.questions.presentation?.criteria?.safe_contact_preview ?? '', /NOT SENT/);
+
+      const response = validResponse();
+      const payload = JSON.parse(await response.text()) as any;
+      payload.answers.capability = {
+        type: 'choice',
+        choice: 'business.orders.customer_contact.read',
+        confidence: 0.99,
+        probabilities: {
+          none: 0.01,
+          'business.orders.customer_contact.read': 0.99,
+        },
+      };
+      payload.answers.presentation = {
+        type: 'choice',
+        choice: 'safe_contact_preview',
+        confidence: 1,
+        probabilities: {
+          facts: 0,
+          safe_contact_preview: 1,
+        },
+      };
+      return new Response(JSON.stringify(payload), { status: 200 });
+    },
+  });
+
+  const decision = await provider.decide({
+    organizationId: '11111111-1111-4111-8111-111111111111',
+    employeeId: '22222222-2222-4222-8222-222222222222',
+    request,
+    availableCapabilities: ['business.orders.customer_contact.read'],
+  });
+
+  assert.equal(decision.capability, 'business.orders.customer_contact.read');
+  assert.equal(decision.presentation, 'safe_contact_preview');
+  assert.equal(decision.ambiguity, 'none');
+});

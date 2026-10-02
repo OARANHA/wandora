@@ -807,3 +807,162 @@ test('order customer contact linkage rejects malformed sensitive provider fields
     /vendaerp_fast_read_invalid_party_result/,
   );
 });
+
+
+test('safe contact preview reuses exact ADR0384 linkage, stays NOT SENT, and performs no third/fiscal/outbound call', async () => {
+  let orderCalls = 0;
+  let partyCalls = 0;
+  let forbiddenCalls = 0;
+  let orderInput: unknown;
+  let partyInput: unknown;
+  const adapter = createVendaErpFastReadCapabilityAdapter();
+  const bindings = createDeterministicReadBindingsFromAuthorizedTools([
+    tool('orders-runtime', async (input) => {
+      orderCalls += 1;
+      orderInput = input;
+      return [{
+        code: 1542,
+        customerTaxId: '12.345.678/0001-90',
+        invoiceNumber: 'NFE-MUST-NOT-BE-USED',
+        accessKey: 'ACCESS-MUST-NOT-LEAK',
+      }];
+    }, 'vendaerp_search_orders'),
+    tool('parties-runtime', async (input) => {
+      partyCalls += 1;
+      partyInput = input;
+      return [{
+        displayName: 'Cliente\nExemplo',
+        legalName: 'Cliente Exemplo Ltda',
+        taxId: '12.345.678/0001-90',
+        telephone: '5133333333',
+        mobilePhone: '51999999999',
+        email: 'cliente@example.test',
+        address: 'Rua Privada 123',
+        externalRef: 'provider-private-id',
+        customer: true,
+        supplier: false,
+      }];
+    }, 'vendaerp_search_parties'),
+    tool('send-runtime', async () => {
+      forbiddenCalls += 1;
+      throw new Error('must-not-send');
+    }, 'messaging_send_text'),
+  ], adapter);
+
+  const binding = bindings.find((entry) => entry.capability === 'business.orders.customer_contact.read');
+  assert.ok(binding);
+  const executed = await binding.execute(
+    'Faça uma prévia segura de mensagem para o cliente do pedido 1542, sem enviar.',
+    { kind: 'order', by: 'code', value: 1542 },
+    'safe_contact_preview',
+  );
+  const result = 'result' in executed ? executed.result : executed;
+  assert.equal('toolCalls' in executed ? executed.toolCalls : 1, 2);
+  assert.equal(orderCalls, 1);
+  assert.equal(partyCalls, 1);
+  assert.equal(forbiddenCalls, 0);
+  assert.deepEqual(orderInput, { code: 1542, pageSize: 5, skip: 0 });
+  assert.deepEqual(partyInput, {
+    taxId: '12.345.678/0001-90',
+    customer: true,
+    pageSize: 5,
+    skip: 0,
+  });
+  assert.equal(result.kind, 'facts');
+  if (result.kind !== 'facts') throw new Error('expected facts');
+  assert.equal(result.facts.find((fact) => fact.label === 'Contato cadastrado')?.value, 'Sim');
+  assert.equal(result.facts.find((fact) => fact.label === 'Tipos disponíveis')?.value, 'Telefone e Celular');
+  assert.equal(
+    result.facts.find((fact) => fact.label === 'Prévia — NÃO ENVIADA')?.value,
+    'Olá, Cliente Exemplo. Gostaríamos de falar com você sobre o pedido 1542.',
+  );
+  const serialized = JSON.stringify(result);
+  for (const forbidden of [
+    '12.345.678/0001-90',
+    '5133333333',
+    '51999999999',
+    'cliente@example.test',
+    'Rua Privada 123',
+    'provider-private-id',
+    'NFE-MUST-NOT-BE-USED',
+    'ACCESS-MUST-NOT-LEAK',
+    'WhatsApp',
+  ]) {
+    assert.equal(serialized.includes(forbidden), false, forbidden);
+  }
+});
+
+test('safe contact preview keeps contact existence/type independent from preview text for zero, telephone, cellular, and both', async () => {
+  const variants = [
+    [{}, 'Não', undefined],
+    [{ telephone: '5133333333' }, 'Sim', 'Telefone'],
+    [{ mobilePhone: '51999999999' }, 'Sim', 'Celular'],
+    [{ telephone: '5133333333', mobilePhone: '51999999999' }, 'Sim', 'Telefone e Celular'],
+  ] as const;
+
+  for (const [contact, registered, kinds] of variants) {
+    const adapter = createVendaErpFastReadCapabilityAdapter();
+    const bindings = createDeterministicReadBindingsFromAuthorizedTools([
+      tool('orders-runtime', async () => [{
+        code: 1542,
+        customerTaxId: '12.345.678/0001-90',
+      }], 'vendaerp_search_orders'),
+      tool('parties-runtime', async () => [{
+        displayName: 'Cliente Exemplo',
+        taxId: '12.345.678/0001-90',
+        customer: true,
+        supplier: false,
+        ...contact,
+      }], 'vendaerp_search_parties'),
+    ], adapter);
+    const binding = bindings.find((entry) => entry.capability === 'business.orders.customer_contact.read');
+    assert.ok(binding);
+    const executed = await binding.execute(
+      'Faça uma prévia segura para o pedido 1542, sem enviar.',
+      { kind: 'order', by: 'code', value: 1542 },
+      'safe_contact_preview',
+    );
+    const result = 'result' in executed ? executed.result : executed;
+    assert.equal(result.kind, 'facts');
+    if (result.kind !== 'facts') throw new Error('expected facts');
+    assert.equal(result.facts.find((fact) => fact.label === 'Contato cadastrado')?.value, registered);
+    assert.equal(result.facts.find((fact) => fact.label === 'Tipos disponíveis')?.value, kinds);
+    assert.equal(
+      result.facts.find((fact) => fact.label === 'Prévia — NÃO ENVIADA')?.value,
+      'Olá, Cliente Exemplo. Gostaríamos de falar com você sobre o pedido 1542.',
+    );
+    const serialized = JSON.stringify(result);
+    assert.equal(serialized.includes('5133333333'), false);
+    assert.equal(serialized.includes('51999999999'), false);
+    assert.equal(serialized.includes('enviar para'), false);
+    assert.equal(serialized.includes('WhatsApp'), false);
+  }
+});
+
+test('facts presentation preserves ADR0384 contact projection without implicitly creating a preview', async () => {
+  const adapter = createVendaErpFastReadCapabilityAdapter();
+  const bindings = createDeterministicReadBindingsFromAuthorizedTools([
+    tool('orders-runtime', async () => [{
+      code: 1542,
+      customerTaxId: '12.345.678/0001-90',
+    }], 'vendaerp_search_orders'),
+    tool('parties-runtime', async () => [{
+      displayName: 'Cliente Exemplo',
+      taxId: '12.345.678/0001-90',
+      mobilePhone: '51999999999',
+      customer: true,
+      supplier: false,
+    }], 'vendaerp_search_parties'),
+  ], adapter);
+  const binding = bindings.find((entry) => entry.capability === 'business.orders.customer_contact.read');
+  assert.ok(binding);
+  const executed = await binding.execute(
+    'Qual contato está cadastrado para o cliente do pedido 1542?',
+    { kind: 'order', by: 'code', value: 1542 },
+    'facts',
+  );
+  const result = 'result' in executed ? executed.result : executed;
+  assert.equal(result.kind, 'facts');
+  if (result.kind !== 'facts') throw new Error('expected facts');
+  assert.equal(result.facts.some((fact) => fact.label === 'Prévia — NÃO ENVIADA'), false);
+});

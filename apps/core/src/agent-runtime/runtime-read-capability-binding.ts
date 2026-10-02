@@ -3,7 +3,11 @@ import type {
   DeterministicReadBinding,
   DeterministicReadNormalizedResult,
 } from './deterministic-read.js';
-import type { BusinessCapability, SemanticSelector } from '../semantic-routing/contracts.js';
+import type {
+  BusinessCapability,
+  SemanticPresentationMode,
+  SemanticSelector,
+} from '../semantic-routing/contracts.js';
 
 export type RuntimeReadCapabilityAdapter = {
   capabilitiesFor(tool: RuntimeReadTool): readonly BusinessCapability[];
@@ -12,6 +16,7 @@ export type RuntimeReadCapabilityAdapter = {
     capability: BusinessCapability;
     request: string;
     selector: SemanticSelector | null;
+    presentation?: SemanticPresentationMode;
   }): Promise<DeterministicReadNormalizedResult>;
   composedBindingsFor?(
     tools: readonly RuntimeReadTool[],
@@ -31,7 +36,13 @@ export function createDeterministicReadBindingsFromAuthorizedTools(
       seen.add(capability);
       bindings.push({
         capability,
-        execute: (request, selector) => adapter.execute({ tool, capability, request, selector }),
+        execute: (request, selector, presentation) => adapter.execute({
+          tool,
+          capability,
+          request,
+          selector,
+          ...(presentation === undefined ? {} : { presentation }),
+        }),
       });
     }
   }

@@ -1,9 +1,11 @@
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import {
   BUSINESS_CAPABILITIES,
+  canonicalSemanticPresentationMode,
   canonicalSemanticSelector,
   gateDeterministicRead,
   type BusinessCapability,
+  type SemanticPresentationMode,
   type SemanticSelector,
   type SemanticRouteDecision,
   type SemanticRoutePolicy,
@@ -20,6 +22,7 @@ export type FastReadIntentClaims = {
   employeeId: string;
   capability: BusinessCapability;
   selector: SemanticSelector | null;
+  presentation: SemanticPresentationMode;
   correlationId: string;
   requestDigest: string;
   issuedAt: number;
@@ -67,6 +70,7 @@ function encode(claims: FastReadIntentClaims): string {
     exp: claims.expiresAt,
   };
   if (claims.selector) payload.sel = claims.selector;
+  payload.prs = claims.presentation;
   return Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
 }
 
@@ -91,6 +95,9 @@ function decode(payload: string): FastReadIntentClaims {
     ? value.cap as BusinessCapability
     : null;
   const selector = value.sel === undefined ? null : canonicalSemanticSelector(value.sel);
+  const presentation = value.prs === undefined
+    ? 'facts'
+    : canonicalSemanticPresentationMode(value.prs);
   if (
     value.v !== 1
     || typeof value.org !== 'string'
@@ -98,6 +105,9 @@ function decode(payload: string): FastReadIntentClaims {
     || typeof value.cid !== 'string'
     || !capability
     || (value.sel !== undefined && !selector)
+    || !presentation
+    || (presentation === 'safe_contact_preview'
+      && capability !== 'business.orders.customer_contact.read')
     || typeof value.req !== 'string'
     || !DIGEST_RE.test(value.req)
     || !Number.isSafeInteger(value.iat)
@@ -110,6 +120,7 @@ function decode(payload: string): FastReadIntentClaims {
     employeeId: canonicalUuid(value.emp),
     capability,
     selector,
+    presentation,
     correlationId: canonicalUuid(value.cid),
     requestDigest: value.req,
     issuedAt: value.iat as number,
@@ -143,6 +154,7 @@ export function issueFastReadIntent(input: {
     employeeId: canonicalUuid(input.employeeId),
     capability: gate.capability,
     selector: gate.selector,
+    presentation: gate.presentation,
     correlationId: canonicalUuid(input.correlationId),
     requestDigest: requestDigest(input.request),
     issuedAt,

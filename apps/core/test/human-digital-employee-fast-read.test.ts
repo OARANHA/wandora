@@ -1301,3 +1301,72 @@ test('Orders V1 without one explicit order code returns bounded clarification an
   assert.equal(selectorCalls, 1);
   assert.equal(dispatchCalls, 0);
 });
+
+
+test('safe contact preview admission signs presentation but keeps the order code as the only selector', async () => {
+  let selectorCalls = 0;
+  let dispatchCalls = 0;
+  const request = 'Faça uma prévia segura de mensagem para o cliente do pedido 1542, sem enviar.';
+  const service = new HumanDigitalEmployeeFastReadService({
+    intentSecret: SECRET,
+    policy: POLICY,
+    createCorrelationId: () => CORRELATION,
+    now: () => 1_790_000_000_000,
+    semanticDecisionProvider: {
+      async decide() {
+        return deterministicDecision({
+          capability: 'business.orders.customer_contact.read',
+          selector: null,
+          presentation: 'safe_contact_preview',
+        });
+      },
+    },
+    semanticSelectorProvider: {
+      async select(input) {
+        selectorCalls += 1;
+        assert.equal(input.capability, 'business.orders.customer_contact.read');
+        assert.equal(input.request, request);
+        return {
+          selector: { kind: 'order' as const, by: 'code' as const, value: 1542 },
+          confidence: 0.99,
+          ambiguity: 'none' as const,
+        };
+      },
+    },
+    bridge: {
+      async getAvailableCapabilities() {
+        return ['business.orders.customer_contact.read'];
+      },
+      async dispatchFastRead(input) {
+        dispatchCalls += 1;
+        const payload = JSON.parse(
+          Buffer.from(input.intentToken.split('.')[1]!, 'base64url').toString('utf8'),
+        );
+        assert.deepEqual(payload.sel, { kind: 'order', by: 'code', value: 1542 });
+        assert.equal(payload.prs, 'safe_contact_preview');
+        const serialized = JSON.stringify(payload);
+        for (const forbidden of ['telephone', 'mobilePhone', 'customerTaxId', 'email', 'address']) {
+          assert.equal(serialized.includes(forbidden), false);
+        }
+        return {
+          model: 'wandora-deterministic-read-v1',
+          summary: 'Pedido 1542\nCliente: Cliente Exemplo\nContato cadastrado: Sim\nTipos disponíveis: Celular\nPrévia — NÃO ENVIADA: Olá, Cliente Exemplo. Gostaríamos de falar com você sobre o pedido 1542.',
+          usage: { inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, totalTokens: 0 },
+        };
+      },
+    },
+  });
+
+  const result = await service.execute({
+    organizationId: ORG,
+    actorUserId: USER,
+    employeeId: EMPLOYEE,
+    request,
+  });
+  assert.equal(result.kind, 'completed');
+  assert.equal(selectorCalls, 1);
+  assert.equal(dispatchCalls, 1);
+  if (result.kind === 'completed') {
+    assert.match(result.summary, /Prévia — NÃO ENVIADA:/);
+  }
+});
