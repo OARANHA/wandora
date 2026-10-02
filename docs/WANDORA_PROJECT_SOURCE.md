@@ -1,3 +1,23 @@
+# CHECKPOINT ATUAL — ADR 0387 MESSAGING GATEWAY READ-ONLY DESTINATION/CHANNEL QUALIFICATION — BLOCKED
+
+Status: **BLOCKED / FAIL-CLOSED / NO ADAPTER CODE / NO SEND / NO PRODUCTION EFFECT**.
+
+The ADR 0387 Reuse Gate confirms Messaging Gateway is still the correct provider-neutral replacement boundary, but the concrete Evolution 2.3.7 path cannot be admitted under this slice's strict read-only requirement. Its `POST /chat/whatsappNumbers/:instanceName` implementation can create/update provider-local `isOnWhatsapp` cache rows, and the canonical Wandora Evolution stack enables that cache for seven days. The returned DTO also omits cache age, so a caller cannot prove freshness from the result alone.
+
+A second independent blocker remains: Human Send can resolve a messaging connection only because a canonical conversation already carries `messaging_connection_id`. The order/customer Fast Read path has no equivalent canonical connection/instance binding. No automatic Gateway/Evolution connection selection, Paperclip Connection repurposing or new resolver was introduced.
+
+The mandatory second adversarial review returned `block=0.99` (confidence 0.98). No adapter code, new BusinessCapability, table, migration, registry, cache, retry/state machine, provider-selection mechanism or runtime secret/config was created.
+
+Live Messaging Gateway readback remained healthy and showed only existing inbound webhook/Gateway→Core mounts; no provider read/outbound credential was introduced. No real Evolution/customer/VendaERP call, Human Send, outbound, VPS mutation, rollout or merge occurred.
+
+Next safe boundary: **WhatsApp Destination Evidence Provider Purity/Freshness Qualification V1 — READ/ANALYSIS ONLY / NO PROVIDER CALL / NO SEND**. Connection/instance authority remains separately unresolved if provider purity/freshness is later qualified.
+
+Canonical detail: `docs/decisions/0387-messaging-gateway-read-only-destination-channel-qualification-adapter-v1.md`.
+
+This file is bootstrap only. Continue with `AGENTS.md`, relevant ADRs, `docs/CAPABILITY_AUTHORITY.md`, `docs/architecture.md`, `docs/CANONICAL_STATE.md`, component runbooks, GitHub and live runtime.
+
+---
+
 # CHECKPOINT ATUAL — ADR 0386 DESTINATION/CHANNEL QUALIFICATION V1 — NO SEND
 
 Status: **CODE QUALIFIED / PRIMARY GATES GREEN / POST-GATE CANDIDATE GREEN / DOCUMENTATION HEAD CI REQUIRED / NO PRODUCTION EFFECT**.

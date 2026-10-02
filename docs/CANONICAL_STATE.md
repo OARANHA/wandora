@@ -1,3 +1,23 @@
+# ADR 0387 — Messaging Gateway Read-Only Destination/Channel Qualification Adapter V1 — BLOCKED
+
+Date: 2026-10-02
+
+Status: **BLOCKED / FAIL-CLOSED / NO ADAPTER CODE / NO SEND / NO PRODUCTION EFFECT**.
+
+The provider-neutral authority remains Messaging Gateway, not Core→Evolution. However, the concrete Evolution API 2.3.7 `whatsappNumbers` path does not pass this slice's strict read-only gate under the qualified Wandora configuration: `DATABASE_SAVE_IS_ON_WHATSAPP=true` causes positive uncached lookups to create/update durable provider-local `isOnWhatsapp` cache rows, with a configured seven-day cache window. The public DTO does not expose cache age, so freshness cannot be proven by the caller.
+
+The current order/customer Fast Read path also has no canonical messaging Connection/instance authority. Human Send resolves `conversation.messaging_connection_id` only for an existing conversation and verifies it against the exact configured Gateway connection. ADR 0386 forbids inventing or implying a provider connection for semantic qualification.
+
+Decision: do not implement the adapter, do not add a provider selector/resolver, and keep runtime qualification fail-closed/unqualified. The mandatory second adversarial review agreed with `block=0.99` (confidence 0.98).
+
+No new BusinessCapability, table, migration, registry, cache, state machine, retry engine, workflow, approval mechanism, provider/customer lookup, Human Send/outbound effect, production/VPS mutation, secret operation, rollout or merge occurred.
+
+Next safe boundary: **WhatsApp Destination Evidence Provider Purity/Freshness Qualification V1 — READ/ANALYSIS ONLY / NO PROVIDER CALL / NO SEND**. Connection/instance authority remains a separate unresolved prerequisite if provider purity/freshness is later qualified.
+
+Canonical detail: `docs/decisions/0387-messaging-gateway-read-only-destination-channel-qualification-adapter-v1.md`.
+
+---
+
 # ADR 0386 — Semantic Fast Read Order Customer Contact Destination/Channel Qualification V1 — NO SEND
 
 Date: 2026-10-02
