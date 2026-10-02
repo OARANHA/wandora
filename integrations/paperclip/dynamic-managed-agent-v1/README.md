@@ -74,6 +74,21 @@ The requested initial status is part of the provider-owned creation fingerprint,
 so replay with a changed initial state conflicts rather than mutating an existing
 managed Agent.
 
+### Board approval preserves the requested initial state
+
+When Board approval is required, creation still starts at `pending_approval`.
+The provider-owned immutable approval payload carries the normalized requested
+initial state. Native approval then transitions a dynamic managed Agent to the
+requested state:
+
+- requested `paused` -> approved Agent remains `paused` with
+  `pauseReason = system` and `pausedAt`;
+- requested `idle` -> approved Agent becomes `idle`.
+
+The behavior is gated by the provider-owned dynamic-managed marker. Generic
+Paperclip hire approvals retain their existing `pending_approval -> idle`
+behavior.
+
 ## Candidate-only boundary
 
 The workflows for this slice may:

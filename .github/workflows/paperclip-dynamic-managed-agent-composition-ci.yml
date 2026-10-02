@@ -73,6 +73,7 @@ jobs:
           pnpm exec vitest run \
             packages/plugins/sdk/tests/dynamic-managed-agent-capability.test.ts \
             server/src/__tests__/plugin-dynamic-managed-agents.test.ts \
+            server/src/__tests__/agents-pending-approval-config.test.ts \
             packages/plugins/sdk/tests/host-client-factory.test.ts \
             packages/plugins/sdk/tests/worker-rpc-host-webhook.test.ts \
             server/src/__tests__/plugin-tool-access-operational-read.test.ts \

@@ -1,3 +1,32 @@
+# CHECKPOINT ATUAL — ADR 0399 POST-APPROVAL INITIAL STATUS PRESERVATION
+
+Status: **STACKED PROVIDER CANDIDATE / EXACT-HEAD CI PENDING / NO PRODUCTION EFFECT**.
+
+PR #397 exact head `a9b0f76d21758aea6ee70ce32796c400e08969fe` was revalidated **13/13 GREEN**. Before
+Organization Adapter wiring, ADR 0398's explicitly deferred Board-approval gap
+was closed in a new stacked slice.
+
+Dynamic managed approvals now carry provider-owned immutable
+`dynamicManagedRequestedInitialStatus`. Native approval remains Paperclip-owned
+and marker-gated:
+
+- requested paused -> `pending_approval -> paused`, native
+  `pauseReason = system`;
+- requested idle -> `pending_approval -> idle`;
+- non-dynamic Paperclip hires retain existing `pending_approval -> idle`.
+
+No new Wandora table, migration, state machine, credential or control plane is
+introduced. No production effect occurred.
+
+Canonical detail:
+`docs/decisions/0399-paperclip-dynamic-managed-agent-post-approval-initial-status-preservation-v1.md`.
+
+Next gate after exact-head GREEN: Organization Adapter dynamic managed employee
+bridge qualification/candidate. Production promotion remains a separate
+effect-authorizing slice.
+
+---
+
 # CHECKPOINT ATUAL — ADR 0398 DYNAMIC MANAGED AGENT INITIAL STATUS RECONCILIATION
 
 Status: **PROVIDER CANDIDATE SEMANTIC DEFECT CORRECTED / EXACT-HEAD CI PENDING / NO PRODUCTION EFFECT**.
