@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import type { Pool, PoolClient } from 'pg';
 import type { HumanTokenVerifier } from '../human-auth/es256-jwks.js';
 import type { PrivateGatewayClient } from '../messaging/private-gateway.js';
+import { maskMessagingRecipient } from '../messaging/channel-address.js';
 import { HumanAccessError, HumanNotFoundError } from './human-read.js';
 
 const RECIPIENT_RE = /^\+?[1-9]\d{7,14}$/;
@@ -106,14 +107,6 @@ type ExistingSuccess = {
 type Preparation = PreparedSend | ExistingSuccess;
 
 const proposalIdempotencyKey = (proposalId: string): string => `proposal-send:${proposalId}`;
-
-const maskRecipient = (recipient: string): string => {
-  const compact = recipient.replace(/[\s()-]/g, '');
-  if (!/^\+?\d{8,15}$/.test(compact)) return 'Canal autorizado';
-  const prefixLength = compact.startsWith('+') ? Math.min(5, compact.length - 4) : Math.min(4, compact.length - 4);
-  if (prefixLength <= 0) return 'Canal autorizado';
-  return `${compact.slice(0, prefixLength)}${'•'.repeat(compact.length - prefixLength - 4)}${compact.slice(-4)}`;
-};
 
 const confirmationVersion = (
   organizationId: string,
@@ -347,7 +340,7 @@ export class HumanSendProposalService {
             ? {
                 state: 'ready',
                 confirmation: {
-                  recipientMasked: maskRecipient(row.recipient),
+                  recipientMasked: maskMessagingRecipient(row.recipient),
                   text: row.proposal_text,
                   version: confirmationVersion(args.organizationId, actorUserId, row),
                 },

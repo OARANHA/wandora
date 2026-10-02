@@ -50,7 +50,7 @@ export type OrderSelector = {
 
 export type SemanticSelector = ProductSelector | PartySelector | StockSelector | OrderSelector;
 
-export const SEMANTIC_PRESENTATION_MODES = ['facts', 'safe_contact_preview'] as const;
+export const SEMANTIC_PRESENTATION_MODES = ['facts', 'safe_contact_preview', 'contact_destination_qualification'] as const;
 export type SemanticPresentationMode = typeof SEMANTIC_PRESENTATION_MODES[number];
 
 export function canonicalSemanticPresentationMode(value: unknown): SemanticPresentationMode | null {
@@ -315,7 +315,7 @@ export function gateDeterministicRead(
     return { allowed: false, reason: 'invalid-presentation' };
   }
   if (
-    presentation === 'safe_contact_preview'
+    presentation !== 'facts'
     && decision.capability !== 'business.orders.customer_contact.read'
   ) {
     return { allowed: false, reason: 'presentation-not-applicable' };

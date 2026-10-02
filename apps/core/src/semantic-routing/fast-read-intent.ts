@@ -106,7 +106,7 @@ function decode(payload: string): FastReadIntentClaims {
     || !capability
     || (value.sel !== undefined && !selector)
     || !presentation
-    || (presentation === 'safe_contact_preview'
+    || (presentation !== 'facts'
       && capability !== 'business.orders.customer_contact.read')
     || typeof value.req !== 'string'
     || !DIGEST_RE.test(value.req)

@@ -14,6 +14,10 @@ import type {
   SemanticSelector,
   StockSelector,
 } from '../semantic-routing/contracts.js';
+import {
+  contactDestinationQualificationFacts,
+  qualifyContactDestinations,
+} from '../semantic-routing/contact-destination-qualification.js';
 
 const VENDAERP_PRODUCT_TOOL = 'vendaerp_search_products';
 const VENDAERP_STOCK_TOOL = 'vendaerp_get_product_stock';
@@ -429,6 +433,12 @@ function createOrderCustomerContactBindings(
       const party = exactParties[0]!;
       const kinds = contactKinds(party);
       const customerName = party.displayName ?? party.legalName!;
+      const qualificationFacts = presentation === 'contact_destination_qualification'
+        ? contactDestinationQualificationFacts(qualifyContactDestinations({
+            ...(party.telephone ? { telephone: party.telephone } : {}),
+            ...(party.mobilePhone ? { mobilePhone: party.mobilePhone } : {}),
+          }))
+        : [];
       return counted({
         kind: 'facts',
         subject: `Pedido ${order.code}`,
@@ -436,6 +446,7 @@ function createOrderCustomerContactBindings(
           { label: 'Cliente', value: customerName },
           { label: 'Contato cadastrado', value: kinds.length > 0 ? 'Sim' : 'Não' },
           ...(kinds.length > 0 ? [{ label: 'Tipos disponíveis', value: kinds.join(' e ') }] : []),
+          ...qualificationFacts,
           ...(presentation === 'safe_contact_preview'
             ? [{
               label: 'Prévia — NÃO ENVIADA',

@@ -1,3 +1,31 @@
+# CHECKPOINT ATUAL — ADR 0386 DESTINATION/CHANNEL QUALIFICATION V1 — NO SEND
+
+Status: **CODE QUALIFIED / PRIMARY GATES GREEN / POST-GATE CANDIDATE GREEN / DOCUMENTATION HEAD CI REQUIRED / NO PRODUCTION EFFECT**.
+
+Destination/Channel Qualification V1 reuses `business.orders.customer_contact.read`, the exact ADR 0384 order→customer linkage and the existing maximum of two bounded VendaERP reads. No new BusinessCapability, provider tool, table, migration, contact/destination registry, workflow/state machine, messaging subsystem, approval mechanism or durable qualification state was created.
+
+Wandora adds the finite signed presentation mode `contact_destination_qualification`. Registered telephone and mobile values become independent masked destination candidates only. No candidate is automatically chosen, even if it is the only candidate; `selectedDestination` stays null. Mobile is not WhatsApp, and telephone is not SMS/voice/WhatsApp. A channel is qualified only by explicit trusted messaging-provider evidence for that exact candidate.
+
+The current runtime path supplies no live provider evidence and therefore fails closed with unqualified channels. Synthetic tests prove that explicit exact evidence may qualify the modeled WhatsApp channel without selecting a destination or authorizing send. Provider rejection, mismatch, ambiguity or absent evidence fail closed.
+
+The existing Human Send masking behavior was extracted to a shared Core helper and reused; no second masking mechanism was introduced. Raw phone/mobile, CPF/CNPJ, e-mail, address, provider IDs, raw provider payloads and evidence digests remain outside the customer-facing result and `wfri1`.
+
+Human Send remains the separate supervised outbound authorization boundary. Messaging Gateway remains the separate provider-neutral outbound transport/effect boundary. Neither is called by this slice. Core does not call Evolution directly; any future read-only WhatsApp/destination proof must be separately qualified behind a provider-neutral Messaging Gateway/provider adapter replacement boundary.
+
+Exact qualified code head `bbf0e924fb780015b3e35d4defadc35726fa1f81` passed the relevant exact-head workflows. Because the first Candidate completed before Core CI + Semantic Fast Read CI, only Candidate was rerun after both primary gates were GREEN; post-gate job `110690384333` completed GREEN.
+
+PR #386 remains draft/open/unmerged. No production/VPS change, real VendaERP/customer/provider qualification call, Human Send, WhatsApp send, Gateway outbound, proposal/outbound attempt, fiscal work, rollout or merge occurred.
+
+The documentation head still requires its own exact-head CI before the slice is fully complete.
+
+Next boundary only after documentation-head qualification: separately reviewed **Messaging Gateway Read-Only Destination/Channel Qualification Adapter V1 — NO SEND**. This checkpoint does not authorize that next slice or any real provider/customer effect by implication.
+
+Canonical detail: `docs/decisions/0386-semantic-fast-read-order-customer-contact-destination-channel-qualification-v1.md`.
+
+This file is bootstrap only. Continue with `AGENTS.md`, relevant ADRs, `docs/CAPABILITY_AUTHORITY.md`, `docs/architecture.md`, `docs/CANONICAL_STATE.md`, component runbooks, GitHub and live runtime.
+
+---
+
 # CHECKPOINT ATUAL — ADR 0385 ORDER CUSTOMER CONTACT SAFE PREVIEW V1
 
 Status: **CODE QUALIFIED / EXACT CODE HEAD 11/11 WORKFLOWS GREEN / SIGNED PRESENTATION MODE / PREVIEW EXPLICITLY NÃO ENVIADA / DOCUMENTATION HEAD CI REQUIRED / NO PRODUCTION EFFECT**.

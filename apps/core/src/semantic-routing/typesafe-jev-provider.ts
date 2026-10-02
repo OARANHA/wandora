@@ -33,6 +33,7 @@ const AMBIGUITIES = [
 const PRESENTATIONS = [
   'facts',
   'safe_contact_preview',
+  'contact_destination_qualification',
 ] as const satisfies readonly SemanticPresentationMode[];
 
 const CAPABILITY_DESCRIPTIONS: Record<BusinessCapability, string> = {
@@ -43,7 +44,7 @@ const CAPABILITY_DESCRIPTIONS: Record<BusinessCapability, string> = {
   'business.price_tables.products.read': 'Read-only lookup of products in a price table.',
   'business.parties.search': 'Read-only search for customers, suppliers, or other parties.',
   'business.orders.search': 'Read-only search for existing orders.',
-  'business.orders.customer_contact.read': 'Read-only linkage from one exact order code to registered customer contact availability and contact kinds. It may also support an explicitly requested deterministic non-sending customer message preview without exposing contact values or selecting a destination.',
+  'business.orders.customer_contact.read': 'Read-only linkage from one exact order code to registered customer contact availability and contact kinds. It may also support an explicitly requested deterministic non-sending customer message preview or a no-send destination/channel qualification projection without automatically selecting a destination or inferring a channel.',
   'business.companies.list': 'Read-only listing of business companies available to the organization.',
   'business.connection.probe': 'Read-only connectivity or availability probe for the business system.',
 };
@@ -164,10 +165,11 @@ function buildQuestions(availableCapabilities: readonly BusinessCapability[]): J
     },
     presentation: {
       type: 'choice',
-      instructions: 'Choose the bounded customer presentation. safe_contact_preview is allowed only when the request explicitly asks for a message draft/preview, the selected capability is business.orders.customer_contact.read, and no send/destination/WhatsApp validation is requested.',
+      instructions: 'Choose the bounded customer presentation. safe_contact_preview is only for an explicitly requested message draft/preview. contact_destination_qualification is only for an explicitly requested destination/channel qualification. Both are allowed only with business.orders.customer_contact.read and neither authorizes send.',
       criteria: {
-        facts: 'Return only the normal deterministic facts for the selected read. Use this for ordinary reads and whenever a safe preview was not explicitly requested.',
+        facts: 'Return only the normal deterministic facts for the selected read.',
         safe_contact_preview: 'Return the same authorized contact facts plus a deterministic message preview clearly marked NOT SENT. This never chooses a destination, proves WhatsApp, or authorizes outbound.',
+        contact_destination_qualification: 'Return a no-send qualification projection over the exact order customer contacts. Registered telephone/mobile are only candidates. Never infer mobile=WhatsApp, telephone=SMS/voice, select the first/only contact, or claim a channel is qualified without explicit messaging-provider evidence.',
       },
     },
     needsDataOrToolLookup: {
