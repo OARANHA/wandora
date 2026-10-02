@@ -1,3 +1,32 @@
+# CHECKPOINT ATUAL — ADR 0398 DYNAMIC MANAGED AGENT INITIAL STATUS RECONCILIATION
+
+Status: **PROVIDER CANDIDATE SEMANTIC DEFECT CORRECTED / EXACT-HEAD CI PENDING / NO PRODUCTION EFFECT**.
+
+Fresh next-slice review discovered that accepted ADR 0396 required
+`initialStatus = idle | paused`, while the ADR 0397 fifth patch hardcoded every
+non-approval dynamic Agent to `idle`. This matters because ADR 0063/0064 keep
+customer hire paused-first and activation separate.
+
+The fifth patch now carries a bounded optional `initialStatus`, defaults to
+`idle`, validates only `idle | paused`, includes the normalized value in the
+provider-owned creation fingerprint, and atomically creates the non-approval
+Agent in the requested state. Explicit paused creation receives provider-owned
+pause metadata. Board-approval mode still forces `pending_approval` and reuses
+Paperclip's native approval lifecycle.
+
+No Organization Adapter/Core/schema/runtime/production change is part of this
+correction. The prior 13/13 GREEN head remains historical evidence for the prior
+bytes only; the corrected exact head must pass CI again before the provider
+candidate is considered requalified.
+
+Canonical detail:
+`docs/decisions/0398-paperclip-dynamic-managed-agent-initial-status-contract-reconciliation-v1.md`.
+
+Next gate after exact-head GREEN: re-enter the Organization Adapter dynamic
+managed employee bridge decision. No production promotion is implied.
+
+---
+
 # CHECKPOINT ATUAL — ADR 0397 PAPERCLIP DYNAMIC MANAGED AGENT PROVIDER CANDIDATE — CI GREEN / CANDIDATE QUALIFIED
 
 Status: **FIFTH PROVIDER PATCH IMPLEMENTED / DEDICATED `agents.managed.dynamic` CAPABILITY ADDED / PROVIDER EXACTLY-ONE + NATIVE APPROVAL TESTS GREEN / COMPOSITION + DISPOSABLE CANDIDATE CI GREEN / PROVIDER CANDIDATE QUALIFIED / NO PRODUCTION EFFECT**.

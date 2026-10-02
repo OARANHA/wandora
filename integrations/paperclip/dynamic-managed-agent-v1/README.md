@@ -56,6 +56,24 @@ Paperclip owns:
 Wandora continues to own DigitalEmployee identity and product semantics. No
 Wandora workforce mirror or provider Agent lifecycle table is introduced here.
 
+### Requested initial lifecycle state
+
+The bounded create-only spec includes an optional provider request:
+
+```text
+initialStatus = idle | paused
+```
+
+The provider defaults it to `idle` for compatibility. When Board approval is
+not required, the Agent is created atomically in the requested state; a paused
+Agent receives provider-owned pause metadata. When Board approval is required,
+Paperclip still forces `pending_approval` and retains its native hire-approval
+lifecycle. No adapter-side create-then-pause sequence is accepted as a substitute.
+
+The requested initial status is part of the provider-owned creation fingerprint,
+so replay with a changed initial state conflicts rather than mutating an existing
+managed Agent.
+
 ## Candidate-only boundary
 
 The workflows for this slice may:

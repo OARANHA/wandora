@@ -19,7 +19,7 @@ diff --git a/packages/shared/src/constants.ts b/packages/shared/src/constants.ts
 diff --git a/packages/plugins/sdk/src/types.ts b/packages/plugins/sdk/src/types.ts
 --- a/packages/plugins/sdk/src/types.ts
 +++ b/packages/plugins/sdk/src/types.ts
-@@ -1651,30 +1651,63 @@
+@@ -1651,30 +1651,64 @@
    ): Promise<{ approval: Approval; applied: boolean }>;
  }
  
@@ -58,6 +58,7 @@ diff --git a/packages/plugins/sdk/src/types.ts b/packages/plugins/sdk/src/types.
 +  runtimeConfig?: Record<string, unknown>;
 +  permissions?: Record<string, unknown>;
 +  budgetMonthlyCents?: number;
++  initialStatus?: "idle" | "paused";
 +}
 +
 +export interface PluginDynamicManagedAgentEnsureInput {
@@ -287,7 +288,7 @@ diff --git a/packages/plugins/sdk/src/testing.ts b/packages/plugins/sdk/src/test
      if (originKind == null || originKind === "") return defaultPluginOriginKind;
      if (typeof originKind !== "string") throw new Error("Plugin issue originKind must be a string");
      if (originKind === defaultPluginOriginKind || originKind.startsWith(`${defaultPluginOriginKind}:`)) {
-@@ -2092,8 +2108,60 @@
+@@ -2092,8 +2108,63 @@
          return { runId: randomUUID() };
        },
        managed: {
@@ -309,6 +310,7 @@ diff --git a/packages/plugins/sdk/src/testing.ts b/packages/plugins/sdk/src/test
 +            runtimeConfig: input.spec.runtimeConfig ?? {},
 +            permissions: input.spec.permissions ?? {},
 +            budgetMonthlyCents: input.spec.budgetMonthlyCents ?? 0,
++            initialStatus: input.spec.initialStatus ?? "idle",
 +          };
 +          const creationFingerprint = dynamicManagedFingerprint(normalizedSpec);
 +          const candidates = [...agents.values()].filter((candidate) => {
@@ -332,10 +334,12 @@ diff --git a/packages/plugins/sdk/src/testing.ts b/packages/plugins/sdk/src/test
 +            id: randomUUID(), companyId: cid, name: normalizedSpec.name,
 +            urlKey: normalizedSpec.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
 +            role: normalizedSpec.role as Agent["role"], title: normalizedSpec.title, icon: normalizedSpec.icon,
-+            status: "idle", reportsTo: null, capabilities: normalizedSpec.capabilities,
++            status: normalizedSpec.initialStatus, reportsTo: null, capabilities: normalizedSpec.capabilities,
 +            adapterType: normalizedSpec.adapterType as Agent["adapterType"], adapterConfig: normalizedSpec.adapterConfig,
 +            runtimeConfig: normalizedSpec.runtimeConfig, budgetMonthlyCents: normalizedSpec.budgetMonthlyCents,
-+            spentMonthlyCents: 0, pauseReason: null, pausedAt: null,
++            spentMonthlyCents: 0,
++            pauseReason: normalizedSpec.initialStatus === "paused" ? "Provisioned paused by dynamic managed plugin" : null,
++            pausedAt: normalizedSpec.initialStatus === "paused" ? now : null,
 +            permissions: normalizedSpec.permissions as Agent["permissions"], lastHeartbeatAt: null,
 +            metadata: { paperclipDynamicManagedAgent: { pluginKey: manifest.id, resourceKey, creationFingerprint } },
 +            createdAt: now, updatedAt: now,
@@ -639,7 +643,7 @@ diff --git a/server/src/services/plugin-dynamic-managed-agents.ts b/server/src/s
 new file mode 100644
 --- /dev/null
 +++ b/server/src/services/plugin-dynamic-managed-agents.ts
-@@ -0,0 +1,215 @@
+@@ -0,0 +1,224 @@
 +import { createHash } from "node:crypto";
 +import { and, eq, inArray, sql } from "drizzle-orm";
 +import type { Db } from "@paperclipai/db";
@@ -662,7 +666,7 @@ new file mode 100644
 +interface Options { pluginId: string; pluginKey: string; }
 +interface PreparedEnsure {
 +  companyId: string; resourceKey: string; bindingResourceKey: string;
-+  spec: Required<Pick<PluginDynamicManagedAgentSpec, "name" | "role" | "title" | "icon" | "capabilities" | "adapterType" | "adapterConfig" | "runtimeConfig" | "permissions" | "budgetMonthlyCents">>;
++  spec: Required<Pick<PluginDynamicManagedAgentSpec, "name" | "role" | "title" | "icon" | "capabilities" | "adapterType" | "adapterConfig" | "runtimeConfig" | "permissions" | "budgetMonthlyCents" | "initialStatus">>;
 +  creationFingerprint: string;
 +}
 +function isRecord(value: unknown): value is Record<string, unknown> {
@@ -696,6 +700,10 @@ new file mode 100644
 +  const companyId = boundedText(input.companyId, "companyId", 200) as string;
 +  const resourceKey = boundedText(input.resourceKey, "resourceKey", MAX_RESOURCE_KEY_CHARS) as string;
 +  if (!input.spec || typeof input.spec !== "object") throw unprocessable("spec is required");
++  const initialStatus = input.spec.initialStatus ?? "idle";
++  if (initialStatus !== "idle" && initialStatus !== "paused") {
++    throw unprocessable("spec.initialStatus must be idle or paused");
++  }
 +  const spec = {
 +    name: boundedText(input.spec.name, "spec.name", 100) as string,
 +    role: boundedText(input.spec.role, "spec.role", 100, { defaultValue: "general" }) as string,
@@ -707,6 +715,7 @@ new file mode 100644
 +    runtimeConfig: jsonRecord(input.spec.runtimeConfig, "spec.runtimeConfig"),
 +    permissions: jsonRecord(input.spec.permissions, "spec.permissions"),
 +    budgetMonthlyCents: input.spec.budgetMonthlyCents ?? 0,
++    initialStatus,
 +  };
 +  if (typeof spec.budgetMonthlyCents !== "number" || !Number.isSafeInteger(spec.budgetMonthlyCents)
 +      || spec.budgetMonthlyCents < 0 || spec.budgetMonthlyCents > 1_000_000_000) {
@@ -809,10 +818,14 @@ new file mode 100644
 +    const marker = { pluginKey: options.pluginKey, resourceKey: p.resourceKey, creationFingerprint: p.creationFingerprint };
 +    const created = await agentService(txDb).create(p.companyId, {
 +      name: p.spec.name, role: p.spec.role, title: p.spec.title, icon: p.spec.icon,
-+      status: requiresApproval ? "pending_approval" : "idle", reportsTo: null, capabilities: p.spec.capabilities,
++      status: requiresApproval ? "pending_approval" : p.spec.initialStatus, reportsTo: null, capabilities: p.spec.capabilities,
 +      adapterType: p.spec.adapterType, adapterConfig: p.spec.adapterConfig, runtimeConfig: p.spec.runtimeConfig,
 +      permissions: p.spec.permissions, budgetMonthlyCents: p.spec.budgetMonthlyCents, spentMonthlyCents: 0,
-+      pauseReason: null, pausedAt: null, metadata: withDynamicManagedAgentMarker(null, marker), lastHeartbeatAt: null,
++      pauseReason: !requiresApproval && p.spec.initialStatus === "paused"
++        ? "Provisioned paused by dynamic managed plugin " + options.pluginKey + "; requires explicit activation."
++        : null,
++      pausedAt: !requiresApproval && p.spec.initialStatus === "paused" ? new Date() : null,
++      metadata: withDynamicManagedAgentMarker(null, marker), lastHeartbeatAt: null,
 +    }, { allowDynamicManagedAgentMetadata: true }) as Agent;
 +    let approvalId: string | null = null;
 +    if (requiresApproval) {
@@ -909,7 +922,7 @@ diff --git a/server/src/__tests__/plugin-dynamic-managed-agents.test.ts b/server
 new file mode 100644
 --- /dev/null
 +++ b/server/src/__tests__/plugin-dynamic-managed-agents.test.ts
-@@ -0,0 +1,299 @@
+@@ -0,0 +1,313 @@
 +import { createHash, randomUUID } from "node:crypto";
 +import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 +import {
@@ -1051,6 +1064,20 @@ new file mode 100644
 +    expect(await db.select().from(pluginManagedResources)).toHaveLength(1);
 +  });
 +
++  it("creates paused when requested and treats initialStatus as immutable creation semantics", async () => {
++    const { companyId } = await seed();
++    const first = await services.agents.managedEnsureDynamic(input(companyId, { initialStatus: "paused" }));
++    const second = await services.agents.managedEnsureDynamic(input(companyId, { initialStatus: "paused" }));
++
++    expect(first.agent.status).toBe("paused");
++    expect(first.agent.pauseReason).toMatch(/requires explicit activation/);
++    expect(first.agent.pausedAt).not.toBeNull();
++    expect(second.agentId).toBe(first.agentId);
++    await expect(
++      services.agents.managedEnsureDynamic(input(companyId, { initialStatus: "idle" })),
++    ).rejects.toThrow(/creation spec conflicts/);
++  });
++
 +  it("serializes concurrent identical ensures to one Agent and one binding", async () => {
 +    const { companyId } = await seed();
 +    const results = await Promise.all(
@@ -1065,7 +1092,7 @@ new file mode 100644
 +  it("creates only one pending Agent and one native hire approval under concurrency", async () => {
 +    const { companyId } = await seed({ requireApproval: true });
 +    const results = await Promise.all(
-+      Array.from({ length: 6 }, () => services.agents.managedEnsureDynamic(input(companyId))),
++      Array.from({ length: 6 }, () => services.agents.managedEnsureDynamic(input(companyId, { initialStatus: "paused" }))),
 +    );
 +
 +    expect(new Set(results.map((result) => result.agentId)).size).toBe(1);
