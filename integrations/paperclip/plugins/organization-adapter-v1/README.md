@@ -99,24 +99,3 @@ The handler therefore accepts only:
 Any additional selector/key, or any non-null `renderEnvironment`, still fails closed with `operator_operational_read_invalid_company_scope`. The operational projection, fixed managed Ana lookup, `ctx.toolAccess.readOperationalSnapshot` call and output allowlist are unchanged.
 
 0.6.1 is a new immutable package identity. It does not modify/reuse 0.6.0, does not promote itself, does not call VendaERP, and does not open Semantic Fast Read or outbound/customer effects.
-
-## Dynamic managed employee provider bridge — 0.7.0
-
-Version 0.7.0 is a distinct code-only candidate built against the qualified
-Paperclip dynamic-managed Agent provider profile. The production 0.6.1 package
-and its static `employee-reconcile` path remain immutable historical behavior.
-
-0.7.0 adds the explicit `agents.managed.dynamic` capability and a sibling
-signed webhook, `employee-ensure-dynamic`. It derives the provider resource
-key solely from the canonical Wandora `digital_employees.id` UUID and builds
-the create-only Agent spec from the catalog template with
-`initialStatus = paused` and budget `0`.
-
-The webhook returns only the actual private provider Agent reference and only
-after provider readback proves that exact Agent is `paused`. Native
-`pending_approval` is not projected into Wandora: the webhook fails closed.
-Replaying the same ensure after native approval converges to the same Agent and
-succeeds only when it is paused.
-
-Core hire, activation, work, capability projection and Fast Read are unchanged
-in this slice. No production plugin or Paperclip promotion occurs.

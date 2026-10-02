@@ -36,12 +36,12 @@ jobs:
           ref: d554c4789ed3930f8a53ac9fdf6503b3187097da
           path: .paperclip
 
-      - name: Compose qualified Paperclip dynamic managed Agent provider deltas
+      - name: Compose qualified Paperclip Fast Read provider deltas
         shell: bash
         run: |
           set -euo pipefail
-          chmod +x integrations/paperclip/dynamic-managed-agent-v1/compose-qualified-patches.sh
-          integrations/paperclip/dynamic-managed-agent-v1/compose-qualified-patches.sh "$GITHUB_WORKSPACE/.paperclip"
+          chmod +x integrations/paperclip/fast-read-convergence-v1/compose-qualified-patches.sh
+          integrations/paperclip/fast-read-convergence-v1/compose-qualified-patches.sh "$GITHUB_WORKSPACE/.paperclip"
 
       - name: Set up Node 24.21.0
         uses: actions/setup-node@v4

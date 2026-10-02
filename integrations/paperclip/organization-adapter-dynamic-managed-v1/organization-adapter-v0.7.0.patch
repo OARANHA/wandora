@@ -1,0 +1,514 @@
+diff --git a/README.md b/README.md
+--- a/README.md
++++ b/README.md
+@@ -99,3 +99,24 @@ The handler therefore accepts only:
+ Any additional selector/key, or any non-null `renderEnvironment`, still fails closed with `operator_operational_read_invalid_company_scope`. The operational projection, fixed managed Ana lookup, `ctx.toolAccess.readOperationalSnapshot` call and output allowlist are unchanged.
+ 
+ 0.6.1 is a new immutable package identity. It does not modify/reuse 0.6.0, does not promote itself, does not call VendaERP, and does not open Semantic Fast Read or outbound/customer effects.
++
++## Dynamic managed employee provider bridge — 0.7.0
++
++Version 0.7.0 is a distinct code-only candidate built against the qualified
++Paperclip dynamic-managed Agent provider profile. The production 0.6.1 package
++and its static `employee-reconcile` path remain immutable historical behavior.
++
++0.7.0 adds the explicit `agents.managed.dynamic` capability and a sibling
++signed webhook, `employee-ensure-dynamic`. It derives the provider resource
++key solely from the canonical Wandora `digital_employees.id` UUID and builds
++the create-only Agent spec from the catalog template with
++`initialStatus = paused` and budget `0`.
++
++The webhook returns only the actual private provider Agent reference and only
++after provider readback proves that exact Agent is `paused`. Native
++`pending_approval` is not projected into Wandora: the webhook fails closed.
++Replaying the same ensure after native approval converges to the same Agent and
++succeeds only when it is paused.
++
++Core hire, activation, work, capability projection and Fast Read are unchanged
++in this slice. No production plugin or Paperclip promotion occurs.
+diff --git a/compatibility.json b/compatibility.json
+--- a/compatibility.json
++++ b/compatibility.json
+@@ -1,7 +1,8 @@
+ {
+-  "paperclipImage": "wandora/paperclip:v2026.916.1",
++  "paperclipImage": "wandora/paperclip:v2026.916.1-dynamic-managed-agent-v1",
+   "paperclipSourceCommit": "d554c4789ed3930f8a53ac9fdf6503b3187097da",
+   "pluginApiVersion": 1,
+   "pluginSdkVersion": "1.0.0",
+-  "nodeEngine": ">=24.11.0"
++  "nodeEngine": ">=24.11.0",
++  "providerProfile": "dynamic-managed-agent-v1"
+ }
+diff --git a/package.json b/package.json
+--- a/package.json
++++ b/package.json
+@@ -1,7 +1,7 @@
+ {
+   "name": "paperclip-plugin-wandora-organization-adapter",
+-  "version": "0.6.1",
+-  "description": "Wandora headless Paperclip plugin for company-scoped catalog employee reconciliation.",
++  "version": "0.7.0",
++  "description": "Wandora headless Paperclip plugin for company-scoped static and dynamic digital-employee provider bridging.",
+   "type": "module",
+   "private": false,
+   "engines": {
+diff --git a/scripts/verify-artifact.mjs b/scripts/verify-artifact.mjs
+--- a/scripts/verify-artifact.mjs
++++ b/scripts/verify-artifact.mjs
+@@ -6,26 +6,27 @@ const compatibility = JSON.parse(await readFile(new URL('../compatibility.json',
+ const packageJson = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
+ 
+ assert.equal(packageJson.name, 'paperclip-plugin-wandora-organization-adapter');
+-assert.equal(packageJson.version, '0.6.1');
++assert.equal(packageJson.version, '0.7.0');
+ assert.deepEqual(packageJson.paperclipPlugin, {
+   manifest: './dist/manifest.js',
+   worker: './dist/worker.js',
+ });
+ 
+ assert.equal(manifest.id, 'wandora.organization-adapter-v1');
+ assert.equal(manifest.apiVersion, 1);
+-assert.equal(manifest.version, '0.6.1');
+-assert.deepEqual([...manifest.capabilities].sort(), ['agent.runs.read', 'agents.invoke', 'agents.managed', 'agents.resume', 'issues.create', 'issues.read', 'issues.wakeup', 'plugin.state.read', 'plugin.state.write', 'secrets.read-ref', 'tools.operational.read', 'webhooks.receive']);
+-assert.equal(manifest.webhooks?.length, 5);
+-assert.deepEqual(manifest.webhooks?.map((entry) => entry.endpointKey).sort(), ['employee-activate', 'employee-capabilities', 'employee-fast-read', 'employee-reconcile', 'employee-work']);
++assert.equal(manifest.version, '0.7.0');
++assert.deepEqual([...manifest.capabilities].sort(), ['agent.runs.read', 'agents.invoke', 'agents.managed', 'agents.managed.dynamic', 'agents.resume', 'issues.create', 'issues.read', 'issues.wakeup', 'plugin.state.read', 'plugin.state.write', 'secrets.read-ref', 'tools.operational.read', 'webhooks.receive']);
++assert.equal(manifest.webhooks?.length, 6);
++assert.deepEqual(manifest.webhooks?.map((entry) => entry.endpointKey).sort(), ['employee-activate', 'employee-capabilities', 'employee-ensure-dynamic', 'employee-fast-read', 'employee-reconcile', 'employee-work']);
+ assert.equal(manifest.agents?.length, 1);
+ assert.equal(manifest.agents?.[0]?.agentKey, 'ana-commercial-v1');
+ assert.equal(manifest.agents?.[0]?.adapterType, 'wandora_mastra');
+ assert.equal(manifest.agents?.[0]?.status, 'paused');
+ assert.equal(manifest.agents?.[0]?.budgetMonthlyCents, 0);
+ assert.equal(manifest.agents?.[0]?.adapterConfig, undefined);
+ 
+-assert.equal(compatibility.paperclipImage, 'wandora/paperclip:v2026.916.1');
++assert.equal(compatibility.paperclipImage, 'wandora/paperclip:v2026.916.1-dynamic-managed-agent-v1');
++assert.equal(compatibility.providerProfile, 'dynamic-managed-agent-v1');
+ assert.equal(compatibility.paperclipSourceCommit, 'd554c4789ed3930f8a53ac9fdf6503b3187097da');
+ assert.equal(compatibility.pluginApiVersion, 1);
+ assert.equal(compatibility.pluginSdkVersion, '1.0.0');
+diff --git a/scripts/verify-package.sh b/scripts/verify-package.sh
+--- a/scripts/verify-package.sh
++++ b/scripts/verify-package.sh
+@@ -7,6 +7,7 @@ PAPERCLIP_ROOT="${1:?usage: verify-package.sh /path/to/pinned/paperclip}"
+ PAPERCLIP_ROOT="$(cd "$PAPERCLIP_ROOT" && pwd)"
+ 
+ EXPECTED_COMMIT="$(node -e "const c=require('$ROOT/compatibility.json'); process.stdout.write(c.paperclipSourceCommit)")"
++EXPECTED_IMAGE="$(node -e "const c=require('$ROOT/compatibility.json'); process.stdout.write(c.paperclipImage)")"
+ ACTUAL_COMMIT="$(git -C "$PAPERCLIP_ROOT" rev-parse HEAD)"
+ if [[ "$ACTUAL_COMMIT" != "$EXPECTED_COMMIT" ]]; then
+   echo "Paperclip source mismatch: expected $EXPECTED_COMMIT, got $ACTUAL_COMMIT" >&2
+@@ -57,14 +58,16 @@ JSON
+   --outfile="$ROOT/.test-build/contract.mjs"
+ "$ESBUILD" "$ROOT/src/activation.ts" --bundle --platform=node --format=esm --target=node24 \
+   --outfile="$ROOT/.test-build/activation.mjs" --alias:@paperclipai/plugin-sdk="$SDK_JS"
++"$ESBUILD" "$ROOT/src/dynamic-employee.ts" --bundle --platform=node --format=esm --target=node24 \
++  --outfile="$ROOT/.test-build/dynamic-employee.mjs" --alias:@paperclipai/plugin-sdk="$SDK_JS"
+ "$ESBUILD" "$ROOT/src/work.ts" --bundle --platform=node --format=esm --target=node24 \
+   --outfile="$ROOT/.test-build/work.mjs" --alias:@paperclipai/plugin-sdk="$SDK_JS"
+ "$ESBUILD" "$ROOT/src/fast-read.ts" --bundle --platform=node --format=esm --target=node24 \
+   --outfile="$ROOT/.test-build/fast-read.mjs" --alias:@paperclipai/plugin-sdk="$SDK_JS"
+ "$ESBUILD" "$ROOT/src/integration-capability.ts" --bundle --platform=node --format=esm --target=node24 \
+   --outfile="$ROOT/.test-build/integration-capability.mjs" --alias:@paperclipai/plugin-sdk="$SDK_JS"
+ 
+-node --test "$ROOT/test/contract.test.mjs" "$ROOT/test/activation.test.mjs" "$ROOT/test/work.test.mjs" "$ROOT/test/fast-read.test.mjs" "$ROOT/test/integration-capability.test.mjs"
++node --test "$ROOT/test/contract.test.mjs" "$ROOT/test/dynamic-employee.test.mjs" "$ROOT/test/activation.test.mjs" "$ROOT/test/work.test.mjs" "$ROOT/test/fast-read.test.mjs" "$ROOT/test/integration-capability.test.mjs"
+ node "$ROOT/scripts/verify-artifact.mjs"
+ node --check "$ROOT/dist/manifest.js"
+ node --check "$ROOT/dist/worker.js"
+@@ -124,7 +127,7 @@ printf '%s  %s\n' "$HASH2" "$(basename "$PACK2")" > "$ROOT/artifacts/package-sha
+ cat > "$ROOT/artifacts/provenance.txt" <<EOF
+ wandora_source_sha=${WANDORA_SOURCE_SHA:-unversioned}
+ paperclip_source_commit=$EXPECTED_COMMIT
+-paperclip_image=wandora/paperclip:v2026.916.1
++paperclip_image=$EXPECTED_IMAGE
+ plugin_package=$(basename "$PACK2")
+ plugin_package_sha256=$HASH2
+ EOF
+diff --git a/src/catalog.ts b/src/catalog.ts
+--- a/src/catalog.ts
++++ b/src/catalog.ts
+@@ -1,2 +1,13 @@
+-export const CATALOG_KEY = 'ana-commercial-v1' as const;
+-export const EXECUTION_ADAPTER_TYPE = 'wandora_mastra' as const;
++export const CATALOG_EMPLOYEE_TEMPLATE = {
++  key: 'ana-commercial-v1',
++  displayName: 'Ana',
++  role: 'commercial-assistant',
++  title: 'Assistente Comercial Digital',
++  capabilities: 'Atendimento comercial supervisionado pela Wandora.',
++  adapterType: 'wandora_mastra',
++  initialStatus: 'paused',
++  budgetMonthlyCents: 0,
++} as const;
++
++export const CATALOG_KEY = CATALOG_EMPLOYEE_TEMPLATE.key;
++export const EXECUTION_ADAPTER_TYPE = CATALOG_EMPLOYEE_TEMPLATE.adapterType;
+diff --git a/src/contract.ts b/src/contract.ts
+--- a/src/contract.ts
++++ b/src/contract.ts
+@@ -28,6 +28,39 @@ function parseCatalogWebhook(input: {
+   return { companyId, catalogKey: CATALOG_KEY, timestamp, signature, rawBody: input.rawBody };
+ }
+ 
++export function parseDynamicEnsureWebhook(input: {
++  endpointKey: string; parsedBody?: unknown; rawBody: string; headers: Record<string, HeaderValue>;
++}) {
++  if (input.endpointKey !== 'employee-ensure-dynamic') throw new Error('unknown_endpoint');
++  const body = input.parsedBody && typeof input.parsedBody === 'object' && !Array.isArray(input.parsedBody)
++    ? input.parsedBody as Record<string, unknown>
++    : {};
++  if (Object.keys(body).sort().join(',') !== 'catalogKey,companyId,employeeId') {
++    throw new Error('invalid_wandora_request');
++  }
++  const companyId = nonEmpty(body.companyId);
++  const employeeId = nonEmpty(body.employeeId);
++  const catalogKey = nonEmpty(body.catalogKey);
++  const timestamp = nonEmpty(input.headers['x-wandora-timestamp']);
++  const signature = nonEmpty(input.headers['x-wandora-signature']);
++  if (
++    !companyId
++    || !employeeId
++    || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(employeeId)
++    || catalogKey !== CATALOG_KEY
++    || !timestamp
++    || !signature
++  ) throw new Error('invalid_wandora_request');
++  return {
++    companyId,
++    employeeId: employeeId.toLowerCase(),
++    catalogKey: CATALOG_KEY,
++    timestamp,
++    signature,
++    rawBody: input.rawBody,
++  };
++}
++
+ export function parseReconcileWebhook(input: {
+   endpointKey: string; parsedBody?: unknown; rawBody: string; headers: Record<string, HeaderValue>;
+ }) {
+diff --git a/src/dynamic-employee.ts b/src/dynamic-employee.ts
+new file mode 100644
+--- /dev/null
++++ b/src/dynamic-employee.ts
+@@ -0,0 +1,52 @@
++import type { PluginAgentsClient } from '@paperclipai/plugin-sdk';
++import { CATALOG_EMPLOYEE_TEMPLATE, CATALOG_KEY } from './catalog.js';
++
++const EMPLOYEE_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
++
++export function dynamicEmployeeResourceKey(employeeId: string): string {
++  const normalized = employeeId.trim().toLowerCase();
++  if (!EMPLOYEE_UUID.test(normalized)) throw new Error('dynamic_employee_invalid_employee_id');
++  return `wandora-digital-employee:${normalized}`;
++}
++
++export async function ensureDynamicCatalogEmployee(
++  agents: PluginAgentsClient,
++  input: { companyId: string; employeeId: string; catalogKey: string },
++): Promise<{ providerAgentRef: string }> {
++  if (!input.companyId.trim()) throw new Error('dynamic_employee_invalid_company');
++  if (input.catalogKey !== CATALOG_KEY) throw new Error('dynamic_employee_unknown_catalog');
++  const resourceKey = dynamicEmployeeResourceKey(input.employeeId);
++
++  const resolution = await agents.managed.ensureDynamic({
++    companyId: input.companyId,
++    resourceKey,
++    spec: {
++      name: CATALOG_EMPLOYEE_TEMPLATE.displayName,
++      role: CATALOG_EMPLOYEE_TEMPLATE.role,
++      title: CATALOG_EMPLOYEE_TEMPLATE.title,
++      capabilities: CATALOG_EMPLOYEE_TEMPLATE.capabilities,
++      adapterType: CATALOG_EMPLOYEE_TEMPLATE.adapterType,
++      adapterConfig: {},
++      runtimeConfig: {},
++      permissions: { canCreateAgents: false },
++      budgetMonthlyCents: CATALOG_EMPLOYEE_TEMPLATE.budgetMonthlyCents,
++      initialStatus: CATALOG_EMPLOYEE_TEMPLATE.initialStatus,
++    },
++  });
++
++  if (
++    resolution.resourceKind !== 'agent'
++    || resolution.resourceKey !== resourceKey
++    || resolution.companyId !== input.companyId
++    || typeof resolution.agentId !== 'string'
++    || !resolution.agentId.trim()
++    || resolution.agent.id !== resolution.agentId
++    || resolution.agent.companyId !== input.companyId
++  ) throw new Error('dynamic_employee_provider_correlation_invalid');
++
++  if (resolution.agent.status !== 'paused') {
++    throw new Error('dynamic_employee_not_ready');
++  }
++
++  return { providerAgentRef: resolution.agentId };
++}
+diff --git a/src/manifest.ts b/src/manifest.ts
+--- a/src/manifest.ts
++++ b/src/manifest.ts
+@@ -1,15 +1,15 @@
+ import type { PaperclipPluginManifestV1 } from '@paperclipai/plugin-sdk';
+-import { CATALOG_KEY, EXECUTION_ADAPTER_TYPE } from './catalog.js';
++import { CATALOG_EMPLOYEE_TEMPLATE, CATALOG_KEY, EXECUTION_ADAPTER_TYPE } from './catalog.js';
+ 
+ const manifest: PaperclipPluginManifestV1 = {
+   id: 'wandora.organization-adapter-v1',
+   apiVersion: 1,
+-  version: '0.6.1',
++  version: '0.7.0',
+   displayName: 'Wandora Organization Adapter V1',
+   description: 'Headless company-scoped managed catalog employee adapter for Wandora.',
+   author: 'Wandora',
+   categories: ['automation', 'connector'],
+-  capabilities: ['agents.managed', 'agents.resume', 'agents.invoke', 'agent.runs.read', 'issues.read', 'issues.create', 'issues.wakeup', 'plugin.state.read', 'plugin.state.write', 'webhooks.receive', 'secrets.read-ref', 'tools.operational.read'],
++  capabilities: ['agents.managed', 'agents.managed.dynamic', 'agents.resume', 'agents.invoke', 'agent.runs.read', 'issues.read', 'issues.create', 'issues.wakeup', 'plugin.state.read', 'plugin.state.write', 'webhooks.receive', 'secrets.read-ref', 'tools.operational.read'],
+   entrypoints: { worker: './dist/worker.js' },
+   instanceConfigSchema: {
+     type: 'object',
+@@ -29,6 +29,11 @@ const manifest: PaperclipPluginManifestV1 = {
+       displayName: 'Employee Reconcile',
+       description: 'Accepts signed Wandora catalog employee reconcile requests.',
+     },
++    {
++      endpointKey: 'employee-ensure-dynamic',
++      displayName: 'Dynamic Employee Ensure',
++      description: 'Ensures one paused provider Agent for a canonical Wandora digital-employee instance.',
++    },
+     {
+       endpointKey: 'employee-activate',
+       displayName: 'Employee Activate',
+@@ -52,13 +57,13 @@ const manifest: PaperclipPluginManifestV1 = {
+   ],
+   agents: [{
+     agentKey: CATALOG_KEY,
+-    displayName: 'Ana',
+-    role: 'commercial-assistant',
+-    title: 'Assistente Comercial Digital',
+-    capabilities: 'Atendimento comercial supervisionado pela Wandora.',
++    displayName: CATALOG_EMPLOYEE_TEMPLATE.displayName,
++    role: CATALOG_EMPLOYEE_TEMPLATE.role,
++    title: CATALOG_EMPLOYEE_TEMPLATE.title,
++    capabilities: CATALOG_EMPLOYEE_TEMPLATE.capabilities,
+     adapterType: EXECUTION_ADAPTER_TYPE,
+-    status: 'paused',
+-    budgetMonthlyCents: 0,
++    status: CATALOG_EMPLOYEE_TEMPLATE.initialStatus,
++    budgetMonthlyCents: CATALOG_EMPLOYEE_TEMPLATE.budgetMonthlyCents,
+   }],
+ };
+ 
+diff --git a/src/worker.ts b/src/worker.ts
+--- a/src/worker.ts
++++ b/src/worker.ts
+@@ -2,8 +2,9 @@ import type { PluginContext, PluginWebhookResponse } from '@paperclipai/plugin-s
+ import { definePlugin, runWorker } from '@paperclipai/plugin-sdk';
+ import { activateManagedCatalogEmployee } from './activation.js';
+ import { CATALOG_KEY } from './catalog.js';
+-import { parseActivationWebhook, parseCapabilitiesWebhook, parseFastReadWebhook, parseReconcileWebhook, parseWorkWebhook, requireFreshTimestamp, requireHmacSecret, verifySignature } from './contract.js';
++import { parseActivationWebhook, parseCapabilitiesWebhook, parseDynamicEnsureWebhook, parseFastReadWebhook, parseReconcileWebhook, parseWorkWebhook, requireFreshTimestamp, requireHmacSecret, verifySignature } from './contract.js';
+ import { ensureManagedCatalogEmployeeWork } from './work.js';
++import { ensureDynamicCatalogEmployee } from './dynamic-employee.js';
+ import { waitForManagedCatalogEmployeeFastReadResult } from './fast-read.js';
+ import { readManagedEmployeeIntegrationCapabilityProjection, registerManagedEmployeeOperationalReadData } from './integration-capability.js';
+ 
+@@ -45,6 +46,17 @@ const plugin = definePlugin({
+       await pluginContext.agents.managed.reconcile(CATALOG_KEY, request.companyId);
+       return;
+     }
++    if (input.endpointKey === 'employee-ensure-dynamic') {
++      const request = parseDynamicEnsureWebhook(input);
++      await authenticateRequest(pluginContext, request);
++      const result = await ensureDynamicCatalogEmployee(pluginContext.agents, {
++        companyId: request.companyId,
++        employeeId: request.employeeId,
++        catalogKey: request.catalogKey,
++      });
++      const response: PluginWebhookResponse = { providerAgentRef: result.providerAgentRef };
++      return response;
++    }
+     if (input.endpointKey === 'employee-activate') {
+       const request = parseActivationWebhook(input);
+       await authenticateRequest(pluginContext, request);
+diff --git a/test/contract.test.mjs b/test/contract.test.mjs
+--- a/test/contract.test.mjs
++++ b/test/contract.test.mjs
+@@ -3,6 +3,7 @@ import test from 'node:test';
+ import { createHmac } from 'node:crypto';
+ import {
+   parseActivationWebhook,
++  parseDynamicEnsureWebhook,
+   parseFastReadWebhook,
+   parseReconcileWebhook,
+   parseWorkWebhook,
+@@ -155,3 +156,47 @@ test('fast read accepts only bounded provider-neutral intent transport and rejec
+     },
+   }), /invalid_wandora_request/);
+ });
++
++test('dynamic ensure accepts only canonical employee instance identity and signs the exact body', () => {
++  const dynamicBody = JSON.stringify({
++    companyId: 'company-test-only',
++    employeeId: '11111111-1111-4111-8111-111111111111',
++    catalogKey: 'ana-commercial-v1',
++  });
++  const dynamicSignature = `sha256=${createHmac('sha256', secret).update(`${timestamp}.${dynamicBody}`).digest('hex')}`;
++  const req = parseDynamicEnsureWebhook({
++    endpointKey: 'employee-ensure-dynamic',
++    parsedBody: JSON.parse(dynamicBody),
++    rawBody: dynamicBody,
++    headers: {
++      'x-wandora-timestamp': timestamp,
++      'x-wandora-signature': dynamicSignature,
++    },
++  });
++  assert.equal(req.employeeId, '11111111-1111-4111-8111-111111111111');
++  assert.equal(req.catalogKey, 'ana-commercial-v1');
++  assert.equal(verifySignature(secret, timestamp, dynamicBody, dynamicSignature), true);
++});
++
++test('dynamic ensure rejects malformed employee ids, extra provider fields and unsupported catalog keys', () => {
++  const base = {
++    companyId: 'company-test-only',
++    employeeId: '11111111-1111-4111-8111-111111111111',
++    catalogKey: 'ana-commercial-v1',
++  };
++  for (const parsedBody of [
++    { ...base, employeeId: 'not-a-uuid' },
++    { ...base, catalogKey: 'other' },
++    { ...base, agentId: 'raw-provider-agent-id' },
++  ]) {
++    assert.throws(() => parseDynamicEnsureWebhook({
++      endpointKey: 'employee-ensure-dynamic',
++      parsedBody,
++      rawBody: JSON.stringify(parsedBody),
++      headers: {
++        'x-wandora-timestamp': timestamp,
++        'x-wandora-signature': signature,
++      },
++    }), /invalid_wandora_request/);
++  }
++});
+diff --git a/test/dynamic-employee.test.mjs b/test/dynamic-employee.test.mjs
+new file mode 100644
+--- /dev/null
++++ b/test/dynamic-employee.test.mjs
+@@ -0,0 +1,115 @@
++import assert from 'node:assert/strict';
++import test from 'node:test';
++import { dynamicEmployeeResourceKey, ensureDynamicCatalogEmployee } from '../.test-build/dynamic-employee.mjs';
++
++const COMPANY = 'company-test-only';
++const EMPLOYEE_A = '11111111-1111-4111-8111-111111111111';
++const EMPLOYEE_B = '22222222-2222-4222-8222-222222222222';
++
++function resolution({ employeeId, agentId, status = 'paused', lifecycle = 'created' }) {
++  const resourceKey = dynamicEmployeeResourceKey(employeeId);
++  return {
++    pluginKey: 'wandora.organization-adapter-v1',
++    resourceKind: 'agent',
++    resourceKey,
++    companyId: COMPANY,
++    agentId,
++    agent: { id: agentId, companyId: COMPANY, status },
++    status: lifecycle,
++    approvalId: status === 'pending_approval' ? 'approval-test-only' : null,
++    creationFingerprint: 'fingerprint-test-only',
++  };
++}
++
++function harness(sequence) {
++  const queue = [...sequence];
++  const calls = [];
++  return {
++    calls,
++    agents: {
++      managed: {
++        async ensureDynamic(input) {
++          calls.push(input);
++          const next = queue.shift();
++          if (!next) throw new Error('unexpected_ensure');
++          return next;
++        },
++      },
++    },
++  };
++}
++
++test('resource key is derived only from canonical employee UUID', () => {
++  assert.equal(dynamicEmployeeResourceKey(EMPLOYEE_A), `wandora-digital-employee:${EMPLOYEE_A}`);
++  assert.equal(
++    dynamicEmployeeResourceKey('AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA'),
++    'wandora-digital-employee:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
++  );
++  assert.throws(() => dynamicEmployeeResourceKey('ana-commercial-v1'), /invalid_employee_id/);
++});
++
++test('paused ensure returns actual private provider Agent ref with bounded create spec', async () => {
++  const h = harness([resolution({ employeeId: EMPLOYEE_A, agentId: 'agent-a' })]);
++  assert.deepEqual(await ensureDynamicCatalogEmployee(h.agents, {
++    companyId: COMPANY, employeeId: EMPLOYEE_A, catalogKey: 'ana-commercial-v1',
++  }), { providerAgentRef: 'agent-a' });
++  assert.equal(h.calls[0].resourceKey, dynamicEmployeeResourceKey(EMPLOYEE_A));
++  assert.deepEqual(h.calls[0].spec, {
++    name: 'Ana',
++    role: 'commercial-assistant',
++    title: 'Assistente Comercial Digital',
++    capabilities: 'Atendimento comercial supervisionado pela Wandora.',
++    adapterType: 'wandora_mastra',
++    adapterConfig: {},
++    runtimeConfig: {},
++    permissions: { canCreateAgents: false },
++    budgetMonthlyCents: 0,
++    initialStatus: 'paused',
++  });
++});
++
++test('same employee replay converges to same provider Agent', async () => {
++  const h = harness([
++    resolution({ employeeId: EMPLOYEE_A, agentId: 'agent-a', lifecycle: 'created' }),
++    resolution({ employeeId: EMPLOYEE_A, agentId: 'agent-a', lifecycle: 'resolved' }),
++  ]);
++  const input = { companyId: COMPANY, employeeId: EMPLOYEE_A, catalogKey: 'ana-commercial-v1' };
++  assert.deepEqual(await ensureDynamicCatalogEmployee(h.agents, input), await ensureDynamicCatalogEmployee(h.agents, input));
++  assert.equal(h.calls[0].resourceKey, h.calls[1].resourceKey);
++});
++
++test('two employee UUIDs using same catalog template use distinct resource keys', async () => {
++  const h = harness([
++    resolution({ employeeId: EMPLOYEE_A, agentId: 'agent-a' }),
++    resolution({ employeeId: EMPLOYEE_B, agentId: 'agent-b' }),
++  ]);
++  await ensureDynamicCatalogEmployee(h.agents, { companyId: COMPANY, employeeId: EMPLOYEE_A, catalogKey: 'ana-commercial-v1' });
++  await ensureDynamicCatalogEmployee(h.agents, { companyId: COMPANY, employeeId: EMPLOYEE_B, catalogKey: 'ana-commercial-v1' });
++  assert.notEqual(h.calls[0].resourceKey, h.calls[1].resourceKey);
++});
++
++test('board approval fails closed until replay proves same Agent paused', async () => {
++  const h = harness([
++    resolution({ employeeId: EMPLOYEE_A, agentId: 'agent-a', status: 'pending_approval' }),
++    resolution({ employeeId: EMPLOYEE_A, agentId: 'agent-a', status: 'paused', lifecycle: 'resolved' }),
++  ]);
++  const input = { companyId: COMPANY, employeeId: EMPLOYEE_A, catalogKey: 'ana-commercial-v1' };
++  await assert.rejects(ensureDynamicCatalogEmployee(h.agents, input), /dynamic_employee_not_ready/);
++  assert.deepEqual(await ensureDynamicCatalogEmployee(h.agents, input), { providerAgentRef: 'agent-a' });
++  assert.equal(h.calls[0].resourceKey, h.calls[1].resourceKey);
++});
++
++test('unexpected provider correlation or state fails closed', async () => {
++  const wrongCompany = resolution({ employeeId: EMPLOYEE_A, agentId: 'agent-a' });
++  wrongCompany.companyId = 'other-company';
++  for (const entry of [
++    wrongCompany,
++    resolution({ employeeId: EMPLOYEE_A, agentId: 'agent-a', status: 'idle' }),
++  ]) {
++    const h = harness([entry]);
++    await assert.rejects(
++      ensureDynamicCatalogEmployee(h.agents, { companyId: COMPANY, employeeId: EMPLOYEE_A, catalogKey: 'ana-commercial-v1' }),
++      /dynamic_employee_(provider_correlation_invalid|not_ready)/,
++    );
++  }
++});

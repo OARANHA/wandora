@@ -2,9 +2,8 @@ import type { PluginContext, PluginWebhookResponse } from '@paperclipai/plugin-s
 import { definePlugin, runWorker } from '@paperclipai/plugin-sdk';
 import { activateManagedCatalogEmployee } from './activation.js';
 import { CATALOG_KEY } from './catalog.js';
-import { parseActivationWebhook, parseCapabilitiesWebhook, parseDynamicEnsureWebhook, parseFastReadWebhook, parseReconcileWebhook, parseWorkWebhook, requireFreshTimestamp, requireHmacSecret, verifySignature } from './contract.js';
+import { parseActivationWebhook, parseCapabilitiesWebhook, parseFastReadWebhook, parseReconcileWebhook, parseWorkWebhook, requireFreshTimestamp, requireHmacSecret, verifySignature } from './contract.js';
 import { ensureManagedCatalogEmployeeWork } from './work.js';
-import { ensureDynamicCatalogEmployee } from './dynamic-employee.js';
 import { waitForManagedCatalogEmployeeFastReadResult } from './fast-read.js';
 import { readManagedEmployeeIntegrationCapabilityProjection, registerManagedEmployeeOperationalReadData } from './integration-capability.js';
 
@@ -45,17 +44,6 @@ const plugin = definePlugin({
       await authenticateRequest(pluginContext, request);
       await pluginContext.agents.managed.reconcile(CATALOG_KEY, request.companyId);
       return;
-    }
-    if (input.endpointKey === 'employee-ensure-dynamic') {
-      const request = parseDynamicEnsureWebhook(input);
-      await authenticateRequest(pluginContext, request);
-      const result = await ensureDynamicCatalogEmployee(pluginContext.agents, {
-        companyId: request.companyId,
-        employeeId: request.employeeId,
-        catalogKey: request.catalogKey,
-      });
-      const response: PluginWebhookResponse = { providerAgentRef: result.providerAgentRef };
-      return response;
     }
     if (input.endpointKey === 'employee-activate') {
       const request = parseActivationWebhook(input);

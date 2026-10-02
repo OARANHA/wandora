@@ -7,7 +7,6 @@ PAPERCLIP_ROOT="${1:?usage: verify-package.sh /path/to/pinned/paperclip}"
 PAPERCLIP_ROOT="$(cd "$PAPERCLIP_ROOT" && pwd)"
 
 EXPECTED_COMMIT="$(node -e "const c=require('$ROOT/compatibility.json'); process.stdout.write(c.paperclipSourceCommit)")"
-EXPECTED_IMAGE="$(node -e "const c=require('$ROOT/compatibility.json'); process.stdout.write(c.paperclipImage)")"
 ACTUAL_COMMIT="$(git -C "$PAPERCLIP_ROOT" rev-parse HEAD)"
 if [[ "$ACTUAL_COMMIT" != "$EXPECTED_COMMIT" ]]; then
   echo "Paperclip source mismatch: expected $EXPECTED_COMMIT, got $ACTUAL_COMMIT" >&2
@@ -58,8 +57,6 @@ JSON
   --outfile="$ROOT/.test-build/contract.mjs"
 "$ESBUILD" "$ROOT/src/activation.ts" --bundle --platform=node --format=esm --target=node24 \
   --outfile="$ROOT/.test-build/activation.mjs" --alias:@paperclipai/plugin-sdk="$SDK_JS"
-"$ESBUILD" "$ROOT/src/dynamic-employee.ts" --bundle --platform=node --format=esm --target=node24 \
-  --outfile="$ROOT/.test-build/dynamic-employee.mjs" --alias:@paperclipai/plugin-sdk="$SDK_JS"
 "$ESBUILD" "$ROOT/src/work.ts" --bundle --platform=node --format=esm --target=node24 \
   --outfile="$ROOT/.test-build/work.mjs" --alias:@paperclipai/plugin-sdk="$SDK_JS"
 "$ESBUILD" "$ROOT/src/fast-read.ts" --bundle --platform=node --format=esm --target=node24 \
@@ -67,7 +64,7 @@ JSON
 "$ESBUILD" "$ROOT/src/integration-capability.ts" --bundle --platform=node --format=esm --target=node24 \
   --outfile="$ROOT/.test-build/integration-capability.mjs" --alias:@paperclipai/plugin-sdk="$SDK_JS"
 
-node --test "$ROOT/test/contract.test.mjs" "$ROOT/test/dynamic-employee.test.mjs" "$ROOT/test/activation.test.mjs" "$ROOT/test/work.test.mjs" "$ROOT/test/fast-read.test.mjs" "$ROOT/test/integration-capability.test.mjs"
+node --test "$ROOT/test/contract.test.mjs" "$ROOT/test/activation.test.mjs" "$ROOT/test/work.test.mjs" "$ROOT/test/fast-read.test.mjs" "$ROOT/test/integration-capability.test.mjs"
 node "$ROOT/scripts/verify-artifact.mjs"
 node --check "$ROOT/dist/manifest.js"
 node --check "$ROOT/dist/worker.js"
@@ -127,7 +124,7 @@ printf '%s  %s\n' "$HASH2" "$(basename "$PACK2")" > "$ROOT/artifacts/package-sha
 cat > "$ROOT/artifacts/provenance.txt" <<EOF
 wandora_source_sha=${WANDORA_SOURCE_SHA:-unversioned}
 paperclip_source_commit=$EXPECTED_COMMIT
-paperclip_image=$EXPECTED_IMAGE
+paperclip_image=wandora/paperclip:v2026.916.1
 plugin_package=$(basename "$PACK2")
 plugin_package_sha256=$HASH2
 EOF

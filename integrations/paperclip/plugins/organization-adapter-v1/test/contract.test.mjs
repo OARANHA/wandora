@@ -3,7 +3,6 @@ import test from 'node:test';
 import { createHmac } from 'node:crypto';
 import {
   parseActivationWebhook,
-  parseDynamicEnsureWebhook,
   parseFastReadWebhook,
   parseReconcileWebhook,
   parseWorkWebhook,
@@ -155,48 +154,4 @@ test('fast read accepts only bounded provider-neutral intent transport and rejec
       'x-wandora-signature': fastReadSignature,
     },
   }), /invalid_wandora_request/);
-});
-
-test('dynamic ensure accepts only canonical employee instance identity and signs the exact body', () => {
-  const dynamicBody = JSON.stringify({
-    companyId: 'company-test-only',
-    employeeId: '11111111-1111-4111-8111-111111111111',
-    catalogKey: 'ana-commercial-v1',
-  });
-  const dynamicSignature = `sha256=${createHmac('sha256', secret).update(`${timestamp}.${dynamicBody}`).digest('hex')}`;
-  const req = parseDynamicEnsureWebhook({
-    endpointKey: 'employee-ensure-dynamic',
-    parsedBody: JSON.parse(dynamicBody),
-    rawBody: dynamicBody,
-    headers: {
-      'x-wandora-timestamp': timestamp,
-      'x-wandora-signature': dynamicSignature,
-    },
-  });
-  assert.equal(req.employeeId, '11111111-1111-4111-8111-111111111111');
-  assert.equal(req.catalogKey, 'ana-commercial-v1');
-  assert.equal(verifySignature(secret, timestamp, dynamicBody, dynamicSignature), true);
-});
-
-test('dynamic ensure rejects malformed employee ids, extra provider fields and unsupported catalog keys', () => {
-  const base = {
-    companyId: 'company-test-only',
-    employeeId: '11111111-1111-4111-8111-111111111111',
-    catalogKey: 'ana-commercial-v1',
-  };
-  for (const parsedBody of [
-    { ...base, employeeId: 'not-a-uuid' },
-    { ...base, catalogKey: 'other' },
-    { ...base, agentId: 'raw-provider-agent-id' },
-  ]) {
-    assert.throws(() => parseDynamicEnsureWebhook({
-      endpointKey: 'employee-ensure-dynamic',
-      parsedBody,
-      rawBody: JSON.stringify(parsedBody),
-      headers: {
-        'x-wandora-timestamp': timestamp,
-        'x-wandora-signature': signature,
-      },
-    }), /invalid_wandora_request/);
-  }
 });

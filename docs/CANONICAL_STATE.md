@@ -1,29 +1,34 @@
-# CHECKPOINT ATUAL — ADR 0400 ORGANIZATION ADAPTER DYNAMIC EMPLOYEE PROVIDER BRIDGE
+# CHECKPOINT ATUAL — ADR 0400 ORGANIZATION ADAPTER 0.7.0 ISOLATED OVERLAY CANDIDATE
 
-Status: **ORGANIZATION ADAPTER 0.7.0 CANDIDATE / EXACT-HEAD CI PENDING / NO PRODUCTION EFFECT**.
+Status: **CANONICAL 0.6.1 PRESERVED / 0.7.0 DISPOSABLE OVERLAY CANDIDATE / EXACT-HEAD CI PENDING / NO PRODUCTION EFFECT**.
 
-PR #398 exact head `233b4546dcbaaf7a281b40a30c9c1a6c182bb000` was revalidated **13/13 GREEN**. The dynamic
-Paperclip provider lifecycle is qualified across paused creation and native
-Board approval.
+PR #398 exact head `233b4546dcbaaf7a281b40a30c9c1a6c182bb000` remains the qualified provider base at **13/13 GREEN**.
 
-Organization Adapter 0.7.0 now adds an additive signed
-`employee-ensure-dynamic` bridge using canonical Wandora employee UUID as the
-instance resource key and Paperclip `agents.managed.dynamic` as operational
-authority. Existing 0.6.1 static paths remain intact.
+The first #399 shape directly changed canonical `organization-adapter-v1` to
+0.7.0 and correctly triggered four RED guards protecting the 0.6.1 /
+Paperclip 916.1 identity. Those guards were not weakened.
 
-The bridge succeeds only when provider readback proves the exact Agent is
-`paused`. Native `pending_approval` is not mirrored into Wandora; replay
-after provider approval converges to the same paused Agent.
+The corrected shape restores canonical plugin source to exact 0.6.1 and stores
+0.7.0 only as a versioned overlay applied to a disposable copy. Dedicated CI
+composes the five-patch Paperclip dynamic-managed provider profile, applies the
+overlay with exact-context checking, and runs package qualification against that
+isolated candidate.
+
+The bridge contract is unchanged: canonical Wandora employee UUID drives the
+provider resource key; `ensureDynamic` requests paused; native
+`pending_approval` is not mirrored; success returns only after the same Agent
+is proven paused.
 
 Core/service/schema/runtime/production remain unchanged.
 
 Canonical detail:
 `docs/decisions/0400-organization-adapter-dynamic-managed-employee-provider-bridge-candidate-v1.md`.
 
-Next gate after exact-head GREEN: Core-side provider client + instance-binding
-migration qualification. Production promotion remains separate.
+Next gate after exact-head GREEN: Core-side dynamic provider client +
+employee-instance binding migration qualification.
 
 ---
+
 
 # CHECKPOINT ATUAL — ADR 0399 POST-APPROVAL INITIAL STATUS PRESERVATION
 
