@@ -1,3 +1,27 @@
+# CHECKPOINT ATUAL — ADR 0397 PAPERCLIP DYNAMIC MANAGED AGENT PROVIDER CANDIDATE — CI PENDING
+
+Status: **FIFTH PROVIDER PATCH IMPLEMENTED / DEDICATED `agents.managed.dynamic` CAPABILITY ADDED / PROVIDER EXACTLY-ONE + NATIVE APPROVAL TESTS ADDED / COMPOSITION + DISPOSABLE CANDIDATE CI ADDED / CI PENDING / NO PRODUCTION EFFECT**.
+
+The implementation slice authorized by ADR 0396 is now materialized on branch `feat/paperclip-dynamic-managed-agent-ensure-v1`, stacked on exact PR #396 head `21fc84982e522c0249eeb2778470cfa61c620b69`. No production Paperclip/VPS/runtime mutation occurred.
+
+The fifth patch is `integrations/paperclip/patches/v2026.916.1-dynamic-managed-agent-ensure-v1.patch`. It is explicitly composed after the four already-qualified Paperclip provider deltas on upstream `d554c4789ed3930f8a53ac9fdf6503b3187097da`. Existing `agents.managed` is not widened; the new operation is gated by `agents.managed.dynamic`.
+
+Paperclip remains operational authority. The patch implements host-owned creation fingerprinting, immutable `paperclipDynamicManagedAgent` metadata, transaction-scoped advisory locking, managed-resource binding/audit, native `hire_agent` approval reuse, fail-closed replay semantics, and the ADR 0396 provider-side unique marker index including terminated Agents. Dynamic binding keys use a host-reserved namespace that cannot collide with manifest-declared static `agentKey`.
+
+Focused tests cover capability isolation, replay, concurrency, Board-approval concurrency, immutable spec conflict, marker protection, approval revision/resubmit behavior, rejection/termination no-reprovision, static/dynamic namespace isolation, orphan binding fail-closed behavior, provider marker uniqueness including terminated rows, and cross-company isolation.
+
+New GitHub-hosted ubuntu-24.04 workflows compose/typecheck/test the five-patch tree and build a distinct disposable candidate `wandora/paperclip:v2026.916.1-dynamic-managed-agent-v1`. Candidate CI uses only synthetic credentials/fresh disposable storage, performs no registry push/deploy, and freezes exact archive bytes plus five-patch SHA-256 provenance.
+
+During adversarial review a no-migration simplification was considered, but it was rejected after re-reading accepted ADR 0396. Canonical ADR authority requires the marker-level structural unique index; the final implementation keeps it.
+
+Canonical detail: `docs/decisions/0397-paperclip-dynamic-managed-agent-ensure-provider-patch-tests-candidate-ci-v1.md`.
+
+Current gate: **CI PENDING**. Do not call this candidate GREEN/qualified and do not promote it until exact-head workflows complete successfully. The user controls workflow follow-up; do not poll.
+
+This file is bootstrap only. Continue with `AGENTS.md`, relevant ADRs, `docs/CAPABILITY_AUTHORITY.md`, `docs/architecture.md`, `docs/CANONICAL_STATE.md`, component runbooks, GitHub and live runtime when materially required.
+
+---
+
 # CHECKPOINT ATUAL — ADR 0396 PAPERCLIP DYNAMIC MANAGED AGENT HOST PRIMITIVE + PATCH DEPLOYMENT PREFLIGHT
 
 Status: **HOST PRIMITIVE CONTRACT QUALIFIED / PROVIDER-SIDE EXACTLY-ONE SEMANTICS QUALIFIED / WANDORA PATCH-OVERLAY DEPLOYMENT PATH QUALIFIED / NO LONG-LIVED FORK / CODE CANDIDATE NEXT / DOCUMENTATION ONLY / NO PRODUCTION EFFECT**.
