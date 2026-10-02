@@ -1,3 +1,23 @@
+# CHECKPOINT ATUAL — ADR 0384 ORDER → CUSTOMER PARTY/CONTACT LINKAGE V1 QUALIFIED
+
+Status: **QUALIFIED / EXACT CODE HEAD 12/12 WORKFLOWS GREEN / POST-GATE CANDIDATE ATTEMPT 2 GREEN / EXISTING PROVIDER READS COMPOSED / NO PRODUCTION EFFECT**.
+
+The code-only Order → Customer Party/Contact Linkage V1 is qualified on PR #384. Wandora adds the product-semantic composite capability `business.orders.customer_contact.read`, but reuses the exact existing `vendaerp_search_orders` and `vendaerp_search_parties` reads through Paperclip Tool Gateway. No new VendaERP endpoint/tool, provider runtime, registry, migration, durable ERP shadow state, retry engine or orchestration subsystem was added.
+
+The only customer selector remains one exact order code. The internal identity bridge is exact order code → raw `Pedido.clienteCNPJ` projected as internal `customerTaxId` → exact normalized 11/14-digit customer party tax identity. Missing/malformed identity, zero/multiple exact matches or malformed sensitive fields fail closed. Customer-name/fuzzy/first-row matching, retry, fallback, third lookup and undocumented `pessoaID`/`clienteID` lookup are forbidden.
+
+Party telephone and cellular values are preserved separately internally. Customer-facing deterministic output exposes only customer name, contact registered yes/no and available kind labels (`Telefone`, `Celular`, or both); it never exposes CPF/CNPJ, raw phone/cell, e-mail, address or provider IDs and never chooses a WhatsApp destination.
+
+Exact code head `3835cb61d66e12f3012e78aa17377e537851f949` completed 12/12 workflows GREEN. The first Candidate Artifact attempt finished too early; only that job was rerun after Core CI + Semantic Fast Read CI were GREEN. Run `36943730619` attempt 2 then completed GREEN on the same head. Completion review classified the slice `complete` (p=0.69, confidence=0.54).
+
+PR #384 remains draft/open/unmerged, stacked on #383. No production/VPS change, real VendaERP/customer call, fiscal fetch, WhatsApp/Human Send/outbound, migration, secret mutation, rollout expansion or merge occurred.
+
+Canonical detail: `docs/decisions/0384-semantic-fast-read-order-customer-party-contact-linkage-v1.md`.
+
+This file is bootstrap only. Continue with `AGENTS.md`, relevant ADRs, `docs/CAPABILITY_AUTHORITY.md`, `docs/architecture.md`, `docs/CANONICAL_STATE.md`, component runbooks, GitHub and live runtime.
+
+---
+
 # CHECKPOINT ATUAL — ADR 0383 ORDERS V1 REUSE QUALIFIED
 
 Status: **QUALIFIED / CODE HEAD 9/9 WORKFLOWS GREEN / POST-GATE CANDIDATE GREEN / EXISTING CAPABILITY + TOOL REUSE / NO PRODUCTION EFFECT**.

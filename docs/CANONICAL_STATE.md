@@ -1,3 +1,21 @@
+## 2026-10-01 — ADR 0384 Semantic Fast Read Order → Customer Party/Contact Linkage V1
+
+Status: **QUALIFIED / EXACT CODE HEAD 12/12 GREEN / POST-GATE CANDIDATE ATTEMPT 2 GREEN / CODE + SYNTHETIC TESTS ONLY / NO PRODUCTION EFFECT**.
+
+PR #384 qualifies a Wandora-owned semantic composition, `business.orders.customer_contact.read`, over the exact existing `vendaerp_search_orders` and `vendaerp_search_parties` provider reads. Paperclip remains operational authority for Connection/grant/secret/catalog/policy, Tool Gateway execution, run lifecycle and audit; VendaERP remains the ERP data source. No new provider endpoint/tool, table, migration, registry, durable ERP mirror, retry/lifecycle/workflow subsystem or alternate execution path was introduced.
+
+The only signed customer selector remains one exact order code. Resolution is fail-closed: exact order → internal `clienteCNPJ`/`customerTaxId` → exact normalized customer party tax identity. Missing/malformed identity, zero/multiple exact rows and malformed sensitive fields terminate safely. Customer-name/fuzzy/first-row matching, retry, fallback, third lookup and undocumented direct `pessoaID`/`clienteID` lookup are not allowed.
+
+The party projection now preserves telephone and cellular separately. The customer-facing deterministic result exposes only customer name, contact registered yes/no and available kind labels, never the raw CPF/CNPJ, phone/cell, e-mail, address or provider identifiers, and never auto-selects a WhatsApp destination.
+
+Exact code head `3835cb61d66e12f3012e78aa17377e537851f949` completed 12/12 workflow runs GREEN. Because Candidate Artifact attempt 1 completed before Core CI + Semantic Fast Read CI, only the Candidate job was rerun after those primary gates were GREEN; workflow `36943730619` attempt 2 completed GREEN on the same head. Completion review classified the objective `complete` (p=0.69, confidence=0.54).
+
+PR #384 remains draft/open/unmerged and stacked on #383. No production/VPS/runtime mutation, real provider/customer call, fiscal lookup, Human Send/WhatsApp/outbound effect, migration, secret mutation, rollout expansion or merge occurred.
+
+Canonical detail: `docs/decisions/0384-semantic-fast-read-order-customer-party-contact-linkage-v1.md`.
+
+---
+
 ## 2026-10-01 — ADR 0383 Semantic Fast Read Existing VendaERP Capability Reuse — Orders V1
 
 Status: **QUALIFIED / CODE HEAD 9/9 WORKFLOWS GREEN / POST-GATE CANDIDATE GREEN / CODE + SYNTHETIC TESTS ONLY / NO PRODUCTION EFFECT**.
