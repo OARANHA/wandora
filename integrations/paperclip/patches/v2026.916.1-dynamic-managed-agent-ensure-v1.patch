@@ -639,7 +639,7 @@ diff --git a/server/src/services/plugin-dynamic-managed-agents.ts b/server/src/s
 new file mode 100644
 --- /dev/null
 +++ b/server/src/services/plugin-dynamic-managed-agents.ts
-@@ -0,0 +1,217 @@
+@@ -0,0 +1,215 @@
 +import { createHash } from "node:crypto";
 +import { and, eq, inArray, sql } from "drizzle-orm";
 +import type { Db } from "@paperclipai/db";
@@ -647,6 +647,7 @@ new file mode 100644
 +import type { Agent } from "@paperclipai/shared";
 +import type { PluginDynamicManagedAgentEnsureInput, PluginDynamicManagedAgentResolution, PluginDynamicManagedAgentSpec } from "@paperclipai/plugin-sdk";
 +import { conflict, notFound, unprocessable } from "../errors.js";
++import { isUniqueViolation } from "../db-errors.js";
 +import { agentService } from "./agents.js";
 +import { approvalService } from "./approvals.js";
 +import { logActivity } from "./activity-log.js";
@@ -719,11 +720,8 @@ new file mode 100644
 +  };
 +}
 +function isStructuralUniqueConflict(error: unknown): boolean {
-+  if (!error || typeof error !== "object") return false;
-+  const c = error as { code?: string; constraint?: string; constraint_name?: string };
-+  const constraint = c.constraint ?? c.constraint_name;
-+  return c.code === "23505"
-+    && (constraint === BINDING_UNIQUE_CONSTRAINT || constraint === MARKER_UNIQUE_CONSTRAINT);
++  return isUniqueViolation(error, BINDING_UNIQUE_CONSTRAINT)
++    || isUniqueViolation(error, MARKER_UNIQUE_CONSTRAINT);
 +}
 +export function pluginDynamicManagedAgentService(db: Db, options: Options) {
 +  async function markerCandidates(txDb: Db, p: PreparedEnsure) {
@@ -911,7 +909,7 @@ diff --git a/server/src/__tests__/plugin-dynamic-managed-agents.test.ts b/server
 new file mode 100644
 --- /dev/null
 +++ b/server/src/__tests__/plugin-dynamic-managed-agents.test.ts
-@@ -0,0 +1,297 @@
+@@ -0,0 +1,299 @@
 +import { createHash, randomUUID } from "node:crypto";
 +import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 +import {
@@ -1187,8 +1185,10 @@ new file mode 100644
 +        updatedAt: new Date(),
 +      }),
 +    ).rejects.toMatchObject({
-+      code: "23505",
-+      constraint: "agents_dynamic_managed_agent_marker_uq",
++      cause: {
++        code: "23505",
++        constraint_name: "agents_dynamic_managed_agent_marker_uq",
++      },
 +    });
 +  });
 +
