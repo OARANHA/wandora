@@ -1,3 +1,25 @@
+# CHECKPOINT ATUAL — ADR 0385 ORDER CUSTOMER CONTACT SAFE PREVIEW V1
+
+Status: **CODE QUALIFIED / EXACT CODE HEAD 11/11 WORKFLOWS GREEN / SIGNED PRESENTATION MODE / PREVIEW EXPLICITLY NÃO ENVIADA / DOCUMENTATION HEAD CI REQUIRED / NO PRODUCTION EFFECT**.
+
+Safe Preview V1 reuses `business.orders.customer_contact.read` and the exact ADR 0384 order→customer linkage. No new BusinessCapability or provider tool was created. Wandora adds only the finite signed presentation mode `facts | safe_contact_preview`; absent presentation stays backward-compatible as `facts`, while `safe_contact_preview` is valid only for the exact customer-contact read and otherwise fails closed.
+
+The deterministic customer projection may append `Prévia — NÃO ENVIADA` with the fixed Core template `Olá, <Cliente>. Gostaríamos de falar com você sobre o pedido <código>.`. Contact availability remains a separate fact. Telephone and cellular stay distinct; neither is automatically selected, no mobile→WhatsApp inference exists, and raw phone/mobile/CPF/CNPJ/e-mail/address/provider IDs remain outside the customer-facing result and signed intent.
+
+Human Send, `wandora.work_proposals`, Messaging Gateway outbound, Paperclip approval/task state, Mastra draft/workflow state, new durable state, migrations and fiscal/NFe/DANFE/SEFAZ work remain outside this slice. Organization Adapter capability projection is unchanged. The operational/browser runbook is unchanged because no operator or production-effect contract changed.
+
+Exact qualified code head `8fcd15bbf858e8667dae0b4c965644564528bf50` completed 11/11 workflows GREEN. PR #385 remains draft/open/unmerged and stacked on #384. The documentation head created from this checkpoint still requires its own exact-head CI before the slice is fully complete.
+
+No production/VPS mutation, real VendaERP/customer request, rollout expansion, outbound effect or merge occurred.
+
+Next boundary only after documentation-head CI: separately reviewed **Order Customer Contact Destination/Channel Qualification V1 — NO SEND**. It must not auto-select telephone/mobile or infer WhatsApp, and this checkpoint does not authorize it by implication.
+
+Canonical detail: `docs/decisions/0385-semantic-fast-read-order-customer-contact-safe-preview-v1.md`.
+
+This file is bootstrap only. Continue with `AGENTS.md`, relevant ADRs, `docs/CAPABILITY_AUTHORITY.md`, `docs/architecture.md`, `docs/CANONICAL_STATE.md`, component runbooks, GitHub and live runtime.
+
+---
+
 # CHECKPOINT ATUAL — ADR 0384 ORDER → CUSTOMER PARTY/CONTACT LINKAGE V1 QUALIFIED
 
 Status: **QUALIFIED / EXACT CODE HEAD 12/12 WORKFLOWS GREEN / POST-GATE CANDIDATE ATTEMPT 2 GREEN / EXISTING PROVIDER READS COMPOSED / NO PRODUCTION EFFECT**.
