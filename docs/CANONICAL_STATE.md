@@ -1,3 +1,29 @@
+# ADR 0386 — Semantic Fast Read Order Customer Contact Destination/Channel Qualification V1 — NO SEND
+
+Date: 2026-10-02
+
+Status: **CODE QUALIFIED / CORE CI + SEMANTIC FAST READ CI GREEN / POST-GATE CANDIDATE GREEN / DOCUMENTATION HEAD CI REQUIRED / NO PRODUCTION EFFECT**.
+
+PR #386 exact qualified code head `bbf0e924fb780015b3e35d4defadc35726fa1f81` reuses `business.orders.customer_contact.read` and the ADR 0384 exact two-read maximum. Wandora adds only the signed `contact_destination_qualification` presentation/policy mode; no new BusinessCapability, table, migration, registry, durable contact/destination state, workflow/state machine, provider adapter, messaging subsystem or approval mechanism is introduced.
+
+Registered telephone and mobile remain separate destination candidates only. Neither the first, only, mobile nor telephone candidate is automatically selected; `selectedDestination` remains null. Mobile does not imply WhatsApp, and telephone does not imply SMS, voice or WhatsApp. Channel qualification requires explicit trusted messaging-provider evidence for the exact candidate. The current runtime path supplies no live provider evidence, so it fails closed as unqualified.
+
+Candidate display reuses the existing Human Send recipient-masking behavior through a shared Core helper. Raw phone/mobile, CPF/CNPJ, e-mail, address, provider IDs, raw payloads and evidence digests stay outside the customer-facing result and signed `wfri1` intent.
+
+Human Send remains the supervised outbound authorization boundary, and Messaging Gateway remains the provider-neutral outbound transport/effect boundary. This slice calls neither. A provider-native WhatsApp existence check identified in the evaluated Evolution surface is not called directly by Core; any future use must be separately qualified behind a provider-neutral Gateway/provider adapter boundary per ADR 0168.
+
+Exact code head passed Core CI, Semantic Fast Read CI, Messaging Gateway CI, Integration Capability Projection CI, Platform Admin CI and Web CI. The initial Candidate run completed before the two primary gates, so only Candidate was rerun after both were GREEN; post-gate job `110690384333` completed GREEN on the same code head.
+
+PR #386 remains draft/open/unmerged. No production/VPS/runtime mutation, real VendaERP/customer/provider qualification call, Human Send, Gateway outbound, proposal/outbound attempt, fiscal work, rollout or merge occurred.
+
+The documentation head created from this checkpoint must independently pass exact-head CI before full slice completion.
+
+Next boundary only after that gate: separately reviewed **Messaging Gateway Read-Only Destination/Channel Qualification Adapter V1 — NO SEND**. This checkpoint does not authorize that slice, any real provider lookup, WhatsApp send, Human Send, outbound, production promotion or merge by implication.
+
+Canonical detail: `docs/decisions/0386-semantic-fast-read-order-customer-contact-destination-channel-qualification-v1.md`.
+
+---
+
 # ADR 0385 — Semantic Fast Read Order Customer Contact Safe Preview V1
 
 Date: 2026-10-01
