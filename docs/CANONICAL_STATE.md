@@ -1,3 +1,29 @@
+# CHECKPOINT ATUAL — ADR 0392 DIGITAL EMPLOYEE RESPONSIBILITY / EFFECT AUTHORITY / CROSS-EMPLOYEE HANDOFF — QUALIFIED WITH BLOCKED GAPS
+
+Status: **RESPONSIBILITY BOUNDARY PROVEN / GENERIC EFFECT AUTHORITY NOT PROVEN / AUTOMATIC CROSS-EMPLOYEE HANDOFF NOT PROVEN / PAPERCLIP REUSE REQUIRED / DOCUMENTATION ONLY / NO PRODUCTION EFFECT**.
+
+Fresh reconciliation proved main = e4c7c36bb1091ba38d39b85fa259bae94553fc52 and PRs #389, #390 and #391 open/draft/mergeable/unmerged in the Semantic Fast Read stack. PR #391 exact head is 956f9d65ecb43843ccb635a107a61cbfbf7aae71. One current exact-head read observed 10/10 workflows completed/success for that SHA; no workflow was rerun and no polling occurred.
+
+The canonical employee-development contract proves that responsibility is Wandora-owned employee-specific semantic guidance: what an employee is expected to own, prioritize or escalate. It is multi-valued, owner/admin-authorized and provider-neutral. It is not a tool capability, effect authorization, task-routing rule, provider grant or MessagingConnection assignment.
+
+No generic DigitalEmployee → EffectAuthority contract exists today. Existing authority remains capability-specific: Paperclip owns organizational issue/assignment lifecycle plus Connections/grants/tool policy; Tool Gateway is the final run-scoped read-tool authorization boundary; Wandora owns product external-effect authorization such as Human Send and commitment approvals; Mastra is runtime execution only. ERP write/destructive effects remain unqualified and fail closed.
+
+Owner/admin is therefore not yet merely a policy configurator. Current supervised work, Fast Read and Human Send paths still require owner/admin admission or execution. A future model where owner/admin grants durable employee effect authority and the employee independently performs an effect is a product hypothesis, not current authority.
+
+Cross-employee handoff is also not yet a Wandora product contract. Paperclip already provides issue assignment/reassignment, parent/child work and assignment policy primitives, so a parallel Wandora task/handoff state machine is forbidden by the Reuse Gate. The current Organization Adapter pins customer work to the exact managed agent and treats an unexpected assignee as inconsistent. Capability mismatch currently fails closed; it does not search for another employee or borrow another employee's grant.
+
+Conversation/communication identity remains separate. Existing Conversation → MessagingConnection is authoritative only after Conversation creation. Responsibility and employee execution identity do not select a messaging line. Multiple responsibilities do not imply multiple communication identities.
+
+The second adversarial JEV review returned proceed_fast=0.65, deep_review=0.22, block=0.12, split_task=0.01, confidence=0.53. Execution is documentation only. No schema, migration, runtime/service, provider call, customer work, outbound effect, production mutation, rollout or merge is authorized.
+
+Canonical detail: docs/decisions/0392-semantic-fast-read-digital-employee-responsibility-effect-authority-cross-employee-handoff-qualification-v1.md.
+
+Next qualification must establish the minimum portable employee effect-authority and handoff target/authorization semantics while reusing Paperclip operational assignment. Only after that authority is explicit should the pre-Conversation MessagingConnection selection problem be resumed.
+
+This file is bootstrap only. Continue with AGENTS.md, relevant ADRs, docs/CAPABILITY_AUTHORITY.md, docs/architecture.md, docs/CANONICAL_STATE.md, component runbooks, GitHub and live runtime when materially required.
+
+---
+
 # CHECKPOINT ATUAL — ADR 0391 MESSAGING ACCOUNT/LINE RESPONSIBILITY + EXPLICIT BOOTSTRAP SELECTION — BLOCKED
 
 Status: **BLOCKED / PRODUCT SEMANTICS NOT PROVEN / FAIL-CLOSED / DOCUMENTATION ONLY / NO SCHEMA OR RUNTIME IMPLEMENTATION / NO PRODUCTION EFFECT**.
