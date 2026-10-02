@@ -1,3 +1,27 @@
+# CHECKPOINT ATUAL — ADR 0389 CANONICAL MESSAGING CONNECTION AUTHORITY — WANDORA-OWNED GAP PROVEN
+
+Status: **QUALIFIED / WANDORA-OWNED GAP PROVEN / CONTRACT-AUTHORITY ONLY / NO SCHEMA OR RUNTIME IMPLEMENTATION / NO PRODUCTION EFFECT**.
+
+Fresh reconciliation on the real stack proved `main=e4c7c36bb1091ba38d39b85fa259bae94553fc52` and PR #388 open/draft/mergeable/unmerged at `3814c5966eb5563bfd21b0294dc63685bc432a25`. One exact-head CI read showed 10/10 observed workflows GREEN; no polling or rerun occurred.
+
+The existing Wandora schema already owns provider-neutral `wandora.messaging_connections` plus private `wandora_private.messaging_provider_bindings`. Conversations carry a mandatory tenant-scoped `messaging_connection_id`, but that binding is created from an inbound Gateway event that was already scoped to one configured canonical Connection. Human Send reuses that pre-existing Conversation binding and cross-checks it against the one-Connection outbound runtime config; it does not select a Connection for an order/customer/party before a Conversation exists.
+
+Later migrations add no organization/employee/customer/party/order/channel-default → Connection assignment. Paperclip Connections remain specialist operational state and are not mapped to Wandora messaging Connection identity for this semantic. Mastra is runtime execution; Evolution/Baileys remains provider implementation behind Messaging Gateway.
+
+Decision: **B — WANDORA-OWNED GAP PROVEN**. The missing business-context → canonical `messaging_connection_id` decision is portable Wandora product/authorization semantics. Provider instance/session resolution remains operational behind Messaging Gateway/private provider binding.
+
+No schema is selected in this slice. The exact assignment cardinality is still unproven, so no table/column/service/resolver is implemented. A future minimum contract must be fail-closed and may return exactly one canonical active Connection only from an explicit Wandora-owned assignment; missing/ambiguous/cross-tenant/channel-mismatched state fails closed. “Only connection”, Gateway config, employee ownership, first-row/default and provider discovery are forbidden shortcuts.
+
+The second adversarial review returned `proceed_fast=0.73`, `deep_review=0.26`, `block=0.01`, confidence `0.64`. Execution was documentation only. No provider/customer call, Human Send, outbound, production/VPS mutation, secret operation, migration, new durable state, rollout or merge occurred.
+
+ADR 0388 purity/freshness/external-effect blockers remain a separate unresolved axis.
+
+Canonical detail: `docs/decisions/0389-semantic-fast-read-canonical-messaging-connection-authority-qualification-v1.md`.
+
+This file is bootstrap only. Continue with `AGENTS.md`, relevant ADRs, `docs/CAPABILITY_AUTHORITY.md`, `docs/architecture.md`, `docs/CANONICAL_STATE.md`, component runbooks, GitHub and live runtime.
+
+---
+
 # ADR 0388 — WhatsApp Destination Evidence Provider Purity/Freshness Qualification V1 — BLOCKED
 
 Date: 2026-10-02
