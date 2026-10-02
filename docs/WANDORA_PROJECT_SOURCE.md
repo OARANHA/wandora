@@ -1,3 +1,23 @@
+# CHECKPOINT ATUAL — ADR 0388 WHATSAPP DESTINATION EVIDENCE PROVIDER PURITY/FRESHNESS — BLOCKED
+
+Status: **BLOCKED / NOT PROVEN / READ-ANALYSIS ONLY / NO PROVIDER CALL / NO SEND / NO PRODUCTION EFFECT**.
+
+ADR 0388 revalidated the exact Evolution 2.3.7 implementation and its pinned Baileys 7.0.0-rc.9 dependency. The current Wandora `whatsappNumbers` path can return positive provider-local cache evidence up to the configured seven-day window and can persist positive uncached results in Evolution's `isOnWhatsapp` table. Its public result carries no evidence timestamp, cache age or cache-vs-remote provenance.
+
+A useful provider-native option was proven: `DATABASE_SAVE_IS_ON_WHATSAPP=false` makes the Evolution cache read empty and cache save a no-op, so ordinary phone-number checks proceed to the existing Baileys query without that DB mutation. Production was not changed.
+
+This still does not qualify the lookup. Baileys `onWhatsApp` sends a real IQ `type=get / xmlns=usync` contact query to WhatsApp servers. Although the exact reviewed code path does not explicitly send a message, read receipt, presence update, contact upsert or application event, upstream does not guarantee zero recipient-visible/remote observable side effects. That property is **NOT PROVEN**.
+
+Messaging Gateway remains the provider-neutral replacement boundary; no direct Core→Evolution path is authorized. Reuse Gate found no already-qualified equivalent in Gateway, Paperclip, Mastra or another accepted live messaging provider. Order/customer Fast Read also still lacks canonical messaging Connection authority; instance uniqueness is not authority.
+
+The deterministic decision remains **BLOCKED / NOT PROVEN**. Second adversarial review: `block=0.80`, confidence `0.73`. No provider call, send, Human Send, outbound, config/cache toggle, secret operation, production/VPS mutation, new durable state/capability, rollout or merge occurred.
+
+Canonical detail: `docs/decisions/0388-whatsapp-destination-evidence-provider-purity-freshness-qualification-v1.md`.
+
+This file is bootstrap only. Continue with `AGENTS.md`, relevant ADRs, `docs/CAPABILITY_AUTHORITY.md`, `docs/architecture.md`, `docs/CANONICAL_STATE.md`, component runbooks, GitHub and live runtime.
+
+---
+
 # CHECKPOINT ATUAL — ADR 0387 MESSAGING GATEWAY READ-ONLY DESTINATION/CHANNEL QUALIFICATION — BLOCKED
 
 Status: **BLOCKED / FAIL-CLOSED / NO ADAPTER CODE / NO SEND / NO PRODUCTION EFFECT**.
