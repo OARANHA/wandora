@@ -656,6 +656,7 @@ new file mode 100644
 +
 +const DYNAMIC_BINDING_PREFIX = "$dynamic-agent$:";
 +const BINDING_UNIQUE_CONSTRAINT = "plugin_managed_resources_company_plugin_resource_uq";
++const MARKER_UNIQUE_CONSTRAINT = "agents_dynamic_managed_agent_marker_uq";
 +const MAX_RESOURCE_KEY_CHARS = 200;
 +const MAX_SPEC_BYTES = 64 * 1024;
 +interface Options { pluginId: string; pluginKey: string; }
@@ -718,10 +719,12 @@ new file mode 100644
 +    spec, creationFingerprint: stockHash(spec),
 +  };
 +}
-+function isBindingUniqueConflict(error: unknown): boolean {
++function isStructuralUniqueConflict(error: unknown): boolean {
 +  if (!error || typeof error !== "object") return false;
 +  const c = error as { code?: string; constraint?: string; constraint_name?: string };
-+  return c.code === "23505" && (c.constraint ?? c.constraint_name) === BINDING_UNIQUE_CONSTRAINT;
++  const constraint = c.constraint ?? c.constraint_name;
++  return c.code === "23505"
++    && (constraint === BINDING_UNIQUE_CONSTRAINT || constraint === MARKER_UNIQUE_CONSTRAINT);
 +}
 +export function pluginDynamicManagedAgentService(db: Db, options: Options) {
 +  async function markerCandidates(txDb: Db, p: PreparedEnsure) {
@@ -851,7 +854,7 @@ new file mode 100644
 +    ensure: async (input: PluginDynamicManagedAgentEnsureInput) => {
 +      const p = prepare(input);
 +      try { return await execute(p, true); }
-+      catch (error) { if (!isBindingUniqueConflict(error)) throw error; return execute(p, false); }
++      catch (error) { if (!isStructuralUniqueConflict(error)) throw error; return execute(p, false); }
 +    },
 +  };
 +}
@@ -1169,22 +1172,25 @@ new file mode 100644
 +    ).rejects.toThrow(/binding exists without its provider marker/);
 +  });
 +
-+  it("fails closed on duplicate provider markers", async () => {
++  it("enforces provider-side marker uniqueness including terminated rows", async () => {
 +    const { companyId } = await seed();
 +    const created = await services.agents.managedEnsureDynamic(input(companyId));
++    await agentService(db).terminate(created.agentId);
 +    const row = await agentService(db).getById(created.agentId);
-+    await db.insert(agents).values({
-+      ...(row as any),
-+      id: randomUUID(),
-+      name: "Duplicate Ana",
-+      urlKey: "duplicate-ana-" + randomUUID().slice(0, 8),
-+      createdAt: new Date(),
-+      updatedAt: new Date(),
-+    });
 +
 +    await expect(
-+      services.agents.managedEnsureDynamic(input(companyId)),
-+    ).rejects.toThrow(/state is ambiguous/);
++      db.insert(agents).values({
++        ...(row as any),
++        id: randomUUID(),
++        name: "Duplicate Ana",
++        urlKey: "duplicate-ana-" + randomUUID().slice(0, 8),
++        createdAt: new Date(),
++        updatedAt: new Date(),
++      }),
++    ).rejects.toMatchObject({
++      code: "23505",
++      constraint: "agents_dynamic_managed_agent_marker_uq",
++    });
 +  });
 +
 +  it("allows the same opaque resourceKey in another company without cross-tenant relink", async () => {
@@ -1204,3 +1210,36 @@ new file mode 100644
 +    expect(await db.select().from(agents)).toHaveLength(2);
 +  });
 +});
+
+diff --git a/packages/db/src/migrations/0280_dynamic_managed_agent_marker.sql b/packages/db/src/migrations/0280_dynamic_managed_agent_marker.sql
+new file mode 100644
+--- /dev/null
++++ b/packages/db/src/migrations/0280_dynamic_managed_agent_marker.sql
+@@ -0,0 +1,7 @@
++CREATE UNIQUE INDEX IF NOT EXISTS "agents_dynamic_managed_agent_marker_uq"
++ON "agents" USING btree (
++  "company_id",
++  (("metadata" -> 'paperclipDynamicManagedAgent' ->> 'pluginKey')),
++  (("metadata" -> 'paperclipDynamicManagedAgent' ->> 'resourceKey'))
++)
++WHERE ("metadata" -> 'paperclipDynamicManagedAgent') IS NOT NULL;
+diff --git a/packages/db/src/migrations/meta/_journal.json b/packages/db/src/migrations/meta/_journal.json
+--- a/packages/db/src/migrations/meta/_journal.json
++++ b/packages/db/src/migrations/meta/_journal.json
+@@ -1944,9 +1944,16 @@
+     {
+       "idx": 279,
+       "version": "7",
+       "when": 1789390281190,
+       "tag": "0279_tired_deathstrike",
+       "breakpoints": true
++    },
++    {
++      "idx": 280,
++      "version": "7",
++      "when": 1790932800000,
++      "tag": "0280_dynamic_managed_agent_marker",
++      "breakpoints": true
+     }
+   ]
+ }
