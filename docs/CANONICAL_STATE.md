@@ -1,3 +1,25 @@
+# ADR 0388 — WhatsApp Destination Evidence Provider Purity/Freshness Qualification V1 — BLOCKED
+
+Date: 2026-10-02
+
+Status: **BLOCKED / NOT PROVEN / READ-ANALYSIS ONLY / NO PROVIDER CALL / NO SEND / NO PRODUCTION EFFECT**.
+
+Exact Evolution 2.3.7 source plus pinned Baileys 7.0.0-rc.9 prove that `POST /chat/whatsappNumbers/:instanceName` is not clean enough for the proposed Wandora destination-evidence contract. In the current Wandora `DATABASE_SAVE_IS_ON_WHATSAPP=true / 7 days` configuration, a positive uncached lookup may create/update Evolution-owned `isOnWhatsapp` rows, while a cache hit may be nearly seven days old and the returned DTO exposes neither observation timestamp nor cache/remote provenance.
+
+Evolution natively supports `DATABASE_SAVE_IS_ON_WHATSAPP=false`; exact source proves that mode makes `getOnWhatsappCache` return no rows and `saveOnWhatsappCache` no-op, so ordinary phone-number checks continue through Baileys without that provider DB cache mutation. This is a useful provider-native reuse result, not an authorization to change production.
+
+Baileys `onWhatsApp` itself issues an IQ `type=get / xmlns=usync` contact query to WhatsApp servers. The reviewed client code contains no explicit message send, read receipt, presence update, contact upsert or application-event emission for that lookup, but upstream does not guarantee that server processing has zero recipient-visible/remote observable side effect. That absence therefore remains **NOT PROVEN**.
+
+Reuse Gate found no existing qualified equivalent in Messaging Gateway, Paperclip, Mastra or another accepted live messaging provider. Messaging Gateway remains the replacement boundary; Core must not call Evolution directly. Connection authority also remains separate: order/customer Fast Read has no canonical messaging Connection binding analogous to Human Send's `conversation.messaging_connection_id`.
+
+Deterministic decision: **BLOCKED / NOT PROVEN**. The mandatory second adversarial JEV review agreed with `block=0.80` (confidence 0.73). No adapter, provider call, send, production/config mutation, durable state, duplicated capability, rollout or merge occurred.
+
+Next safe boundary is further provider/upstream evidence or a cleaner already-accepted provider primitive behind the same Messaging Gateway contract. Cache-off alone is insufficient because provenance/freshness and remote side-effect guarantees remain unresolved.
+
+Canonical detail: `docs/decisions/0388-whatsapp-destination-evidence-provider-purity-freshness-qualification-v1.md`.
+
+---
+
 # ADR 0387 — Messaging Gateway Read-Only Destination/Channel Qualification Adapter V1 — BLOCKED
 
 Date: 2026-10-02
