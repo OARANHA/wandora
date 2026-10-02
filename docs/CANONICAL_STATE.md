@@ -1,3 +1,31 @@
+# ADR 0388 — WhatsApp Destination Evidence Provider Purity/Freshness Qualification V1 — BLOCKED
+
+Date: 2026-10-02
+
+Status: **BLOCKED / NOT PROVEN / READ-ANALYSIS ONLY / NO PROVIDER CALL / NO SEND / NO PRODUCTION EFFECT**.
+
+Fresh requalification on the real #386 → #387 → #388 stack re-proved Evolution API 2.3.7 (`cd800f2976e1e5b682fbf86a01ee4d85ae61f370`) with Baileys 7.0.0-rc.9 (`cb8b3717aaede47460ba700651ee936f268c0ce4`). The single initial CI read found the relevant exact heads complete/successful; no polling or rerun was used.
+
+Two provider paths remain distinct. `POST /chat/whatsappNumbers/:instanceName` can use/write Evolution's positive `IsOnWhatsapp` cache under Wandora's current `true / 7 days` configuration. The narrower existing `POST /baileys/onWhatsapp/:instanceName` delegates directly to `client.onWhatsApp(jid)`, bypassing Evolution Contact/`IsOnWhatsapp` persistence. Its guards are read-oriented; notably `instanceLoggedGuard` is a no-op for this ordinary route and is not proof of an open socket. The wrapper body has no dedicated `jid` schema.
+
+The exact Baileys path creates a new USync Contact IQ request for ordinary non-LID inputs and sends it over the existing WebSocket. No client-side call to message send/relay, read receipt, presence/typing, contact upsert, app-state mutation, Signal session/pre-key mutation, credential mutation or dirty-state cleanup was found in the lookup path. Transient correlation/listener/socket state exists. Evolution's global telemetry middleware is also traversed, but the canonical Wandora stack has `TELEMETRY_ENABLED=false`, so no telemetry POST is made under the qualified configuration.
+
+Crucially, rc.9 `USyncContactProtocol` returns true only for contact `type='in'`, and `onWhatsApp` filters false contact results before mapping. Returned entries are therefore effectively **positive membership evidence with `exists:true`**; absence from the array is not an explicit provider negative record.
+
+The direct path proves **request freshness** — a new remote USync request rather than an Evolution cache hit — but not **fact freshness** inside WhatsApp infrastructure. The result exposes no provider timestamp, age, origin, server cache indicator, server observation time or request correlation. Any future `observedAt` created when Gateway receives a response would be **Wandora/Gateway local observation metadata**, not provider-supplied evidence time.
+
+No authoritative Baileys/WhatsApp contract was found guaranteeing that processing the USync Contact query has zero recipient-visible, account-visible, contact-sync, privacy/rate-accounting, notification or other server-side observable effect. Therefore external-effect absence remains **NOT PROVEN**. IQ `type=get` and absence of explicit send code are not treated as proof.
+
+ADR 0168 remains satisfied: do not create a Wandora WhatsApp checker, USync copy, cache, provider mirror, registry or retry subsystem. Messaging Gateway remains the provider-neutral replacement boundary; Core must not call Evolution directly. Human Send's canonical Connection authority exists only through an already-bound conversation; order/customer Fast Read still has no equivalent canonical Connection/instance binding, and uniqueness/employee ownership is not authority.
+
+Deterministic decision: **BLOCKED / NOT PROVEN**. The mandatory adversarial review first requested deeper review (`deep_review=0.66`); after the focused exact-source review, the follow-up returned `block=0.80`, `deep_review=0.16`, `proceed_fast=0.04`, `split_task=0` with confidence `0.73`. JEV remains advisory under ADR 0377.
+
+No provider/customer call, Human Send, outbound, production/config mutation, secret operation, new durable state/capability, rollout or merge occurred.
+
+Canonical detail: `docs/decisions/0388-whatsapp-destination-evidence-provider-purity-freshness-qualification-v1.md`.
+
+---
+
 # ADR 0387 — Messaging Gateway Read-Only Destination/Channel Qualification Adapter V1 — BLOCKED
 
 Date: 2026-10-02
