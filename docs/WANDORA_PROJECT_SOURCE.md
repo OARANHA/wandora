@@ -1,3 +1,34 @@
+# CHECKPOINT ATUAL — ADR 0402 DYNAMIC MANAGED EMPLOYEE INSTANCE RUNTIME OPERATIONS CONTRACT
+
+Status: **NO-CREATE INSTANCE CORRELATION QUALIFIED / EXACT EMPLOYEE+PROVIDER REF ADDRESSING QUALIFIED / LEGACY+DYNAMIC COEXISTENCE EXPLICIT / DOCUMENTATION ONLY / NO PRODUCTION EFFECT**.
+
+Fresh reconciliation proved `main=e4c7c36bb1091ba38d39b85fa259bae94553fc52`; PR #400 remains open/draft/mergeable/unmerged at exact head `2a08d1a761cdccacec72af99194ff9d696979b35`, stacked on PR #399 `1a10fe92338e9605b1c267a5e6c09110b606196a`. One exact-head CI read showed **11/11 completed/success**; no rerun or polling occurred.
+
+The Reuse Gate selects pinned Paperclip's existing `ctx.agents.get(agentId, companyId)` as the no-create runtime correlation primitive. It requires provider-native `agents.read`, whose granularity also permits `agents.list`; the future candidate is explicitly forbidden from using list and must prove this by tests/static verification. A new Paperclip read primitive is not justified by current evidence, and `ensureDynamic` remains forbidden for post-hire lookup because it is create-or-resolve.
+
+Dynamic provider operations must carry `companyId + canonical employeeId + private providerAgentRef`; `catalogKey` may remain only as template/policy selector. Before activation, work, capability projection or Fast Read, Organization Adapter must read the exact Agent and prove `paperclipDynamicManagedAgent.pluginKey` plus `resourceKey=wandora-digital-employee:<employeeId>`. Wrong tenant/ref/employee/marker or ambiguous marker fails closed and never falls back to the static singleton.
+
+Activation preserves current semantics (paused -> exact resume, idle idempotent; other states fail closed). Work keeps Paperclip Issue/wakeup authority on the exact assignee. Capability projection uses the exact Agent operational snapshot. Fast Read invokes and reads terminal result from the exact Agent and must bind its dispatch receipt to employeeId + providerAgentRef. Core execution identity gains a separate dynamic branch that cross-checks actual Paperclip Agent ID/company + provider marker against the existing `digital_employee_provider_bindings`; the legacy static marker/synthetic binding branch remains intact.
+
+No second provider binding table, Agent registry, lifecycle, state machine, new Paperclip primitive or migration is authorized. The separate hire-journal multi-instance schema qualification remains required.
+
+Mandatory JEV review first requested deep review (`0.94`). After focused proof of company scoping, provider capability granularity and operation-specific lifecycle semantics, the focused pass returned `proceed_fast=0.49`, `deep_review=0.47`; because execution is documentation-only, the residual `agents.read` breadth is recorded as an explicit candidate guard, not hidden.
+
+Canonical detail:
+`docs/decisions/0402-organization-adapter-dynamic-managed-employee-instance-runtime-operations-contract-qualification-v1.md`.
+
+Next executable code slice:
+
+**Organization Adapter Dynamic Managed Employee Instance Runtime Operations Candidate V1 — CODE ONLY / NO PRODUCTION EFFECT**.
+
+Separately required before multiple same-template hires:
+
+**Digital Employee Hire Journal Multi-Instance Schema Qualification V1 — NO PRODUCTION MIGRATION**.
+
+Only after both should **Core Dynamic Employee Instance Binding Migration V1 — CODE ONLY / NO PRODUCTION EFFECT** resume.
+
+---
+
 # CHECKPOINT ATUAL — ADR 0401 CORE DYNAMIC EMPLOYEE INSTANCE BINDING MIGRATION — SPLIT REQUIRED
 
 Status: **PR #399 12/12 EXACT-HEAD GREEN / EXISTING PROVIDER BINDING REUSED / CORE DYNAMIC SWITCH BLOCKED ON INSTANCE-AWARE PROVIDER OPERATIONS + MULTI-INSTANCE HIRE JOURNAL QUALIFICATION / DOCUMENTATION ONLY / NO PRODUCTION EFFECT**.
