@@ -1225,7 +1225,7 @@ new file mode 100644
 diff --git a/packages/db/src/migrations/meta/_journal.json b/packages/db/src/migrations/meta/_journal.json
 --- a/packages/db/src/migrations/meta/_journal.json
 +++ b/packages/db/src/migrations/meta/_journal.json
-@@ -1944,9 +1944,16 @@
+@@ -1944,7 +1944,14 @@
      {
        "idx": 279,
        "version": "7",
@@ -1240,5 +1240,3 @@ diff --git a/packages/db/src/migrations/meta/_journal.json b/packages/db/src/mig
 +      "tag": "0280_dynamic_managed_agent_marker",
 +      "breakpoints": true
      }
-   ]
- }
