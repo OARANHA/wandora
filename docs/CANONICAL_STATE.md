@@ -1,8 +1,8 @@
-# CHECKPOINT ATUAL — ADR 0397 PAPERCLIP DYNAMIC MANAGED AGENT PROVIDER CANDIDATE — CI PENDING
+# CHECKPOINT ATUAL — ADR 0397 PAPERCLIP DYNAMIC MANAGED AGENT PROVIDER CANDIDATE — CI GREEN / CANDIDATE QUALIFIED
 
-Status: **FIFTH PROVIDER PATCH IMPLEMENTED / DEDICATED `agents.managed.dynamic` CAPABILITY ADDED / PROVIDER EXACTLY-ONE + NATIVE APPROVAL TESTS ADDED / COMPOSITION + DISPOSABLE CANDIDATE CI ADDED / CI PENDING / NO PRODUCTION EFFECT**.
+Status: **FIFTH PROVIDER PATCH IMPLEMENTED / DEDICATED `agents.managed.dynamic` CAPABILITY ADDED / PROVIDER EXACTLY-ONE + NATIVE APPROVAL TESTS GREEN / COMPOSITION + DISPOSABLE CANDIDATE CI GREEN / PROVIDER CANDIDATE QUALIFIED / NO PRODUCTION EFFECT**.
 
-The implementation slice authorized by ADR 0396 is now materialized on branch `feat/paperclip-dynamic-managed-agent-ensure-v1`, stacked on exact PR #396 head `21fc84982e522c0249eeb2778470cfa61c620b69`. No production Paperclip/VPS/runtime mutation occurred.
+Fresh exact-head reconciliation on 2026-10-02 proved PR #397 open/draft/mergeable/unmerged at head `4f5210a02a4a0ea0dd391c6329772e4d3e26cc1a`, stacked on the live PR #396 base branch head `21fc84982e522c0249eeb2778470cfa61c620b69`. One exact-head workflow read observed **13/13 workflows completed/success**, including `Paperclip Dynamic Managed Agent Composition CI` and `Paperclip Dynamic Managed Agent Candidate CI`. Live `main` remains `e4c7c36bb1091ba38d39b85fa259bae94553fc52`; the stack remains unmerged. No production Paperclip/VPS/runtime mutation occurred.
 
 The fifth patch is `integrations/paperclip/patches/v2026.916.1-dynamic-managed-agent-ensure-v1.patch`. It is explicitly composed after the four already-qualified Paperclip provider deltas on upstream `d554c4789ed3930f8a53ac9fdf6503b3187097da`. Existing `agents.managed` is not widened; the new operation is gated by `agents.managed.dynamic`.
 
@@ -16,7 +16,7 @@ During adversarial review a no-migration simplification was considered, but it w
 
 Canonical detail: `docs/decisions/0397-paperclip-dynamic-managed-agent-ensure-provider-patch-tests-candidate-ci-v1.md`.
 
-Current gate: **CI PENDING**. Do not call this candidate GREEN/qualified and do not promote it until exact-head workflows complete successfully. The user controls workflow follow-up; do not poll.
+Current gate: **EXACT-HEAD CI GREEN / PROVIDER CANDIDATE QUALIFIED / NO PRODUCTION EFFECT**. This qualifies the code-only candidate for the next separately authorized decision; it does **not** authorize merge, registry push, production deployment, production migration, real Agent creation, Paperclip restart/recreation, or workforce runtime activation. Any production promotion remains a distinct effect-authorizing slice with fresh provenance, rollback/readback/quiescence proof and second adversarial review.
 
 This file is bootstrap only. Continue with `AGENTS.md`, relevant ADRs, `docs/CAPABILITY_AUTHORITY.md`, `docs/architecture.md`, `docs/CANONICAL_STATE.md`, component runbooks, GitHub and live runtime when materially required.
 

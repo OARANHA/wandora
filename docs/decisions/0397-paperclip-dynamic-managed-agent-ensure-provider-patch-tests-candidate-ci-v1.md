@@ -1,6 +1,6 @@
 # ADR 0397 — Paperclip Dynamic Managed Agent Ensure Provider Patch + Tests + Candidate CI V1
 
-- Status: **Accepted — implementation candidate / CI pending**
+- Status: **Accepted — provider candidate qualified / exact-head CI GREEN**
 - Date: 2026-10-02
 - Scope: Paperclip provider patch overlay only
 - Production effect: **none**
@@ -217,22 +217,32 @@ outranks advisory model routing.
 
 ## Current validation state
 
-At the time of this ADR commit:
+Exact-head validation on 2026-10-02 proved:
 
-- implementation files exist on the code-only branch;
+- PR #397 is open, draft, mergeable and unmerged at
+  `4f5210a02a4a0ea0dd391c6329772e4d3e26cc1a`;
+- its live base branch remains PR #396 head
+  `21fc84982e522c0249eeb2778470cfa61c620b69`;
+- live `main` remains
+  `e4c7c36bb1091ba38d39b85fa259bae94553fc52`;
+- one exact-head workflow read observed **13/13 completed/success**;
+- both new workflows, `Paperclip Dynamic Managed Agent Composition CI` and
+  `Paperclip Dynamic Managed Agent Candidate CI`, completed successfully;
+- implementation files remain code-only;
 - no production runtime/VPS mutation occurred;
 - no production migration was applied;
 - no real Agent was created;
-- no image was pushed;
-- CI result is **pending**.
+- no image was pushed or deployed.
 
-The branch must not be described as qualified/green until exact-head workflows
-complete successfully.
+The provider candidate is therefore **CI-qualified**, not production-promoted.
 
 ## Next gate
 
-After exact-head CI is GREEN, reconcile the PR once and decide the next slice.
-Production promotion remains a separate effect-authorizing decision with fresh
-rollback/readback/quiescence checks.
+The exact-head CI gate is satisfied. The next slice must be separately
+authorized. Any production promotion requires fresh provenance,
+rollback/readback/quiescence proof, a second adversarial review and explicit
+effect authorization.
 
-No workforce runtime activation is authorized by this ADR.
+This ADR does not authorize merge, registry push, production deployment,
+production migration, Paperclip restart/recreation, real Agent creation or
+workforce runtime activation.
