@@ -1236,7 +1236,7 @@ index 263be7d06..ac0c293bb 100644
 +              lockedSecrets.map((secret) => [secret.id, secret]),
 +            );
 +            for (const secretId of secretIds) {
-+              const [REDACTED]
++              const secret = secretsById.get(secretId);
 +              if (
 +                !secret ||
 +                secret.scope !== "company" ||
@@ -1314,7 +1314,7 @@ index 263be7d06..ac0c293bb 100644
 +            const txSecrets = secretService(tx);
 +            for (const path of WANDORA_28PRO_CREDENTIAL_PATHS) {
 +              const secretId = connectionRefs.get(path)!;
-+              const [REDACTED]
++              const secret = secretsById.get(secretId)!;
 +              await txSecrets.rotate(secretId, {
 +                value: inputByPath.get(path)!,
 +                expectedLatestVersion: secret.latestVersion,
