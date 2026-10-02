@@ -23,8 +23,9 @@ Fresh reconciliation proved:
 - live `main = e4c7c36bb1091ba38d39b85fa259bae94553fc52`;
 - PR #386 remains `open / draft / mergeable / unmerged` at `7d4f4a80fd7ea2517c9cbff7df26abf446d7b957`;
 - PR #387 remains `open / draft / mergeable / unmerged` at `625166bfb93b7def1f8b95046f5b500ea4408508`;
-- PR #387 is correctly stacked on PR #386;
-- the one initial CI read showed the observed exact-head workflows for PR #386 and PR #387 completed successfully; no polling or rerun was performed;
+- PR #388 remains `open / draft / mergeable / unmerged` at `d45725f8ed24313ac22fb3331aabe6df48a1e33f`;
+- the real stack is #386 → #387 → #388, with each PR based on the previous head;
+- the one initial CI read showed all observed exact-head workflows for PR #386, PR #387 and PR #388 completed successfully; no polling or rerun was performed;
 - live Core is `wandora/core:organization-adapter-candidate-9ee338303292`, healthy;
 - live Paperclip is `wandora/paperclip:v2026.916.1`, healthy;
 - live Messaging Gateway is `wandora/messaging-gateway:origin-fix-94cfb4de`, healthy, restart count 0;
@@ -172,9 +173,13 @@ Evolution 2.3.7 mounts `BaileysRouter` at `/baileys`. The exact route is:
 
 `POST /baileys/onWhatsapp/:instanceName`
 
-It uses the same normal instance/API-key guard chain.
+It uses the same normal instance/API-key guard chain, whose source semantics are narrower than their names suggest:
 
-The route body is not given a dedicated typed DTO in this wrapper; the controller reads:
+- `instanceExistsGuard` may resolve the instance from provider runtime/cache/database and is a read path;
+- `instanceLoggedGuard` performs special handling only for `/instance/create`; for this ordinary route it simply calls `next()` and therefore does **not** prove that the WhatsApp socket is open;
+- `authGuard['apikey']` accepts the configured global API key or can read the instance token from the provider database for comparison.
+
+The router applies the generic `instanceSchema`; there is no dedicated body schema that validates `jid` for this operation. The controller reads:
 
 `body?.jid`
 
@@ -189,13 +194,15 @@ const response = await this.client.onWhatsApp(jid);
 return response;
 ```
 
-The Baileys result for the ordinary phone-number query is the raw list shape:
+The TypeScript shape is:
 
 ```ts
 Array<{ jid: string; exists: boolean }>
 ```
 
-with no provider observation timestamp or provenance metadata.
+but the exact rc.9 implementation is semantically narrower: `USyncContactProtocol` returns `true` only for a contact response whose `type='in'`, and `onWhatsApp(...)` then filters the parsed list with `!!a.contact` **before** mapping it. Consequently, returned elements are effectively positive membership records with `exists:true`; a negative `contact:false` item is omitted rather than returned as an explicit `{ exists:false }` record.
+
+Therefore absence from the returned array must not be documented as a provider-explicit negative observation without an additional qualified contract. The result also carries no provider observation timestamp or provenance metadata.
 
 ### Provider-local purity of the direct route
 
@@ -212,6 +219,8 @@ The auth/existence guards may perform reads. The Baileys request necessarily per
 
 This ephemeral protocol bookkeeping is explicitly distinguished from durable provider business/cache/contact mutation. It means the call is not literally a zero-state-transition computation, but the reviewed direct operation has no identified durable Evolution-local mutation.
 
+There is one additional indirect Evolution request effect that must be classified explicitly: all routes pass through the global `Telemetry` middleware, which calls `sendTelemetry(req.path)`. If Evolution telemetry is enabled, that helper can make an asynchronous HTTP POST containing route, API version and timestamp to the configured telemetry endpoint. In the **qualified Wandora stack**, however, `TELEMETRY_ENABLED=false`, so the helper returns before that external telemetry request. This is therefore a conditional provider effect that is disabled by the current canonical configuration, not a universal property of the upstream route.
+
 ### Semantic difference from `whatsappNumbers`
 
 The direct route is also narrower than the richer Evolution wrapper.
@@ -227,14 +236,16 @@ For a future Wandora contract, this is potentially desirable because the questio
 
 ## Exact Baileys 7.0.0-rc.9 behavior
 
-For ordinary phone-number inputs, `onWhatsApp(...)`:
+For the exact rc.9 implementation, `onWhatsApp(...)`:
 
-1. creates a `USyncQuery`;
-2. enables `USyncContactProtocol`;
-3. converts each supplied identifier to a phone value;
-4. adds it as a USync user;
-5. executes `executeUSyncQuery(...)`;
-6. parses the contact protocol result into `{ jid, exists }`.
+1. creates a fresh `USyncQuery`;
+2. skips LID inputs; if that leaves no users, it returns an empty list without issuing USync;
+3. enables `USyncContactProtocol` once for ordinary inputs;
+4. normalizes each ordinary identifier to a phone string by stripping a leading `+`, the JID domain and any device suffix, then prepending `+`;
+5. adds the normalized phone as a USync user;
+6. executes `executeUSyncQuery(...)`;
+7. parses the contact protocol;
+8. filters out every parsed item whose contact result is false before mapping the survivors to `{ jid, exists }`.
 
 `USyncQuery` defaults to:
 
@@ -243,7 +254,7 @@ context = interactive
 mode = query
 ```
 
-`executeUSyncQuery(...)` sends a real IQ node to WhatsApp infrastructure:
+`executeUSyncQuery(...)` constructs a fresh IQ request:
 
 ```text
 to    = S_WHATSAPP_NET
@@ -251,34 +262,41 @@ type  = get
 xmlns = usync
 ```
 
-and waits for the server response.
+with a generated message tag / USync session identifier and sends it through `query(...)` on the existing encrypted WebSocket transport. `query(...)` installs temporary correlation listeners, sends the node, waits for the matching response and removes those listeners; the reviewed query helper does not add a retry loop.
 
-`USyncContactProtocol` interprets a returned contact node with `type='in'` as the positive membership/existence result.
+`USyncContactProtocol` interprets a returned contact node with `type='in'` as `true`. Because `onWhatsApp(...)` discards false contact results, the direct rc.9 output is suitable only as **positive membership evidence** at this source level. It is not an explicit positive/negative observation record per requested input.
 
-The reviewed `onWhatsApp` path contains no explicit call to:
+The reviewed direct invocation path contains no explicit call to:
 
-- send a message;
-- relay a message;
-- send a read receipt;
-- update presence;
-- create/update an Evolution contact;
-- emit an application-level Baileys event for the lookup.
+- `sendMessage` or message relay;
+- `readMessages` / read receipt;
+- `presenceSubscribe`, typing or `sendPresenceUpdate`;
+- contact sync/upsert/update or address-book mutation;
+- app-state mutation;
+- Signal session/pre-key mutation;
+- `creds.update`;
+- dirty-state cleanup;
+- WAM telemetry/event emission attributable to the lookup.
+
+Baileys has other ambient socket handlers and connection-time behavior for presence, dirty state, app-state sync and credentials. Those exist on the same socket but are not invoked by the `onWhatsApp → executeUSyncQuery → query` call path and therefore are not reclassified as lookup effects without causal evidence.
 
 ## External WhatsApp side effects
 
 What is proved:
 
-- a real network/protocol request is sent to WhatsApp servers;
+- for an ordinary non-LID input, a real network/protocol request carrying the queried contact identifier is sent to WhatsApp servers;
 - the client operation is an IQ `get` USync contact query;
-- no explicit message/read/presence/contact-write operation is constructed in the reviewed client code.
+- no explicit message, relay, read-receipt, presence/typing, contact-sync/upsert, app-state, Signal-session/pre-key, credential or dirty-state operation is constructed by the reviewed lookup call path;
+- no lookup-specific Baileys application event emission was found in that path.
 
 What is **not proved**:
 
 - that WhatsApp server processing of this USync query is guaranteed to cause zero recipient-visible effect;
-- that it is guaranteed to cause zero account-side/server-side observable state change beyond servicing the query;
-- that this behavior is a stable upstream contract rather than an implementation detail of the pinned client/protocol.
+- that it is guaranteed to cause zero account-side/server-side contact synchronization, privacy/rate-accounting, notification or other observable state change beyond servicing the query;
+- that the WhatsApp server does not cache or otherwise derive the returned membership fact from state older than the request;
+- that these zero-effect properties are a stable upstream contract rather than an implementation detail of the pinned client/protocol.
 
-No upstream source-level or published contract guarantee for those zero-effect properties was found.
+The exact Baileys README documents `onWhatsApp` as a way to check whether an ID exists in WhatsApp, but does not promise side-effect-free server semantics. Targeted upstream issue/source review likewise produced no authoritative zero-effect guarantee.
 
 The slice explicitly forbids a real provider call as an investigative shortcut. Therefore empirical observation cannot replace the missing guarantee.
 
@@ -288,20 +306,24 @@ Result:
 
 ## Freshness of the direct route
 
-The direct `/baileys/onWhatsapp` path does not consult Evolution's `isOnWhatsapp` cache. For an ordinary phone-number invocation that reaches `client.onWhatsApp`, the exact code path issues the USync query during that request.
+The direct `/baileys/onWhatsapp` path does not consult Evolution's `isOnWhatsapp` cache. For an ordinary non-LID invocation that reaches `client.onWhatsApp`, the exact code creates a new USync query, a new correlation/message tag and sends a new socket request during that call. No Evolution cache or Baileys client-side query cache/interceptor was found before this USync request.
 
-Thus the implementation can distinguish this candidate operationally from the cached `whatsappNumbers` path: it is a new remote query, not an Evolution cache hit.
+This proves **request freshness**: Wandora would be causing a new provider request rather than consuming Evolution's seven-day `IsOnWhatsapp` cache.
 
-However, the returned provider contract contains only `jid` and `exists`. It does not provide:
+It does **not** prove **fact freshness** inside WhatsApp infrastructure. The server-side storage/caching/derivation semantics for the Contact USync response are not published by the reviewed contract.
+
+The returned operation also does not expose:
 
 - provider `observedAt`;
 - evidence age;
 - source/origin;
-- server-side timestamp.
+- server cache indicator;
+- server-side timestamp;
+- the generated request/message-tag/USync correlation identifier.
 
-A future Gateway adapter could only add a **Wandora/Gateway local observation time** if a newer contract explicitly defines that provenance. Such a time would describe when Wandora observed the response, not a provider-supplied WhatsApp fact timestamp. This ADR does not invent or conflate those concepts.
+A future Gateway adapter could add a **Wandora/Gateway local observation time** only if a newer contract explicitly defines it. Such a value means “Wandora observed this response at this local time”; it is **not** a provider-supplied evidence timestamp and cannot be relabeled as WhatsApp observation time.
 
-Therefore the direct route improves freshness semantics substantially but does not by itself satisfy a contract that requires provider-carried age/timestamp/origin metadata.
+Therefore the direct route proves a fresh remote request but does not prove the age/provenance of the underlying provider fact.
 
 ## Capability Authority / Reuse Gate
 
@@ -375,9 +397,10 @@ The investigation closes one important ADR 0387 uncertainty:
 The remaining material gaps are:
 
 1. **external effect guarantee** — zero recipient/account/server-observable side effects of the USync lookup are not guaranteed by the upstream contract;
-2. **evidence metadata** — the provider result has no provider-defined observation timestamp/source/age;
-3. **connection authority** — the Fast Read path has no canonical messaging Connection/instance binding;
-4. **future input contract** — a Gateway adapter would need a bounded provider-neutral exact-destination normalization contract without copying provider-specific normalization into Core.
+2. **positive-only result semantics** — rc.9 filters negative contact results, so array absence is not a provider-explicit negative evidence record;
+3. **evidence metadata** — the provider result has no provider-defined observation timestamp/source/age/cache status/correlation;
+4. **connection authority** — the Fast Read path has no canonical messaging Connection/instance binding;
+5. **future input contract** — a Gateway adapter would need a bounded provider-neutral exact-destination normalization contract without copying provider-specific normalization into Core.
 
 ## Deterministic decision
 
@@ -393,26 +416,36 @@ No property is inferred merely because the HTTP method is POST, because the IQ t
 
 ## Second adversarial review
 
-After the deterministic decision and after discovering/reviewing the direct provider route, a fresh JEV review attacked:
+After the deterministic decision, the mandatory fresh JEV review attacked:
 
 - false classification of read-only;
-- cache hiding freshness;
-- remote WhatsApp effects;
-- dependence on unguaranteed Baileys behavior;
-- transient provider protocol state being overlooked;
+- treating IQ `get` as proof of no effect;
+- hidden Baileys/transport/provider caching;
+- remote WhatsApp contact-sync/privacy/rate/notification effects;
+- indirect presence/read-receipt/app-state/session/pre-key/credential mutation;
+- confusion between Gateway local observation time and provider timestamp;
+- overclaiming `exists` semantics;
 - accidental Wandora capability internalization;
 - implicit provider/Connection selection;
-- Evolution coupling.
+- Evolution/Baileys coupling.
+
+The first pass returned `deep_review = 0.66` (`block = 0.23`, `proceed_fast = 0.10`, `split_task = 0.01`; confidence `0.55`). That triggered the focused source review recorded above rather than immediate documentation.
+
+The focused follow-up then tested the three decisive distinctions directly:
+
+1. fresh client request vs fresh underlying provider fact;
+2. absence of explicit client mutation vs guaranteed zero server/recipient/account effect;
+3. positive membership response vs explicit negative evidence.
 
 JEV `jev-1.13.0` returned:
 
-- `block = 0.84`;
-- `deep_review = 0.13`;
-- `proceed_fast = 0.03`;
+- `block = 0.80`;
+- `deep_review = 0.16`;
+- `proceed_fast = 0.04`;
 - `split_task = 0`;
-- route confidence `0.78`.
+- route confidence `0.73`.
 
-Per ADR 0377, this is advisory evidence. The deterministic factual gaps above independently require fail-closed behavior.
+Per ADR 0377, this remains advisory evidence. The focused review found no authoritative guarantee that closes the deterministic external-effect/provenance gaps, so the Wandora-owned fail-closed decision remains independently required.
 
 ## Execution
 
