@@ -72,8 +72,8 @@ Provider rules:
    fingerprint;
 4. when Board approval is **not** required, Agent creation uses the requested
    initial status atomically;
-5. a requested paused Agent receives provider-owned `pauseReason` and
-   `pausedAt`;
+5. a requested paused Agent receives native provider-owned
+   `pauseReason = system` plus `pausedAt`;
 6. when Board approval **is** required, Paperclip continues to force
    `pending_approval` and reuse the native `hire_agent` approval lifecycle;
 7. same resource + same spec/status replays to the same Agent;
@@ -91,7 +91,7 @@ The focused provider tests now require:
 
 - explicit `initialStatus: paused` creates an Agent already paused;
 - paused replay returns the same Agent;
-- pause reason and timestamp are present;
+- native `pauseReason = system` and pause timestamp are present;
 - replay with `initialStatus: idle` conflicts;
 - Board-approval mode still forces `pending_approval` even when paused was
   requested;

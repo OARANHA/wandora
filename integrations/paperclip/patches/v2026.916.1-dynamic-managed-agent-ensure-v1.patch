@@ -338,7 +338,7 @@ diff --git a/packages/plugins/sdk/src/testing.ts b/packages/plugins/sdk/src/test
 +            adapterType: normalizedSpec.adapterType as Agent["adapterType"], adapterConfig: normalizedSpec.adapterConfig,
 +            runtimeConfig: normalizedSpec.runtimeConfig, budgetMonthlyCents: normalizedSpec.budgetMonthlyCents,
 +            spentMonthlyCents: 0,
-+            pauseReason: normalizedSpec.initialStatus === "paused" ? "Provisioned paused by dynamic managed plugin" : null,
++            pauseReason: normalizedSpec.initialStatus === "paused" ? "system" : null,
 +            pausedAt: normalizedSpec.initialStatus === "paused" ? now : null,
 +            permissions: normalizedSpec.permissions as Agent["permissions"], lastHeartbeatAt: null,
 +            metadata: { paperclipDynamicManagedAgent: { pluginKey: manifest.id, resourceKey, creationFingerprint } },
@@ -643,7 +643,7 @@ diff --git a/server/src/services/plugin-dynamic-managed-agents.ts b/server/src/s
 new file mode 100644
 --- /dev/null
 +++ b/server/src/services/plugin-dynamic-managed-agents.ts
-@@ -0,0 +1,224 @@
+@@ -0,0 +1,222 @@
 +import { createHash } from "node:crypto";
 +import { and, eq, inArray, sql } from "drizzle-orm";
 +import type { Db } from "@paperclipai/db";
@@ -821,9 +821,7 @@ new file mode 100644
 +      status: requiresApproval ? "pending_approval" : p.spec.initialStatus, reportsTo: null, capabilities: p.spec.capabilities,
 +      adapterType: p.spec.adapterType, adapterConfig: p.spec.adapterConfig, runtimeConfig: p.spec.runtimeConfig,
 +      permissions: p.spec.permissions, budgetMonthlyCents: p.spec.budgetMonthlyCents, spentMonthlyCents: 0,
-+      pauseReason: !requiresApproval && p.spec.initialStatus === "paused"
-+        ? "Provisioned paused by dynamic managed plugin " + options.pluginKey + "; requires explicit activation."
-+        : null,
++      pauseReason: !requiresApproval && p.spec.initialStatus === "paused" ? "system" : null,
 +      pausedAt: !requiresApproval && p.spec.initialStatus === "paused" ? new Date() : null,
 +      metadata: withDynamicManagedAgentMarker(null, marker), lastHeartbeatAt: null,
 +    }, { allowDynamicManagedAgentMetadata: true }) as Agent;
@@ -1070,7 +1068,7 @@ new file mode 100644
 +    const second = await services.agents.managedEnsureDynamic(input(companyId, { initialStatus: "paused" }));
 +
 +    expect(first.agent.status).toBe("paused");
-+    expect(first.agent.pauseReason).toMatch(/requires explicit activation/);
++    expect(first.agent.pauseReason).toBe("system");
 +    expect(first.agent.pausedAt).not.toBeNull();
 +    expect(second.agentId).toBe(first.agentId);
 +    await expect(
