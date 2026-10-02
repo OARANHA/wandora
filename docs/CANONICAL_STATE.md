@@ -1,3 +1,29 @@
+# CHECKPOINT ATUAL — ADR 0396 PAPERCLIP DYNAMIC MANAGED AGENT HOST PRIMITIVE + PATCH DEPLOYMENT PREFLIGHT
+
+Status: **HOST PRIMITIVE CONTRACT QUALIFIED / PROVIDER-SIDE EXACTLY-ONE SEMANTICS QUALIFIED / WANDORA PATCH-OVERLAY DEPLOYMENT PATH QUALIFIED / NO LONG-LIVED FORK / CODE CANDIDATE NEXT / DOCUMENTATION ONLY / NO PRODUCTION EFFECT**.
+
+Fresh reconciliation after PR #395 GREEN proved PR #395 open/draft/mergeable/unmerged at exact head `aca8f826783fb464fccf9b82c95a0888ea8b0556`. One exact-head CI read observed **10/10 workflows completed/success**; no rerun or polling occurred.
+
+Authority reconciliation confirms that production Paperclip is **v2026.916.1**, upstream source `d554c4789ed3930f8a53ac9fdf6503b3187097da`, promoted by ADR 0303 as an exact frozen image composed from that upstream source plus four Wandora-qualified provider patches. The v2026.916.0/dffc OpenAPI/source artifacts remain compatibility/baseline material and are not the current production runtime.
+
+The missing provider capability is now qualified precisely: Paperclip should expose a new explicit plugin capability `agents.managed.dynamic` and a host-side `ctx.agents.managed.ensureDynamic(...)` operation. Existing `agents.managed` must not be silently widened. The dynamic operation is create/ensure only in V1: caller supplies company, an opaque plugin-local resource key and a bounded requested Agent spec; the host normalizes the requested spec and computes its own SHA-256 creation fingerprint before any contextual defaults. Same key + same fingerprint replays to the same Agent; same key + changed fingerprint conflicts.
+
+Paperclip, not Wandora, owns the exactly-one guarantee. The host must inject an immutable provider-owned dynamic marker, protect that marker from normal Agent metadata mutation, serialize ensure with a PostgreSQL transaction-scoped advisory lock on company/plugin/resource key, and retain a provider-side unique index as structural backstop. Agent creation, optional native `hire_agent` approval, managed-resource binding and audit must share the provider transaction. Approval rejection already terminates the Agent; V1 never silently reprovisions a terminated/rejected resource.
+
+The new marker is deliberately distinct from the existing static `paperclipManagedResource` marker because static managed paths require manifest-declared `agentKey`. `pluginManagedResources` remains Paperclip operational binding/audit. No responsibility, effect authority, skill, instructions-bundle, MessagingConnection or handoff semantics are added to this provider primitive.
+
+Deployment strategy is qualified without a long-lived Paperclip fork. Wandora already operates production 916.1 through exact upstream `d554c478…` plus four versioned patches, composition CI and a frozen candidate artifact. The future implementation should be a **fifth provider patch**, generated/tested against the exact four-patch composed tree and applied last by a new composition wrapper. It must produce a new candidate contract/tag/artifact and must never overwrite or reinterpret the already-promoted historical 916.1 image identity. Upstream contribution is desirable but separately governed; a temporary fork may later be used only as a PR vehicle.
+
+Final adversarial review: `proceed_fast=0.74`, `deep_review=0.13`, `block=0.07`, `split_task=0.06`, confidence `0.65`.
+
+Canonical detail: `docs/decisions/0396-paperclip-dynamic-managed-agent-host-primitive-contract-patch-deployment-preflight-v1.md`.
+
+Next executable slice: **Paperclip Dynamic Managed Agent Ensure Provider Patch + Tests + Candidate CI V1 — CODE ONLY / NO PRODUCTION EFFECT**. It may create the fifth patch and disposable CI candidate, but not deploy, create production Agents, migrate production, merge or activate workforce runtime.
+
+This file is bootstrap only. Continue with `AGENTS.md`, relevant ADRs, `docs/CAPABILITY_AUTHORITY.md`, `docs/architecture.md`, `docs/CANONICAL_STATE.md`, component runbooks, GitHub and live runtime when materially required.
+
+---
+
 # CHECKPOINT ATUAL — ADR 0395 PAPERCLIP DYNAMIC DIGITAL-EMPLOYEE PROVISIONING BRIDGE — HOST ENSURE REQUIRED
 
 Status: **MACHINE TRUST BOUNDARY QUALIFIED / DIRECT CORE CREDENTIAL PATH REJECTED / PLUGIN SELF-HTTP FALLBACK QUALIFIED AS NON-CANONICAL / PAPERCLIP HOST DYNAMIC ENSURE GAP PROVEN / IMPLEMENTATION BLOCKED / DOCUMENTATION ONLY / NO PRODUCTION EFFECT**.
