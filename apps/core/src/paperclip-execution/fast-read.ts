@@ -104,6 +104,7 @@ export class PaperclipFastReadExecutionService {
         request: input.request,
         capability: intent.capability,
         selector: intent.selector,
+        presentation: intent.presentation,
         bindings,
       });
       emitFastReadLatency(this.deps.recordLatency, {

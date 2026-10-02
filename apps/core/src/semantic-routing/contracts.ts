@@ -50,6 +50,16 @@ export type OrderSelector = {
 
 export type SemanticSelector = ProductSelector | PartySelector | StockSelector | OrderSelector;
 
+export const SEMANTIC_PRESENTATION_MODES = ['facts', 'safe_contact_preview'] as const;
+export type SemanticPresentationMode = typeof SEMANTIC_PRESENTATION_MODES[number];
+
+export function canonicalSemanticPresentationMode(value: unknown): SemanticPresentationMode | null {
+  return typeof value === 'string'
+    && (SEMANTIC_PRESENTATION_MODES as readonly string[]).includes(value)
+    ? value as SemanticPresentationMode
+    : null;
+}
+
 function canonicalProductSelector(value: unknown): ProductSelector | null {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
   const selector = value as Record<string, unknown>;
@@ -154,6 +164,7 @@ export type SemanticRouteDecision = {
   mode: SemanticExecutionMode;
   capability: BusinessCapability | null;
   selector?: SemanticSelector | null;
+  presentation?: SemanticPresentationMode | null;
   confidence: number;
   needsDataOrToolLookup: number;
   needsMoreContext: number;
@@ -216,10 +227,17 @@ export type SemanticRouteGateReason =
   | 'ambiguous'
   | 'missing-selector'
   | 'invalid-selector'
-  | 'selector-not-applicable';
+  | 'selector-not-applicable'
+  | 'invalid-presentation'
+  | 'presentation-not-applicable';
 
 export type SemanticRouteGate =
-  | { allowed: true; capability: BusinessCapability; selector: SemanticSelector | null }
+  | {
+      allowed: true;
+      capability: BusinessCapability;
+      selector: SemanticSelector | null;
+      presentation: SemanticPresentationMode;
+    }
   | { allowed: false; reason: SemanticRouteGateReason };
 
 function probability(value: number): boolean {
@@ -289,6 +307,20 @@ export function gateDeterministicRead(
     return { allowed: false, reason: 'ambiguous' };
   }
 
+  const suppliedPresentation = decision.presentation;
+  const presentation = suppliedPresentation === undefined || suppliedPresentation === null
+    ? 'facts'
+    : canonicalSemanticPresentationMode(suppliedPresentation);
+  if (!presentation) {
+    return { allowed: false, reason: 'invalid-presentation' };
+  }
+  if (
+    presentation === 'safe_contact_preview'
+    && decision.capability !== 'business.orders.customer_contact.read'
+  ) {
+    return { allowed: false, reason: 'presentation-not-applicable' };
+  }
+
   const suppliedSelector = decision.selector;
   const selector = suppliedSelector === undefined || suppliedSelector === null
     ? null
@@ -327,5 +359,5 @@ export function gateDeterministicRead(
     return { allowed: false, reason: 'selector-not-applicable' };
   }
 
-  return { allowed: true, capability: decision.capability, selector };
+  return { allowed: true, capability: decision.capability, selector, presentation };
 }

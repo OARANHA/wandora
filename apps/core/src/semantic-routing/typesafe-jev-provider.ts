@@ -4,6 +4,7 @@ import {
   type SemanticDecisionInput,
   type SemanticDecisionProvider,
   type SemanticExecutionMode,
+  type SemanticPresentationMode,
   type SemanticAmbiguity,
   type SemanticRouteDecision,
 } from './contracts.js';
@@ -29,6 +30,11 @@ const AMBIGUITIES = [
   'unknown',
 ] as const satisfies readonly SemanticAmbiguity[];
 
+const PRESENTATIONS = [
+  'facts',
+  'safe_contact_preview',
+] as const satisfies readonly SemanticPresentationMode[];
+
 const CAPABILITY_DESCRIPTIONS: Record<BusinessCapability, string> = {
   'business.products.search': 'Read-only search or bounded listing of products.',
   'business.products.price': 'Read-only lookup of product price information.',
@@ -37,7 +43,7 @@ const CAPABILITY_DESCRIPTIONS: Record<BusinessCapability, string> = {
   'business.price_tables.products.read': 'Read-only lookup of products in a price table.',
   'business.parties.search': 'Read-only search for customers, suppliers, or other parties.',
   'business.orders.search': 'Read-only search for existing orders.',
-  'business.orders.customer_contact.read': 'Read-only linkage from one exact order code to the registered customer contact availability and contact kinds, without exposing contact values.',
+  'business.orders.customer_contact.read': 'Read-only linkage from one exact order code to registered customer contact availability and contact kinds. It may also support an explicitly requested deterministic non-sending customer message preview without exposing contact values or selecting a destination.',
   'business.companies.list': 'Read-only listing of business companies available to the organization.',
   'business.connection.probe': 'Read-only connectivity or availability probe for the business system.',
 };
@@ -155,6 +161,14 @@ function buildQuestions(availableCapabilities: readonly BusinessCapability[]): J
       type: 'choice',
       instructions: 'Choose the single advertised business capability that directly answers the request, or none.',
       criteria: capabilityCriteria,
+    },
+    presentation: {
+      type: 'choice',
+      instructions: 'Choose the bounded customer presentation. safe_contact_preview is allowed only when the request explicitly asks for a message draft/preview, the selected capability is business.orders.customer_contact.read, and no send/destination/WhatsApp validation is requested.',
+      criteria: {
+        facts: 'Return only the normal deterministic facts for the selected read. Use this for ordinary reads and whenever a safe preview was not explicitly requested.',
+        safe_contact_preview: 'Return the same authorized contact facts plus a deterministic message preview clearly marked NOT SENT. This never chooses a destination, proves WhatsApp, or authorizes outbound.',
+      },
     },
     needsDataOrToolLookup: {
       type: 'noul',
@@ -282,6 +296,7 @@ export class TypeSafeJevSemanticDecisionProvider implements SemanticDecisionProv
     const mode = choiceAnswer(payload.answers, 'mode', MODES);
     const capabilityAllowed = ['none', ...input.availableCapabilities];
     const capability = choiceAnswer(payload.answers, 'capability', capabilityAllowed);
+    const presentation = choiceAnswer(payload.answers, 'presentation', PRESENTATIONS);
     const ambiguity = choiceAnswer(payload.answers, 'ambiguity', AMBIGUITIES);
 
     const selectedCapability = capability.choice === 'none'
@@ -295,6 +310,7 @@ export class TypeSafeJevSemanticDecisionProvider implements SemanticDecisionProv
     return {
       mode: mode.choice as SemanticExecutionMode,
       capability: selectedCapability,
+      presentation: presentation.choice as SemanticPresentationMode,
       confidence,
       needsDataOrToolLookup: noulAnswer(payload.answers, 'needsDataOrToolLookup'),
       needsMoreContext: noulAnswer(payload.answers, 'needsMoreContext'),

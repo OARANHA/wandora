@@ -53,6 +53,8 @@ test('maps only explicit provider tools to finite Wandora business capabilities'
   assert.deepEqual(projection.supportedCapabilities, ADAPTER_MAPPED_BUSINESS_CAPABILITIES);
   assert.deepEqual(projection.organizationEnabledCapabilities, ADAPTER_MAPPED_BUSINESS_CAPABILITIES);
   assert.equal(JSON.stringify(projection).includes('vendaerp_'), false);
+  assert.equal(ADAPTER_MAPPED_BUSINESS_CAPABILITIES.some((capability) =>
+    /send|whatsapp|outbound|preview/i.test(capability)), false);
 });
 
 test('unknown or malicious tool names cannot inject semantic capabilities', () => {

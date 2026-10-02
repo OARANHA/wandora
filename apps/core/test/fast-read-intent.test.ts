@@ -84,6 +84,7 @@ test('intent is stateless, authenticated, expiring, request-bound and correlatio
     nowMs: NOW + 10_000,
   });
   assert.equal(claims.capability, 'business.products.price');
+  assert.equal(claims.presentation, 'facts');
   assert.deepEqual(claims.selector, {
     kind: 'product',
     by: 'name',
@@ -468,8 +469,8 @@ test('order selector is gate-validated, signed, and round-trips unchanged', () =
 });
 
 
-test('order customer contact capability is signed only with the exact order selector and no contact identity', () => {
-  const request = 'Qual contato está cadastrado para o cliente do pedido 1542?';
+test('order customer contact safe preview is explicitly signed with only presentation + exact order selector and no contact identity', () => {
+  const request = 'Faça uma prévia segura de mensagem para o cliente do pedido 1542, sem enviar.';
   const intent = issueFastReadIntent({
     secret: SECRET,
     organizationId: ORG,
@@ -480,6 +481,7 @@ test('order customer contact capability is signed only with the exact order sele
       ...DECISION,
       capability: 'business.orders.customer_contact.read',
       selector: { kind: 'order', by: 'code', value: 1542 },
+      presentation: 'safe_contact_preview',
     },
     availableCapabilities: ['business.orders.customer_contact.read'],
     policy: POLICY,
@@ -495,9 +497,113 @@ test('order customer contact capability is signed only with the exact order sele
     nowMs: NOW,
   });
   assert.equal(claims.capability, 'business.orders.customer_contact.read');
+  assert.equal(claims.presentation, 'safe_contact_preview');
   assert.deepEqual(claims.selector, { kind: 'order', by: 'code', value: 1542 });
   const serialized = JSON.stringify(claims);
-  for (const forbidden of ['customerTaxId','telephone','mobilePhone','phone']) {
+  for (const forbidden of ['customerTaxId','telephone','mobilePhone','phone','email','address']) {
     assert.equal(serialized.includes(forbidden), false);
   }
+
+  const parts = intent.split('.');
+  const payload = JSON.parse(Buffer.from(parts[1]!, 'base64url').toString('utf8'));
+  payload.prs = 'facts';
+  const tampered = parts[0] + '.' + Buffer.from(JSON.stringify(payload)).toString('base64url') + '.' + parts[2];
+  assert.throws(() => verifyFastReadIntent({
+    secret: SECRET,
+    token: tampered,
+    request,
+    expectedOrganizationId: ORG,
+    expectedEmployeeId: EMPLOYEE,
+    expectedCorrelationId: CORRELATION,
+    nowMs: NOW,
+  }), (error: unknown) => error instanceof FastReadIntentError && error.code === 'invalid');
+});
+
+test('safe contact preview presentation cannot be authorized for an unrelated capability', () => {
+  assert.throws(() => issueFastReadIntent({
+    secret: SECRET,
+    organizationId: ORG,
+    employeeId: EMPLOYEE,
+    correlationId: CORRELATION,
+    request: REQUEST,
+    decision: {
+      ...DECISION,
+      presentation: 'safe_contact_preview',
+    },
+    availableCapabilities: ['business.products.price'],
+    policy: POLICY,
+    nowMs: NOW,
+  }), (error: unknown) => error instanceof FastReadIntentError && error.code === 'not-authorized');
+});
+
+test('signed safe preview presentation reaches the deterministic binding without any outbound authority', async () => {
+  const request = 'Faça uma prévia segura de mensagem para o cliente do pedido 1542, sem enviar.';
+  const intentToken = issueFastReadIntent({
+    secret: SECRET,
+    organizationId: ORG,
+    employeeId: EMPLOYEE,
+    correlationId: CORRELATION,
+    request,
+    decision: {
+      ...DECISION,
+      capability: 'business.orders.customer_contact.read',
+      selector: { kind: 'order', by: 'code', value: 1542 },
+      presentation: 'safe_contact_preview',
+    },
+    availableCapabilities: ['business.orders.customer_contact.read'],
+    policy: POLICY,
+    nowMs: NOW,
+  });
+  let presentationSeen = '';
+  const service = new PaperclipFastReadExecutionService({
+    intentSecret: SECRET,
+    bindingResolver: BINDING_RESOLVER,
+    readToolBridge: async () => [],
+    capabilityAdapter: {
+      capabilitiesFor: () => [],
+      execute: async () => ({ kind: 'not_found', message: 'unreachable' }),
+      composedBindingsFor: () => [{
+        capability: 'business.orders.customer_contact.read',
+        async execute(_request, selector, presentation) {
+          assert.deepEqual(selector, { kind: 'order', by: 'code', value: 1542 });
+          presentationSeen = presentation ?? '';
+          return {
+            result: {
+              kind: 'facts',
+              subject: 'Pedido 1542',
+              facts: [
+                { label: 'Cliente', value: 'Cliente Exemplo' },
+                { label: 'Contato cadastrado', value: 'Sim' },
+                { label: 'Tipos disponíveis', value: 'Celular' },
+                {
+                  label: 'Prévia — NÃO ENVIADA',
+                  value: 'Olá, Cliente Exemplo. Gostaríamos de falar com você sobre o pedido 1542.',
+                },
+              ],
+            },
+            toolCalls: 2,
+          };
+        },
+      }],
+    },
+  });
+
+  const result = await service.execute({
+    intentToken,
+    correlationId: CORRELATION,
+    request,
+    identity: IDENTITY,
+    paperclipRunId: RUN,
+    runToken: 'synthetic-run-token',
+    nowMs: NOW + 1_000,
+  });
+  assert.equal(presentationSeen, 'safe_contact_preview');
+  assert.match(result.summary, /Prévia — NÃO ENVIADA:/);
+  assert.equal(result.summary.includes('WhatsApp'), false);
+  assert.deepEqual(result.usage, {
+    inputTokens: 0,
+    outputTokens: 0,
+    cachedInputTokens: 0,
+    totalTokens: 0,
+  });
 });
