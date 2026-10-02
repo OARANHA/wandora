@@ -911,7 +911,7 @@ diff --git a/server/src/__tests__/plugin-dynamic-managed-agents.test.ts b/server
 new file mode 100644
 --- /dev/null
 +++ b/server/src/__tests__/plugin-dynamic-managed-agents.test.ts
-@@ -0,0 +1,294 @@
+@@ -0,0 +1,297 @@
 +import { createHash, randomUUID } from "node:crypto";
 +import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 +import {
