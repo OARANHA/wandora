@@ -1,15 +1,15 @@
 import type { PaperclipPluginManifestV1 } from '@paperclipai/plugin-sdk';
-import { CATALOG_KEY, EXECUTION_ADAPTER_TYPE } from './catalog.js';
+import { CATALOG_EMPLOYEE_TEMPLATE, CATALOG_KEY, EXECUTION_ADAPTER_TYPE } from './catalog.js';
 
 const manifest: PaperclipPluginManifestV1 = {
   id: 'wandora.organization-adapter-v1',
   apiVersion: 1,
-  version: '0.6.1',
+  version: '0.7.0',
   displayName: 'Wandora Organization Adapter V1',
   description: 'Headless company-scoped managed catalog employee adapter for Wandora.',
   author: 'Wandora',
   categories: ['automation', 'connector'],
-  capabilities: ['agents.managed', 'agents.resume', 'agents.invoke', 'agent.runs.read', 'issues.read', 'issues.create', 'issues.wakeup', 'plugin.state.read', 'plugin.state.write', 'webhooks.receive', 'secrets.read-ref', 'tools.operational.read'],
+  capabilities: ['agents.managed', 'agents.managed.dynamic', 'agents.resume', 'agents.invoke', 'agent.runs.read', 'issues.read', 'issues.create', 'issues.wakeup', 'plugin.state.read', 'plugin.state.write', 'webhooks.receive', 'secrets.read-ref', 'tools.operational.read'],
   entrypoints: { worker: './dist/worker.js' },
   instanceConfigSchema: {
     type: 'object',
@@ -28,6 +28,11 @@ const manifest: PaperclipPluginManifestV1 = {
       endpointKey: 'employee-reconcile',
       displayName: 'Employee Reconcile',
       description: 'Accepts signed Wandora catalog employee reconcile requests.',
+    },
+    {
+      endpointKey: 'employee-ensure-dynamic',
+      displayName: 'Dynamic Employee Ensure',
+      description: 'Ensures one paused provider Agent for a canonical Wandora digital-employee instance.',
     },
     {
       endpointKey: 'employee-activate',
@@ -52,13 +57,13 @@ const manifest: PaperclipPluginManifestV1 = {
   ],
   agents: [{
     agentKey: CATALOG_KEY,
-    displayName: 'Ana',
-    role: 'commercial-assistant',
-    title: 'Assistente Comercial Digital',
-    capabilities: 'Atendimento comercial supervisionado pela Wandora.',
+    displayName: CATALOG_EMPLOYEE_TEMPLATE.displayName,
+    role: CATALOG_EMPLOYEE_TEMPLATE.role,
+    title: CATALOG_EMPLOYEE_TEMPLATE.title,
+    capabilities: CATALOG_EMPLOYEE_TEMPLATE.capabilities,
     adapterType: EXECUTION_ADAPTER_TYPE,
-    status: 'paused',
-    budgetMonthlyCents: 0,
+    status: CATALOG_EMPLOYEE_TEMPLATE.initialStatus,
+    budgetMonthlyCents: CATALOG_EMPLOYEE_TEMPLATE.budgetMonthlyCents,
   }],
 };
 

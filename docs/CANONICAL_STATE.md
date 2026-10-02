@@ -1,3 +1,30 @@
+# CHECKPOINT ATUAL — ADR 0400 ORGANIZATION ADAPTER DYNAMIC EMPLOYEE PROVIDER BRIDGE
+
+Status: **ORGANIZATION ADAPTER 0.7.0 CANDIDATE / EXACT-HEAD CI PENDING / NO PRODUCTION EFFECT**.
+
+PR #398 exact head `233b4546dcbaaf7a281b40a30c9c1a6c182bb000` was revalidated **13/13 GREEN**. The dynamic
+Paperclip provider lifecycle is qualified across paused creation and native
+Board approval.
+
+Organization Adapter 0.7.0 now adds an additive signed
+`employee-ensure-dynamic` bridge using canonical Wandora employee UUID as the
+instance resource key and Paperclip `agents.managed.dynamic` as operational
+authority. Existing 0.6.1 static paths remain intact.
+
+The bridge succeeds only when provider readback proves the exact Agent is
+`paused`. Native `pending_approval` is not mirrored into Wandora; replay
+after provider approval converges to the same paused Agent.
+
+Core/service/schema/runtime/production remain unchanged.
+
+Canonical detail:
+`docs/decisions/0400-organization-adapter-dynamic-managed-employee-provider-bridge-candidate-v1.md`.
+
+Next gate after exact-head GREEN: Core-side provider client + instance-binding
+migration qualification. Production promotion remains separate.
+
+---
+
 # CHECKPOINT ATUAL — ADR 0399 POST-APPROVAL INITIAL STATUS PRESERVATION
 
 Status: **STACKED PROVIDER CANDIDATE / EXACT-HEAD CI PENDING / NO PRODUCTION EFFECT**.

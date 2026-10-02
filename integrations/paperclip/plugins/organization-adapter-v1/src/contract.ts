@@ -28,6 +28,39 @@ function parseCatalogWebhook(input: {
   return { companyId, catalogKey: CATALOG_KEY, timestamp, signature, rawBody: input.rawBody };
 }
 
+export function parseDynamicEnsureWebhook(input: {
+  endpointKey: string; parsedBody?: unknown; rawBody: string; headers: Record<string, HeaderValue>;
+}) {
+  if (input.endpointKey !== 'employee-ensure-dynamic') throw new Error('unknown_endpoint');
+  const body = input.parsedBody && typeof input.parsedBody === 'object' && !Array.isArray(input.parsedBody)
+    ? input.parsedBody as Record<string, unknown>
+    : {};
+  if (Object.keys(body).sort().join(',') !== 'catalogKey,companyId,employeeId') {
+    throw new Error('invalid_wandora_request');
+  }
+  const companyId = nonEmpty(body.companyId);
+  const employeeId = nonEmpty(body.employeeId);
+  const catalogKey = nonEmpty(body.catalogKey);
+  const timestamp = nonEmpty(input.headers['x-wandora-timestamp']);
+  const signature = nonEmpty(input.headers['x-wandora-signature']);
+  if (
+    !companyId
+    || !employeeId
+    || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(employeeId)
+    || catalogKey !== CATALOG_KEY
+    || !timestamp
+    || !signature
+  ) throw new Error('invalid_wandora_request');
+  return {
+    companyId,
+    employeeId: employeeId.toLowerCase(),
+    catalogKey: CATALOG_KEY,
+    timestamp,
+    signature,
+    rawBody: input.rawBody,
+  };
+}
+
 export function parseReconcileWebhook(input: {
   endpointKey: string; parsedBody?: unknown; rawBody: string; headers: Record<string, HeaderValue>;
 }) {
