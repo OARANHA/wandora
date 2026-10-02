@@ -1,0 +1,1267 @@
+diff --git a/packages/shared/src/constants.ts b/packages/shared/src/constants.ts
+--- a/packages/shared/src/constants.ts
++++ b/packages/shared/src/constants.ts
+@@ -1376,9 +1376,11 @@
+   "skills.managed",
+   "agents.pause",
+   "agents.resume",
+-  "agents.invoke",
+-  "agents.managed",
+-  "access.members.write",
++  "agents.invoke",
++  "agents.managed",
++  // Create/ensure runtime-managed plugin Agents without widening static manifest-managed authority.
++  "agents.managed.dynamic",
++  "access.members.write",
+   "access.invites.write",
+   "authorization.grants.write",
+   "authorization.policies.write",
+diff --git a/packages/plugins/sdk/src/types.ts b/packages/plugins/sdk/src/types.ts
+--- a/packages/plugins/sdk/src/types.ts
++++ b/packages/plugins/sdk/src/types.ts
+@@ -1651,30 +1651,64 @@
+   ): Promise<{ approval: Approval; applied: boolean }>;
+ }
+ 
+-/**
+- * `ctx.agents` — read and manage agents.
+- *
+- * Requires `agents.read` for reads; `agents.pause` / `agents.resume` /
+- * `agents.invoke` for write operations.
+- */
+-export interface PluginAgentsClient {
+-  list(input: { companyId: string; status?: Agent["status"]; limit?: number; offset?: number }): Promise<Agent[]>;
+-  get(agentId: string, companyId: string): Promise<Agent | null>;
+-  /** Pause an agent. Throws if agent is terminated or not found. Requires `agents.pause`. */
+-  pause(agentId: string, companyId: string): Promise<Agent>;
+-  /** Resume a paused agent (sets status to idle). Throws if terminated, pending_approval, or not found. Requires `agents.resume`. */
+-  resume(agentId: string, companyId: string): Promise<Agent>;
+-  /** Invoke (wake up) an agent with a prompt payload. Throws if paused, terminated, pending_approval, or not found. Requires `agents.invoke`. */
+-  invoke(agentId: string, companyId: string, opts: { prompt: string; reason?: string }): Promise<{ runId: string }>;
+-  /** Resolve and reconcile manifest-declared plugin-managed agents by stable key. Requires `agents.managed`. */
+-  managed: {
+-    get(agentKey: string, companyId: string): Promise<PluginManagedAgentResolution>;
+-    reconcile(agentKey: string, companyId: string): Promise<PluginManagedAgentResolution>;
+-    reset(agentKey: string, companyId: string): Promise<PluginManagedAgentResolution>;
+-  };
+-  /** Create, message, and close agent chat sessions. Requires `agent.sessions.*` capabilities. */
+-  sessions: PluginAgentSessionsClient;
+-}
++export interface PluginDynamicManagedAgentSpec {
++  name: string;
++  role?: string;
++  title?: string | null;
++  icon?: string | null;
++  capabilities?: string | null;
++  adapterType?: string;
++  adapterConfig?: Record<string, unknown>;
++  runtimeConfig?: Record<string, unknown>;
++  permissions?: Record<string, unknown>;
++  budgetMonthlyCents?: number;
++  initialStatus?: "idle" | "paused";
++}
++
++export interface PluginDynamicManagedAgentEnsureInput {
++  companyId: string;
++  resourceKey: string;
++  spec: PluginDynamicManagedAgentSpec;
++}
++
++export interface PluginDynamicManagedAgentResolution {
++  pluginKey: string;
++  resourceKind: "agent";
++  resourceKey: string;
++  companyId: string;
++  agentId: string;
++  agent: Agent;
++  status: "created" | "resolved";
++  approvalId: string | null;
++  creationFingerprint: string;
++}
++
++/**
++ * `ctx.agents` — read and manage agents.
++ *
++ * Requires `agents.read` for reads; `agents.pause` / `agents.resume` /
++ * `agents.invoke` for write operations.
++ */
++export interface PluginAgentsClient {
++  list(input: { companyId: string; status?: Agent["status"]; limit?: number; offset?: number }): Promise<Agent[]>;
++  get(agentId: string, companyId: string): Promise<Agent | null>;
++  /** Pause an agent. Throws if agent is terminated or not found. Requires `agents.pause`. */
++  pause(agentId: string, companyId: string): Promise<Agent>;
++  /** Resume a paused agent (sets status to idle). Throws if terminated, pending_approval, or not found. Requires `agents.resume`. */
++  resume(agentId: string, companyId: string): Promise<Agent>;
++  /** Invoke (wake up) an agent with a prompt payload. Throws if paused, terminated, pending_approval, or not found. Requires `agents.invoke`. */
++  invoke(agentId: string, companyId: string, opts: { prompt: string; reason?: string }): Promise<{ runId: string }>;
++  /** Resolve and reconcile manifest-declared plugin-managed agents by stable key. Requires `agents.managed`. */
++  managed: {
++    get(agentKey: string, companyId: string): Promise<PluginManagedAgentResolution>;
++    reconcile(agentKey: string, companyId: string): Promise<PluginManagedAgentResolution>;
++    reset(agentKey: string, companyId: string): Promise<PluginManagedAgentResolution>;
++    /** Ensure one runtime-managed Agent for an opaque plugin resource key. Requires `agents.managed.dynamic`. */
++    ensureDynamic(input: PluginDynamicManagedAgentEnsureInput): Promise<PluginDynamicManagedAgentResolution>;
++  };
++  /** Create, message, and close agent chat sessions. Requires `agent.sessions.*` capabilities. */
++  sessions: PluginAgentSessionsClient;
++}
+ 
+ // ---------------------------------------------------------------------------
+ // Agent Sessions — two-way chat with agents
+diff --git a/packages/plugins/sdk/src/index.ts b/packages/plugins/sdk/src/index.ts
+--- a/packages/plugins/sdk/src/index.ts
++++ b/packages/plugins/sdk/src/index.ts
+@@ -265,10 +265,13 @@
+   PluginIssueOrchestrationSummary,
+   PluginIssueSubtreeOptions,
+   PluginIssueAssigneeSummary,
+-  PluginIssueSubtree,
+-  PluginIssueSummariesClient,
+-  PluginAgentsClient,
+-  PluginAccessClient,
++  PluginIssueSubtree,
++  PluginIssueSummariesClient,
++  PluginAgentsClient,
++  PluginDynamicManagedAgentSpec,
++  PluginDynamicManagedAgentEnsureInput,
++  PluginDynamicManagedAgentResolution,
++  PluginAccessClient,
+   PluginAccessMembersClient,
+   PluginAccessInvitesClient,
+   PluginAccessMember,
+diff --git a/packages/plugins/sdk/src/protocol.ts b/packages/plugins/sdk/src/protocol.ts
+--- a/packages/plugins/sdk/src/protocol.ts
++++ b/packages/plugins/sdk/src/protocol.ts
+@@ -72,11 +74,13 @@
+   PluginAssignmentPreviewInput,
+   PluginAuthorizationAuditEntry,
+   PluginAuthorizationDecisionResult,
+   PluginAuthorizationPolicyRecord,
+   PluginAuthorizationPolicySummary,
+   PluginToolAccessOperationalSnapshot,
+   PluginAgentRunReadResult,
++  PluginDynamicManagedAgentEnsureInput,
++  PluginDynamicManagedAgentResolution,
+ } from "./types.js";
+ import type {
+   PluginHealthDiagnostics,
+   PluginApiRequestInput,
+@@ -2111,12 +2113,16 @@
+     params: { agentKey: string; companyId: string },
+     result: PluginManagedAgentResolution,
+   ];
+-  "agents.managed.reset": [
+-    params: { agentKey: string; companyId: string },
+-    result: PluginManagedAgentResolution,
+-  ];
+-
+-  // Agent Sessions
++  "agents.managed.reset": [
++    params: { agentKey: string; companyId: string },
++    result: PluginManagedAgentResolution,
++  ];
++  "agents.managed.ensureDynamic": [
++    params: PluginDynamicManagedAgentEnsureInput,
++    result: PluginDynamicManagedAgentResolution,
++  ];
++
++  // Agent Sessions
+   "agents.sessions.create": [
+     params: { agentId: string; companyId: string; taskKey?: string; reason?: string },
+     result: { sessionId: string; agentId: string; companyId: string; status: "active" | "closed"; createdAt: string },
+diff --git a/packages/plugins/sdk/src/host-client-factory.ts b/packages/plugins/sdk/src/host-client-factory.ts
+--- a/packages/plugins/sdk/src/host-client-factory.ts
++++ b/packages/plugins/sdk/src/host-client-factory.ts
+@@ -275,10 +275,11 @@
+     pause(params: WorkerToHostMethods["agents.pause"][0]): Promise<WorkerToHostMethods["agents.pause"][1]>;
+     resume(params: WorkerToHostMethods["agents.resume"][0]): Promise<WorkerToHostMethods["agents.resume"][1]>;
+     invoke(params: WorkerToHostMethods["agents.invoke"][0]): Promise<WorkerToHostMethods["agents.invoke"][1]>;
+-    managedGet(params: WorkerToHostMethods["agents.managed.get"][0]): Promise<WorkerToHostMethods["agents.managed.get"][1]>;
+-    managedReconcile(params: WorkerToHostMethods["agents.managed.reconcile"][0]): Promise<WorkerToHostMethods["agents.managed.reconcile"][1]>;
+-    managedReset(params: WorkerToHostMethods["agents.managed.reset"][0]): Promise<WorkerToHostMethods["agents.managed.reset"][1]>;
+-  };
++    managedGet(params: WorkerToHostMethods["agents.managed.get"][0]): Promise<WorkerToHostMethods["agents.managed.get"][1]>;
++    managedReconcile(params: WorkerToHostMethods["agents.managed.reconcile"][0]): Promise<WorkerToHostMethods["agents.managed.reconcile"][1]>;
++    managedReset(params: WorkerToHostMethods["agents.managed.reset"][0]): Promise<WorkerToHostMethods["agents.managed.reset"][1]>;
++    managedEnsureDynamic(params: WorkerToHostMethods["agents.managed.ensureDynamic"][0]): Promise<WorkerToHostMethods["agents.managed.ensureDynamic"][1]>;
++  };
+ 
+   /** Provides `agents.sessions.create`, `agents.sessions.list`, `agents.sessions.sendMessage`, `agents.sessions.close`. */
+   agentSessions: {
+@@ -490,11 +491,12 @@
+   "agents.pause": "agents.pause",
+   "agents.resume": "agents.resume",
+   "agents.invoke": "agents.invoke",
+-  "agents.managed.get": "agents.managed",
+-  "agents.managed.reconcile": "agents.managed",
+-  "agents.managed.reset": "agents.managed",
+-
+-  // Agent Sessions
++  "agents.managed.get": "agents.managed",
++  "agents.managed.reconcile": "agents.managed",
++  "agents.managed.reset": "agents.managed",
++  "agents.managed.ensureDynamic": "agents.managed.dynamic",
++
++  // Agent Sessions
+   "agents.sessions.create": "agent.sessions.create",
+   "agents.sessions.list": "agent.sessions.list",
+   "agents.sessions.sendMessage": "agent.sessions.send",
+@@ -991,11 +993,14 @@
+     "agents.managed.reconcile": gated("agents.managed.reconcile", async (params) => {
+       return services.agents.managedReconcile(params);
+     }),
+-    "agents.managed.reset": gated("agents.managed.reset", async (params) => {
+-      return services.agents.managedReset(params);
+-    }),
+-
+-    // Agent Sessions
++    "agents.managed.reset": gated("agents.managed.reset", async (params) => {
++      return services.agents.managedReset(params);
++    }),
++    "agents.managed.ensureDynamic": gated("agents.managed.ensureDynamic", async (params) => {
++      return services.agents.managedEnsureDynamic(params);
++    }),
++
++    // Agent Sessions
+     "agents.sessions.create": gated("agents.sessions.create", async (params) => {
+       return services.agentSessions.create(params);
+     }),
+diff --git a/packages/plugins/sdk/src/worker-rpc-host.ts b/packages/plugins/sdk/src/worker-rpc-host.ts
+--- a/packages/plugins/sdk/src/worker-rpc-host.ts
++++ b/packages/plugins/sdk/src/worker-rpc-host.ts
+@@ -1170,12 +1170,16 @@
+             return callHost("agents.managed.reconcile", { agentKey, companyId });
+           },
+ 
+-          async reset(agentKey: string, companyId: string) {
+-            return callHost("agents.managed.reset", { agentKey, companyId });
+-          },
+-        },
+-
+-        sessions: {
++          async reset(agentKey: string, companyId: string) {
++            return callHost("agents.managed.reset", { agentKey, companyId });
++          },
++
++          async ensureDynamic(input) {
++            return callHost("agents.managed.ensureDynamic", input);
++          },
++        },
++
++        sessions: {
+           async create(agentId: string, companyId: string, opts?: { taskKey?: string; reason?: string }) {
+             return callHost("agents.sessions.create", {
+               agentId,
+diff --git a/packages/plugins/sdk/src/testing.ts b/packages/plugins/sdk/src/testing.ts
+--- a/packages/plugins/sdk/src/testing.ts
++++ b/packages/plugins/sdk/src/testing.ts
+@@ -1,4 +1,4 @@
+-import { randomUUID } from "node:crypto";
++import { createHash, randomUUID } from "node:crypto";
+ import { pluginOperationIssueOriginKind } from "@paperclipai/shared";
+ import type {
+   PaperclipPluginManifestV1,
+@@ -726,8 +726,24 @@
+       status,
+       approvalId: null,
+     };
+-  }
+-  function normalizePluginOriginKind(originKind: unknown = defaultPluginOriginKind): PluginIssueOriginKind {
++  }
++
++  function stableHarnessJson(value: unknown): string {
++    if (Array.isArray(value)) return "[" + value.map(stableHarnessJson).join(",") + "]";
++    if (value && typeof value === "object") {
++      return "{" + Object.entries(value as Record<string, unknown>)
++        .sort(([left], [right]) => left.localeCompare(right))
++        .map(([key, entry]) => JSON.stringify(key) + ":" + stableHarnessJson(entry))
++        .join(",") + "}";
++    }
++    return JSON.stringify(value);
++  }
++
++  function dynamicManagedFingerprint(spec: unknown) {
++    return "sha256:" + createHash("sha256").update(stableHarnessJson(spec)).digest("hex");
++  }
++
++  function normalizePluginOriginKind(originKind: unknown = defaultPluginOriginKind): PluginIssueOriginKind {
+     if (originKind == null || originKind === "") return defaultPluginOriginKind;
+     if (typeof originKind !== "string") throw new Error("Plugin issue originKind must be a string");
+     if (originKind === defaultPluginOriginKind || originKind.startsWith(`${defaultPluginOriginKind}:`)) {
+@@ -2092,8 +2108,63 @@
+         return { runId: randomUUID() };
+       },
+       managed: {
+-        async get(agentKey, companyId) {
+-          requireCapability(manifest, capabilitySet, "agents.managed");
++        async ensureDynamic(input) {
++          requireCapability(manifest, capabilitySet, "agents.managed.dynamic");
++          const cid = requireCompanyId(input.companyId);
++          const resourceKey = input.resourceKey.trim();
++          if (!resourceKey) throw new Error("Dynamic managed agent resourceKey is required");
++          const normalizedSpec = {
++            name: input.spec.name.trim(),
++            role: input.spec.role?.trim() || "general",
++            title: input.spec.title?.trim() || null,
++            icon: input.spec.icon?.trim() || null,
++            capabilities: input.spec.capabilities?.trim() || null,
++            adapterType: input.spec.adapterType?.trim() || "process",
++            adapterConfig: input.spec.adapterConfig ?? {},
++            runtimeConfig: input.spec.runtimeConfig ?? {},
++            permissions: input.spec.permissions ?? {},
++            budgetMonthlyCents: input.spec.budgetMonthlyCents ?? 0,
++            initialStatus: input.spec.initialStatus ?? "idle",
++          };
++          const creationFingerprint = dynamicManagedFingerprint(normalizedSpec);
++          const candidates = [...agents.values()].filter((candidate) => {
++            if (candidate.companyId !== cid) return false;
++            const marker = candidate.metadata?.paperclipDynamicManagedAgent;
++            return Boolean(marker && typeof marker === "object" && !Array.isArray(marker)
++              && (marker as Record<string, unknown>).pluginKey === manifest.id
++              && (marker as Record<string, unknown>).resourceKey === resourceKey);
++          });
++          if (candidates.length > 1) throw new Error("Dynamic managed agent state is ambiguous");
++          const existing = candidates[0] ?? null;
++          if (existing) {
++            const marker = existing.metadata?.paperclipDynamicManagedAgent as Record<string, unknown>;
++            if (marker.creationFingerprint !== creationFingerprint) throw new Error("Dynamic managed agent creation spec conflicts with existing resource");
++            if (existing.status === "terminated") throw new Error("Dynamic managed agent is terminated");
++            return { pluginKey: manifest.id, resourceKind: "agent" as const, resourceKey, companyId: cid,
++              agentId: existing.id, agent: existing, status: "resolved" as const, approvalId: null, creationFingerprint };
++          }
++          const now = new Date();
++          const created: Agent = {
++            id: randomUUID(), companyId: cid, name: normalizedSpec.name,
++            urlKey: normalizedSpec.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
++            role: normalizedSpec.role as Agent["role"], title: normalizedSpec.title, icon: normalizedSpec.icon,
++            status: normalizedSpec.initialStatus, reportsTo: null, capabilities: normalizedSpec.capabilities,
++            adapterType: normalizedSpec.adapterType as Agent["adapterType"], adapterConfig: normalizedSpec.adapterConfig,
++            runtimeConfig: normalizedSpec.runtimeConfig, budgetMonthlyCents: normalizedSpec.budgetMonthlyCents,
++            spentMonthlyCents: 0,
++            pauseReason: normalizedSpec.initialStatus === "paused" ? "system" : null,
++            pausedAt: normalizedSpec.initialStatus === "paused" ? now : null,
++            permissions: normalizedSpec.permissions as Agent["permissions"], lastHeartbeatAt: null,
++            metadata: { paperclipDynamicManagedAgent: { pluginKey: manifest.id, resourceKey, creationFingerprint } },
++            createdAt: now, updatedAt: now,
++          };
++          agents.set(created.id, created);
++          return { pluginKey: manifest.id, resourceKind: "agent" as const, resourceKey, companyId: cid,
++            agentId: created.id, agent: created, status: "created" as const, approvalId: null, creationFingerprint };
++        },
++
++        async get(agentKey, companyId) {
++          requireCapability(manifest, capabilitySet, "agents.managed");
+           const cid = requireCompanyId(companyId);
+           managedAgentDeclaration(agentKey);
+           const agent = [...agents.values()].find((candidate) =>
+diff --git a/server/src/services/plugin-capability-validator.ts b/server/src/services/plugin-capability-validator.ts
+--- a/server/src/services/plugin-capability-validator.ts
++++ b/server/src/services/plugin-capability-validator.ts
+@@ -69,10 +69,11 @@
+   "approvals.get": ["approvals.read"],
+   "agents.list": ["agents.read"],
+   "agents.get": ["agents.read"],
+-  "agents.managed.get": ["agents.managed"],
+-  "agents.managed.reconcile": ["agents.managed"],
+-  "agents.managed.reset": ["agents.managed"],
+-  "goals.list": ["goals.read"],
++  "agents.managed.get": ["agents.managed"],
++  "agents.managed.reconcile": ["agents.managed"],
++  "agents.managed.reset": ["agents.managed"],
++  "agents.managed.ensureDynamic": ["agents.managed.dynamic"],
++  "goals.list": ["goals.read"],
+   "goals.get": ["goals.read"],
+   "activity.list": ["activity.read"],
+   "activity.get": ["activity.read"],
+diff --git a/server/src/services/agents.ts b/server/src/services/agents.ts
+--- a/server/src/services/agents.ts
++++ b/server/src/services/agents.ts
+@@ -27,10 +27,11 @@
+   type AgentEligibilityAgent,
+   type AgentApiKeyScope,
+ } from "@paperclipai/shared";
+-import {
+-  normalizePaperclipRunnerAdapterConfig,
+-} from "@paperclipai/adapter-utils/server-utils";
+-import { conflict, notFound, unprocessable } from "../errors.js";
++import {
++  normalizePaperclipRunnerAdapterConfig,
++} from "@paperclipai/adapter-utils/server-utils";
++import { conflict, notFound, unprocessable } from "../errors.js";
++import { dynamicManagedAgentMarkersEqual, readDynamicManagedAgentMarker } from "./dynamic-managed-agent-metadata.js";
+ import {
+   collectSecretRefs,
+   collectUserSecretRefs,
+@@ -123,11 +124,12 @@
+   claudeLogin?: ClaudeLoginContext;
+ }
+ 
+-interface CreateAgentOptions {
+-  aiConnectionInstall?: { connectionId: string; createdByUserId: string | null };
+-  allowBuiltInAgentMetadata?: boolean;
+-  claudeLogin?: ClaudeLoginContext;
+-}
++interface CreateAgentOptions {
++  aiConnectionInstall?: { connectionId: string; createdByUserId: string | null };
++  allowBuiltInAgentMetadata?: boolean;
++  allowDynamicManagedAgentMetadata?: boolean;
++  claudeLogin?: ClaudeLoginContext;
++}
+ 
+ interface AgentShortnameRow {
+   id: string;
+@@ -674,22 +676,37 @@
+     }
+   }
+ 
+-  function assertBuiltInAgentMetadataMutationAllowed(
+-    beforeMetadata: unknown,
+-    afterMetadata: unknown,
+-    options?: { allowBuiltInAgentMetadata?: boolean },
+-  ) {
+-    if (options?.allowBuiltInAgentMetadata) return;
+-    const beforeMarker = readBuiltInAgentMarker(beforeMetadata);
+-    const afterMarker = readBuiltInAgentMarker(afterMetadata);
+-    if (builtInAgentMarkersEqual(beforeMarker, afterMarker)) return;
+-    throw conflict("Built-in agent marker is managed by Paperclip and cannot be edited directly", {
+-      code: "built_in_agent_marker_readonly",
+-      key: beforeMarker?.key ?? afterMarker?.key ?? null,
+-    });
+-  }
+-
+-  async function updateAgent(
++  function assertBuiltInAgentMetadataMutationAllowed(
++    beforeMetadata: unknown,
++    afterMetadata: unknown,
++    options?: { allowBuiltInAgentMetadata?: boolean },
++  ) {
++    if (options?.allowBuiltInAgentMetadata) return;
++    const beforeMarker = readBuiltInAgentMarker(beforeMetadata);
++    const afterMarker = readBuiltInAgentMarker(afterMetadata);
++    if (builtInAgentMarkersEqual(beforeMarker, afterMarker)) return;
++    throw conflict("Built-in agent marker is managed by Paperclip and cannot be edited directly", {
++      code: "built_in_agent_marker_readonly",
++      key: beforeMarker?.key ?? afterMarker?.key ?? null,
++    });
++  }
++
++  function assertDynamicManagedAgentMetadataMutationAllowed(
++    beforeMetadata: unknown,
++    afterMetadata: unknown,
++    options?: { allowDynamicManagedAgentMetadata?: boolean },
++  ) {
++    if (options?.allowDynamicManagedAgentMetadata) return;
++    const beforeMarker = readDynamicManagedAgentMarker(beforeMetadata);
++    const afterMarker = readDynamicManagedAgentMarker(afterMetadata);
++    if (dynamicManagedAgentMarkersEqual(beforeMarker, afterMarker)) return;
++    throw conflict("Dynamic managed agent marker is managed by Paperclip and cannot be edited directly", {
++      code: "dynamic_managed_agent_marker_readonly",
++      resourceKey: beforeMarker?.resourceKey ?? afterMarker?.resourceKey ?? null,
++    });
++  }
++
++  async function updateAgent(
+     id: string,
+     data: Partial<typeof agents.$inferInsert>,
+     options?: UpdateAgentOptions,
+@@ -734,11 +751,12 @@
+       }
+     }
+ 
+-    if (Object.prototype.hasOwnProperty.call(data, "metadata")) {
+-      assertBuiltInAgentMetadataMutationAllowed(existing.metadata, data.metadata, options);
+-    }
+-
+-    const normalizedPatch = { ...data } as Partial<typeof agents.$inferInsert>;
++    if (Object.prototype.hasOwnProperty.call(data, "metadata")) {
++      assertBuiltInAgentMetadataMutationAllowed(existing.metadata, data.metadata, options);
++      assertDynamicManagedAgentMetadataMutationAllowed(existing.metadata, data.metadata);
++    }
++
++    const normalizedPatch = { ...data } as Partial<typeof agents.$inferInsert>;
+     if (data.permissions !== undefined) {
+       normalizedPatch.permissions = normalizeAgentPermissions(data.permissions);
+     }
+@@ -868,9 +886,10 @@
+ 
+     getById,
+ 
+-    create: async (companyId: string, data: Omit<typeof agents.$inferInsert, "companyId">, options?: CreateAgentOptions) => {
+-      assertBuiltInAgentMetadataMutationAllowed(null, data.metadata, options);
+-      if (data.reportsTo) {
++    create: async (companyId: string, data: Omit<typeof agents.$inferInsert, "companyId">, options?: CreateAgentOptions) => {
++      assertBuiltInAgentMetadataMutationAllowed(null, data.metadata, options);
++      assertDynamicManagedAgentMetadataMutationAllowed(null, data.metadata, options);
++      if (data.reportsTo) {
+         await ensureManager(companyId, data.reportsTo);
+       }
+ 
+diff --git a/server/src/services/approvals.ts b/server/src/services/approvals.ts
+--- a/server/src/services/approvals.ts
++++ b/server/src/services/approvals.ts
+@@ -1,8 +1,10 @@
+ import { and, asc, eq, inArray, sql } from "drizzle-orm";
+ import type { Db } from "@paperclipai/db";
+-import { approvalComments, approvals } from "@paperclipai/db";
+-import { notFound, unprocessable } from "../errors.js";
+-import { redactCurrentUserText } from "../log-redaction.js";
++import { approvalComments, approvals } from "@paperclipai/db";
++import { conflict, notFound, unprocessable } from "../errors.js";
++import { redactCurrentUserText } from "../log-redaction.js";
++import { readDynamicManagedAgentMarker } from "./dynamic-managed-agent-metadata.js";
++import { stableJson } from "./managed-resource-drift.js";
+ import { agentService } from "./agents.js";
+ import { budgetService } from "./budgets.js";
+ import { notifyHireApproved } from "./hire-hook.js";
+@@ -250,13 +252,23 @@
+         .then((rows) => rows[0]);
+     },
+ 
+-    resubmit: async (id: string, payload?: Record<string, unknown>) => {
+-      const existing = await getExistingApproval(id);
+-      if (existing.status !== "revision_requested") {
+-        throw unprocessable("Only revision requested approvals can be resubmitted");
+-      }
+-
+-      const now = new Date();
++    resubmit: async (id: string, payload?: Record<string, unknown>) => {
++      const existing = await getExistingApproval(id);
++      if (existing.status !== "revision_requested") {
++        throw unprocessable("Only revision requested approvals can be resubmitted");
++      }
++
++      if (existing.type === "hire_agent" && payload !== undefined) {
++        const existingPayload = existing.payload && typeof existing.payload === "object" && !Array.isArray(existing.payload)
++          ? existing.payload as Record<string, unknown> : {};
++        if (readDynamicManagedAgentMarker(existingPayload.metadata) && stableJson(payload) !== stableJson(existingPayload)) {
++          throw conflict("Dynamic managed agent hire payload is immutable", {
++            code: "dynamic_managed_agent_approval_payload_immutable", approvalId: existing.id,
++          });
++        }
++      }
++
++      const now = new Date();
+       return db
+         .update(approvals)
+         .set({
+diff --git a/server/src/services/plugin-host-services.ts b/server/src/services/plugin-host-services.ts
+--- a/server/src/services/plugin-host-services.ts
++++ b/server/src/services/plugin-host-services.ts
+@@ -47,9 +47,10 @@
+ import path from "node:path";
+ import { pluginRegistryService } from "./plugin-registry.js";
+ import { pluginStateStore } from "./plugin-state-store.js";
+-import { pluginDatabaseService } from "./plugin-database.js";
+-import { pluginManagedAgentService } from "./plugin-managed-agents.js";
+-import { pluginManagedRoutineService } from "./plugin-managed-routines.js";
++import { pluginDatabaseService } from "./plugin-database.js";
++import { pluginManagedAgentService } from "./plugin-managed-agents.js";
++import { pluginDynamicManagedAgentService } from "./plugin-dynamic-managed-agents.js";
++import { pluginManagedRoutineService } from "./plugin-managed-routines.js";
+ import { pluginManagedSkillService } from "./plugin-managed-skills.js";
+ import {
+   assertConfiguredLocalFolder,
+@@ -729,8 +730,9 @@
+       }
+       return variables;
+     },
+-  });
+-  const managedRoutines = pluginManagedRoutineService(db, {
++  });
++  const dynamicManagedAgents = pluginDynamicManagedAgentService(db, { pluginId, pluginKey });
++  const managedRoutines = pluginManagedRoutineService(db, {
+     pluginId,
+     pluginKey,
+     manifest: options.manifest,
+@@ -2840,14 +2842,19 @@
+         await ensurePluginAvailableForCompany(companyId);
+         return managedAgents.reconcile(params.agentKey, companyId);
+       },
+-      async managedReset(params) {
+-        const companyId = ensureCompanyId(params.companyId);
+-        await ensurePluginAvailableForCompany(companyId);
+-        return managedAgents.reset(params.agentKey, companyId);
+-      },
+-    },
+-
+-    goals: {
++      async managedReset(params) {
++        const companyId = ensureCompanyId(params.companyId);
++        await ensurePluginAvailableForCompany(companyId);
++        return managedAgents.reset(params.agentKey, companyId);
++      },
++      async managedEnsureDynamic(params) {
++        const companyId = ensureCompanyId(params.companyId);
++        await ensurePluginAvailableForCompany(companyId);
++        return dynamicManagedAgents.ensure({ ...params, companyId });
++      },
++    },
++
++    goals: {
+       async list(params) {
+         const companyId = ensureCompanyId(params.companyId);
+         await ensurePluginAvailableForCompany(companyId);
+diff --git a/server/src/services/dynamic-managed-agent-metadata.ts b/server/src/services/dynamic-managed-agent-metadata.ts
+new file mode 100644
+--- /dev/null
++++ b/server/src/services/dynamic-managed-agent-metadata.ts
+@@ -0,0 +1,33 @@
++export interface DynamicManagedAgentMarker {
++  pluginKey: string;
++  resourceKey: string;
++  creationFingerprint: string;
++}
++function isRecord(value: unknown): value is Record<string, unknown> {
++  return typeof value === "object" && value !== null && !Array.isArray(value);
++}
++export function readDynamicManagedAgentMarker(metadata: unknown): DynamicManagedAgentMarker | null {
++  if (!isRecord(metadata)) return null;
++  const marker = metadata.paperclipDynamicManagedAgent;
++  if (!isRecord(marker)) return null;
++  const pluginKey = typeof marker.pluginKey === "string" ? marker.pluginKey : null;
++  const resourceKey = typeof marker.resourceKey === "string" ? marker.resourceKey : null;
++  const creationFingerprint = typeof marker.creationFingerprint === "string" ? marker.creationFingerprint : null;
++  if (!pluginKey || !resourceKey || !creationFingerprint || !/^sha256:[0-9a-f]{64}$/.test(creationFingerprint)) return null;
++  return { pluginKey, resourceKey, creationFingerprint };
++}
++export function withDynamicManagedAgentMarker(
++  metadata: Record<string, unknown> | null | undefined,
++  marker: DynamicManagedAgentMarker,
++): Record<string, unknown> {
++  return { ...(metadata ?? {}), paperclipDynamicManagedAgent: marker };
++}
++export function dynamicManagedAgentMarkersEqual(
++  left: DynamicManagedAgentMarker | null,
++  right: DynamicManagedAgentMarker | null,
++): boolean {
++  if (!left || !right) return left === right;
++  return left.pluginKey === right.pluginKey
++    && left.resourceKey === right.resourceKey
++    && left.creationFingerprint === right.creationFingerprint;
++}
+diff --git a/server/src/services/plugin-dynamic-managed-agents.ts b/server/src/services/plugin-dynamic-managed-agents.ts
+new file mode 100644
+--- /dev/null
++++ b/server/src/services/plugin-dynamic-managed-agents.ts
+@@ -0,0 +1,222 @@
++import { createHash } from "node:crypto";
++import { and, eq, inArray, sql } from "drizzle-orm";
++import type { Db } from "@paperclipai/db";
++import { agents, approvals, companies, pluginManagedResources } from "@paperclipai/db";
++import type { Agent } from "@paperclipai/shared";
++import type { PluginDynamicManagedAgentEnsureInput, PluginDynamicManagedAgentResolution, PluginDynamicManagedAgentSpec } from "@paperclipai/plugin-sdk";
++import { conflict, notFound, unprocessable } from "../errors.js";
++import { isUniqueViolation } from "../db-errors.js";
++import { agentService } from "./agents.js";
++import { approvalService } from "./approvals.js";
++import { logActivity } from "./activity-log.js";
++import { readDynamicManagedAgentMarker, withDynamicManagedAgentMarker } from "./dynamic-managed-agent-metadata.js";
++import { stockHash } from "./managed-resource-drift.js";
++
++const DYNAMIC_BINDING_PREFIX = "$dynamic-agent$:";
++const BINDING_UNIQUE_CONSTRAINT = "plugin_managed_resources_company_plugin_resource_uq";
++const MARKER_UNIQUE_CONSTRAINT = "agents_dynamic_managed_agent_marker_uq";
++const MAX_RESOURCE_KEY_CHARS = 200;
++const MAX_SPEC_BYTES = 64 * 1024;
++interface Options { pluginId: string; pluginKey: string; }
++interface PreparedEnsure {
++  companyId: string; resourceKey: string; bindingResourceKey: string;
++  spec: Required<Pick<PluginDynamicManagedAgentSpec, "name" | "role" | "title" | "icon" | "capabilities" | "adapterType" | "adapterConfig" | "runtimeConfig" | "permissions" | "budgetMonthlyCents" | "initialStatus">>;
++  creationFingerprint: string;
++}
++function isRecord(value: unknown): value is Record<string, unknown> {
++  return typeof value === "object" && value !== null && !Array.isArray(value);
++}
++function boundedText(value: unknown, field: string, max: number, options: { nullable?: boolean; defaultValue?: string } = {}): string | null {
++  if (value == null || value === "") {
++    if (options.nullable) return null;
++    if (options.defaultValue !== undefined) return options.defaultValue;
++    throw unprocessable(field + " is required");
++  }
++  if (typeof value !== "string") throw unprocessable(field + " must be a string");
++  const normalized = value.trim();
++  if (!normalized) {
++    if (options.nullable) return null;
++    if (options.defaultValue !== undefined) return options.defaultValue;
++    throw unprocessable(field + " is required");
++  }
++  if (normalized.length > max) throw unprocessable(field + " is too long");
++  return normalized;
++}
++function jsonRecord(value: unknown, field: string): Record<string, unknown> {
++  if (value == null) return {};
++  if (!isRecord(value)) throw unprocessable(field + " must be an object");
++  let serialized: string;
++  try { serialized = JSON.stringify(value); } catch { throw unprocessable(field + " must contain JSON values only"); }
++  if (!serialized || Buffer.byteLength(serialized, "utf8") > MAX_SPEC_BYTES) throw unprocessable(field + " is too large");
++  return JSON.parse(serialized) as Record<string, unknown>;
++}
++function prepare(input: PluginDynamicManagedAgentEnsureInput): PreparedEnsure {
++  const companyId = boundedText(input.companyId, "companyId", 200) as string;
++  const resourceKey = boundedText(input.resourceKey, "resourceKey", MAX_RESOURCE_KEY_CHARS) as string;
++  if (!input.spec || typeof input.spec !== "object") throw unprocessable("spec is required");
++  const initialStatus = input.spec.initialStatus ?? "idle";
++  if (initialStatus !== "idle" && initialStatus !== "paused") {
++    throw unprocessable("spec.initialStatus must be idle or paused");
++  }
++  const spec = {
++    name: boundedText(input.spec.name, "spec.name", 100) as string,
++    role: boundedText(input.spec.role, "spec.role", 100, { defaultValue: "general" }) as string,
++    title: boundedText(input.spec.title, "spec.title", 200, { nullable: true }),
++    icon: boundedText(input.spec.icon, "spec.icon", 500, { nullable: true }),
++    capabilities: boundedText(input.spec.capabilities, "spec.capabilities", 4_000, { nullable: true }),
++    adapterType: boundedText(input.spec.adapterType, "spec.adapterType", 100, { defaultValue: "process" }) as string,
++    adapterConfig: jsonRecord(input.spec.adapterConfig, "spec.adapterConfig"),
++    runtimeConfig: jsonRecord(input.spec.runtimeConfig, "spec.runtimeConfig"),
++    permissions: jsonRecord(input.spec.permissions, "spec.permissions"),
++    budgetMonthlyCents: input.spec.budgetMonthlyCents ?? 0,
++    initialStatus,
++  };
++  if (typeof spec.budgetMonthlyCents !== "number" || !Number.isSafeInteger(spec.budgetMonthlyCents)
++      || spec.budgetMonthlyCents < 0 || spec.budgetMonthlyCents > 1_000_000_000) {
++    throw unprocessable("spec.budgetMonthlyCents must be a non-negative safe integer");
++  }
++  if (Buffer.byteLength(JSON.stringify(spec), "utf8") > MAX_SPEC_BYTES) throw unprocessable("spec is too large");
++  return {
++    companyId, resourceKey,
++    bindingResourceKey: DYNAMIC_BINDING_PREFIX + createHash("sha256").update(resourceKey).digest("hex"),
++    spec, creationFingerprint: stockHash(spec),
++  };
++}
++function isStructuralUniqueConflict(error: unknown): boolean {
++  return isUniqueViolation(error, BINDING_UNIQUE_CONSTRAINT)
++    || isUniqueViolation(error, MARKER_UNIQUE_CONSTRAINT);
++}
++export function pluginDynamicManagedAgentService(db: Db, options: Options) {
++  async function markerCandidates(txDb: Db, p: PreparedEnsure) {
++    const rows = await txDb.select().from(agents).where(eq(agents.companyId, p.companyId));
++    return rows.filter((row) => {
++      const marker = readDynamicManagedAgentMarker(row.metadata);
++      return marker?.pluginKey === options.pluginKey && marker.resourceKey === p.resourceKey;
++    });
++  }
++  async function binding(txDb: Db, p: PreparedEnsure) {
++    return txDb.select().from(pluginManagedResources).where(and(
++      eq(pluginManagedResources.companyId, p.companyId), eq(pluginManagedResources.pluginId, options.pluginId),
++      eq(pluginManagedResources.resourceKind, "agent"), eq(pluginManagedResources.resourceKey, p.bindingResourceKey),
++    )).then((rows) => rows[0] ?? null);
++  }
++  async function openHireApprovals(txDb: Db, p: PreparedEnsure, agentId: string) {
++    const rows = await txDb.select().from(approvals).where(and(
++      eq(approvals.companyId, p.companyId), eq(approvals.type, "hire_agent"),
++      inArray(approvals.status, ["pending", "revision_requested"]),
++    ));
++    return rows.filter((row) => (isRecord(row.payload) ? row.payload.agentId : null) === agentId);
++  }
++  function defaultsJson(p: PreparedEnsure) {
++    return { dynamicManagedAgent: true, resourceKey: p.resourceKey, creationFingerprint: p.creationFingerprint, requestedSpec: p.spec };
++  }
++  async function ensureBinding(txDb: Db, p: PreparedEnsure, agent: Agent) {
++    const current = await binding(txDb, p);
++    if (!current) {
++      await txDb.insert(pluginManagedResources).values({
++        companyId: p.companyId, pluginId: options.pluginId, pluginKey: options.pluginKey,
++        resourceKind: "agent", resourceKey: p.bindingResourceKey, resourceId: agent.id, defaultsJson: defaultsJson(p),
++      });
++      return;
++    }
++    if (current.resourceId !== agent.id) {
++      const other = await agentService(txDb).getById(current.resourceId) as Agent | null;
++      if (other && other.status !== "terminated") throw conflict("Dynamic managed agent binding points to another live Agent", {
++        code: "dynamic_managed_agent_binding_conflict", resourceKey: p.resourceKey,
++      });
++    }
++    await txDb.update(pluginManagedResources).set({ resourceId: agent.id, defaultsJson: defaultsJson(p), updatedAt: new Date() })
++      .where(eq(pluginManagedResources.id, current.id));
++  }
++  function resolution(p: PreparedEnsure, agent: Agent, status: PluginDynamicManagedAgentResolution["status"], approvalId: string | null): PluginDynamicManagedAgentResolution {
++    return { pluginKey: options.pluginKey, resourceKind: "agent", resourceKey: p.resourceKey, companyId: p.companyId,
++      agentId: agent.id, agent, status, approvalId, creationFingerprint: p.creationFingerprint };
++  }
++  async function resolveLocked(txDb: Db, p: PreparedEnsure, allowCreate: boolean): Promise<PluginDynamicManagedAgentResolution> {
++    const company = await txDb.select().from(companies).where(eq(companies.id, p.companyId)).then((rows) => rows[0] ?? null);
++    if (!company) throw notFound("Company not found");
++    const candidates = await markerCandidates(txDb, p);
++    if (candidates.length > 1) throw conflict("Dynamic managed agent state is ambiguous", {
++      code: "dynamic_managed_agent_state_ambiguous", resourceKey: p.resourceKey,
++    });
++    const currentBinding = await binding(txDb, p);
++    const rawExisting = candidates[0] ?? null;
++    if (rawExisting) {
++      const marker = readDynamicManagedAgentMarker(rawExisting.metadata)!;
++      if (marker.creationFingerprint !== p.creationFingerprint) throw conflict("Dynamic managed agent creation spec conflicts with existing resource", {
++        code: "dynamic_managed_agent_spec_conflict", resourceKey: p.resourceKey,
++      });
++      if (rawExisting.status === "terminated") throw conflict("Dynamic managed agent is terminated", {
++        code: "dynamic_managed_agent_terminated", resourceKey: p.resourceKey,
++      });
++      const agent = await agentService(txDb).getById(rawExisting.id) as Agent | null;
++      if (!agent) throw conflict("Dynamic managed agent could not be resolved");
++      let approvalId: string | null = null;
++      if (agent.status === "pending_approval") {
++        const open = await openHireApprovals(txDb, p, agent.id);
++        if (open.length !== 1) throw conflict("Dynamic managed agent approval state is inconsistent", {
++          code: "dynamic_managed_agent_approval_inconsistent", resourceKey: p.resourceKey, openApprovalCount: open.length,
++        });
++        approvalId = open[0]!.id;
++      }
++      await ensureBinding(txDb, p, agent);
++      return resolution(p, agent, "resolved", approvalId);
++    }
++    if (currentBinding) throw conflict("Dynamic managed agent binding exists without its provider marker", {
++      code: "dynamic_managed_agent_binding_orphaned", resourceKey: p.resourceKey,
++    });
++    if (!allowCreate) throw conflict("Concurrent dynamic managed agent winner could not be resolved", {
++      code: "dynamic_managed_agent_convergence_failed", resourceKey: p.resourceKey,
++    });
++    const requiresApproval = company.requireBoardApprovalForNewAgents;
++    const marker = { pluginKey: options.pluginKey, resourceKey: p.resourceKey, creationFingerprint: p.creationFingerprint };
++    const created = await agentService(txDb).create(p.companyId, {
++      name: p.spec.name, role: p.spec.role, title: p.spec.title, icon: p.spec.icon,
++      status: requiresApproval ? "pending_approval" : p.spec.initialStatus, reportsTo: null, capabilities: p.spec.capabilities,
++      adapterType: p.spec.adapterType, adapterConfig: p.spec.adapterConfig, runtimeConfig: p.spec.runtimeConfig,
++      permissions: p.spec.permissions, budgetMonthlyCents: p.spec.budgetMonthlyCents, spentMonthlyCents: 0,
++      pauseReason: !requiresApproval && p.spec.initialStatus === "paused" ? "system" : null,
++      pausedAt: !requiresApproval && p.spec.initialStatus === "paused" ? new Date() : null,
++      metadata: withDynamicManagedAgentMarker(null, marker), lastHeartbeatAt: null,
++    }, { allowDynamicManagedAgentMetadata: true }) as Agent;
++    let approvalId: string | null = null;
++    if (requiresApproval) {
++      const approval = await approvalService(txDb).create(p.companyId, {
++        type: "hire_agent", requestedByAgentId: null, requestedByUserId: null, status: "pending",
++        payload: {
++          name: created.name, role: created.role, title: created.title, icon: created.icon, reportsTo: created.reportsTo,
++          capabilities: created.capabilities, adapterType: created.adapterType, adapterConfig: created.adapterConfig,
++          runtimeConfig: created.runtimeConfig, permissions: created.permissions, budgetMonthlyCents: created.budgetMonthlyCents,
++          metadata: created.metadata, agentId: created.id, sourcePluginId: options.pluginId, sourcePluginKey: options.pluginKey,
++          dynamicManagedResourceKey: p.resourceKey, creationFingerprint: p.creationFingerprint,
++        },
++        decisionNote: null, decidedByUserId: null, decidedAt: null, updatedAt: new Date(),
++      });
++      approvalId = approval.id;
++      await logActivity(txDb, { companyId: p.companyId, actorType: "plugin", actorId: options.pluginId,
++        action: "approval.created", entityType: "approval", entityId: approval.id,
++        details: { type: "hire_agent", linkedAgentId: created.id, sourcePluginKey: options.pluginKey, dynamicManagedResourceKey: p.resourceKey } });
++    }
++    await ensureBinding(txDb, p, created);
++    await logActivity(txDb, { companyId: p.companyId, actorType: "plugin", actorId: options.pluginId,
++      action: "plugin.dynamic_managed_agent.created", entityType: "agent", entityId: created.id,
++      details: { sourcePluginKey: options.pluginKey, dynamicManagedResourceKey: p.resourceKey,
++        creationFingerprint: p.creationFingerprint, requiresApproval, approvalId } });
++    return resolution(p, created, "created", approvalId);
++  }
++  async function execute(p: PreparedEnsure, allowCreate: boolean) {
++    return db.transaction(async (tx) => {
++      const txDb = tx as unknown as Db;
++      const lockKey = "paperclip:plugin-dynamic-agent:" + p.companyId + ":" + options.pluginKey + ":" + p.resourceKey;
++      await txDb.execute(sql`select pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`);
++      return resolveLocked(txDb, p, allowCreate);
++    });
++  }
++  return {
++    ensure: async (input: PluginDynamicManagedAgentEnsureInput) => {
++      const p = prepare(input);
++      try { return await execute(p, true); }
++      catch (error) { if (!isStructuralUniqueConflict(error)) throw error; return execute(p, false); }
++    },
++  };
++}
+diff --git a/packages/plugins/sdk/tests/dynamic-managed-agent-capability.test.ts b/packages/plugins/sdk/tests/dynamic-managed-agent-capability.test.ts
+new file mode 100644
+--- /dev/null
++++ b/packages/plugins/sdk/tests/dynamic-managed-agent-capability.test.ts
+@@ -0,0 +1,45 @@
++import { describe, expect, it, vi } from "vitest";
++import type { HostServices } from "../src/host-client-factory.js";
++import { CapabilityDeniedError, createHostClientHandlers } from "../src/host-client-factory.js";
++
++describe("dynamic managed Agent capability", () => {
++  const input = {
++    companyId: "company-a",
++    resourceKey: "employee-a",
++    spec: { name: "Ana", adapterType: "process" },
++  };
++
++  it("does not widen agents.managed into dynamic provisioning authority", async () => {
++    const ensure = vi.fn(async () => ({ ok: true }) as any);
++    const services = { agents: { managedEnsureDynamic: ensure } } as unknown as HostServices;
++    const handlers = createHostClientHandlers({
++      pluginId: "paperclip.test",
++      capabilities: ["agents.managed"],
++      services,
++    });
++
++    await expect(
++      handlers["agents.managed.ensureDynamic"](input, {
++        invocationScope: { companyId: "company-a" },
++      }),
++    ).rejects.toBeInstanceOf(CapabilityDeniedError);
++    expect(ensure).not.toHaveBeenCalled();
++  });
++
++  it("allows the dedicated agents.managed.dynamic capability", async () => {
++    const ensure = vi.fn(async () => ({ ok: true }) as any);
++    const services = { agents: { managedEnsureDynamic: ensure } } as unknown as HostServices;
++    const handlers = createHostClientHandlers({
++      pluginId: "paperclip.test",
++      capabilities: ["agents.managed.dynamic"],
++      services,
++    });
++
++    await expect(
++      handlers["agents.managed.ensureDynamic"](input, {
++        invocationScope: { companyId: "company-a" },
++      }),
++    ).resolves.toEqual({ ok: true });
++    expect(ensure).toHaveBeenCalledOnce();
++  });
++});
+diff --git a/server/src/__tests__/plugin-dynamic-managed-agents.test.ts b/server/src/__tests__/plugin-dynamic-managed-agents.test.ts
+new file mode 100644
+--- /dev/null
++++ b/server/src/__tests__/plugin-dynamic-managed-agents.test.ts
+@@ -0,0 +1,313 @@
++import { createHash, randomUUID } from "node:crypto";
++import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
++import {
++  activityLog,
++  agentConfigRevisions,
++  agents,
++  approvals,
++  companies,
++  createDb,
++  pluginCompanySettings,
++  pluginManagedResources,
++  plugins,
++} from "@paperclipai/db";
++import type { PaperclipPluginManifestV1 } from "@paperclipai/shared";
++import {
++  getEmbeddedPostgresTestSupport,
++  startEmbeddedPostgresTestDatabase,
++} from "./helpers/embedded-postgres.js";
++import { buildHostServices } from "../services/plugin-host-services.js";
++import { agentService } from "../services/agents.js";
++import { approvalService } from "../services/approvals.js";
++
++const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
++const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
++
++function createEventBusStub() {
++  return {
++    forPlugin() {
++      return { emit: async () => {}, subscribe: () => {} };
++    },
++  } as any;
++}
++
++function issuePrefix(id: string) {
++  return "D" + id.replace(/-/g, "").slice(0, 6).toUpperCase();
++}
++
++function manifest(): PaperclipPluginManifestV1 {
++  return {
++    id: "paperclip.dynamic-managed-agents-test",
++    apiVersion: 1,
++    version: "0.1.0",
++    displayName: "Dynamic Managed Agents Test",
++    description: "Test plugin",
++    author: "Paperclip",
++    categories: ["automation"],
++    capabilities: ["agents.managed.dynamic"],
++    entrypoints: { worker: "./dist/worker.js" },
++  };
++}
++
++if (!embeddedPostgresSupport.supported) {
++  console.warn(
++    "Skipping embedded Postgres dynamic managed Agent tests: "
++      + (embeddedPostgresSupport.reason ?? "unsupported environment"),
++  );
++}
++
++describeEmbeddedPostgres("plugin dynamic managed agents", () => {
++  let db!: ReturnType<typeof createDb>;
++  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
++  let pluginId = "";
++  let services: ReturnType<typeof buildHostServices>;
++
++  beforeAll(async () => {
++    tempDb = await startEmbeddedPostgresTestDatabase("paperclip-plugin-dynamic-managed-agents-");
++    db = createDb(tempDb.connectionString);
++  }, 20_000);
++
++  afterEach(async () => {
++    await db.delete(agentConfigRevisions);
++    await db.delete(activityLog);
++    await db.delete(pluginManagedResources);
++    await db.delete(pluginCompanySettings);
++    await db.delete(approvals);
++    await db.delete(agents);
++    await db.delete(plugins);
++    await db.delete(companies);
++    pluginId = "";
++  });
++
++  afterAll(async () => {
++    await tempDb?.cleanup();
++  });
++
++  async function seed(options: { requireApproval?: boolean } = {}) {
++    const companyId = randomUUID();
++    const pluginManifest = manifest();
++    pluginId = randomUUID();
++    await db.insert(companies).values({
++      id: companyId,
++      name: "Paperclip",
++      issuePrefix: issuePrefix(companyId),
++      requireBoardApprovalForNewAgents: options.requireApproval ?? false,
++    });
++    await db.insert(plugins).values({
++      id: pluginId,
++      pluginKey: pluginManifest.id,
++      packageName: "@paperclipai/plugin-dynamic-managed-agents-test",
++      version: pluginManifest.version,
++      apiVersion: pluginManifest.apiVersion,
++      categories: pluginManifest.categories,
++      manifestJson: pluginManifest,
++      status: "ready",
++      installOrder: 1,
++    });
++    services = buildHostServices(db, pluginId, pluginManifest.id, createEventBusStub(), undefined, {
++      manifest: pluginManifest,
++    });
++    return { companyId, pluginManifest };
++  }
++
++  function input(companyId: string, patch: Record<string, unknown> = {}) {
++    return {
++      companyId,
++      resourceKey: "wandora-employee:ana",
++      spec: {
++        name: "Ana",
++        role: "commercial-assistant",
++        adapterType: "process",
++        adapterConfig: {},
++        runtimeConfig: {},
++        permissions: { canCreateAgents: false },
++        budgetMonthlyCents: 0,
++        ...patch,
++      },
++    };
++  }
++
++  it("replays the same resource/spec to exactly one Agent", async () => {
++    const { companyId } = await seed();
++    const first = await services.agents.managedEnsureDynamic(input(companyId));
++    const second = await services.agents.managedEnsureDynamic(input(companyId));
++
++    expect(first.status).toBe("created");
++    expect(second.status).toBe("resolved");
++    expect(second.agentId).toBe(first.agentId);
++    expect(await db.select().from(agents)).toHaveLength(1);
++    expect(await db.select().from(pluginManagedResources)).toHaveLength(1);
++  });
++
++  it("creates paused when requested and treats initialStatus as immutable creation semantics", async () => {
++    const { companyId } = await seed();
++    const first = await services.agents.managedEnsureDynamic(input(companyId, { initialStatus: "paused" }));
++    const second = await services.agents.managedEnsureDynamic(input(companyId, { initialStatus: "paused" }));
++
++    expect(first.agent.status).toBe("paused");
++    expect(first.agent.pauseReason).toBe("system");
++    expect(first.agent.pausedAt).not.toBeNull();
++    expect(second.agentId).toBe(first.agentId);
++    await expect(
++      services.agents.managedEnsureDynamic(input(companyId, { initialStatus: "idle" })),
++    ).rejects.toThrow(/creation spec conflicts/);
++  });
++
++  it("serializes concurrent identical ensures to one Agent and one binding", async () => {
++    const { companyId } = await seed();
++    const results = await Promise.all(
++      Array.from({ length: 8 }, () => services.agents.managedEnsureDynamic(input(companyId))),
++    );
++
++    expect(new Set(results.map((result) => result.agentId)).size).toBe(1);
++    expect(await db.select().from(agents)).toHaveLength(1);
++    expect(await db.select().from(pluginManagedResources)).toHaveLength(1);
++  });
++
++  it("creates only one pending Agent and one native hire approval under concurrency", async () => {
++    const { companyId } = await seed({ requireApproval: true });
++    const results = await Promise.all(
++      Array.from({ length: 6 }, () => services.agents.managedEnsureDynamic(input(companyId, { initialStatus: "paused" }))),
++    );
++
++    expect(new Set(results.map((result) => result.agentId)).size).toBe(1);
++    expect(new Set(results.map((result) => result.approvalId)).size).toBe(1);
++    expect(results[0]!.agent.status).toBe("pending_approval");
++    expect(await db.select().from(agents)).toHaveLength(1);
++    expect(await db.select().from(approvals)).toHaveLength(1);
++  });
++
++  it("rejects a changed immutable creation spec", async () => {
++    const { companyId } = await seed();
++    await services.agents.managedEnsureDynamic(input(companyId));
++
++    await expect(
++      services.agents.managedEnsureDynamic(input(companyId, { name: "Ana Changed" })),
++    ).rejects.toThrow(/creation spec conflicts/);
++  });
++
++  it("protects the provider-owned marker from normal Agent metadata updates", async () => {
++    const { companyId } = await seed();
++    const created = await services.agents.managedEnsureDynamic(input(companyId));
++
++    await expect(
++      agentService(db).update(created.agentId, { metadata: {} }),
++    ).rejects.toThrow(/Dynamic managed agent marker/);
++  });
++
++  it("keeps approval revision lifecycle but rejects changed resubmit payload", async () => {
++    const { companyId } = await seed({ requireApproval: true });
++    const created = await services.agents.managedEnsureDynamic(input(companyId));
++    const approvalId = created.approvalId!;
++
++    await approvalService(db).requestRevision(approvalId, randomUUID(), "please review");
++    const existing = await approvalService(db).getById(approvalId);
++    await expect(
++      approvalService(db).resubmit(approvalId, {
++        ...((existing!.payload ?? {}) as Record<string, unknown>),
++        name: "Changed by revision",
++      }),
++    ).rejects.toThrow(/payload is immutable/);
++
++    await expect(approvalService(db).resubmit(approvalId)).resolves.toMatchObject({
++      id: approvalId,
++      status: "pending",
++    });
++  });
++
++  it("does not silently reprovision after native hire rejection terminates the Agent", async () => {
++    const { companyId } = await seed({ requireApproval: true });
++    const created = await services.agents.managedEnsureDynamic(input(companyId));
++
++    await approvalService(db).reject(created.approvalId!, randomUUID(), "rejected");
++    await expect(
++      services.agents.managedEnsureDynamic(input(companyId)),
++    ).rejects.toThrow(/is terminated/);
++    expect(await db.select().from(agents)).toHaveLength(1);
++  });
++
++  it("isolates dynamic binding keys from manifest/static agentKey namespace", async () => {
++    const { companyId } = await seed();
++    const staticKey = "wandora-employee:ana";
++    await db.insert(pluginManagedResources).values({
++      companyId,
++      pluginId,
++      pluginKey: manifest().id,
++      resourceKind: "agent",
++      resourceKey: staticKey,
++      resourceId: randomUUID(),
++      defaultsJson: {},
++    });
++
++    const created = await services.agents.managedEnsureDynamic({
++      ...input(companyId),
++      resourceKey: staticKey,
++    });
++    expect(created.agentId).toBeTruthy();
++
++    const bindings = await db.select().from(pluginManagedResources);
++    expect(bindings).toHaveLength(2);
++    expect(bindings.map((row) => row.resourceKey)).toContain(staticKey);
++    expect(bindings.some((row) => row.resourceKey.startsWith("$dynamic-agent$:"))).toBe(true);
++  });
++
++  it("fails closed when a reserved binding exists without a dynamic marker", async () => {
++    const { companyId } = await seed();
++    const externalKey = "wandora-employee:ana";
++    const internalKey = "$dynamic-agent$:"
++      + createHash("sha256").update(externalKey).digest("hex");
++    await db.insert(pluginManagedResources).values({
++      companyId,
++      pluginId,
++      pluginKey: manifest().id,
++      resourceKind: "agent",
++      resourceKey: internalKey,
++      resourceId: randomUUID(),
++      defaultsJson: {},
++    });
++
++    await expect(
++      services.agents.managedEnsureDynamic(input(companyId)),
++    ).rejects.toThrow(/binding exists without its provider marker/);
++  });
++
++  it("enforces provider-side marker uniqueness including terminated rows", async () => {
++    const { companyId } = await seed();
++    const created = await services.agents.managedEnsureDynamic(input(companyId));
++    await agentService(db).terminate(created.agentId);
++    const row = await agentService(db).getById(created.agentId);
++
++    await expect(
++      db.insert(agents).values({
++        ...(row as any),
++        id: randomUUID(),
++        name: "Duplicate Ana",
++        urlKey: "duplicate-ana-" + randomUUID().slice(0, 8),
++        createdAt: new Date(),
++        updatedAt: new Date(),
++      }),
++    ).rejects.toMatchObject({
++      cause: {
++        code: "23505",
++        constraint_name: "agents_dynamic_managed_agent_marker_uq",
++      },
++    });
++  });
++
++  it("allows the same opaque resourceKey in another company without cross-tenant relink", async () => {
++    const { companyId } = await seed();
++    const secondCompanyId = randomUUID();
++    await db.insert(companies).values({
++      id: secondCompanyId,
++      name: "Second",
++      issuePrefix: issuePrefix(secondCompanyId),
++      requireBoardApprovalForNewAgents: false,
++    });
++
++    const first = await services.agents.managedEnsureDynamic(input(companyId));
++    const second = await services.agents.managedEnsureDynamic(input(secondCompanyId));
++    expect(second.agentId).not.toBe(first.agentId);
++    expect(second.companyId).toBe(secondCompanyId);
++    expect(await db.select().from(agents)).toHaveLength(2);
++  });
++});
+
+diff --git a/packages/db/src/migrations/0280_dynamic_managed_agent_marker.sql b/packages/db/src/migrations/0280_dynamic_managed_agent_marker.sql
+new file mode 100644
+--- /dev/null
++++ b/packages/db/src/migrations/0280_dynamic_managed_agent_marker.sql
+@@ -0,0 +1,7 @@
++CREATE UNIQUE INDEX IF NOT EXISTS "agents_dynamic_managed_agent_marker_uq"
++ON "agents" USING btree (
++  "company_id",
++  (("metadata" -> 'paperclipDynamicManagedAgent' ->> 'pluginKey')),
++  (("metadata" -> 'paperclipDynamicManagedAgent' ->> 'resourceKey'))
++)
++WHERE ("metadata" -> 'paperclipDynamicManagedAgent') IS NOT NULL;
+diff --git a/packages/db/src/migrations/meta/_journal.json b/packages/db/src/migrations/meta/_journal.json
+--- a/packages/db/src/migrations/meta/_journal.json
++++ b/packages/db/src/migrations/meta/_journal.json
+@@ -1944,7 +1944,14 @@
+     {
+       "idx": 279,
+       "version": "7",
+       "when": 1789390281190,
+       "tag": "0279_tired_deathstrike",
+       "breakpoints": true
++    },
++    {
++      "idx": 280,
++      "version": "7",
++      "when": 1790932800000,
++      "tag": "0280_dynamic_managed_agent_marker",
++      "breakpoints": true
+     }

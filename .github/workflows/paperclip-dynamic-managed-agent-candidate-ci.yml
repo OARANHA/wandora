@@ -1,0 +1,259 @@
+name: Paperclip Dynamic Managed Agent Candidate CI
+
+on:
+  pull_request:
+    paths:
+      - 'integrations/paperclip/dynamic-managed-agent-v1/**'
+      - 'integrations/paperclip/patches/v2026.916.1-host-operational-read-v1.patch'
+      - 'integrations/paperclip/patches/v2026.916.1-fast-read-run-result-read-v1.patch'
+      - 'integrations/paperclip/patches/v2026.916.1-synchronous-webhook-response-v1.patch'
+      - 'integrations/paperclip/patches/v2026.916.1-tool-gateway-log-redaction-v1.patch'
+      - 'integrations/paperclip/patches/v2026.916.1-dynamic-managed-agent-ensure-v1.patch'
+      - '.github/workflows/paperclip-dynamic-managed-agent-candidate-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: paperclip-dynamic-managed-agent-candidate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - name: Checkout Wandora
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Checkout exact Paperclip v2026.916.1 source
+        uses: actions/checkout@v4
+        with:
+          repository: paperclipai/paperclip
+          ref: d554c4789ed3930f8a53ac9fdf6503b3187097da
+          path: .paperclip
+          persist-credentials: false
+
+      - name: Compose five qualified provider deltas
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x integrations/paperclip/dynamic-managed-agent-v1/compose-qualified-patches.sh
+          integrations/paperclip/dynamic-managed-agent-v1/compose-qualified-patches.sh "$GITHUB_WORKSPACE/.paperclip"
+
+      - name: Set up Node 24.21.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.21.0
+
+      - name: Set up pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.4 --activate
+          pnpm --version
+
+      - name: Install pinned Paperclip dependencies
+        working-directory: .paperclip
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck and focused provider tests
+        working-directory: .paperclip
+        run: |
+          pnpm --filter @paperclipai/plugin-sdk typecheck
+          pnpm --filter @paperclipai/server typecheck
+          pnpm exec vitest run \
+            packages/plugins/sdk/tests/dynamic-managed-agent-capability.test.ts \
+            server/src/__tests__/plugin-dynamic-managed-agents.test.ts
+
+      - name: Build exact local candidate
+        id: build
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_sha='d554c4789ed3930f8a53ac9fdf6503b3187097da'
+          test "$(git -C .paperclip rev-parse HEAD)" = "$source_sha"
+          image='wandora/paperclip:v2026.916.1-dynamic-managed-agent-v1'
+
+          docker build \
+            --target production \
+            --build-arg PAPERCLIP_BUILD_VERSION=v2026.916.1 \
+            --build-arg PAPERCLIP_BUILD_COMMIT="$source_sha" \
+            --label io.wandora.candidate.contract=paperclip-dynamic-managed-agent-candidate-v1 \
+            --label io.wandora.candidate.wandora-source-sha="$GITHUB_SHA" \
+            --label io.wandora.candidate.paperclip-source-sha="$source_sha" \
+            -t "$image" \
+            .paperclip
+
+          image_id="$(docker image inspect --format '{{.Id}}' "$image")"
+          test -n "$image_id"
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+          echo "image_id=$image_id" >> "$GITHUB_OUTPUT"
+
+      - name: Disposable authenticated/private fresh-volume startup proof
+        id: startup
+        shell: bash
+        env:
+          IMAGE: ${{ steps.build.outputs.image }}
+        run: |
+          set -euo pipefail
+          name="paperclip-dynamic-agent-candidate-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          volume="$name-home"
+          cleanup() {
+            docker rm -f "$name" >/dev/null 2>&1 || true
+            docker volume rm "$volume" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          better_auth_secret="$(openssl rand -hex 32)"
+          agent_jwt_secret="$(openssl rand -hex 32)"
+          tool_action_secret="$(openssl rand -hex 32)"
+
+          docker volume create "$volume" >/dev/null
+          docker run -d \
+            --name "$name" \
+            -e PAPERCLIP_DEPLOYMENT_MODE=authenticated \
+            -e PAPERCLIP_DEPLOYMENT_EXPOSURE=private \
+            -e PAPERCLIP_PUBLIC_URL=http://127.0.0.1:3100 \
+            -e PAPERCLIP_ALLOWED_HOSTNAMES=127.0.0.1,localhost,wandora-paperclip \
+            -e PAPERCLIP_TELEMETRY_DISABLED=1 \
+            -e DO_NOT_TRACK=1 \
+            -e BETTER_AUTH_SECRET="$better_auth_secret" \
+            -e PAPERCLIP_AGENT_JWT_SECRET="$agent_jwt_secret" \
+            -e PAPERCLIP_TOOL_ACTION_SIGNING_SECRET="$tool_action_secret" \
+            -v "$volume:/paperclip" \
+            "$IMAGE" >/dev/null
+
+          health=''
+          ready='false'
+          for _ in $(seq 1 120); do
+            if health="$(docker exec "$name" curl -fsS http://127.0.0.1:3100/api/health 2>/dev/null)"; then
+              if HEALTH_JSON="$health" node <<'NODE'
+          const health = JSON.parse(process.env.HEALTH_JSON);
+          process.exit(health.status === 'ok' ? 0 : 1);
+          NODE
+              then
+                ready='true'
+                break
+              fi
+            fi
+            if ! docker inspect --format '{{.State.Running}}' "$name" | grep -qx true; then
+              docker logs "$name" >&2 || true
+              exit 1
+            fi
+            sleep 1
+          done
+
+          if [ "$ready" != 'true' ]; then
+            printf 'Paperclip did not reach status=ok. Last health payload: %s\n' "$health" >&2
+            docker logs "$name" >&2 || true
+            exit 1
+          fi
+
+          docker exec "$name" test -f /app/server/dist/build-info.json
+          docker exec "$name" grep -Fq 'd554c4789ed3930f8a53ac9fdf6503b3187097da' /app/server/dist/build-info.json
+          echo 'startup_result=ok' >> "$GITHUB_OUTPUT"
+          echo 'PAPERCLIP_DYNAMIC_MANAGED_AGENT_CANDIDATE_FRESH_VOLUME_STARTUP_OK'
+
+      - name: Freeze exact candidate bytes and provenance
+        id: artifact
+        shell: bash
+        env:
+          IMAGE: ${{ steps.build.outputs.image }}
+          IMAGE_ID: ${{ steps.build.outputs.image_id }}
+          STARTUP_RESULT: ${{ steps.startup.outputs.startup_result }}
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/paperclip-dynamic-managed-agent-candidate"
+          mkdir -p "$out"
+
+          docker builder prune -af >/dev/null || true
+          docker save -o "$out/paperclip-v2026.916.1-dynamic-managed-agent-v1.tar" "$IMAGE"
+          archive_sha="$(sha256sum "$out/paperclip-v2026.916.1-dynamic-managed-agent-v1.tar" | awk '{print $1}')"
+          zstd -T0 -3 --rm \
+            "$out/paperclip-v2026.916.1-dynamic-managed-agent-v1.tar" \
+            -o "$out/paperclip-v2026.916.1-dynamic-managed-agent-v1.tar.zst"
+          compressed_sha="$(sha256sum "$out/paperclip-v2026.916.1-dynamic-managed-agent-v1.tar.zst" | awk '{print $1}')"
+
+          host_patch='integrations/paperclip/patches/v2026.916.1-host-operational-read-v1.patch'
+          run_patch='integrations/paperclip/patches/v2026.916.1-fast-read-run-result-read-v1.patch'
+          webhook_patch='integrations/paperclip/patches/v2026.916.1-synchronous-webhook-response-v1.patch'
+          redaction_patch='integrations/paperclip/patches/v2026.916.1-tool-gateway-log-redaction-v1.patch'
+          dynamic_patch='integrations/paperclip/patches/v2026.916.1-dynamic-managed-agent-ensure-v1.patch'
+
+          export CANDIDATE_OUT="$out"
+          export ARCHIVE_SHA="$archive_sha"
+          export COMPRESSED_SHA="$compressed_sha"
+          export HOST_PATCH_SHA="$(sha256sum "$host_patch" | awk '{print $1}')"
+          export RUN_PATCH_SHA="$(sha256sum "$run_patch" | awk '{print $1}')"
+          export WEBHOOK_PATCH_SHA="$(sha256sum "$webhook_patch" | awk '{print $1}')"
+          export REDACTION_PATCH_SHA="$(sha256sum "$redaction_patch" | awk '{print $1}')"
+          export DYNAMIC_PATCH_SHA="$(sha256sum "$dynamic_patch" | awk '{print $1}')"
+
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const patches = [
+            ['v2026.916.1-host-operational-read-v1.patch', process.env.HOST_PATCH_SHA],
+            ['v2026.916.1-fast-read-run-result-read-v1.patch', process.env.RUN_PATCH_SHA],
+            ['v2026.916.1-synchronous-webhook-response-v1.patch', process.env.WEBHOOK_PATCH_SHA],
+            ['v2026.916.1-tool-gateway-log-redaction-v1.patch', process.env.REDACTION_PATCH_SHA],
+            ['v2026.916.1-dynamic-managed-agent-ensure-v1.patch', process.env.DYNAMIC_PATCH_SHA],
+          ].map(([name, sha256]) => ({
+            path: 'integrations/paperclip/patches/' + name,
+            sha256,
+          }));
+          const data = {
+            contract: 'paperclip-dynamic-managed-agent-candidate-v1',
+            artifactFormat: 'docker-archive+zstd',
+            imageTag: process.env.IMAGE,
+            dockerConfigDigest: process.env.IMAGE_ID,
+            paperclipSourceCommit: 'd554c4789ed3930f8a53ac9fdf6503b3187097da',
+            paperclipBuildVersion: 'v2026.916.1',
+            wandoraSourceSha: process.env.GITHUB_SHA,
+            patches,
+            dockerArchiveSha256: process.env.ARCHIVE_SHA,
+            compressedArtifactSha256: process.env.COMPRESSED_SHA,
+            startup: {
+              result: process.env.STARTUP_RESULT,
+              deploymentMode: 'authenticated',
+              deploymentExposure: 'private',
+              volume: 'fresh-disposable-ci-only',
+              expectedHealthStatus: 'ok',
+            },
+            migrationProof:
+              'embedded-Postgres provider tests prove the dynamic marker unique index; fresh-volume candidate startup proves the composed image boots after migrations',
+            productionEffect: false,
+            rebuildPolicy:
+              'The exact archived image bytes are the candidate. A later rebuild is a new candidate.',
+          };
+          fs.writeFileSync(
+            path.join(process.env.CANDIDATE_OUT, 'provenance.json'),
+            JSON.stringify(data, null, 2) + '\n',
+          );
+          NODE
+
+          provenance_sha="$(sha256sum "$out/provenance.json" | awk '{print $1}')"
+          {
+            printf '%s  %s\n' "$compressed_sha" 'paperclip-v2026.916.1-dynamic-managed-agent-v1.tar.zst'
+            printf '%s  %s\n' "$provenance_sha" 'provenance.json'
+          } > "$out/SHA256SUMS"
+
+          cat "$out/provenance.json"
+          cat "$out/SHA256SUMS"
+          echo "candidate_archive_sha256=$compressed_sha" >> "$GITHUB_OUTPUT"
+          echo 'PAPERCLIP_DYNAMIC_MANAGED_AGENT_CANDIDATE_V1_OK'
+
+      - name: Upload exact candidate bytes and provenance
+        uses: actions/upload-artifact@v4
+        with:
+          name: paperclip-v2026.916.1-dynamic-managed-agent-v1-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/paperclip-dynamic-managed-agent-candidate/paperclip-v2026.916.1-dynamic-managed-agent-v1.tar.zst
+            ${{ runner.temp }}/paperclip-dynamic-managed-agent-candidate/provenance.json
+            ${{ runner.temp }}/paperclip-dynamic-managed-agent-candidate/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
