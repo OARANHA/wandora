@@ -1,3 +1,32 @@
+# CHECKPOINT ATUAL — ADR 0401 CORE DYNAMIC EMPLOYEE INSTANCE BINDING MIGRATION — SPLIT REQUIRED
+
+Status: **PR #399 12/12 EXACT-HEAD GREEN / EXISTING PROVIDER BINDING REUSED / CORE DYNAMIC SWITCH BLOCKED ON INSTANCE-AWARE PROVIDER OPERATIONS + MULTI-INSTANCE HIRE JOURNAL QUALIFICATION / DOCUMENTATION ONLY / NO PRODUCTION EFFECT**.
+
+Fresh reconciliation proved `main=e4c7c36bb1091ba38d39b85fa259bae94553fc52` and the stacked dynamic-managed chain remains open/draft/unmerged. Current exact heads are PR #396 `21fc84982e522c0249eeb2778470cfa61c620b69` (10/10 GREEN), PR #397 `a9b0f76d21758aea6ee70ce32796c400e08969fe` (13/13 GREEN), PR #398 `233b4546dcbaaf7a281b40a30c9c1a6c182bb000` (13/13 GREEN), and PR #399 `1a10fe92338e9605b1c267a5e6c09110b606196a` (12/12 GREEN).
+
+The Reuse Gate confirms `wandora_private.digital_employee_provider_bindings` already has the correct canonical shape: organization + `digital_employees.id` + provider -> private provider Agent ref. No second binding table is justified. `catalog_key` remains a template/offering key, not employee-instance identity.
+
+The Core switch cannot happen coherently yet. Organization Adapter 0.7.0 adds only `employee-ensure-dynamic`; inherited activation, work, capability projection and Fast Read still resolve the legacy static `CATALOG_KEY` Agent. Core also still validates `paperclipManagedAgentRef(company,catalogKey)`, while `PaperclipRunIdentity` accepts only the legacy static managed marker. A dynamic hire switch now could therefore bind one Agent while downstream operations target another.
+
+The hire journal also still has the proven singleton constraint `UNIQUE (organization_id, provider, catalog_key)`, plus catalog-key reservation/legacy-collision semantics. A multi-instance schema/service change is genuinely required but must be qualified separately; no migration is introduced here.
+
+Deep provider review additionally proved that native `ctx.agents.get(agentId, companyId)` exists behind explicit `agents.read`, which OA 0.7.0 does not request, while `ensureDynamic` is create-or-resolve and must not be reused as an accidental post-hire lookup. The next provider slice must qualify a no-create instance correlation/addressing boundary before Core freezes its dynamic interface.
+
+Canonical detail:
+`docs/decisions/0401-core-dynamic-organization-adapter-provider-client-digital-employee-instance-binding-migration-qualification-v1.md`.
+
+Next executable slice:
+
+**Organization Adapter Dynamic Managed Employee Instance Runtime Operations Contract Qualification V1 — NO EFFECT**.
+
+Separately required before multiple same-template hires:
+
+**Digital Employee Hire Journal Multi-Instance Schema Qualification V1 — NO PRODUCTION MIGRATION**.
+
+Only after both should the coherent **Core Dynamic Employee Instance Binding Migration V1 — CODE ONLY / NO PRODUCTION EFFECT** resume across hire, activation, work, capability projection, Fast Read and execution binding.
+
+---
+
 # CHECKPOINT ATUAL — ADR 0400 ORGANIZATION ADAPTER 0.7.0 ISOLATED OVERLAY CANDIDATE
 
 Status: **CANONICAL 0.6.1 PRESERVED / 0.7.0 DISPOSABLE OVERLAY CANDIDATE / EXACT-HEAD CI PENDING / NO PRODUCTION EFFECT**.
