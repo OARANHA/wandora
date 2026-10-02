@@ -180,9 +180,9 @@ export function contactDestinationQualificationFacts(
   const facts = qualification.candidates.flatMap((candidate) => {
     const label = candidateLabel(candidate.kind);
     const channelValue = candidate.channelQualification.state === 'qualified'
-      ? `Sim — ${candidate.channelQualification.channel === 'whatsapp' ? 'WhatsApp' : candidate.channelQualification.channel} por evidência explícita do provider de mensageria.`
+      ? 'Sim — WhatsApp por evidência explícita do provider de mensageria.'
       : candidate.channelQualification.reason === 'provider-rejected'
-        ? `Não — ${candidate.channelQualification.channel === 'whatsapp' ? 'WhatsApp' : candidate.channelQualification.channel} não foi qualificado pelo provider de mensageria.`
+        ? 'Não — WhatsApp não foi qualificado pelo provider de mensageria.'
         : 'Não — exige evidência explícita do provider de mensageria.';
 
     return [
