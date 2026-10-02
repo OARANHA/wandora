@@ -6,55 +6,67 @@ Status: **BLOCKED / NOT PROVEN / READ-ANALYSIS ONLY / NO PROVIDER CALL / NO SEND
 
 ## Context
 
-ADR 0387 kept Messaging Gateway as the provider-neutral replacement boundary for destination/channel evidence and blocked an adapter because the current Evolution `whatsappNumbers` path can persist provider-local cache state and does not expose evidence age.
+ADR 0386 defines the Wandora-owned semantic meaning of destination/channel qualification: one registered telephone/mobile value is only a destination candidate; mobile does not imply WhatsApp; no destination is selected automatically; channel qualification is not send authorization; Human Send remains the later supervised effect boundary.
 
-This slice revalidates the exact provider implementation and its pinned Baileys dependency without making a real Evolution/WhatsApp call. The question is deliberately narrower than sendability: whether an existing provider capability can prove that one exact destination has one exact messaging channel with sufficient purity, freshness and side-effect evidence for a future provider-neutral Messaging Gateway read contract.
+ADR 0387 then kept Messaging Gateway as the provider-neutral replacement boundary and blocked implementation because the initially reviewed Evolution `POST /chat/whatsappNumbers/:instanceName` path can use and persist provider-local `isOnWhatsapp` cache state, does not expose evidence age, and the Fast Read context has no canonical messaging Connection/instance authority.
 
-ADR 0168 remains binding: **portability = contract decoupling, not implementation duplication**.
+This slice revalidates the exact qualified provider implementation and exact pinned Baileys dependency. It also performs the mandatory Reuse Gate for any cleaner existing provider primitive. No real Evolution/WhatsApp call is used as an investigation method.
+
+ADR 0168 remains binding:
+
+> Portability = contract decoupling, not implementation duplication. Provider replacement does not imply internalization.
 
 ## REAL NOW
 
-Fresh reconciliation at the start of this slice proved:
+Fresh reconciliation proved:
 
-- `main = e4c7c36bb1091ba38d39b85fa259bae94553fc52`;
-- PR #386 remains `open / draft / unmerged / mergeable` at `7d4f4a80fd7ea2517c9cbff7df26abf446d7b957`;
-- PR #387 remains `open / draft / unmerged / mergeable` at `625166bfb93b7def1f8b95046f5b500ea4408508`;
+- live `main = e4c7c36bb1091ba38d39b85fa259bae94553fc52`;
+- PR #386 remains `open / draft / mergeable / unmerged` at `7d4f4a80fd7ea2517c9cbff7df26abf446d7b957`;
+- PR #387 remains `open / draft / mergeable / unmerged` at `625166bfb93b7def1f8b95046f5b500ea4408508`;
 - PR #387 is correctly stacked on PR #386;
-- the initial exact-head CI read found PR #386 GREEN and PR #387 GREEN, with zero failed/pending runs in that read;
-- live Messaging Gateway remains healthy with restart count 0;
-- the live Gateway has only the existing Evolution webhook JWT and Gateway→Core ingress HMAC mounts; no Evolution API-key mount and no Core→Gateway outbound HMAC mount are present;
-- Paperclip Task Drain remains `draining=false / activeRuns=0 / pendingWakes=0 / quiescent=true`.
+- the one initial CI read showed the observed exact-head workflows for PR #386 and PR #387 completed successfully; no polling or rerun was performed;
+- live Core is `wandora/core:organization-adapter-candidate-9ee338303292`, healthy;
+- live Paperclip is `wandora/paperclip:v2026.916.1`, healthy;
+- live Messaging Gateway is `wandora/messaging-gateway:origin-fix-94cfb4de`, healthy, restart count 0;
+- the live Gateway has only the existing Evolution-webhook JWT and Gateway→Core ingress HMAC mounts; no Evolution API-key mount and no Core→Gateway outbound-HMAC mount are present;
+- Task Drain remains `draining=false / activeRuns=0 / pendingWakes=0 / quiescent=true`.
 
-No workflow polling or rerun was performed.
+No provider/customer call and no runtime mutation occurred during reconciliation.
 
-## Exact provider/version under qualification
+## Exact provider and dependency
 
-The canonical Wandora Evolution stack remains pinned to:
+The Wandora Evolution stack is pinned to:
 
-- Evolution API `2.3.7`;
-- Evolution release/source commit `cd800f2976e1e5b682fbf86a01ee4d85ae61f370`;
-- Wandora image digest `sha256:1bd8afc4a6cf48822e6cf02469aeae7bd35a12a6b616eacd1291926307f4d339`;
-- Baileys dependency `7.0.0-rc.9`;
-- Baileys release commit `cb8b371`.
+- Evolution API version: `2.3.7`;
+- exact Evolution source commit: `cd800f2976e1e5b682fbf86a01ee4d85ae61f370`;
+- Wandora image digest: `sha256:1bd8afc4a6cf48822e6cf02469aeae7bd35a12a6b616eacd1291926307f4d339`;
+- exact package dependency: `baileys = 7.0.0-rc.9`;
+- Baileys release commit: `cb8b3717aaede47460ba700651ee936f268c0ce4`.
 
-The canonical Wandora compose sets:
+The canonical Wandora Evolution compose currently sets:
 
-- `DATABASE_SAVE_IS_ON_WHATSAPP=true`;
-- `DATABASE_SAVE_IS_ON_WHATSAPP_DAYS=7`.
+```text
+DATABASE_SAVE_IS_ON_WHATSAPP=true
+DATABASE_SAVE_IS_ON_WHATSAPP_DAYS=7
+```
 
-The exact Evolution 2.3.7 source and exact Baileys 7.0.0-rc.9 source are the evidence basis. Generic/current documentation is not used as a substitute for those versions.
+Generic/latest provider documentation is not used as a substitute for these exact versions.
 
-## Candidate operation
+## Candidate A — `POST /chat/whatsappNumbers/:instanceName`
 
-Evolution exposes:
+### Route, authentication, input and output
+
+Evolution 2.3.7 mounts `ChatRouter` under `/chat`, and the route is:
 
 `POST /chat/whatsappNumbers/:instanceName`
 
-Route guards in 2.3.7 are:
+The route receives the normal guard chain:
 
 1. `instanceExistsGuard`;
 2. `instanceLoggedGuard`;
 3. `authGuard['apikey']`.
+
+The names of the guards are not treated as stronger guarantees than their source. For ordinary non-create requests, `instanceLoggedGuard` simply continues; it does not itself prove that the WhatsApp session is open. `instanceExistsGuard` checks provider runtime/cache/database existence. `authGuard['apikey']` accepts the configured global API key or, for an instance-scoped request, a matching instance token after a provider DB read.
 
 Input:
 
@@ -64,7 +76,7 @@ class WhatsAppNumberDto {
 }
 ```
 
-Output elements:
+Returned elements:
 
 ```ts
 class OnWhatsAppDto {
@@ -76,53 +88,63 @@ class OnWhatsAppDto {
 }
 ```
 
-The DTO contains no evidence timestamp, cache age, cache-hit flag, remote-query flag or provenance field.
+The output contains no:
 
-`exists=true` is provider registration/existence evidence. It is not by itself a guarantee of future sendability, delivery, Wandora authorization or Connection authority.
+- provider observation timestamp;
+- cache age;
+- cache-hit flag;
+- remote-query flag;
+- provenance/origin field.
 
-## Exact Evolution 2.3.7 call path
+### Exact call path and local effects
 
 For ordinary user numbers, `whatsappNumber(...)`:
 
-1. normalizes the supplied numbers to provider JIDs;
-2. performs a provider-local **read** from `contact` using `prismaRepository.contact.findMany(...)` to obtain an optional push name;
-3. calls `getOnWhatsappCache(...)`;
-4. identifies normal numbers not present in the cache;
-5. calls `this.client.onWhatsApp(...)` only for those uncached normal numbers;
-6. combines cached and remote results;
-7. selects only positive uncached results for persistence;
+1. normalizes supplied values through Evolution's JID/number rules;
+2. reads provider-local `Contact` rows to obtain an optional push name;
+3. reads `getOnWhatsappCache(...)`;
+4. separates cached from uncached values;
+5. invokes `client.onWhatsApp(...)` for uncached normal phone numbers;
+6. merges cache and remote results;
+7. selects positive uncached results;
 8. calls `saveOnWhatsappCache(...)` for those positives;
-9. returns the DTO list.
+9. returns `OnWhatsAppDto[]`.
 
-The method itself contains no call to:
+The reviewed method does not itself invoke message send, read receipt, presence update, contact creation/update, or webhook emission.
 
-- `sendMessage`;
-- `readMessages`;
-- presence update;
-- contact create/update;
-- webhook emission;
-- message creation.
+However, with the currently qualified Wandora configuration, the cache path is not mutation-free.
 
-The neighboring `markMessageAsRead(...)` is a separate method and explicitly calls `this.client.readMessages(...)`; that call is not part of `whatsappNumber(...)`.
+`saveOnWhatsappCache(...)` may:
 
-## Provider-local cache effect
+- read an existing `IsOnWhatsapp` row;
+- update it if normalized fields changed;
+- create a new row if none exists;
+- skip the update when the stored normalized fields are already equivalent.
 
-`saveOnWhatsappCache(...)` is provider-owned state, not Wandora state.
+The provider schema has durable `createdAt` and `updatedAt` columns for `IsOnWhatsapp`.
 
-When `DATABASE_SAVE_IS_ON_WHATSAPP=true`:
+Therefore a positive uncached `whatsappNumbers` lookup may create or update provider-owned durable state.
 
-- it reads `isOnWhatsapp`;
-- it may update an existing row when normalized data changed;
-- it may create a row when none exists;
-- if the existing row is byte/field-equivalent, it deliberately skips the update.
+### Cache freshness
 
-Therefore the current qualified Wandora configuration is **not mutation-free** for a positive uncached lookup.
+`getOnWhatsappCache(...)` accepts only rows whose provider `updatedAt` is within:
 
-The cache can also be populated by other Evolution contact/message/provider activity. A cache hit does not prove that a prior explicit `whatsappNumbers` request created the evidence.
+`DATABASE_SAVE_IS_ON_WHATSAPP_DAYS`
 
-No Wandora table, registry, cache or mirror is justified to absorb this provider state.
+which is currently seven days.
 
-## Supported cache-off mode
+Consequences:
+
+- a positive cache hit may be almost seven days old;
+- a stale positive is possible if WhatsApp registration changed after the cached observation;
+- this path does not persist an equivalent negative result;
+- other Evolution contact/message activity may also populate the same positive cache, so provenance is not unique to an explicit qualification request;
+- the public DTO does not reveal `updatedAt`;
+- the caller cannot distinguish cache evidence from a new remote query.
+
+An expired row can also remain with its old `updatedAt` when a new positive remote result has identical normalized fields because `saveOnWhatsappCache(...)` deliberately skips an equivalent update. Later requests then keep treating that row as expired and query remotely. This behavior does not repair the public provenance gap.
+
+## Provider-native cache-off mode
 
 Evolution 2.3.7 natively parses:
 
@@ -130,130 +152,232 @@ Evolution 2.3.7 natively parses:
 
 as the enable flag.
 
-When the flag is false:
+With the flag false:
 
 - `getOnWhatsappCache(...)` returns no cached rows;
-- `saveOnWhatsappCache(...)` returns immediately without a provider DB write;
-- ordinary phone-number inputs therefore continue to the existing `client.onWhatsApp(...)` remote query path.
+- `saveOnWhatsappCache(...)` returns before any provider DB write;
+- ordinary phone-number inputs continue through `client.onWhatsApp(...)`.
 
-This is an existing provider configuration, not a Wandora duplicate, and it is sufficient to eliminate the **Evolution `isOnWhatsapp` cache read/write effect** for ordinary phone-number qualification.
+Therefore the Evolution `isOnWhatsapp` cache mutation is **not structurally unavoidable**. It can be removed using provider-native configuration without duplicating implementation in Wandora.
 
-This slice did **not** alter the real configuration.
+This configuration is global provider behavior, not a qualification-only per-call switch, and this slice did not alter the real configuration.
 
-This finding is not enough to qualify the operation because the remaining freshness/provenance and remote-effect requirements are still not proven.
+The cache-off finding is useful but not sufficient for qualification because a cleaner existing provider operation exists and the external-effect/freshness-contract gaps remain.
 
-## Freshness
+## Candidate B — existing direct provider route `POST /baileys/onWhatsapp/:instanceName`
 
-With the current Wandora `true / 7 days` configuration, `getOnWhatsappCache(...)` accepts rows whose provider DB `updatedAt` is within the configured window.
+The Reuse Gate discovered a narrower existing provider-native primitive that ADR 0387 had not yet qualified.
 
-The public result does not return that `updatedAt`.
+Evolution 2.3.7 mounts `BaileysRouter` at `/baileys`. The exact route is:
 
-Consequences:
+`POST /baileys/onWhatsapp/:instanceName`
 
-- a positive cache hit may be almost seven days old;
-- if registration/channel status changed after that observation, a stale positive is possible until expiry;
-- `whatsappNumbers` does not add negative results to this cache, so this specific cache does not create an equivalent persisted negative result;
-- cache provenance is ambiguous because other Evolution activity also writes positive `isOnWhatsapp` rows;
-- the caller cannot distinguish a cache hit from a fresh Baileys query;
-- the caller cannot know the observation timestamp or evidence age from the current contract.
+It uses the same normal instance/API-key guard chain.
 
-There is an additional implementation nuance: after an expired row triggers a new remote positive query, `saveOnWhatsappCache(...)` can skip the DB update when the normalized row data is unchanged. In that case the old `updatedAt` is not refreshed, so later calls continue to miss that stale row and query remotely until its stored fields actually change. This does not repair the public provenance gap.
+The route body is not given a dedicated typed DTO in this wrapper; the controller reads:
 
-With cache disabled, the adapter could know operationally that an ordinary phone-number lookup traversed the remote-query branch, but the Evolution response still carries no provider-defined observation timestamp or origin field. This ADR therefore does **not** invent a freshness timestamp.
+`body?.jid`
 
-## Baileys 7.0.0-rc.9 external behavior
+and delegates directly:
 
-Evolution 2.3.7 pins Baileys `7.0.0-rc.9`.
+`instance.baileysOnWhatsapp(body?.jid)`
 
-The exact Baileys `onWhatsApp(...)` implementation:
+The service implementation is exactly:
 
-1. builds a `USyncQuery`;
-2. enables the contact protocol;
-3. adds each phone number as a USync user;
-4. calls `executeUSyncQuery(...)`;
-5. emits an IQ request to `S_WHATSAPP_NET` with:
-   - `type='get'`;
-   - `xmlns='usync'`;
-6. waits for the response;
-7. maps contact results to `{ jid, exists }`.
+```ts
+const response = await this.client.onWhatsApp(jid);
+return response;
+```
 
-The reviewed call path contains no explicit:
+The Baileys result for the ordinary phone-number query is the raw list shape:
 
-- message send;
-- read receipt;
-- presence update;
-- contact upsert;
-- Baileys application event emission for this lookup.
+```ts
+Array<{ jid: string; exists: boolean }>
+```
 
-What is proven is therefore narrower:
+with no provider observation timestamp or provenance metadata.
+
+### Provider-local purity of the direct route
+
+Unlike `/chat/whatsappNumbers`, this direct route does **not** traverse:
+
+- Evolution `Contact` lookup;
+- `getOnWhatsappCache(...)`;
+- `saveOnWhatsappCache(...)`;
+- `IsOnWhatsapp` create/update.
+
+No persistent Evolution DB/cache/contact write is present in this operation path.
+
+The auth/existence guards may perform reads. The Baileys request necessarily performs transient protocol bookkeeping. In exact Baileys 7.0.0-rc.9, `generateMessageTag()` increments an in-memory `epoch` counter used for correlation. Request/in-flight transport state is also transient provider-runtime state.
+
+This ephemeral protocol bookkeeping is explicitly distinguished from durable provider business/cache/contact mutation. It means the call is not literally a zero-state-transition computation, but the reviewed direct operation has no identified durable Evolution-local mutation.
+
+### Semantic difference from `whatsappNumbers`
+
+The direct route is also narrower than the richer Evolution wrapper.
+
+It does not perform Evolution's:
+
+- optional contact-name lookup;
+- `isOnWhatsapp` cache behavior;
+- wrapper-level result enrichment;
+- wrapper-specific normalization/alternative-number handling.
+
+For a future Wandora contract, this is potentially desirable because the question is about one **exact** destination. But Wandora must not copy Evolution's provider-specific normalization logic merely to imitate the richer wrapper. Any future provider-neutral adapter must define its own bounded canonical input semantics and keep provider normalization inside the provider adapter.
+
+## Exact Baileys 7.0.0-rc.9 behavior
+
+For ordinary phone-number inputs, `onWhatsApp(...)`:
+
+1. creates a `USyncQuery`;
+2. enables `USyncContactProtocol`;
+3. converts each supplied identifier to a phone value;
+4. adds it as a USync user;
+5. executes `executeUSyncQuery(...)`;
+6. parses the contact protocol result into `{ jid, exists }`.
+
+`USyncQuery` defaults to:
+
+```text
+context = interactive
+mode = query
+```
+
+`executeUSyncQuery(...)` sends a real IQ node to WhatsApp infrastructure:
+
+```text
+to    = S_WHATSAPP_NET
+type  = get
+xmlns = usync
+```
+
+and waits for the server response.
+
+`USyncContactProtocol` interprets a returned contact node with `type='in'` as the positive membership/existence result.
+
+The reviewed `onWhatsApp` path contains no explicit call to:
+
+- send a message;
+- relay a message;
+- send a read receipt;
+- update presence;
+- create/update an Evolution contact;
+- emit an application-level Baileys event for the lookup.
+
+## External WhatsApp side effects
+
+What is proved:
 
 - a real network/protocol request is sent to WhatsApp servers;
-- no message/read/presence operation is explicitly constructed by the reviewed client code.
+- the client operation is an IQ `get` USync contact query;
+- no explicit message/read/presence/contact-write operation is constructed in the reviewed client code.
 
-What is **not proven** by the upstream source or published contract is that WhatsApp's server-side processing of this USync contact query has zero recipient-visible or otherwise externally observable side effect. No upstream guarantee was found for that property.
+What is **not proved**:
 
-Because a real provider call is forbidden in this slice, the missing guarantee is not replaced with empirical testing.
+- that WhatsApp server processing of this USync query is guaranteed to cause zero recipient-visible effect;
+- that it is guaranteed to cause zero account-side/server-side observable state change beyond servicing the query;
+- that this behavior is a stable upstream contract rather than an implementation detail of the pinned client/protocol.
 
-Therefore:
+No upstream source-level or published contract guarantee for those zero-effect properties was found.
 
-**recipient/server-side external-effect absence = NOT PROVEN**.
+The slice explicitly forbids a real provider call as an investigative shortcut. Therefore empirical observation cannot replace the missing guarantee.
+
+Result:
+
+**remote/recipient-visible external-effect absence = NOT PROVEN**.
+
+## Freshness of the direct route
+
+The direct `/baileys/onWhatsapp` path does not consult Evolution's `isOnWhatsapp` cache. For an ordinary phone-number invocation that reaches `client.onWhatsApp`, the exact code path issues the USync query during that request.
+
+Thus the implementation can distinguish this candidate operationally from the cached `whatsappNumbers` path: it is a new remote query, not an Evolution cache hit.
+
+However, the returned provider contract contains only `jid` and `exists`. It does not provide:
+
+- provider `observedAt`;
+- evidence age;
+- source/origin;
+- server-side timestamp.
+
+A future Gateway adapter could only add a **Wandora/Gateway local observation time** if a newer contract explicitly defines that provenance. Such a time would describe when Wandora observed the response, not a provider-supplied WhatsApp fact timestamp. This ADR does not invent or conflate those concepts.
+
+Therefore the direct route improves freshness semantics substantially but does not by itself satisfy a contract that requires provider-carried age/timestamp/origin metadata.
 
 ## Capability Authority / Reuse Gate
 
 ### Semantic authority
 
-Wandora owns the provider-neutral meaning:
+Wandora Core owns the provider-neutral meaning of:
 
-> exact destination + exact channel + bounded evidence/provenance
+> this exact destination has this exact channel, supported by bounded evidence
 
-and the fail-closed rules for whether that evidence is sufficient.
+including the rules for sufficient evidence, no automatic destination selection and fail-closed behavior.
 
 ### Durable product state
 
-No new durable destination registry, Connection registry, qualification cache or provider mirror is required or authorized.
+No new destination registry, messaging Connection registry, qualification cache, provider mirror, retry ledger or other durable state is required or authorized by this investigation.
 
 ### Operational authority
 
-Messaging Gateway remains the provider-neutral messaging replacement boundary. Human Send remains the separate outbound authorization boundary.
+Messaging Gateway remains the provider-neutral messaging adaptation/replacement boundary.
 
-Paperclip remains operational authority for its own Connections/grants/tool execution, but there is no qualified Paperclip capability that proves an arbitrary exact phone destination has WhatsApp for this Fast Read semantic.
+Human Send remains the later supervised outbound authorization boundary.
 
-Mastra remains runtime/tool execution implementation and is not messaging Connection or destination-evidence authority.
+Paperclip remains operational authority for its own workforce/run/Connection/grant/Tool Gateway domains, but no qualified Paperclip capability proves arbitrary WhatsApp registration for this Fast Read semantic.
 
-Paperclip chat/connector surfaces do not replace the qualified Messaging Gateway boundary for this semantic.
+Mastra remains runtime/tool execution implementation and is not messaging destination/Connection authority.
 
-### Current provider implementation
+### Provider implementation
 
-Evolution API 2.3.7 + Baileys 7.0.0-rc.9 is the current qualified WhatsApp provider implementation.
+Evolution API 2.3.7 + Baileys 7.0.0-rc.9 remains the current accepted WhatsApp provider implementation.
 
-The current Messaging Gateway exposes inbound normalization and separately gated outbound delivery. It does not expose an existing read-only destination/channel evidence contract.
+The important Reuse Gate result is:
 
-No other accepted live messaging provider capability was found that satisfies the same evidence requirement without changing authority.
+- do **not** create a Wandora-native WhatsApp existence checker;
+- do **not** duplicate Baileys USync logic;
+- if this evidence path is ever qualified, reuse the existing provider-native direct primitive behind Messaging Gateway.
 
 ### Replacement boundary
 
-A future provider implementation must stay behind Messaging Gateway/provider adapters. Core must not call Evolution directly.
+Core must not call `/chat/whatsappNumbers` or `/baileys/onWhatsapp` directly.
 
-Replacing Evolution must not change the Wandora semantic contract; only provider adapter/binding/configuration and legitimately provider-owned operational state may change.
+A future provider-neutral Messaging Gateway read contract may adapt the provider primitive only after the remaining gates are satisfied. Replacing Evolution must leave Core/customer semantics stable while only the Gateway/provider adapter and legitimately provider-owned state change.
 
-## Connection authority remains separate
+## Connection / instance authority remains separate
 
-This slice does not solve provider/instance selection.
+This slice does not solve which messaging Connection/instance is authorized for an arbitrary order/customer Fast Read.
 
-Human Send has canonical Connection authority when an existing conversation carries `conversation.messaging_connection_id` and the Gateway validates that exact configured connection.
+Human Send has a canonical binding only when an existing conversation provides:
 
-The order/customer Fast Read path has no equivalent canonical messaging Connection binding.
+`conversation.messaging_connection_id → messaging_connections`
 
-These are not authority:
+and the Gateway then validates the exact configured connection.
 
-- there is only one instance;
-- the instance is Ana;
-- it is the only active connection;
-- choose the only configured Evolution connection.
+The order/customer Fast Read context does not provide an equivalent canonical messaging binding.
 
-No existing capability discovered in this slice supplies a legitimate canonical binding for this Fast Read path.
+The following remain invalid authority:
 
-Therefore Connection authority remains a separate prerequisite even if provider purity/freshness is later qualified.
+- there is only one Evolution instance;
+- there is only one active connection;
+- the instance belongs to Ana;
+- choose the currently configured Gateway connection.
+
+No existing capability discovered in this Reuse Gate supplies a legitimate canonical binding for this Fast Read path.
+
+Connection authority therefore remains a separate prerequisite even if provider evidence purity is later qualified.
+
+## Gaps
+
+The investigation closes one important ADR 0387 uncertainty:
+
+- the provider-local durable cache mutation is avoidable without Wandora duplication by using the existing direct Baileys route (or, less narrowly, provider-native cache-off configuration).
+
+The remaining material gaps are:
+
+1. **external effect guarantee** — zero recipient/account/server-observable side effects of the USync lookup are not guaranteed by the upstream contract;
+2. **evidence metadata** — the provider result has no provider-defined observation timestamp/source/age;
+3. **connection authority** — the Fast Read path has no canonical messaging Connection/instance binding;
+4. **future input contract** — a Gateway adapter would need a bounded provider-neutral exact-destination normalization contract without copying provider-specific normalization into Core.
 
 ## Deterministic decision
 
@@ -261,75 +385,69 @@ Decision class:
 
 **3. BLOCKED / NOT PROVEN**
 
-Reasons:
+This is not class 2.
 
-1. current configuration has a proven provider-local durable cache effect;
-2. cache-off configuration can eliminate that specific effect without Wandora duplication, but it is not the current runtime configuration and was not changed;
-3. the current response contract cannot expose or prove observation timestamp, cache age or cache-vs-remote provenance;
-4. cached positive evidence can be stale for the configured seven-day window;
-5. Baileys proves a WhatsApp-server USync query occurs, but the absence of all remote/recipient-visible side effects is not guaranteed by the upstream contract;
-6. no already-qualified alternate capability satisfies the same semantic;
-7. canonical messaging Connection authority for the order/customer Fast Read remains unresolved.
+The only previously identified durable provider-local effect — `IsOnWhatsapp` cache write — is avoidable through an existing provider-native direct primitive. The blocker is now stronger and narrower: remote-effect absence and the required evidence/provenance semantics are not sufficiently guaranteed, and Connection authority is separately unresolved.
 
-The cache mutation alone could have been modeled as an explicit provider-local effect, but the unresolved remote-effect and freshness/provenance properties prevent classification as **QUALIFIABLE WITH EXPLICIT PROVIDER-LOCAL EFFECT**.
+No property is inferred merely because the HTTP method is POST, because the IQ type is `get`, or because no explicit message-send call appears in the client source.
 
 ## Second adversarial review
 
-After the deterministic decision, the mandatory JEV advisory review attacked:
+After the deterministic decision and after discovering/reviewing the direct provider route, a fresh JEV review attacked:
 
-- false read-only classification;
-- hidden cache freshness;
-- WhatsApp remote effects;
-- reliance on unguaranteed Baileys behavior;
+- false classification of read-only;
+- cache hiding freshness;
+- remote WhatsApp effects;
+- dependence on unguaranteed Baileys behavior;
+- transient provider protocol state being overlooked;
 - accidental Wandora capability internalization;
 - implicit provider/Connection selection;
 - Evolution coupling.
 
-Result:
+JEV `jev-1.13.0` returned:
 
-- `block = 0.80`;
-- `deep_review = 0.15`;
-- `proceed_fast = 0.05`;
-- confidence `0.73`.
+- `block = 0.84`;
+- `deep_review = 0.13`;
+- `proceed_fast = 0.03`;
+- `split_task = 0`;
+- route confidence `0.78`.
 
-Per ADR 0377 this is advisory evidence. It identified no factual basis for relaxing the deterministic block.
+Per ADR 0377, this is advisory evidence. The deterministic factual gaps above independently require fail-closed behavior.
 
 ## Execution
 
 Documentation only.
 
-No adapter is implemented.
-
-No provider/runtime configuration is changed.
+No adapter, provider call, configuration change or runtime code is implemented.
 
 ## Validation / no-effect receipt
 
 This slice proves:
 
-- real Evolution/WhatsApp provider call: **NO**;
+- real Evolution/WhatsApp call: **NO**;
 - message sent: **NO**;
 - Human Send invoked: **NO**;
 - Messaging Gateway outbound enabled/invoked: **NO**;
 - production/VPS mutation: **NO**;
-- Evolution cache configuration changed: **NO**;
+- Evolution configuration/cache toggle changed: **NO**;
 - secret value read/copied/moved: **NO**;
 - new BusinessCapability: **NO**;
-- new table/migration/state machine/registry/cache/retry engine/provider mirror: **NO**;
+- new table/migration/state machine/service/registry/cache/retry engine/provider mirror: **NO**;
 - direct Core→Evolution path: **NO**;
 - Connection authority invented: **NO**;
 - rollout/canary/merge: **NO**.
 
-Facts proven by exact source are explicitly separated above from **NOT PROVEN** remote-effect guarantees.
+The runtime readback used only existing read-only/sanitized operational surfaces. No container was recreated or changed.
 
 ## Next safe boundary
 
-Do not implement the Messaging Gateway read adapter yet.
+Do not implement the Messaging Gateway destination-evidence adapter yet.
 
-A future slice may proceed only if one of these becomes provable without violating ADR 0168:
+The provider-read prerequisite may be reopened only with new evidence that resolves the deterministic gaps, for example:
 
-1. the current provider/upstream supplies a sufficiently strong guarantee for the external side-effect semantics of the exact remote lookup **and** a provider-neutral evidence contract can carry truthful provenance/freshness without inventing unsupported provider facts; or
-2. another already-accepted specialist messaging provider exposes an equivalent, cleaner evidence primitive that can live behind the same Messaging Gateway contract.
+1. an authoritative upstream/provider guarantee for the externally observable side-effect semantics of the exact USync contact lookup, together with a truthful bounded provenance/freshness contract; or
+2. another already-accepted specialist messaging provider exposing a cleaner equivalent primitive behind the same Messaging Gateway replacement boundary.
 
-The cache-off Evolution configuration is a useful provider-native option to reconsider inside such a future qualification, but this ADR does not authorize changing it.
+Separately, a future product slice must establish canonical messaging Connection/instance authority for non-conversation Fast Read contexts before any provider lookup can be executed for a customer request.
 
-Canonical messaging Connection authority remains a separate prerequisite and must not be solved implicitly by instance uniqueness.
+The existing `/baileys/onWhatsapp/:instanceName` route is the preferred reuse candidate if those future gates are ever satisfied. This ADR does not authorize calling it.
