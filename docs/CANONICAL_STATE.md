@@ -1,3 +1,27 @@
+# CHECKPOINT ATUAL — ADR 0393 EMPLOYEE EFFECT AUTHORITY + PAPERCLIP-BACKED HANDOFF MINIMAL CONTRACT — BLOCKED ON MULTI-EMPLOYEE WORKFORCE
+
+Status: **EFFECT-AUTHORITY OWNERSHIP QUALIFIED / HANDOFF SHAPE QUALIFIED / RUNTIME + SCHEMA IMPLEMENTATION BLOCKED / MULTI-EMPLOYEE CATALOG GAP PROVEN / NO PRODUCTION EFFECT**.
+
+Fresh reconciliation after PR #392 GREEN proved PR #392 open/draft/mergeable/unmerged at exact head `1b81f1f38152cea835d54f5dabddeafab4522acf`, stacked on PR #391. One exact-head read observed **10/10 workflows completed/success**; no rerun or polling occurred.
+
+The Reuse Gate qualifies a narrow Wandora-owned semantic gap: a structured employee effect-authority contract is legitimate because customer authorization for state-changing/external effects must survive provider replacement. It must remain separate from free-text `responsibility`, Paperclip grants/tool access, Mastra runtime execution and MessagingConnection identity. A future grant means only "this canonical employee is eligible for this provider-neutral business effect"; actual execution must still pass effect-specific approval/confirmation policy, tenant checks, current operational capability/grant/tool policy and effect-time revalidation. No concrete new effect is activated here.
+
+Cross-employee handoff should not rewrite the existing Wandora work journal. `wandora_private.digital_employee_work_operations.employee_id` is fixed and the table is explicitly an integration-safety receipt, not a task engine. The preferred operational shape is successor work: retain the source work/employee, create a new correlated target work segment, and reuse a Paperclip child Issue assigned to the target agent. Pinned Paperclip v2026.916.1 already supports `issues.create({ parentId, assigneeAgentId, ... })`; the current Organization Adapter already owns `issues.create`, so no second task engine is justified.
+
+Implementation is nevertheless blocked earlier: Wandora's current managed workforce contract only exposes `ana-commercial-v1`; `CatalogEmployeeDefinition.role` is only `commercial-assistant`; the Paperclip Organization Adapter plugin has one `CATALOG_KEY`; and customer hire availability is hard-wired to that one catalog employee. Although `digital_employee_provider_bindings` is structurally N-capable and Paperclip can host many agents, the Wandora product/runtime cannot yet materialize Ana + Iris + Fiscal or two employees of the same catalog role.
+
+Automatic target selection is therefore also unqualified. Free-text responsibility must never be used as a machine routing key. Future eligibility must be structured and fail closed: same tenant + active canonical employee + explicit effect authority + required operational capability/access. Zero eligible targets escalates/fails closed; multiple eligible targets remain ambiguous until a routing/tie-break policy is qualified.
+
+The mandatory adversarial JEV review returned `block=0.95`, `proceed_fast=0.03`, `deep_review=0.01`, `split_task=0.01`, confidence `0.93`.
+
+Canonical detail: `docs/decisions/0393-digital-employee-effect-authority-paperclip-backed-cross-employee-handoff-minimal-contract-preflight-v1.md`.
+
+Next executable architecture slice: **Multi-Digital-Employee Workforce / Catalog / Provider Binding Qualification V1 — NO EFFECT**. It must prove how multiple canonical employees, including multiple instances of one role, map safely to distinct Paperclip agents without turning provider IDs into customer semantics. Only then return to effect-authority implementation and Paperclip-backed successor-work handoff.
+
+This file is bootstrap only. Continue with `AGENTS.md`, relevant ADRs, `docs/CAPABILITY_AUTHORITY.md`, `docs/architecture.md`, `docs/CANONICAL_STATE.md`, component runbooks, GitHub and live runtime when materially required.
+
+---
+
 # CHECKPOINT ATUAL — ADR 0392 DIGITAL EMPLOYEE RESPONSIBILITY / EFFECT AUTHORITY / CROSS-EMPLOYEE HANDOFF — QUALIFIED WITH BLOCKED GAPS
 
 Status: **RESPONSIBILITY BOUNDARY PROVEN / GENERIC EFFECT AUTHORITY NOT PROVEN / AUTOMATIC CROSS-EMPLOYEE HANDOFF NOT PROVEN / PAPERCLIP REUSE REQUIRED / DOCUMENTATION ONLY / NO PRODUCTION EFFECT**.
