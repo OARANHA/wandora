@@ -496,7 +496,7 @@ diff --git a/server/src/services/agents.ts b/server/src/services/agents.ts
          await ensureManager(companyId, data.reportsTo);
        }
  
-@@ -1087,48 +1087,65 @@
+@@ -1087,48 +1106,65 @@
 -    activatePendingApproval: async (id: string, approvedPayload?: Record<string, unknown> | null) => {
 -      const activatedAgent = await db.transaction(async (tx) => {
 -        const txDb = tx as unknown as Db;
