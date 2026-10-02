@@ -1,3 +1,27 @@
+# CHECKPOINT ATUAL — ADR 0394 MULTI-DIGITAL-EMPLOYEE WORKFORCE / CATALOG / PROVIDER BINDING — QUALIFIED, PROVISIONING BRIDGE BLOCKED
+
+Status: **CANONICAL EMPLOYEE INSTANCE MODEL QUALIFIED / CATALOG TEMPLATE SEMANTICS QUALIFIED / PAPERCLIP DYNAMIC AGENT CAPABILITY PROVEN / SAFE PROVISIONING BRIDGE NOT PROVEN / IMPLEMENTATION BLOCKED / DOCUMENTATION ONLY / NO PRODUCTION EFFECT**.
+
+Fresh reconciliation after PR #393 GREEN proved PR #393 open/draft/mergeable/unmerged at exact head `92abadf15eb43553e8ead6aad536a3d877e3c074`, stacked on PR #392. One exact-head read observed **10/10 workflows completed/success**; no rerun or polling occurred. `main` remains `e4c7c36bb1091ba38d39b85fa259bae94553fc52` and the Semantic Fast Read stack remains unmerged.
+
+The workforce model is now qualified: `wandora.digital_employees.id` is the canonical employee **instance** identity, and provider Agent IDs remain private replaceable bindings. A generalized Wandora `catalog_key` must become reusable **template/offering** semantics rather than singleton employee identity. Therefore one organization must eventually be able to create Ana + Iris and also Iris A + Iris B from one template while retaining distinct canonical employee UUIDs and distinct provider Agents.
+
+Current singleton assumptions are explicitly legacy blockers: `UNIQUE (organization_id, provider, catalog_key)` in the hire journal; reservation by catalog key; customer `already-hired` semantics for `ana-commercial-v1`; `paperclipManagedAgentRef(company,catalogKey)`; one static plugin `CATALOG_KEY`; and activation hard-coded to Ana/commercial-assistant. The current `commercial-assistant` role enum is also a legacy vertical constraint and must not be expanded into Atendimento/Vendas/Fiscal/Financeiro merely to become a routing taxonomy; business responsibility remains the employee-development responsibility semantic.
+
+Pinned Paperclip proves two distinct primitives. Plugin-managed Agents are singleton per `(plugin, company, agentKey)` and therefore are not a general multi-instance workforce primitive. Paperclip Core nevertheless already owns dynamic Agent creation via `POST /api/companies/:companyId/agent-hires` and `POST /api/companies/:companyId/agents`, with same-company `agents:create` authorization, metadata, instructions, skills, approval and audit.
+
+Runtime implementation is still blocked because the currently approved Wandora trust path is HMAC -> Organization Adapter plugin -> `ctx.agents.managed`; the plugin does not expose dynamic Agent creation. A direct Core-to-Paperclip dynamic create would add a new control-plane credential boundary. More importantly, reviewed Paperclip dynamic hire idempotency is only `runId + request fingerprint` when the caller is inside an Agent run; generic board/user calls have no caller idempotency key. Provider metadata can support reconciliation but is not uniqueness enforcement, so timeout + blind retry can create duplicate Agents.
+
+The mandatory adversarial JEV review returned `block=0.79`, `deep_review=0.17`, `split_task=0.02`, `proceed_fast=0.02`, confidence `0.71`.
+
+Canonical detail: `docs/decisions/0394-multi-digital-employee-workforce-catalog-provider-binding-qualification-v1.md`.
+
+Next executable architecture slice: **Paperclip Dynamic Digital-Employee Provisioning Bridge & Idempotent Reconciliation Qualification V1 — NO EFFECT**. It must prove the non-human machine principal, credential/trust boundary, exactly-one provisioning/idempotency semantics, origin metadata and 0/1/>1 recovery behavior before any reusable-catalog schema/runtime implementation.
+
+This file is bootstrap only. Continue with `AGENTS.md`, relevant ADRs, `docs/CAPABILITY_AUTHORITY.md`, `docs/architecture.md`, `docs/CANONICAL_STATE.md`, component runbooks, GitHub and live runtime when materially required.
+
+---
+
 # CHECKPOINT ATUAL — ADR 0393 EMPLOYEE EFFECT AUTHORITY + PAPERCLIP-BACKED HANDOFF MINIMAL CONTRACT — BLOCKED ON MULTI-EMPLOYEE WORKFORCE
 
 Status: **EFFECT-AUTHORITY OWNERSHIP QUALIFIED / HANDOFF SHAPE QUALIFIED / RUNTIME + SCHEMA IMPLEMENTATION BLOCKED / MULTI-EMPLOYEE CATALOG GAP PROVEN / NO PRODUCTION EFFECT**.
