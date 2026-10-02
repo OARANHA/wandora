@@ -6,6 +6,7 @@ export const BUSINESS_CAPABILITIES = [
   'business.price_tables.products.read',
   'business.parties.search',
   'business.orders.search',
+  'business.orders.customer_contact.read',
   'business.companies.list',
   'business.connection.probe',
 ] as const;
@@ -299,7 +300,8 @@ export function gateDeterministicRead(
     (decision.capability === 'business.products.price'
       || decision.capability === 'business.stock.read'
       || decision.capability === 'business.parties.search'
-      || decision.capability === 'business.orders.search')
+      || decision.capability === 'business.orders.search'
+      || decision.capability === 'business.orders.customer_contact.read')
     && !selector
   ) {
     return { allowed: false, reason: 'missing-selector' };
@@ -317,7 +319,11 @@ export function gateDeterministicRead(
   if (selector?.kind === 'party' && decision.capability !== 'business.parties.search') {
     return { allowed: false, reason: 'selector-not-applicable' };
   }
-  if (selector?.kind === 'order' && decision.capability !== 'business.orders.search') {
+  if (
+    selector?.kind === 'order'
+    && decision.capability !== 'business.orders.search'
+    && decision.capability !== 'business.orders.customer_contact.read'
+  ) {
     return { allowed: false, reason: 'selector-not-applicable' };
   }
 

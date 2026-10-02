@@ -1,4 +1,8 @@
-import type { DeterministicReadNormalizedResult } from '../agent-runtime/deterministic-read.js';
+import type {
+  DeterministicReadBinding,
+  DeterministicReadBindingExecution,
+  DeterministicReadNormalizedResult,
+} from '../agent-runtime/deterministic-read.js';
 import type { RuntimeReadCapabilityAdapter } from '../agent-runtime/runtime-read-capability-binding.js';
 import type { RuntimeReadTool } from '../agent-runtime/task-runtime.js';
 import type {
@@ -25,6 +29,7 @@ export const VENDAERP_FAST_READ_CAPABILITIES = [
   'business.stock.read',
   'business.parties.search',
   'business.orders.search',
+  'business.orders.customer_contact.read',
 ] as const satisfies readonly BusinessCapability[];
 
 type ProductRow = {
@@ -46,6 +51,9 @@ type StockRow = {
 type PartyRow = {
   displayName?: string;
   legalName?: string;
+  taxId?: string;
+  telephone?: string;
+  mobilePhone?: string;
   customer: boolean;
   supplier: boolean;
 };
@@ -53,6 +61,7 @@ type PartyRow = {
 type OrderRow = {
   code: number;
   customerName?: string;
+  customerTaxId?: string;
   status?: string;
   invoiceNumber?: string;
 };
@@ -66,6 +75,19 @@ function boundedText(value: unknown, max: number): string | undefined {
   const normalized = value.trim();
   if (!normalized || normalized.length > max) return undefined;
   return normalized;
+}
+
+function optionalBoundedTextField(
+  record: Record<string, unknown>,
+  key: string,
+  max: number,
+  errorCode: string,
+): string | undefined {
+  const raw = record[key];
+  if (raw === undefined || raw === null) return undefined;
+  const value = boundedText(raw, max);
+  if (!value) throw new Error(errorCode);
+  return value;
 }
 
 function finiteNumber(value: unknown): number | undefined {
@@ -108,6 +130,9 @@ function partyRow(value: unknown): PartyRow {
   if (!isRecord(value)) throw new Error('vendaerp_fast_read_invalid_party_result');
   const displayName = boundedText(value.displayName, 160);
   const legalName = boundedText(value.legalName, 200);
+  const taxId = optionalBoundedTextField(value, 'taxId', 64, 'vendaerp_fast_read_invalid_party_result');
+  const telephone = optionalBoundedTextField(value, 'telephone', 80, 'vendaerp_fast_read_invalid_party_result');
+  const mobilePhone = optionalBoundedTextField(value, 'mobilePhone', 80, 'vendaerp_fast_read_invalid_party_result');
   if (!displayName && !legalName) {
     throw new Error('vendaerp_fast_read_invalid_party_result');
   }
@@ -117,6 +142,9 @@ function partyRow(value: unknown): PartyRow {
   return {
     ...(displayName ? { displayName } : {}),
     ...(legalName ? { legalName } : {}),
+    ...(taxId ? { taxId } : {}),
+    ...(telephone ? { telephone } : {}),
+    ...(mobilePhone ? { mobilePhone } : {}),
     customer: value.customer,
     supplier: value.supplier,
   };
@@ -129,11 +157,18 @@ function orderRow(value: unknown): OrderRow {
     throw new Error('vendaerp_fast_read_invalid_order_result');
   }
   const customerName = boundedText(value.customerName, 200);
+  const customerTaxId = optionalBoundedTextField(
+    value,
+    'customerTaxId',
+    64,
+    'vendaerp_fast_read_invalid_order_result',
+  );
   const status = boundedText(value.status, 120);
   const invoiceNumber = boundedText(value.invoiceNumber, 120);
   return {
     code,
     ...(customerName ? { customerName } : {}),
+    ...(customerTaxId ? { customerTaxId } : {}),
     ...(status ? { status } : {}),
     ...(invoiceNumber ? { invoiceNumber } : {}),
   };
@@ -284,6 +319,119 @@ function selectedProductResult(
   };
 }
 
+
+function normalizedTaxId(value: string): string | null {
+  const digits = value.normalize('NFKC').replace(/\D/g, '');
+  return digits.length === 11 || digits.length === 14 ? digits : null;
+}
+
+function contactKinds(party: PartyRow): string[] {
+  return [
+    ...(party.telephone ? ['Telefone'] : []),
+    ...(party.mobilePhone ? ['Celular'] : []),
+  ];
+}
+
+function counted(
+  result: DeterministicReadNormalizedResult,
+  toolCalls: 1 | 2,
+): DeterministicReadBindingExecution {
+  return { result, toolCalls };
+}
+
+function createOrderCustomerContactBindings(
+  tools: readonly RuntimeReadTool[],
+): readonly DeterministicReadBinding[] {
+  const orderTools = tools.filter(exactVendaErpOrderTool);
+  const partyTools = tools.filter(exactVendaErpPartyTool);
+  if (orderTools.length !== 1 || partyTools.length !== 1) return [];
+
+  const orderTool = orderTools[0]!;
+  const partyTool = partyTools[0]!;
+
+  return [{
+    capability: 'business.orders.customer_contact.read',
+    async execute(_request, selector) {
+      const selectedOrder = orderSelector(selector);
+      if (!selectedOrder) throw new Error('vendaerp_fast_read_selector_required');
+
+      const rawOrders = await orderTool.execute({
+        code: selectedOrder.value,
+        pageSize: MAX_ORDERS,
+        skip: 0,
+      });
+      if (!Array.isArray(rawOrders) || rawOrders.length > MAX_ORDERS) {
+        throw new Error('vendaerp_fast_read_invalid_order_result');
+      }
+      const exactOrders = rawOrders.map(orderRow).filter((order) => order.code === selectedOrder.value);
+      if (exactOrders.length === 0) {
+        return counted({
+          kind: 'not_found',
+          message: 'Nenhum pedido corresponde exatamente ao código autorizado.',
+        }, 1);
+      }
+      if (exactOrders.length > 1) {
+        return counted({
+          kind: 'clarification',
+          prompt: 'A consulta retornou mais de um registro com o mesmo código de pedido. Não vou escolher automaticamente.',
+          options: ['Revise o código do pedido no VendaERP antes de tentar novamente.'],
+        }, 1);
+      }
+
+      const order = exactOrders[0]!;
+      const customerTaxId = order.customerTaxId;
+      const customerIdentity = customerTaxId ? normalizedTaxId(customerTaxId) : null;
+      if (!customerTaxId || !customerIdentity) {
+        return counted({
+          kind: 'clarification',
+          prompt: 'O pedido foi identificado, mas não trouxe um CPF/CNPJ de cliente utilizável para confirmar o cadastro de contato.',
+          options: ['Revise o vínculo do cliente no VendaERP antes de tentar novamente.'],
+        }, 1);
+      }
+
+      const rawParties = await partyTool.execute({
+        taxId: customerTaxId,
+        customer: true,
+        pageSize: MAX_PARTIES,
+        skip: 0,
+      });
+      if (!Array.isArray(rawParties) || rawParties.length > MAX_PARTIES) {
+        throw new Error('vendaerp_fast_read_invalid_party_result');
+      }
+      const exactParties = rawParties.map(partyRow).filter((party) =>
+        party.customer
+        && typeof party.taxId === 'string'
+        && normalizedTaxId(party.taxId) === customerIdentity);
+
+      if (exactParties.length === 0) {
+        return counted({
+          kind: 'not_found',
+          message: 'Nenhum cadastro de cliente corresponde exatamente à identidade do cliente vinculada ao pedido.',
+        }, 2);
+      }
+      if (exactParties.length > 1) {
+        return counted({
+          kind: 'clarification',
+          prompt: 'Mais de um cadastro de cliente corresponde à identidade do pedido. Não vou escolher automaticamente.',
+          options: ['Revise os cadastros duplicados do cliente no VendaERP antes de tentar novamente.'],
+        }, 2);
+      }
+
+      const party = exactParties[0]!;
+      const kinds = contactKinds(party);
+      return counted({
+        kind: 'facts',
+        subject: `Pedido ${order.code}`,
+        facts: [
+          { label: 'Cliente', value: party.displayName ?? party.legalName! },
+          { label: 'Contato cadastrado', value: kinds.length > 0 ? 'Sim' : 'Não' },
+          ...(kinds.length > 0 ? [{ label: 'Tipos disponíveis', value: kinds.join(' e ') }] : []),
+        ],
+      }, 2);
+    },
+  }];
+}
+
 export function createVendaErpFastReadCapabilityAdapter(): RuntimeReadCapabilityAdapter {
   return {
     capabilitiesFor(tool) {
@@ -300,6 +448,10 @@ export function createVendaErpFastReadCapabilityAdapter(): RuntimeReadCapability
         return ['business.orders.search'];
       }
       return [];
+    },
+
+    composedBindingsFor(tools) {
+      return createOrderCustomerContactBindings(tools);
     },
 
     async execute({ tool, capability, selector }): Promise<DeterministicReadNormalizedResult> {

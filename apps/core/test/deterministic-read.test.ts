@@ -222,3 +222,28 @@ test('invalid Wandora route policy fails closed before any capability binding ex
   assert.deepEqual(result, { kind: 'fallback', reason: 'invalid-policy', toolCalls: 0 });
   assert.equal(calls, 0);
 });
+
+
+test('deterministic executor preserves explicit bounded two-tool accounting from a composite binding', async () => {
+  const executor = new DeterministicReadExecutor(POLICY);
+  const result = await executor.execute({
+    request: 'Qual contato está cadastrado para o cliente do pedido 1542?',
+    decision: decision({
+      capability: 'business.orders.customer_contact.read',
+      selector: { kind: 'order', by: 'code', value: 1542 },
+    }),
+    bindings: [{
+      capability: 'business.orders.customer_contact.read',
+      execute: async () => ({
+        result: {
+          kind: 'facts' as const,
+          subject: 'Pedido 1542',
+          facts: [{ label: 'Contato cadastrado', value: 'Sim' }],
+        },
+        toolCalls: 2 as const,
+      }),
+    }],
+  });
+  assert.equal(result.kind, 'completed');
+  if (result.kind === 'completed') assert.equal(result.toolCalls, 2);
+});

@@ -613,7 +613,8 @@ export function createVendaErpClient({
         ...optional(text(row.razaoSocial), 'legalName'),
         ...optional(text(row.cnpJ_CPF), 'taxId'),
         ...optional(text(row.email), 'email'),
-        ...optional(text(row.celular) ?? text(row.telefone), 'phone'),
+        ...optional(text(row.telefone), 'telephone'),
+        ...optional(text(row.celular), 'mobilePhone'),
         customer: bool(row.cliente),
         supplier: bool(row.fornecedor) || bool(row.fonecedor),
       }));
@@ -649,6 +650,7 @@ export function createVendaErpClient({
           code,
           ...optional(text(row.id), 'externalRef'),
           ...optional(text(row.cliente), 'customerName'),
+          ...optional(text(row.clienteCNPJ), 'customerTaxId'),
           ...optional(text(row.status), 'status'),
           ...optional(number(row.valorFinal), 'total'),
           ...optional(text(row.data), 'createdAt'),

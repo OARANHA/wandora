@@ -361,3 +361,32 @@ test('operator data handler accepts the real host getData envelope while rejecti
     }],
   ]);
 });
+
+
+test('order customer contact capability is derived only when both existing read tools are available on the same connection', () => {
+  for (const [tools, supported, enabled] of [
+    [[tool('vendaerp_search_orders')], ['business.orders.search'], ['business.orders.search']],
+    [[tool('vendaerp_search_parties')], ['business.parties.search'], ['business.parties.search']],
+    [[tool('vendaerp_search_orders'), tool('vendaerp_search_parties')], [
+      'business.parties.search',
+      'business.orders.search',
+      'business.orders.customer_contact.read',
+    ], [
+      'business.parties.search',
+      'business.orders.search',
+      'business.orders.customer_contact.read',
+    ]],
+    [[tool('vendaerp_search_orders'), tool('vendaerp_search_parties', { allowedByEffectiveProfile: false })], [
+      'business.parties.search',
+      'business.orders.search',
+      'business.orders.customer_contact.read',
+    ], ['business.orders.search']],
+  ]) {
+    const [projection] = normalizePaperclipOperationalSnapshot({
+      runtimeHealth: 'ok',
+      connections: [connection({ tools })],
+    });
+    assert.deepEqual(projection.supportedCapabilities, supported);
+    assert.deepEqual(projection.organizationEnabledCapabilities, enabled);
+  }
+});

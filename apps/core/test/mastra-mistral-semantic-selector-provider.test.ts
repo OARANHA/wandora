@@ -459,3 +459,19 @@ test('Orders V1 rejects malformed order codes and keeps non-code lookup fail-clo
   assert.equal(decision.selector, null);
   assert.equal(decision.ambiguity, 'missing_entity');
 });
+
+
+test('order customer contact capability reuses only the explicit numeric order selector', async () => {
+  const request = 'Qual contato está cadastrado para o cliente do pedido 1542?';
+  const provider = providerWith(async (received) => {
+    assert.equal(received.capability, 'business.orders.customer_contact.read');
+    return {
+      selector: { kind: 'order', by: 'code', value: 1542 },
+      confidence: 0.99,
+      ambiguity: 'none',
+    };
+  });
+  const decision = await provider.select(input(request, 'business.orders.customer_contact.read'));
+  assert.deepEqual(decision.selector, { kind: 'order', by: 'code', value: 1542 });
+  assert.equal(decision.ambiguity, 'none');
+});

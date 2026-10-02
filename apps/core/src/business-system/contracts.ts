@@ -5,8 +5,8 @@ export type BusinessSystemProduct = { externalRef?: string; code?: string; name:
 export type BusinessSystemStockLevel = { location: string; quantity: number; lastUpdatedAt?: string };
 export type BusinessSystemPriceTable = { externalRef?: string; name: string };
 export type BusinessSystemProductPrice = { productCode?: string; productName?: string; salePrice?: number };
-export type BusinessSystemParty = { externalRef?: string; displayName?: string; legalName?: string; taxId?: string; email?: string; phone?: string; customer: boolean; supplier: boolean };
-export type BusinessSystemOrder = { externalRef?: string; code: number; customerName?: string; status?: string; total?: number; createdAt?: string; invoiceNumber?: string };
+export type BusinessSystemParty = { externalRef?: string; displayName?: string; legalName?: string; taxId?: string; email?: string; telephone?: string; mobilePhone?: string; customer: boolean; supplier: boolean };
+export type BusinessSystemOrder = { externalRef?: string; code: number; customerName?: string; customerTaxId?: string; status?: string; total?: number; createdAt?: string; invoiceNumber?: string };
 export type BusinessSystemPage = { pageSize?: number; skip?: number };
 
 export interface BusinessSystemReadProvider {

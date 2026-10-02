@@ -23,6 +23,7 @@ const SELECTOR_CAPABILITIES = new Set<BusinessCapability>([
   'business.stock.read',
   'business.parties.search',
   'business.orders.search',
+  'business.orders.customer_contact.read',
 ]);
 
 const productSelectorSchema = z.object({
@@ -82,9 +83,10 @@ const SELECTOR_INSTRUCTIONS = [
   'For stock, copy the explicit product code into product.by=code and preserve the explicit stock location or deposit in location.',
   'For business.parties.search V1, return kind=party only for one explicitly named party and exactly one explicit business role: customer or supplier.',
   'For party selectors use by=name, preserve the explicit party name, and map the business role to role=customer or role=supplier.',
-  'For business.orders.search V1, return kind=order only when the request explicitly provides exactly one numeric order code.',
+  'For business.orders.search or business.orders.customer_contact.read, return kind=order only when the request explicitly provides exactly one numeric order code.',
   'For order selectors use by=code and preserve the explicit positive integer order code as a number.',
-  'Do not emit an order selector for customer name, CPF/CNPJ, status, date/period, invoice/NFe number, phone, address, or unfiltered order listing even if provider fields may exist.',
+  'For business.orders.search, do not emit an order selector for customer name, CPF/CNPJ, status, date/period, invoice/NFe number, phone, address, or unfiltered order listing even if provider fields may exist.',
+  'For business.orders.customer_contact.read, the selector is still only the explicit order code; never put CPF/CNPJ, phone, celular, WhatsApp destination, e-mail, address, or provider IDs into the selector.',
   'If the order code is missing, return selector=null and ambiguity=missing_entity. If multiple order codes are requested or equally intended, return selector=null and ambiguity=multiple_matches.',
   'Do not emit a party selector when the request asks for CPF/CNPJ, tax/document identifiers, e-mail, phone, address, or other sensitive party details; return selector=null and ambiguity=unknown.',
   'Do not emit a party selector for document, e-mail, phone, code, city, state, or changed-after lookup even if such provider fields may exist.',

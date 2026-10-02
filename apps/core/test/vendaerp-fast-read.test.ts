@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { createDeterministicReadBindingsFromAuthorizedTools } from '../src/agent-runtime/runtime-read-capability-binding.js';
+import { DeterministicReadExecutor } from '../src/agent-runtime/deterministic-read.js';
 import {
   createVendaErpFastReadCapabilityAdapter,
   VENDAERP_FAST_READ_CAPABILITIES,
@@ -28,6 +30,7 @@ test('VendaERP Fast Read adapter maps product, stock, party, and order capabilit
     'business.stock.read',
     'business.parties.search',
     'business.orders.search',
+    'business.orders.customer_contact.read',
   ]);
   assert.deepEqual(adapter.capabilitiesFor(tool(
     'mcp.wandora-vendaerp-read-only-v1-72222222:vendaerp-search-products',
@@ -631,4 +634,176 @@ test('order V1 rejects missing selector, wrong tool, malformed and over-bounded 
     selector: { kind: 'order', by: 'code', value: 1542 },
   }), /vendaerp_fast_read_invalid_order_result/);
   assert.equal(oversizedCalls, 1);
+});
+
+
+test('order customer contact linkage composes exactly two authorized reads and never exposes sensitive values', async () => {
+  const calls: Array<[string, unknown]> = [];
+  const adapter = createVendaErpFastReadCapabilityAdapter();
+  const tools = [
+    tool('orders-runtime', async (input) => {
+      calls.push(['orders', input]);
+      return [{ code: 1542, customerName: 'Cliente Exemplo', customerTaxId: '12.345.678/0001-90' }];
+    }, 'vendaerp_search_orders'),
+    tool('parties-runtime', async (input) => {
+      calls.push(['parties', input]);
+      return [{
+        displayName: 'Cliente Exemplo',
+        legalName: 'Cliente Exemplo Ltda',
+        taxId: '12345678000190',
+        telephone: '5133333333',
+        mobilePhone: '51999999999',
+        email: 'private@example.test',
+        externalRef: 'provider-party-private',
+        customer: true,
+        supplier: true,
+      }];
+    }, 'vendaerp_search_parties'),
+  ];
+  const bindings = createDeterministicReadBindingsFromAuthorizedTools(tools, adapter);
+  const executor = new DeterministicReadExecutor({
+    minimumConfidence: 0.9,
+    maximumNeedsMoreContext: 0.25,
+    maximumNeedsHumanReview: 0.2,
+    minimumNeedsDataOrToolLookup: 0.8,
+  });
+  const result = await executor.execute({
+    request: 'Qual contato está cadastrado para o cliente do pedido 1542?',
+    decision: {
+      mode: 'deterministic_read',
+      capability: 'business.orders.customer_contact.read',
+      selector: { kind: 'order', by: 'code', value: 1542 },
+      confidence: 0.99,
+      needsDataOrToolLookup: 1,
+      needsMoreContext: 0,
+      needsHumanReview: 0,
+      ambiguity: 'none',
+    },
+    bindings,
+  });
+  assert.deepEqual(calls, [
+    ['orders', { code: 1542, pageSize: 5, skip: 0 }],
+    ['parties', { taxId: '12.345.678/0001-90', customer: true, pageSize: 5, skip: 0 }],
+  ]);
+  assert.equal(result.kind, 'completed');
+  if (result.kind !== 'completed') return;
+  assert.equal(result.toolCalls, 2);
+  assert.equal(result.summary, 'Pedido 1542\nCliente: Cliente Exemplo\nContato cadastrado: Sim\nTipos disponíveis: Telefone e Celular');
+  for (const forbidden of ['12.345.678/0001-90','12345678000190','5133333333','51999999999','private@example.test','provider-party-private']) {
+    assert.equal(result.summary.includes(forbidden), false);
+  }
+});
+
+test('order customer contact linkage stops after one read when order identity is absent or order code is duplicated', async () => {
+  for (const orderRows of [
+    [{ code: 1542, customerName: 'Sem documento' }],
+    [{ code: 1542, customerTaxId: '12.345.678/0001-90' }, { code: 1542, customerTaxId: '98.765.432/0001-10' }],
+  ]) {
+    let orderCalls = 0;
+    let partyCalls = 0;
+    const adapter = createVendaErpFastReadCapabilityAdapter();
+    const bindings = createDeterministicReadBindingsFromAuthorizedTools([
+      tool('orders-runtime', async () => { orderCalls += 1; return orderRows; }, 'vendaerp_search_orders'),
+      tool('parties-runtime', async () => { partyCalls += 1; return []; }, 'vendaerp_search_parties'),
+    ], adapter);
+    const binding = bindings.find((entry) => entry.capability === 'business.orders.customer_contact.read');
+    assert.ok(binding);
+    const executed = await binding.execute('pedido 1542', { kind: 'order', by: 'code', value: 1542 });
+    assert.equal(orderCalls, 1);
+    assert.equal(partyCalls, 0);
+    assert.equal('toolCalls' in executed ? executed.toolCalls : -1, 1);
+    const normalized = 'result' in executed ? executed.result : executed;
+    assert.equal(normalized.kind, 'clarification');
+  }
+});
+
+test('order customer contact linkage exact-matches identity and never trusts the first party row', async () => {
+  const scenarios = [
+    { parties: [], kind: 'not_found' },
+    { parties: [{ displayName: 'Errado', taxId: '98.765.432/0001-10', customer: true, supplier: false }], kind: 'not_found' },
+    { parties: [
+      { displayName: 'Cliente A', taxId: '12.345.678/0001-90', customer: true, supplier: false },
+      { displayName: 'Cliente B', taxId: '12345678000190', customer: true, supplier: false },
+    ], kind: 'clarification' },
+  ];
+  for (const scenario of scenarios) {
+    let calls = 0;
+    const adapter = createVendaErpFastReadCapabilityAdapter();
+    const bindings = createDeterministicReadBindingsFromAuthorizedTools([
+      tool('orders-runtime', async () => { calls += 1; return [{ code: 1542, customerTaxId: '12.345.678/0001-90' }]; }, 'vendaerp_search_orders'),
+      tool('parties-runtime', async () => { calls += 1; return scenario.parties; }, 'vendaerp_search_parties'),
+    ], adapter);
+    const binding = bindings.find((entry) => entry.capability === 'business.orders.customer_contact.read');
+    assert.ok(binding);
+    const executed = await binding.execute('pedido 1542', { kind: 'order', by: 'code', value: 1542 });
+    const normalized = 'result' in executed ? executed.result : executed;
+    assert.equal(calls, 2);
+    assert.equal('toolCalls' in executed ? executed.toolCalls : -1, 2);
+    assert.equal(normalized.kind, scenario.kind);
+  }
+});
+
+test('order customer contact linkage reports none, telephone, mobile, or both without choosing a destination', async () => {
+  const cases = [
+    [{}, 'Não', undefined],
+    [{ telephone: '5133333333' }, 'Sim', 'Telefone'],
+    [{ mobilePhone: '51999999999' }, 'Sim', 'Celular'],
+    [{ telephone: '5133333333', mobilePhone: '51999999999' }, 'Sim', 'Telefone e Celular'],
+  ] as const;
+  for (const [contact, registered, kinds] of cases) {
+    const adapter = createVendaErpFastReadCapabilityAdapter();
+    const bindings = createDeterministicReadBindingsFromAuthorizedTools([
+      tool('orders-runtime', async () => [{ code: 1542, customerTaxId: '12.345.678/0001-90' }], 'vendaerp_search_orders'),
+      tool('parties-runtime', async () => [{
+        displayName: 'Cliente Exemplo',
+        taxId: '12.345.678/0001-90',
+        customer: true,
+        supplier: false,
+        ...contact,
+      }], 'vendaerp_search_parties'),
+    ], adapter);
+    const binding = bindings.find((entry) => entry.capability === 'business.orders.customer_contact.read');
+    assert.ok(binding);
+    const executed = await binding.execute('pedido 1542', { kind: 'order', by: 'code', value: 1542 });
+    const normalized = 'result' in executed ? executed.result : executed;
+    assert.equal(normalized.kind, 'facts');
+    if (normalized.kind !== 'facts') continue;
+    assert.equal(normalized.facts.find((fact) => fact.label === 'Contato cadastrado')?.value, registered);
+    assert.equal(normalized.facts.find((fact) => fact.label === 'Tipos disponíveis')?.value, kinds);
+    const rendered = JSON.stringify(normalized);
+    assert.equal(rendered.includes('5133333333'), false);
+    assert.equal(rendered.includes('51999999999'), false);
+  }
+});
+
+test('composite binding requires exactly one authorized order tool and one authorized party tool', () => {
+  const adapter = createVendaErpFastReadCapabilityAdapter();
+  const order = tool('orders-runtime', async () => [], 'vendaerp_search_orders');
+  const party = tool('parties-runtime', async () => [], 'vendaerp_search_parties');
+  for (const tools of [[], [order], [party], [order, order, party], [order, party, party]]) {
+    const bindings = createDeterministicReadBindingsFromAuthorizedTools(tools, adapter);
+    assert.equal(bindings.some((entry) => entry.capability === 'business.orders.customer_contact.read'), false);
+  }
+  const bindings = createDeterministicReadBindingsFromAuthorizedTools([order, party], adapter);
+  assert.equal(bindings.filter((entry) => entry.capability === 'business.orders.customer_contact.read').length, 1);
+});
+
+test('order customer contact linkage rejects malformed sensitive provider fields fail-closed', async () => {
+  const adapter = createVendaErpFastReadCapabilityAdapter();
+  const bindings = createDeterministicReadBindingsFromAuthorizedTools([
+    tool('orders-runtime', async () => [{ code: 1542, customerTaxId: '12.345.678/0001-90' }], 'vendaerp_search_orders'),
+    tool('parties-runtime', async () => [{
+      displayName: 'Cliente Exemplo',
+      taxId: '12.345.678/0001-90',
+      telephone: { raw: 'must-not-accept' },
+      customer: true,
+      supplier: false,
+    }], 'vendaerp_search_parties'),
+  ], adapter);
+  const binding = bindings.find((entry) => entry.capability === 'business.orders.customer_contact.read');
+  assert.ok(binding);
+  await assert.rejects(
+    binding.execute('pedido 1542', { kind: 'order', by: 'code', value: 1542 }),
+    /vendaerp_fast_read_invalid_party_result/,
+  );
 });

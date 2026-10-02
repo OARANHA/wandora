@@ -13,6 +13,9 @@ export type RuntimeReadCapabilityAdapter = {
     request: string;
     selector: SemanticSelector | null;
   }): Promise<DeterministicReadNormalizedResult>;
+  composedBindingsFor?(
+    tools: readonly RuntimeReadTool[],
+  ): readonly DeterministicReadBinding[];
 };
 
 export function createDeterministicReadBindingsFromAuthorizedTools(
@@ -31,6 +34,9 @@ export function createDeterministicReadBindingsFromAuthorizedTools(
         execute: (request, selector) => adapter.execute({ tool, capability, request, selector }),
       });
     }
+  }
+  if (adapter.composedBindingsFor) {
+    bindings.push(...adapter.composedBindingsFor(tools));
   }
   return bindings;
 }

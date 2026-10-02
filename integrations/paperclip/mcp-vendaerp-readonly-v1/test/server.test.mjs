@@ -285,6 +285,7 @@ test('party search preserves explicit role booleans and bounded pagination in th
         cnpJ_CPF: '12.345.678/0001-90',
         email: 'joao@example.test',
         telefone: '5133333333',
+        celular: '51999999999',
         cliente: true,
         fonecedor: false,
         senha: 'must-not-leak',
@@ -315,12 +316,55 @@ test('party search preserves explicit role booleans and bounded pagination in th
     legalName: 'João Silva Comércio Ltda',
     taxId: '12.345.678/0001-90',
     email: 'joao@example.test',
-    phone: '5133333333',
+    telephone: '5133333333',
+    mobilePhone: '51999999999',
     customer: true,
     supplier: false,
   }]);
   const serialized = JSON.stringify(result);
   assert.equal(serialized.includes('must-not-leak'), false);
+});
+
+
+test('order search projects only the internal customer tax identity needed for deterministic linkage', async () => {
+  const calls = [];
+  const client = createVendaErpClient({
+    tenant,
+    credentials,
+    fetchImpl: async (url) => {
+      calls.push(new URL(url));
+      return jsonResponse([{
+        id: 'order-private-id',
+        codigo: 1542,
+        cliente: 'Cliente Exemplo',
+        clienteCNPJ: '12.345.678/0001-90',
+        clienteEmail: 'must-not-project@example.test',
+        pessoaID: 'must-not-project-party-id',
+        clienteID: 'must-not-project-client-id',
+        status: 'Faturado',
+        valorFinal: 1234.56,
+        numeroNFe: '98765',
+      }]);
+    },
+  });
+
+  const result = await client.searchOrders({ code: 1542, pageSize: 5, skip: 0 });
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].pathname, '/api/request/Pedidos/Pesquisar');
+  assert.equal(calls[0].searchParams.get('codigo'), '1542');
+  assert.deepEqual(result, [{
+    code: 1542,
+    externalRef: 'order-private-id',
+    customerName: 'Cliente Exemplo',
+    customerTaxId: '12.345.678/0001-90',
+    status: 'Faturado',
+    total: 1234.56,
+    invoiceNumber: '98765',
+  }]);
+  const serialized = JSON.stringify(result);
+  for (const forbidden of ['must-not-project@example.test','must-not-project-party-id','must-not-project-client-id']) {
+    assert.equal(serialized.includes(forbidden), false);
+  }
 });
 
 test('stock read sends exact product code + location and never invents a missing quantity', async () => {
