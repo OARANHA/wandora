@@ -1,3 +1,29 @@
+# CHECKPOINT ATUAL — ADR 0395 PAPERCLIP DYNAMIC DIGITAL-EMPLOYEE PROVISIONING BRIDGE — HOST ENSURE REQUIRED
+
+Status: **MACHINE TRUST BOUNDARY QUALIFIED / DIRECT CORE CREDENTIAL PATH REJECTED / PLUGIN SELF-HTTP FALLBACK QUALIFIED AS NON-CANONICAL / PAPERCLIP HOST DYNAMIC ENSURE GAP PROVEN / IMPLEMENTATION BLOCKED / DOCUMENTATION ONLY / NO PRODUCTION EFFECT**.
+
+Fresh reconciliation after PR #394 GREEN proved PR #394 open/draft/mergeable/unmerged at exact head 4c7c4f581bdcfb351d96a7d1ff210570c80915a9. One exact-head read observed **10/10 workflows completed/success**; no rerun or polling occurred.
+
+Pinned Paperclip v2026.916.1 does not expose dynamic Agent creation through the plugin host. PluginAgentsClient supports list/get/pause/resume/invoke plus manifest-declared managed get/reconcile/reset, and the declared plugin capability set has no dynamic agents.create/provision equivalent. Therefore the current HMAC -> Organization Adapter plugin -> ctx.agents.managed path cannot materialize arbitrary employee instances.
+
+The deep Reuse Gate rejected moving a Paperclip credential into Wandora Core. ctx.http + ctx.secrets + ctx.entities could technically let the plugin call Paperclip REST using a dedicated machine credential and journal one create attempt. That design can fail closed by never blindly retrying after an ambiguous timeout, but it cannot provide automatic replay-safe liveness: zero visible Agents after a timeout does not prove the first remote create will never commit later. It also introduces a self-HTTP credential solely because the host lacks a native capability. This remains a fallback candidate, not the canonical bridge.
+
+Paperclip already proves the stronger provider-side exactly-one pattern in its built-in Agent service: a provider-owned metadata marker is protected by a partial unique index; a losing concurrent create raises 23505; the service catches the race and re-resolves to the winner. Paperclip also already has plugin_managed_resources with uniqueness on (company_id, plugin_id, resource_kind, resource_key). The remaining gap is a host/plugin primitive that applies equivalent exactly-one semantics to a dynamic plugin-owned Agent resource key without requiring one static manifest declaration per employee.
+
+The qualified semantic contract is an ensure operation, exact name TBD: same company + plugin + opaque resource key derived from the canonical Wandora employee UUID + same request fingerprint must converge to the same provider Agent. Incompatible replay conflicts. Cross-company candidates reject. Legacy duplicate matches fail closed. Terminated Agent reprovision remains separately unqualified.
+
+Wandora Core keeps its existing signed HMAC boundary and receives only the resulting provider Agent reference through the Organization Adapter. No Board API Key, browser cookie, human session, Agent API Key or raw Paperclip control-plane credential enters Core.
+
+The refined mandatory JEV review returned block=0.92, deep_review=0.07, proceed_fast=0.01, confidence=0.89.
+
+Canonical detail: docs/decisions/0395-paperclip-dynamic-digital-employee-provisioning-bridge-idempotent-reconciliation-qualification-v1.md.
+
+Next executable architecture slice: **Paperclip Dynamic Managed Agent Host Primitive Contract + Upstream/Fork Deployment Preflight V1 — NO EFFECT**. It must define the exact provider-side capability/API, concurrency/uniqueness mechanism, request fingerprint semantics, compatibility pin and upstream/fork deployment strategy before any Wandora workforce schema/runtime implementation resumes.
+
+This file is bootstrap only. Continue with AGENTS.md, relevant ADRs, docs/CAPABILITY_AUTHORITY.md, docs/architecture.md, docs/CANONICAL_STATE.md, component runbooks, GitHub and live runtime when materially required.
+
+---
+
 # CHECKPOINT ATUAL — ADR 0394 MULTI-DIGITAL-EMPLOYEE WORKFORCE / CATALOG / PROVIDER BINDING — QUALIFIED, PROVISIONING BRIDGE BLOCKED
 
 Status: **CANONICAL EMPLOYEE INSTANCE MODEL QUALIFIED / CATALOG TEMPLATE SEMANTICS QUALIFIED / PAPERCLIP DYNAMIC AGENT CAPABILITY PROVEN / SAFE PROVISIONING BRIDGE NOT PROVEN / IMPLEMENTATION BLOCKED / DOCUMENTATION ONLY / NO PRODUCTION EFFECT**.
