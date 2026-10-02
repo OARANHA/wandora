@@ -1,0 +1,84 @@
+name: Organization Adapter Dynamic Managed Candidate CI
+
+on:
+  pull_request:
+    paths:
+      - 'integrations/paperclip/organization-adapter-dynamic-managed-v1/**'
+      - 'integrations/paperclip/plugins/organization-adapter-v1/**'
+      - 'integrations/paperclip/dynamic-managed-agent-v1/**'
+      - 'integrations/paperclip/patches/v2026.916.1-dynamic-managed-agent-ensure-v1.patch'
+      - '.github/workflows/organization-adapter-dynamic-managed-candidate-ci.yml'
+      - 'docs/decisions/0400-organization-adapter-dynamic-managed-employee-provider-bridge-candidate-v1.md'
+      - 'docs/CANONICAL_STATE.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: organization-adapter-dynamic-managed-candidate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout Wandora
+        uses: actions/checkout@v4
+
+      - name: Checkout exact Paperclip v2026.916.1 source
+        uses: actions/checkout@v4
+        with:
+          repository: paperclipai/paperclip
+          ref: d554c4789ed3930f8a53ac9fdf6503b3187097da
+          path: .paperclip
+
+      - name: Compose five qualified Paperclip provider deltas
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x integrations/paperclip/dynamic-managed-agent-v1/compose-qualified-patches.sh
+          integrations/paperclip/dynamic-managed-agent-v1/compose-qualified-patches.sh "$GITHUB_WORKSPACE/.paperclip"
+
+      - name: Set up Node 24.21.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.21.0
+
+      - name: Set up pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.4 --activate
+          pnpm --version
+
+      - name: Install pinned Paperclip dependencies
+        working-directory: .paperclip
+        run: pnpm install --frozen-lockfile
+
+      - name: Build dynamic-capable Paperclip plugin SDK
+        working-directory: .paperclip
+        run: pnpm --filter @paperclipai/plugin-sdk build
+
+      - name: Compose Organization Adapter 0.7.0 candidate overlay
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x integrations/paperclip/organization-adapter-dynamic-managed-v1/compose-candidate.sh
+          integrations/paperclip/organization-adapter-dynamic-managed-v1/compose-candidate.sh             "$RUNNER_TEMP/organization-adapter-v0.7.0"
+
+      - name: Typecheck test validate and package candidate
+        shell: bash
+        env:
+          WANDORA_SOURCE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          bash "$RUNNER_TEMP/organization-adapter-v0.7.0/scripts/verify-package.sh"             "$GITHUB_WORKSPACE/.paperclip"
+
+      - name: Upload private candidate artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: organization-adapter-v0.7.0-dynamic-managed-${{ github.sha }}
+          path: ${{ runner.temp }}/organization-adapter-v0.7.0/artifacts/*
+          if-no-files-found: error
+          retention-days: 7

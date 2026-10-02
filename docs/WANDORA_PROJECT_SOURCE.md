@@ -1,3 +1,35 @@
+# CHECKPOINT ATUAL — ADR 0400 ORGANIZATION ADAPTER 0.7.0 ISOLATED OVERLAY CANDIDATE
+
+Status: **CANONICAL 0.6.1 PRESERVED / 0.7.0 DISPOSABLE OVERLAY CANDIDATE / EXACT-HEAD CI PENDING / NO PRODUCTION EFFECT**.
+
+PR #398 exact head `233b4546dcbaaf7a281b40a30c9c1a6c182bb000` remains the qualified provider base at **13/13 GREEN**.
+
+The first #399 shape directly changed canonical `organization-adapter-v1` to
+0.7.0 and correctly triggered four RED guards protecting the 0.6.1 /
+Paperclip 916.1 identity. Those guards were not weakened.
+
+The corrected shape restores canonical plugin source to exact 0.6.1 and stores
+0.7.0 only as a versioned overlay applied to a disposable copy. Dedicated CI
+composes the five-patch Paperclip dynamic-managed provider profile, applies the
+overlay with exact-context checking, and runs package qualification against that
+isolated candidate.
+
+The bridge contract is unchanged: canonical Wandora employee UUID drives the
+provider resource key; `ensureDynamic` requests paused; native
+`pending_approval` is not mirrored; success returns only after the same Agent
+is proven paused.
+
+Core/service/schema/runtime/production remain unchanged.
+
+Canonical detail:
+`docs/decisions/0400-organization-adapter-dynamic-managed-employee-provider-bridge-candidate-v1.md`.
+
+Next gate after exact-head GREEN: Core-side dynamic provider client +
+employee-instance binding migration qualification.
+
+---
+
+
 # CHECKPOINT ATUAL — ADR 0399 POST-APPROVAL INITIAL STATUS PRESERVATION
 
 Status: **STACKED PROVIDER CANDIDATE / EXACT-HEAD CI PENDING / NO PRODUCTION EFFECT**.
