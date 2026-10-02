@@ -131,18 +131,17 @@ diff --git a/packages/plugins/sdk/src/index.ts b/packages/plugins/sdk/src/index.
 diff --git a/packages/plugins/sdk/src/protocol.ts b/packages/plugins/sdk/src/protocol.ts
 --- a/packages/plugins/sdk/src/protocol.ts
 +++ b/packages/plugins/sdk/src/protocol.ts
-@@ -72,9 +72,11 @@
+@@ -72,8 +74,10 @@
    PluginAssignmentPreviewInput,
    PluginAuthorizationAuditEntry,
    PluginAuthorizationDecisionResult,
--  PluginAuthorizationPolicyRecord,
--  PluginAuthorizationPolicySummary,
--} from "./types.js";
-+  PluginAuthorizationPolicyRecord,
-+  PluginAuthorizationPolicySummary,
+   PluginAuthorizationPolicyRecord,
+   PluginAuthorizationPolicySummary,
+   PluginToolAccessOperationalSnapshot,
+   PluginAgentRunReadResult,
 +  PluginDynamicManagedAgentEnsureInput,
 +  PluginDynamicManagedAgentResolution,
-+} from "./types.js";
+ } from "./types.js";
  import type {
    PluginHealthDiagnostics,
    PluginApiRequestInput,
