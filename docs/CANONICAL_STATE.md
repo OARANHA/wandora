@@ -1,3 +1,27 @@
+## Reconciled checkpoint — ADR 0404 Customer 28PRO Self-Service Connection provider command boundary
+
+ADR 0404 is **BOUNDARY QUALIFIED / PAPERCLIP NATIVE LIFECYCLE REUSE REQUIRED / CREDENTIAL-SET REPLACEMENT BLOCKER OPEN / DOCUMENTATION ONLY / NO PRODUCTION EFFECT**.
+
+Entry state is `main@d730581d950a133cb488e3b15f0d1a7ac810bff1`, after ADR 0403 / PR #402 completed 9/9 relevant PR workflows GREEN and was squash-merged. The Dynamic Managed Employee stack #396→#401 remains separate and is not a dependency of this vertical.
+
+Fresh exact-pin review of Paperclip v2026.916.1 proved that Paperclip already owns the Connection lifecycle required by customer self-service: `connectGalleryApp`, reconnect/credential replacement, health, removal, company secret custody, grants, installs, profiles and catalog/runtime cleanup. These capabilities must be reused; Paperclip Board routes/tokens must not cross into Wandora Web/Core, and no Wandora secret/Connection/grant lifecycle is authorized.
+
+The accepted future boundary is a narrow capability-gated Paperclip host-worker command, reusing the existing Organization Adapter company-HMAC boundary and the ADR 0281 host-RPC pattern. It must be invocation-company scoped and declaration-bound, not a generic Board proxy. Customer input may never choose arbitrary URLs, transports, stdio commands, template IDs, Paperclip IDs, secret IDs, grant/profile IDs or provider config. The provider-side 28PRO declaration must fix the already-approved local_stdio VendaERP read-only adapter/template and exactly three credential slots projected to `env.VENDAERP_AUTHORIZATION_TOKEN`, `env.VENDAERP_USER` and `env.VENDAERP_APP`.
+
+Pinned 916.1 has a local_stdio AppDefinition compatibility gap: `credentialFieldsFor` does not pass method context to `credentialConfigPath`. Later upstream Paperclip already maps `local_stdio + keyPlacement=env` to `env.<KEY>`, corroborating that this belongs provider-side. A future code slice may qualify a minimal backport; this checkpoint does not assume it is already valid.
+
+Legacy Prorevest must be **adopted, not recreated**. A future provider-owned adoption operation must find exactly one matching existing Connection and verify application/template/local_stdio/shared-policy/exact-three-env-ref invariants. It may add only non-secret declaration/method identity while preserving Connection ID, secret IDs/refs, grants, installs, profiles and policies. Zero/multiple/mismatched state fails closed. Adoption may not read or rotate plaintext secrets or call VendaERP.
+
+Deep review also proved an unresolved blocker for customer `Atualizar credenciais`: pinned `reconnectGalleryApp` rotates provided secrets sequentially and does not prove one atomic three-secret logical replacement; `connectGalleryApp(reconnectConnectionId)` proves rollback of newly created secrets on a failed attempt but the reviewed pinned success path does not prove retirement of superseded old secrets. Neither path is therefore declared customer-ready. The next code slice must qualify a Paperclip-owned credential-set replacement primitive with complete-set semantics, no partial-success-as-success, proven cleanup/rollback, explicit uncertain/needs-attention behavior and no blind retry. Until that closes GREEN, customer credential update remains blocked.
+
+The secret-bearing path may be only `browser → authenticated Core → company-HMAC Organization Adapter → Paperclip host`; values are transient and forbidden from localStorage, Wandora DB/logs, plugin.state payloads, model context, employee config, read APIs and receipts. Operational idempotency may retain only correlation, keyed-HMAC fingerprint and non-secret outcome. Status/health/capability reads continue through the existing secret-free Integration Capability Projection.
+
+Final adversarial review of the narrowed documentation action returned `proceed_fast=0.86`, `deep_review=0.09`, `block=0.05`, confidence `0.80`.
+
+Next executable slice: **Paperclip Managed Connection Command Host Capability V1 — CODE ONLY / DISPOSABLE TESTS / NO PRODUCTION EFFECT**. It must prove host capability scope, declaration allowlist, local_stdio env mapping, legacy adoption invariants, new disposable Connection shape, redaction/idempotency/uncertain semantics, disconnect cleanup and safe three-secret credential-set replacement before any customer-facing self-service UI/API is implemented.
+
+No production, migration, provider call, secret mutation, outbound or merge occurred.
+
 ## Reconciled checkpoint — ADR 0403 Customer 28PRO + Fiscal Read + Supervised DANFE preflight
 
 ADR 0403 is **PREFLIGHT QUALIFIED / AUTHORITY BOUNDARIES FROZEN / IMPLEMENTATION DETAILS DEFERRED / DOCUMENTATION ONLY / NO PRODUCTION EFFECT**.
