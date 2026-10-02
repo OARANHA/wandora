@@ -607,3 +607,65 @@ test('signed safe preview presentation reaches the deterministic binding without
     totalTokens: 0,
   });
 });
+
+
+test('destination/channel qualification is signed as presentation only and carries no contact PII', () => {
+  const request = 'Qualifique destino/canal do cliente do pedido 1542 sem enviar.';
+  const intent = issueFastReadIntent({
+    secret: SECRET,
+    organizationId: ORG,
+    employeeId: EMPLOYEE,
+    correlationId: CORRELATION,
+    request,
+    decision: {
+      ...DECISION,
+      capability: 'business.orders.customer_contact.read',
+      selector: { kind: 'order', by: 'code', value: 1542 },
+      presentation: 'contact_destination_qualification',
+    },
+    availableCapabilities: ['business.orders.customer_contact.read'],
+    policy: POLICY,
+    nowMs: NOW,
+  });
+  const claims = verifyFastReadIntent({
+    secret: SECRET,
+    token: intent,
+    request,
+    expectedOrganizationId: ORG,
+    expectedEmployeeId: EMPLOYEE,
+    expectedCorrelationId: CORRELATION,
+    nowMs: NOW,
+  });
+  assert.equal(claims.capability, 'business.orders.customer_contact.read');
+  assert.equal(claims.presentation, 'contact_destination_qualification');
+  assert.deepEqual(claims.selector, { kind: 'order', by: 'code', value: 1542 });
+  const serialized = JSON.stringify(claims);
+  for (const forbidden of [
+    'telephone',
+    'mobilePhone',
+    'phone',
+    'whatsapp',
+    'recipient',
+    '51999999999',
+    '5133333333',
+  ]) {
+    assert.equal(serialized.includes(forbidden), false, forbidden);
+  }
+});
+
+test('destination/channel qualification presentation cannot be authorized for an unrelated capability', () => {
+  assert.throws(() => issueFastReadIntent({
+    secret: SECRET,
+    organizationId: ORG,
+    employeeId: EMPLOYEE,
+    correlationId: CORRELATION,
+    request: REQUEST,
+    decision: {
+      ...DECISION,
+      presentation: 'contact_destination_qualification',
+    },
+    availableCapabilities: ['business.products.price'],
+    policy: POLICY,
+    nowMs: NOW,
+  }), (error: unknown) => error instanceof FastReadIntentError && error.code === 'not-authorized');
+});

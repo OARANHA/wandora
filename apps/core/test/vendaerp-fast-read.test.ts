@@ -966,3 +966,113 @@ test('facts presentation preserves ADR0384 contact projection without implicitly
   if (result.kind !== 'facts') throw new Error('expected facts');
   assert.equal(result.facts.some((fact) => fact.label === 'Prévia — NÃO ENVIADA'), false);
 });
+
+
+test('destination/channel qualification reuses exactly two reads and keeps all channels unqualified without provider evidence', async () => {
+  const variants = [
+    [{}, 0],
+    [{ telephone: '5133333333' }, 1],
+    [{ mobilePhone: '51999999999' }, 1],
+    [{ telephone: '5133333333', mobilePhone: '51999999999' }, 2],
+  ] as const;
+
+  for (const [contact, candidateCount] of variants) {
+    let orderCalls = 0;
+    let partyCalls = 0;
+    let forbiddenCalls = 0;
+    const adapter = createVendaErpFastReadCapabilityAdapter();
+    const bindings = createDeterministicReadBindingsFromAuthorizedTools([
+      tool('orders-runtime', async () => {
+        orderCalls += 1;
+        return [{ code: 1542, customerTaxId: '12.345.678/0001-90' }];
+      }, 'vendaerp_search_orders'),
+      tool('parties-runtime', async () => {
+        partyCalls += 1;
+        return [{
+          displayName: 'Cliente Exemplo',
+          taxId: '12.345.678/0001-90',
+          email: 'private@example.test',
+          customer: true,
+          supplier: false,
+          ...contact,
+        }];
+      }, 'vendaerp_search_parties'),
+      tool('forbidden-gateway', async () => {
+        forbiddenCalls += 1;
+        throw new Error('must-not-call-gateway');
+      }, 'messaging_gateway_qualify_or_send'),
+      tool('forbidden-fiscal', async () => {
+        forbiddenCalls += 1;
+        throw new Error('must-not-call-fiscal');
+      }, 'vendaerp_get_nfe'),
+    ], adapter);
+    const binding = bindings.find((entry) => entry.capability === 'business.orders.customer_contact.read');
+    assert.ok(binding);
+    const executed = await binding.execute(
+      'Qualifique o destino/canal do cliente do pedido 1542 sem enviar.',
+      { kind: 'order', by: 'code', value: 1542 },
+      'contact_destination_qualification',
+    );
+    const result = 'result' in executed ? executed.result : executed;
+    assert.equal('toolCalls' in executed ? executed.toolCalls : -1, 2);
+    assert.equal(orderCalls, 1);
+    assert.equal(partyCalls, 1);
+    assert.equal(forbiddenCalls, 0);
+    assert.equal(result.kind, 'facts');
+    if (result.kind !== 'facts') continue;
+
+    assert.equal(
+      result.facts.filter((fact) => fact.label.startsWith('Destino candidato —')).length,
+      candidateCount,
+    );
+    assert.equal(
+      result.facts.filter((fact) => fact.label.startsWith('Canal qualificado —')).every(
+        (fact) => fact.value.startsWith('Não'),
+      ),
+      true,
+    );
+    const selected = result.facts.find((fact) => fact.label === 'Destino escolhido')?.value;
+    assert.match(selected ?? '', /^Não/);
+    assert.match(result.facts.find((fact) => fact.label === 'Envio autorizado')?.value ?? '', /^Não/);
+
+    const serialized = JSON.stringify(result);
+    for (const forbidden of [
+      '5133333333',
+      '51999999999',
+      '12.345.678/0001-90',
+      'private@example.test',
+      'provider-private',
+      'outbound_attempt',
+      'Human Send',
+    ]) {
+      assert.equal(serialized.includes(forbidden), false, forbidden);
+    }
+    if ('mobilePhone' in contact) {
+      assert.equal(serialized.includes('WhatsApp'), false);
+    }
+  }
+});
+
+test('destination/channel qualification fails closed instead of turning malformed phone data into a candidate', async () => {
+  const adapter = createVendaErpFastReadCapabilityAdapter();
+  const bindings = createDeterministicReadBindingsFromAuthorizedTools([
+    tool('orders-runtime', async () => [{ code: 1542, customerTaxId: '12.345.678/0001-90' }], 'vendaerp_search_orders'),
+    tool('parties-runtime', async () => [{
+      displayName: 'Cliente Exemplo',
+      taxId: '12.345.678/0001-90',
+      mobilePhone: 'nao-e-numero',
+      customer: true,
+      supplier: false,
+    }], 'vendaerp_search_parties'),
+  ], adapter);
+  const binding = bindings.find((entry) => entry.capability === 'business.orders.customer_contact.read');
+  assert.ok(binding);
+  await assert.rejects(
+    binding.execute(
+      'Qualifique o destino/canal do cliente do pedido 1542 sem enviar.',
+      { kind: 'order', by: 'code', value: 1542 },
+      'contact_destination_qualification',
+    ),
+    /contact_destination_invalid_candidate/,
+  );
+});

@@ -35,6 +35,7 @@ function validResponse(overrides: Record<string, unknown> = {}): Response {
         probabilities: {
           facts: 0.99,
           safe_contact_preview: 0.01,
+          contact_destination_qualification: 0,
         },
       },
       needsDataOrToolLookup: { type: 'noul', noul: 0.99 },
@@ -334,6 +335,7 @@ test('safe contact preview is a bounded presentation choice over the existing co
         probabilities: {
           facts: 0,
           safe_contact_preview: 1,
+          contact_destination_qualification: 0,
         },
       };
       return new Response(JSON.stringify(payload), { status: 200 });
@@ -349,5 +351,62 @@ test('safe contact preview is a bounded presentation choice over the existing co
 
   assert.equal(decision.capability, 'business.orders.customer_contact.read');
   assert.equal(decision.presentation, 'safe_contact_preview');
+  assert.equal(decision.ambiguity, 'none');
+});
+
+
+test('destination/channel qualification is a bounded no-send presentation and never means mobile equals WhatsApp', async () => {
+  const request = 'O cliente do pedido 1542 tem algum destino/canal qualificado para contato? Não envie.';
+  const provider = new TypeSafeJevSemanticDecisionProvider({
+    apiKey: API_KEY,
+    fetchImpl: async (_input, init) => {
+      const body = JSON.parse(String(init?.body)) as {
+        state: Record<string, unknown>;
+        questions: Record<string, { instructions?: string; criteria?: Record<string, string> }>;
+      };
+      assert.deepEqual(body.state, {
+        request,
+        availableCapabilities: ['business.orders.customer_contact.read'],
+      });
+      assert.match(body.questions.presentation?.instructions ?? '', /contact_destination_qualification/);
+      assert.match(
+        body.questions.presentation?.criteria?.contact_destination_qualification ?? '',
+        /Never infer mobile=WhatsApp/,
+      );
+
+      const response = validResponse();
+      const payload = JSON.parse(await response.text()) as any;
+      payload.answers.capability = {
+        type: 'choice',
+        choice: 'business.orders.customer_contact.read',
+        confidence: 0.99,
+        probabilities: {
+          none: 0.01,
+          'business.orders.customer_contact.read': 0.99,
+        },
+      };
+      payload.answers.presentation = {
+        type: 'choice',
+        choice: 'contact_destination_qualification',
+        confidence: 1,
+        probabilities: {
+          facts: 0,
+          safe_contact_preview: 0,
+          contact_destination_qualification: 1,
+        },
+      };
+      return new Response(JSON.stringify(payload), { status: 200 });
+    },
+  });
+
+  const decision = await provider.decide({
+    organizationId: '11111111-1111-4111-8111-111111111111',
+    employeeId: '22222222-2222-4222-8222-222222222222',
+    request,
+    availableCapabilities: ['business.orders.customer_contact.read'],
+  });
+
+  assert.equal(decision.capability, 'business.orders.customer_contact.read');
+  assert.equal(decision.presentation, 'contact_destination_qualification');
   assert.equal(decision.ambiguity, 'none');
 });
