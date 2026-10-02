@@ -66,7 +66,8 @@ jobs:
           pnpm --filter @paperclipai/server typecheck
           pnpm exec vitest run \
             packages/plugins/sdk/tests/dynamic-managed-agent-capability.test.ts \
-            server/src/__tests__/plugin-dynamic-managed-agents.test.ts
+            server/src/__tests__/plugin-dynamic-managed-agents.test.ts \
+            server/src/__tests__/agents-pending-approval-config.test.ts
 
       - name: Build exact local candidate
         id: build

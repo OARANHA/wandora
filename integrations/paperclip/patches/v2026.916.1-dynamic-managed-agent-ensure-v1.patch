@@ -496,6 +496,73 @@ diff --git a/server/src/services/agents.ts b/server/src/services/agents.ts
          await ensureManager(companyId, data.reportsTo);
        }
  
+@@ -1087,48 +1106,65 @@
+     activatePendingApproval: async (id: string, approvedPayload?: Record<string, unknown> | null) => {
+       const activatedAgent = await db.transaction(async (tx) => {
+         const txDb = tx as unknown as Db;
+         const existing = await agentService(txDb).getById(id);
+         if (!existing || existing.status !== "pending_approval") return null;
++        const dynamicMarker = readDynamicManagedAgentMarker(existing.metadata);
++        let dynamicRequestedInitialStatus: "idle" | "paused" | null = null;
++        if (dynamicMarker) {
++          const requested = approvedPayload?.dynamicManagedRequestedInitialStatus;
++          if (requested !== "idle" && requested !== "paused") {
++            throw conflict("Dynamic managed agent approval is missing a valid requested initial status", {
++              code: "dynamic_managed_agent_approval_initial_status_invalid",
++              resourceKey: dynamicMarker.resourceKey,
++            });
++          }
++          dynamicRequestedInitialStatus = requested;
++        }
+         const approvedPatch = approvedPayload ? configPatchFromApprovalPayload(approvedPayload) : {};
+         let patch = { ...approvedPatch } as Partial<typeof agents.$inferInsert>;
+         let approvalBindingDecision: ClaudeOAuthBindingInvariantDecision | null = null;
+         if (
+           Object.prototype.hasOwnProperty.call(patch, "adapterConfig") &&
+           isPlainRecord(patch.adapterConfig)
+         ) {
+           const normalizedAdapterConfig = await secretService(txDb).normalizeAdapterConfigForPersistence(
+             existing.companyId,
+             patch.adapterConfig,
+             { adapterType: (patch.adapterType ?? existing.adapterType) as string },
+           );
+           patch.adapterConfig = normalizePaperclipRunnerAdapterConfig(
+             (patch.adapterType ?? existing.adapterType) as string,
+             normalizedAdapterConfig,
+           );
+           // The approval activation keeps an existing fixed binding but rejects a
+           // newly introduced binding, because it carries no stored-session claim.
+           approvalBindingDecision = assertClaudeOAuthBindingInvariant({
+             adapterType: (patch.adapterType ?? existing.adapterType) as string,
+             nextConfig: patch.adapterConfig,
+             priorConfig: existing.adapterConfig,
+           });
+         } else if (
+           Object.prototype.hasOwnProperty.call(patch, "adapterType")
+           && isPlainRecord(existing.adapterConfig)
+         ) {
+           patch.adapterConfig = normalizePaperclipRunnerAdapterConfig(
+             patch.adapterType as string,
+             existing.adapterConfig,
+           );
+         }
+         if (patch.permissions !== undefined) {
+           // The pending-approval activation replays the original hire
+           // request, so the new-agent creation default applies.
+           patch.permissions = normalizeAgentPermissions(patch.permissions, { context: "create" });
+         }
++        const activationState = dynamicRequestedInitialStatus === "paused"
++          ? { status: "paused" as const, pauseReason: "system" as const, pausedAt: new Date() }
++          : dynamicRequestedInitialStatus === "idle"
++            ? { status: "idle" as const, pauseReason: null, pausedAt: null }
++            : { status: "idle" as const };
+         const updated = await tx
+           .update(agents)
++          .set({ ...patch, ...activationState, updatedAt: new Date() })
+-          .set({ ...patch, status: "idle", updatedAt: new Date() })
+           .where(and(eq(agents.id, id), eq(agents.status, "pending_approval")))
+           .returning()
+           .then((rows) => rows[0] ?? null);
 diff --git a/server/src/services/approvals.ts b/server/src/services/approvals.ts
 --- a/server/src/services/approvals.ts
 +++ b/server/src/services/approvals.ts
@@ -643,7 +710,7 @@ diff --git a/server/src/services/plugin-dynamic-managed-agents.ts b/server/src/s
 new file mode 100644
 --- /dev/null
 +++ b/server/src/services/plugin-dynamic-managed-agents.ts
-@@ -0,0 +1,222 @@
+@@ -0,0 +1,223 @@
 +import { createHash } from "node:crypto";
 +import { and, eq, inArray, sql } from "drizzle-orm";
 +import type { Db } from "@paperclipai/db";
@@ -835,6 +902,7 @@ new file mode 100644
 +          runtimeConfig: created.runtimeConfig, permissions: created.permissions, budgetMonthlyCents: created.budgetMonthlyCents,
 +          metadata: created.metadata, agentId: created.id, sourcePluginId: options.pluginId, sourcePluginKey: options.pluginKey,
 +          dynamicManagedResourceKey: p.resourceKey, creationFingerprint: p.creationFingerprint,
++          dynamicManagedRequestedInitialStatus: p.spec.initialStatus,
 +        },
 +        decisionNote: null, decidedByUserId: null, decidedAt: null, updatedAt: new Date(),
 +      });
@@ -920,7 +988,7 @@ diff --git a/server/src/__tests__/plugin-dynamic-managed-agents.test.ts b/server
 new file mode 100644
 --- /dev/null
 +++ b/server/src/__tests__/plugin-dynamic-managed-agents.test.ts
-@@ -0,0 +1,313 @@
+@@ -0,0 +1,337 @@
 +import { createHash, randomUUID } from "node:crypto";
 +import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 +import {
@@ -1098,6 +1166,30 @@ new file mode 100644
 +    expect(results[0]!.agent.status).toBe("pending_approval");
 +    expect(await db.select().from(agents)).toHaveLength(1);
 +    expect(await db.select().from(approvals)).toHaveLength(1);
++  });
++
++  it("preserves requested paused state after native board approval", async () => {
++    const { companyId } = await seed({ requireApproval: true });
++    const created = await services.agents.managedEnsureDynamic(input(companyId, { initialStatus: "paused" }));
++
++    expect(created.agent.status).toBe("pending_approval");
++    await approvalService(db).approve(created.approvalId!, randomUUID(), "approved");
++    const approved = await agentService(db).getById(created.agentId);
++    expect(approved?.status).toBe("paused");
++    expect(approved?.pauseReason).toBe("system");
++    expect(approved?.pausedAt).not.toBeNull();
++  });
++
++  it("preserves requested idle state after native board approval", async () => {
++    const { companyId } = await seed({ requireApproval: true });
++    const created = await services.agents.managedEnsureDynamic(input(companyId, { initialStatus: "idle" }));
++
++    expect(created.agent.status).toBe("pending_approval");
++    await approvalService(db).approve(created.approvalId!, randomUUID(), "approved");
++    const approved = await agentService(db).getById(created.agentId);
++    expect(approved?.status).toBe("idle");
++    expect(approved?.pauseReason).toBeNull();
++    expect(approved?.pausedAt).toBeNull();
 +  });
 +
 +  it("rejects a changed immutable creation spec", async () => {
