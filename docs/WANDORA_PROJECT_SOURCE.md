@@ -1,3 +1,25 @@
+# CHECKPOINT ATUAL — ADR 0390 MESSAGING CONNECTION ASSIGNMENT CARDINALITY — BLOCKED
+
+Status: **BLOCKED / CARDINALITY NOT PROVEN / FAIL-CLOSED / DOCUMENTATION ONLY / NO SCHEMA OR RUNTIME IMPLEMENTATION / NO PRODUCTION EFFECT**.
+
+Fresh reconciliation proved `main=e4c7c36bb1091ba38d39b85fa259bae94553fc52`, PR #389 open/draft/mergeable/unmerged at `a3415b07ae20c15ebd0d26ddffd55ce0e9bb1370`, stacked on PR #388. One exact-head CI read observed 10/10 workflows GREEN; no polling or rerun occurred.
+
+The Reuse Gate found no hidden assignment authority. `wandora.messaging_connections` is organization-owned but deliberately permits multiple Connections per organization/channel. `conversation.messaging_connection_id` is authoritative only after a Conversation exists. Contacts and employees can structurally participate in work across different Connections; order/customer Fast Read carries no Connection assignment. Human Send and Gateway Connection IDs are runtime admission/routing cross-checks, not product selectors.
+
+Pinned Paperclip v2026.916.1 provides organization/user/agent Tool Connection grants, company/agent installs and fail-closed operational identity selection. That remains Paperclip operational authority and is not accepted Wandora Messaging Connection semantics. Mastra remains runtime execution authority.
+
+Deterministic decision: **C — BLOCKED / CARDINALITY NOT PROVEN**. Organization+channel, employee, customer/contact affinity, order assignment and explicit Conversation bootstrap are each unproven for the current pre-Conversation path. No default/primary Connection, employee binding, affinity, order mapping, artificial Conversation, resolver, registry, service or migration is created.
+
+The second adversarial review returned `block=0.95`, `deep_review=0.03`, `proceed_fast=0.02`, `split_task=0`, confidence `0.94`.
+
+ADR 0388 remains an independent unresolved provider purity/freshness/external-effect axis. This checkpoint authorizes no provider lookup, Human Send, outbound, production effect, rollout or merge.
+
+Canonical detail: `docs/decisions/0390-semantic-fast-read-canonical-messaging-connection-assignment-cardinality-qualification-v1.md`.
+
+This file is bootstrap only. Continue with `AGENTS.md`, relevant ADRs, `docs/CAPABILITY_AUTHORITY.md`, `docs/architecture.md`, `docs/CANONICAL_STATE.md`, component runbooks, GitHub and live runtime when materially required.
+
+---
+
 # CHECKPOINT ATUAL — ADR 0389 CANONICAL MESSAGING CONNECTION AUTHORITY — WANDORA-OWNED GAP PROVEN
 
 Status: **QUALIFIED / WANDORA-OWNED GAP PROVEN / CONTRACT-AUTHORITY ONLY / NO SCHEMA OR RUNTIME IMPLEMENTATION / NO PRODUCTION EFFECT**.
