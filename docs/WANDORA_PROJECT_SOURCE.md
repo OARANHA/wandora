@@ -1,3 +1,27 @@
+# CHECKPOINT ATUAL — ADR 0391 MESSAGING ACCOUNT/LINE RESPONSIBILITY + EXPLICIT BOOTSTRAP SELECTION — BLOCKED
+
+Status: **BLOCKED / PRODUCT SEMANTICS NOT PROVEN / FAIL-CLOSED / DOCUMENTATION ONLY / NO SCHEMA OR RUNTIME IMPLEMENTATION / NO PRODUCTION EFFECT**.
+
+Fresh reconciliation proved `main=e4c7c36bb1091ba38d39b85fa259bae94553fc52` and PR #390 open/draft/mergeable/unmerged at exact head `7526dadef6c34ec60ceb376c0678a0ad73bd7a1f`, stacked on PR #389. The branch ref matched that SHA. One current exact-head CI read observed **10/10 workflows completed/success**; no polling or rerun occurred.
+
+The two-line adversarial scenario remains unresolved: an organization may validly own multiple active WhatsApp Connections (for example Commercial and Support), but no canonical product rule chooses one before a Conversation exists. Connection `label` is presentation text, not typed purpose. Employee `responsibility` is owner/admin-authored employee guidance, not messaging-line ownership. Contacts/parties/orders carry no Connection affinity, and employee execution identity remains distinct from communication identity.
+
+Conversation remains the strongest existing authority: once created, its mandatory `messaging_connection_id` is canonical and Human Send reuses/cross-checks it. Explicit bootstrap with one caller-supplied canonical Connection is therefore the lowest-state candidate to preserve, but the repository does not yet authorize **who** may make that choice or **why** Commercial vs Support is correct. Existing owner/admin Fast Read authority proves work admission, not sender/account identity authority.
+
+Paperclip Connections/grants/installs/`isDefault` remain operational tool/control-plane authority and are not Wandora MessagingConnection semantics. Mastra remains runtime implementation. Messaging Gateway process Connection config is operational routing after selection, not a product default.
+
+Deterministic decision: **C — BLOCKED / PRODUCT SEMANTICS NOT PROVEN**. No organization/channel default, typed line-purpose state, employee binding, customer affinity, order mapping, assignment service, resolver, registry, migration or artificial Conversation is created. Ambiguity remains fail-closed.
+
+The mandatory adversarial JEV review returned `block=0.65`, `deep_review=0.32`, `proceed_fast=0.03`, confidence `0.53`. A focused review of the strongest counterargument — owner/admin explicit bootstrap selection — again returned `block=0.68`, `deep_review=0.23`, `proceed_fast=0.09`, confidence `0.57`. JEV is advisory.
+
+ADR 0388 remains an independent unresolved provider purity/freshness/external-effect blocker. This checkpoint authorizes no provider lookup, Human Send, outbound, production effect, rollout or merge.
+
+Canonical detail: `docs/decisions/0391-semantic-fast-read-messaging-account-line-responsibility-explicit-conversation-bootstrap-selection-policy-qualification-v1.md`.
+
+This file is bootstrap only. Continue with `AGENTS.md`, relevant ADRs, `docs/CAPABILITY_AUTHORITY.md`, `docs/architecture.md`, `docs/CANONICAL_STATE.md`, component runbooks, GitHub and live runtime when materially required.
+
+---
+
 # CHECKPOINT ATUAL — ADR 0390 MESSAGING CONNECTION ASSIGNMENT CARDINALITY — BLOCKED
 
 Status: **BLOCKED / CARDINALITY NOT PROVEN / FAIL-CLOSED / DOCUMENTATION ONLY / NO SCHEMA OR RUNTIME IMPLEMENTATION / NO PRODUCTION EFFECT**.
