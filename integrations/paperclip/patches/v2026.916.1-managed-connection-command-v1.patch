@@ -1,0 +1,1400 @@
+diff --git a/packages/plugins/sdk/src/host-client-factory.ts b/packages/plugins/sdk/src/host-client-factory.ts
+index 0334aa196..ffde075ef 100644
+--- a/packages/plugins/sdk/src/host-client-factory.ts
++++ b/packages/plugins/sdk/src/host-client-factory.ts
+@@ -117,11 +117,14 @@ export interface HostServices {
+     deleteFile(params: WorkerToHostMethods["localFolders.deleteFile"][0]): Promise<WorkerToHostMethods["localFolders.deleteFile"][1]>;
+   };
+ 
+-  /** Provides the bounded read-only Tool Access operational projection. */
++  /** Provides bounded Tool Access projection and declared Connection commands. */
+   toolAccess: {
+     readOperationalSnapshot(
+       params: WorkerToHostMethods["toolAccess.readOperationalSnapshot"][0],
+     ): Promise<WorkerToHostMethods["toolAccess.readOperationalSnapshot"][1]>;
++    manageDeclaredConnection(
++      params: WorkerToHostMethods["toolAccess.manageDeclaredConnection"][0],
++    ): Promise<WorkerToHostMethods["toolAccess.manageDeclaredConnection"][1]>;
+   };
+ 
+   /** Provides `state.get`, `state.set`, `state.delete`. */
+@@ -396,8 +399,9 @@ const METHOD_CAPABILITY_MAP: Record<WorkerToHostMethodName, PluginCapability | n
+   "localFolders.writeTextAtomic": "local.folders",
+   "localFolders.deleteFile": "local.folders",
+ 
+-  // Tool Access operational read
++  // Tool Access operational read + declaration-bound Connection commands
+   "toolAccess.readOperationalSnapshot": "tools.operational.read",
++  "toolAccess.manageDeclaredConnection": "tools.connections.managed",
+ 
+   // State
+   "state.get": "plugin.state.read",
+@@ -771,10 +775,13 @@ export function createHostClientHandlers(
+       return services.entities.list(params);
+     }),
+ 
+-    // Tool Access operational read
++    // Tool Access operational read + declaration-bound Connection commands
+     "toolAccess.readOperationalSnapshot": gated("toolAccess.readOperationalSnapshot", async (params) => {
+       return services.toolAccess.readOperationalSnapshot(params);
+     }),
++    "toolAccess.manageDeclaredConnection": gated("toolAccess.manageDeclaredConnection", async (params) => {
++      return services.toolAccess.manageDeclaredConnection(params);
++    }),
+ 
+     // Events
+     "events.emit": gated("events.emit", async (params) => {
+diff --git a/packages/plugins/sdk/src/protocol.ts b/packages/plugins/sdk/src/protocol.ts
+index 835a75aee..b9136b2ff 100644
+--- a/packages/plugins/sdk/src/protocol.ts
++++ b/packages/plugins/sdk/src/protocol.ts
+@@ -75,6 +75,8 @@ import type {
+   PluginAuthorizationPolicyRecord,
+   PluginAuthorizationPolicySummary,
+   PluginToolAccessOperationalSnapshot,
++  PluginManagedConnectionCommandInput,
++  PluginManagedConnectionCommandResult,
+ } from "./types.js";
+ import type {
+   PluginHealthDiagnostics,
+@@ -1636,6 +1638,10 @@ export interface WorkerToHostMethods {
+     params: { companyId: string; agentId: string },
+     result: PluginToolAccessOperationalSnapshot,
+   ];
++  "toolAccess.manageDeclaredConnection": [
++    params: PluginManagedConnectionCommandInput,
++    result: PluginManagedConnectionCommandResult,
++  ];
+ 
+   // Events
+   "events.emit": [
+diff --git a/packages/plugins/sdk/src/testing.ts b/packages/plugins/sdk/src/testing.ts
+index 06f7156bd..3941e6331 100644
+--- a/packages/plugins/sdk/src/testing.ts
++++ b/packages/plugins/sdk/src/testing.ts
+@@ -927,6 +927,16 @@ export function createTestHarness(options: TestHarnessOptions): TestHarness {
+         requireCompanyId(input.companyId);
+         return { runtimeHealth: "ok", connections: [] };
+       },
++      async manageDeclaredConnection(input) {
++        requireCapability(manifest, capabilitySet, "tools.connections.managed");
++        requireCompanyId(input.companyId);
++        return {
++          declarationKey: input.declarationKey,
++          state: input.operation === "disconnect" ? "disconnected" : "connected",
++          healthStatus: input.operation === "disconnect" ? null : "ok",
++          credentialsUpdated: input.operation === "replace_credentials",
++        };
++      },
+     },
+     state: {
+       async get(input) {
+diff --git a/packages/plugins/sdk/src/types.ts b/packages/plugins/sdk/src/types.ts
+index c1260ebc3..088d755c9 100644
+--- a/packages/plugins/sdk/src/types.ts
++++ b/packages/plugins/sdk/src/types.ts
+@@ -1186,8 +1186,35 @@ export interface PluginToolAccessOperationalSnapshot {
+   connections: PluginToolAccessOperationalConnection[];
+ }
+ 
++export type PluginManagedConnectionOperation =
++  | "inspect"
++  | "replace_credentials"
++  | "health"
++  | "disconnect";
++
++export interface PluginManagedConnectionCredentialValues {
++  authorizationToken: string;
++  user: string;
++  app: string;
++}
++
++export interface PluginManagedConnectionCommandInput {
++  companyId: string;
++  declarationKey: string;
++  operation: PluginManagedConnectionOperation;
++  credentialValues?: PluginManagedConnectionCredentialValues;
++}
++
++export interface PluginManagedConnectionCommandResult {
++  declarationKey: string;
++  state: "connected" | "needs_attention" | "disconnected";
++  healthStatus: ToolConnectionHealthStatus | null;
++  credentialsUpdated: boolean;
++}
++
+ /**
+- * ctx.toolAccess — read a bounded Tool Access operational projection.
++ * ctx.toolAccess — read a bounded Tool Access operational projection and invoke
++ * explicitly declared host-managed Connection commands.
+  *
+  * Requires tools.operational.read. The call is host-invocation-company
+  * scoped and is read-only; runtime Tool Gateway authorization remains a
+@@ -1198,6 +1225,17 @@ export interface PluginToolAccessClient {
+     companyId: string;
+     agentId: string;
+   }): Promise<PluginToolAccessOperationalSnapshot>;
++
++  /**
++   * Invoke a declaration-bound Connection command.
++   *
++   * Requires tools.connections.managed. The host independently enforces the
++   * invocation company scope and never exposes Paperclip object IDs or secret
++   * references in the result.
++   */
++  manageDeclaredConnection(
++    input: PluginManagedConnectionCommandInput,
++  ): Promise<PluginManagedConnectionCommandResult>;
+ }
+ 
+ /**
+diff --git a/packages/plugins/sdk/src/worker-rpc-host.ts b/packages/plugins/sdk/src/worker-rpc-host.ts
+index 433e3afb5..66309d5b0 100644
+--- a/packages/plugins/sdk/src/worker-rpc-host.ts
++++ b/packages/plugins/sdk/src/worker-rpc-host.ts
+@@ -526,6 +526,9 @@ export function startWorkerRpcHost(options: WorkerRpcHostOptions): WorkerRpcHost
+         async readOperationalSnapshot(input) {
+           return callHost("toolAccess.readOperationalSnapshot", input);
+         },
++        async manageDeclaredConnection(input) {
++          return callHost("toolAccess.manageDeclaredConnection", input);
++        },
+       },
+ 
+       events: {
+diff --git a/packages/plugins/sdk/tests/host-client-factory.test.ts b/packages/plugins/sdk/tests/host-client-factory.test.ts
+index a6e555568..03acba9fe 100644
+--- a/packages/plugins/sdk/tests/host-client-factory.test.ts
++++ b/packages/plugins/sdk/tests/host-client-factory.test.ts
+@@ -173,6 +173,57 @@ describe("createHostClientHandlers invocation company scope", () => {
+     });
+   });
+ 
++  it("gates declared Connection commands behind the explicit capability and host company scope", async () => {
++    const manageDeclaredConnection = vi.fn(async () => ({
++      declarationKey: "wandora.28pro.vendaerp-readonly-v1",
++      state: "connected" as const,
++      healthStatus: "ok" as const,
++      credentialsUpdated: false,
++    }));
++    const services = {
++      toolAccess: { manageDeclaredConnection },
++    } as unknown as HostServices;
++    const params = {
++      companyId: "company-a",
++      declarationKey: "wandora.28pro.vendaerp-readonly-v1",
++      operation: "inspect" as const,
++    };
++    const context = { invocationScope: { companyId: "company-a" } };
++
++    const denied = createHostClientHandlers({
++      pluginId: "paperclip.test",
++      capabilities: [],
++      services,
++    });
++    await expect(
++      denied["toolAccess.manageDeclaredConnection"](params, context),
++    ).rejects.toBeInstanceOf(CapabilityDeniedError);
++    expect(manageDeclaredConnection).not.toHaveBeenCalled();
++
++    const allowed = createHostClientHandlers({
++      pluginId: "paperclip.test",
++      capabilities: ["tools.connections.managed"],
++      services,
++    });
++    await expect(
++      allowed["toolAccess.manageDeclaredConnection"](
++        { ...params, companyId: "company-b" },
++        context,
++      ),
++    ).rejects.toBeInstanceOf(InvocationScopeDeniedError);
++    expect(manageDeclaredConnection).not.toHaveBeenCalled();
++
++    await expect(
++      allowed["toolAccess.manageDeclaredConnection"](params, context),
++    ).resolves.toEqual({
++      declarationKey: "wandora.28pro.vendaerp-readonly-v1",
++      state: "connected",
++      healthStatus: "ok",
++      credentialsUpdated: false,
++    });
++    expect(manageDeclaredConnection).toHaveBeenCalledWith(params);
++  });
++
+   it("rejects company-scope store access for a different company", async () => {
+     const stateGet = vi.fn(async () => null);
+     const services = {
+diff --git a/packages/shared/src/constants.ts b/packages/shared/src/constants.ts
+index 5d9d8734f..273c34448 100644
+--- a/packages/shared/src/constants.ts
++++ b/packages/shared/src/constants.ts
+@@ -1355,6 +1355,9 @@ export const PLUGIN_CAPABILITIES = [
+   // This is intentionally narrower than Board/admin tool APIs and exposes no
+   // credentials, secret refs, connection/grant/profile IDs, or mutation surface.
+   "tools.operational.read",
++  // Invoke host-declared, company-scoped Connection lifecycle commands without
++  // exposing Board/admin authority or arbitrary provider configuration.
++  "tools.connections.managed",
+   // Data Write
+   "issues.create",
+   "issues.update",
+diff --git a/server/src/__tests__/plugin-tool-access-managed-connection.test.ts b/server/src/__tests__/plugin-tool-access-managed-connection.test.ts
+new file mode 100644
+index 000000000..c9cb6f088
+--- /dev/null
++++ b/server/src/__tests__/plugin-tool-access-managed-connection.test.ts
+@@ -0,0 +1,476 @@
++import { randomUUID } from "node:crypto";
++import { mkdirSync, rmSync } from "node:fs";
++import os from "node:os";
++import path from "node:path";
++import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
++import { eq, inArray } from "drizzle-orm";
++import {
++  companies,
++  companySecrets,
++  companySecretVersions,
++  connectionGrants,
++  createDb,
++  toolAccessAuditEvents,
++  toolApplications,
++  toolConnections,
++  toolStdioCommandTemplates,
++} from "@paperclipai/db";
++import { buildHostServices } from "../services/plugin-host-services.js";
++import { secretService } from "../services/secrets.js";
++import {
++  getEmbeddedPostgresTestSupport,
++  startEmbeddedPostgresTestDatabase,
++} from "./helpers/embedded-postgres.js";
++
++const DECLARATION_KEY = "wandora.28pro.vendaerp-readonly-v1";
++const APPLICATION_KEY = "wandora.vendaerp-readonly-v1";
++const TEMPLATE_KEY = "wandora.vendaerp-readonly-v1-r1";
++const ENV_KEYS = [
++  "VENDAERP_AUTHORIZATION_TOKEN",
++  "VENDAERP_USER",
++  "VENDAERP_APP",
++] as const;
++const TOOL_NAMES = [
++  "vendaerp_probe",
++  "vendaerp_list_companies",
++  "vendaerp_search_products",
++  "vendaerp_get_product_stock",
++  "vendaerp_list_price_tables",
++  "vendaerp_search_price_table_products",
++  "vendaerp_search_parties",
++  "vendaerp_search_orders",
++] as const;
++
++function createEventBusStub() {
++  return {
++    forPlugin() {
++      return {
++        emit: vi.fn(),
++        subscribe: vi.fn(),
++        clear: vi.fn(),
++      };
++    },
++  } as any;
++}
++
++const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
++const describeEmbeddedPostgres = embeddedPostgresSupport.supported
++  ? describe
++  : describe.skip;
++
++async function seedDeclaredConnection(
++  db: ReturnType<typeof createDb>,
++  suffix: string,
++) {
++  const [company] = await db
++    .insert(companies)
++    .values({
++      name: "Managed Connection " + suffix,
++      issuePrefix: "MC" + randomUUID().slice(0, 6).toUpperCase(),
++    })
++    .returning();
++
++  const [application] = await db
++    .insert(toolApplications)
++    .values({
++      companyId: company!.id,
++      applicationKey: APPLICATION_KEY,
++      name: "28PRO VendaERP Read-Only V1",
++      type: "mcp_stdio",
++      status: "active",
++    })
++    .returning();
++
++  await db.insert(toolStdioCommandTemplates).values({
++    companyId: company!.id,
++    templateKey: TEMPLATE_KEY,
++    name: "28PRO VendaERP Read-Only V1",
++    status: "active",
++    command: "node",
++    args: [
++      "/opt/wandora/integrations/vendaerp-readonly-mcp/server.mjs",
++      "--tenant",
++      "voepro",
++    ],
++    envKeys: [...ENV_KEYS],
++    tools: TOOL_NAMES.map((name) => ({
++      name,
++      annotations: {
++        readOnlyHint: true,
++        destructiveHint: false,
++        openWorldHint: true,
++      },
++    })),
++  });
++
++  const secrets = secretService(db);
++  const authorization = await secrets.create(company!.id, {
++    name: "28PRO auth " + suffix,
++    key: "tool_app." + randomUUID() + ".env_VENDAERP_AUTHORIZATION_TOKEN",
++    provider: "local_encrypted",
++    value: "old-auth-" + suffix,
++  });
++  const user = await secrets.create(company!.id, {
++    name: "28PRO user " + suffix,
++    key: "tool_app." + randomUUID() + ".env_VENDAERP_USER",
++    provider: "local_encrypted",
++    value: "old-user-" + suffix,
++  });
++  const app = await secrets.create(company!.id, {
++    name: "28PRO app " + suffix,
++    key: "tool_app." + randomUUID() + ".env_VENDAERP_APP",
++    provider: "local_encrypted",
++    value: "old-app-" + suffix,
++  });
++
++  const refs = [
++    {
++      secretId: authorization.id,
++      versionSelector: "latest" as const,
++      configPath: "env.VENDAERP_AUTHORIZATION_TOKEN",
++      required: true,
++      label: "Authorization token",
++    },
++    {
++      secretId: user.id,
++      versionSelector: "latest" as const,
++      configPath: "env.VENDAERP_USER",
++      required: true,
++      label: "User",
++    },
++    {
++      secretId: app.id,
++      versionSelector: "latest" as const,
++      configPath: "env.VENDAERP_APP",
++      required: true,
++      label: "App",
++    },
++  ];
++
++  const [connection] = await db
++    .insert(toolConnections)
++    .values({
++      companyId: company!.id,
++      applicationId: application!.id,
++      name: "28PRO VendaERP Read-Only V1",
++      uid: "wandora-28pro/" + randomUUID(),
++      transport: "local_stdio",
++      ownership: "customer",
++      credentialSource: "paperclip_vault",
++      credentialPolicy: "shared",
++      status: "active",
++      enabled: true,
++      config: { templateId: TEMPLATE_KEY },
++      transportConfig: {},
++      credentialSecretRefs: refs,
++      healthStatus: "ok",
++    })
++    .returning();
++
++  const [grant] = await db
++    .insert(connectionGrants)
++    .values({
++      companyId: company!.id,
++      connectionId: connection!.id,
++      kind: "organization",
++      credentialSecretRefs: refs,
++      status: "active",
++      isDefault: true,
++    })
++    .returning();
++
++  return {
++    company: company!,
++    application: application!,
++    connection: connection!,
++    grant: grant!,
++    secrets: { authorization, user, app },
++  };
++}
++
++describeEmbeddedPostgres("plugin managed Connection command boundary", () => {
++  let db!: ReturnType<typeof createDb>;
++  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null =
++    null;
++  const previousKeyFile = process.env.PAPERCLIP_SECRETS_MASTER_KEY_FILE;
++  const secretsTmpDir = path.join(
++    os.tmpdir(),
++    "paperclip-managed-connection-" + randomUUID(),
++  );
++
++  beforeAll(async () => {
++    mkdirSync(secretsTmpDir, { recursive: true });
++    process.env.PAPERCLIP_SECRETS_MASTER_KEY_FILE = path.join(
++      secretsTmpDir,
++      "master.key",
++    );
++    tempDb = await startEmbeddedPostgresTestDatabase(
++      "paperclip-managed-connection-",
++    );
++    db = createDb(tempDb.connectionString);
++  }, 20_000);
++
++  afterAll(async () => {
++    await tempDb?.cleanup();
++    if (previousKeyFile === undefined) {
++      delete process.env.PAPERCLIP_SECRETS_MASTER_KEY_FILE;
++    } else {
++      process.env.PAPERCLIP_SECRETS_MASTER_KEY_FILE = previousKeyFile;
++    }
++    rmSync(secretsTmpDir, { recursive: true, force: true });
++  });
++
++  function services() {
++    return buildHostServices(
++      db,
++      "plugin-record-id",
++      "wandora.organization-adapter-v1",
++      createEventBusStub(),
++    );
++  }
++
++  it("inspects and atomically replaces all three existing credentials without returning secret material", async () => {
++    const seeded = await seedDeclaredConnection(db, "success");
++    const host = services();
++    const values = {
++      authorizationToken: "new-auth-success",
++      user: "new-user-success",
++      app: "new-app-success",
++    };
++
++    try {
++      await expect(
++        host.toolAccess.manageDeclaredConnection({
++          companyId: seeded.company.id,
++          declarationKey: DECLARATION_KEY,
++          operation: "inspect",
++        }),
++      ).resolves.toEqual({
++        declarationKey: DECLARATION_KEY,
++        state: "connected",
++        healthStatus: "ok",
++        credentialsUpdated: false,
++      });
++
++      const result = await host.toolAccess.manageDeclaredConnection({
++        companyId: seeded.company.id,
++        declarationKey: DECLARATION_KEY,
++        operation: "replace_credentials",
++        credentialValues: values,
++      });
++      expect(result).toEqual({
++        declarationKey: DECLARATION_KEY,
++        state: "needs_attention",
++        healthStatus: "unchecked",
++        credentialsUpdated: true,
++      });
++
++      const ids = [
++        seeded.secrets.authorization.id,
++        seeded.secrets.user.id,
++        seeded.secrets.app.id,
++      ];
++      const rotated = await db
++        .select({
++          id: companySecrets.id,
++          latestVersion: companySecrets.latestVersion,
++        })
++        .from(companySecrets)
++        .where(inArray(companySecrets.id, ids));
++      expect(rotated).toHaveLength(3);
++      expect(rotated.every((row) => row.latestVersion === 2)).toBe(true);
++
++      const [connection] = await db
++        .select()
++        .from(toolConnections)
++        .where(eq(toolConnections.id, seeded.connection.id));
++      expect(connection!.healthStatus).toBe("unchecked");
++      expect(connection!.credentialSecretRefs).toEqual(
++        seeded.connection.credentialSecretRefs,
++      );
++
++      await expect(
++        host.toolAccess.manageDeclaredConnection({
++          companyId: seeded.company.id,
++          declarationKey: DECLARATION_KEY,
++          operation: "health",
++        }),
++      ).resolves.toEqual({
++        declarationKey: DECLARATION_KEY,
++        state: "connected",
++        healthStatus: "ok",
++        credentialsUpdated: false,
++      });
++
++      const versions = await db
++        .select()
++        .from(companySecretVersions)
++        .where(inArray(companySecretVersions.secretId, ids));
++      expect(versions).toHaveLength(6);
++
++      const audit = await db
++        .select()
++        .from(toolAccessAuditEvents)
++        .where(eq(toolAccessAuditEvents.connectionId, seeded.connection.id));
++      expect(audit).toEqual(
++        expect.arrayContaining([
++          expect.objectContaining({
++            actorType: "plugin",
++            actorId: "wandora.organization-adapter-v1",
++            action: "tool_connection.credentials_replaced",
++            outcome: "success",
++          }),
++          expect.objectContaining({
++            action: "tool_connection.health_check",
++            outcome: "success",
++          }),
++        ]),
++      );
++
++      const serialized = JSON.stringify({
++        result,
++        connection,
++        versions: versions.map((version) => version.material),
++        audit,
++      });
++      expect(serialized).not.toContain(values.authorizationToken);
++      expect(serialized).not.toContain(values.user);
++      expect(serialized).not.toContain(values.app);
++      expect(ids.some((id) => JSON.stringify(result).includes(id))).toBe(false);
++      expect(JSON.stringify(result)).not.toMatch(
++        /secretId|connectionId|grantId|applicationId/i,
++      );
++    } finally {
++      host.dispose();
++    }
++  });
++
++  it("rolls back earlier rotations when the third secret version insert fails", async () => {
++    const seeded = await seedDeclaredConnection(db, "rollback");
++    await db.insert(companySecretVersions).values({
++      secretId: seeded.secrets.app.id,
++      version: 2,
++      material: { fixture: "preexisting-conflict" },
++      valueSha256: "fixture-value-sha",
++      fingerprintSha256: "fixture-fingerprint-sha",
++      status: "current",
++    });
++
++    const host = services();
++    try {
++      await expect(
++        host.toolAccess.manageDeclaredConnection({
++          companyId: seeded.company.id,
++          declarationKey: DECLARATION_KEY,
++          operation: "replace_credentials",
++          credentialValues: {
++            authorizationToken: "new-auth-rollback",
++            user: "new-user-rollback",
++            app: "new-app-rollback",
++          },
++        }),
++      ).rejects.toThrow();
++
++      const ids = [
++        seeded.secrets.authorization.id,
++        seeded.secrets.user.id,
++        seeded.secrets.app.id,
++      ];
++      const rows = await db
++        .select({
++          id: companySecrets.id,
++          latestVersion: companySecrets.latestVersion,
++        })
++        .from(companySecrets)
++        .where(inArray(companySecrets.id, ids));
++      expect(rows).toHaveLength(3);
++      expect(rows.every((row) => row.latestVersion === 1)).toBe(true);
++
++      const authVersions = await db
++        .select()
++        .from(companySecretVersions)
++        .where(
++          eq(
++            companySecretVersions.secretId,
++            seeded.secrets.authorization.id,
++          ),
++        );
++      const userVersions = await db
++        .select()
++        .from(companySecretVersions)
++        .where(eq(companySecretVersions.secretId, seeded.secrets.user.id));
++      expect(authVersions.map((row) => row.version)).toEqual([1]);
++      expect(userVersions.map((row) => row.version)).toEqual([1]);
++
++      const [connection] = await db
++        .select()
++        .from(toolConnections)
++        .where(eq(toolConnections.id, seeded.connection.id));
++      expect(connection!.healthStatus).toBe("ok");
++
++      const audit = await db
++        .select()
++        .from(toolAccessAuditEvents)
++        .where(eq(toolAccessAuditEvents.connectionId, seeded.connection.id));
++      expect(audit).toHaveLength(0);
++    } finally {
++      host.dispose();
++    }
++  });
++
++  it("fails closed on declaration mismatch and delegates disconnect to native removal", async () => {
++    const seeded = await seedDeclaredConnection(db, "disconnect");
++    const host = services();
++
++    try {
++      await expect(
++        host.toolAccess.manageDeclaredConnection({
++          companyId: seeded.company.id,
++          declarationKey: "wandora.unknown",
++          operation: "inspect",
++        }),
++      ).rejects.toThrow("Managed Connection declaration is not available");
++
++      const result = await host.toolAccess.manageDeclaredConnection({
++        companyId: seeded.company.id,
++        declarationKey: DECLARATION_KEY,
++        operation: "disconnect",
++      });
++      expect(result).toEqual({
++        declarationKey: DECLARATION_KEY,
++        state: "disconnected",
++        healthStatus: null,
++        credentialsUpdated: false,
++      });
++
++      const [connection] = await db
++        .select()
++        .from(toolConnections)
++        .where(eq(toolConnections.id, seeded.connection.id));
++      expect(connection!.status).toBe("archived");
++      expect(connection!.enabled).toBe(false);
++
++      const [grant] = await db
++        .select()
++        .from(connectionGrants)
++        .where(eq(connectionGrants.id, seeded.grant.id));
++      expect(grant!.status).toBe("revoked");
++      expect(grant!.isDefault).toBe(false);
++
++      await expect(
++        host.toolAccess.manageDeclaredConnection({
++          companyId: seeded.company.id,
++          declarationKey: DECLARATION_KEY,
++          operation: "inspect",
++        }),
++      ).resolves.toEqual({
++        declarationKey: DECLARATION_KEY,
++        state: "disconnected",
++        healthStatus: null,
++        credentialsUpdated: false,
++      });
++    } finally {
++      host.dispose();
++    }
++  });
++});
+diff --git a/server/src/services/plugin-host-services.ts b/server/src/services/plugin-host-services.ts
+index 263be7d06..ac0c293bb 100644
+--- a/server/src/services/plugin-host-services.ts
++++ b/server/src/services/plugin-host-services.ts
+@@ -5,6 +5,9 @@ import {
+   agents as agentsTable,
+   budgetIncidents,
+   companyMemberships,
++  companySecretBindings,
++  companySecrets,
++  connectionGrants,
+   costEvents,
+   heartbeatRuns,
+   invites,
+@@ -12,6 +15,10 @@ import {
+   pluginLogs,
+   principalPermissionGrants,
+   projects as projectsTable,
++  toolAccessAuditEvents,
++  toolApplications,
++  toolConnections,
++  toolStdioCommandTemplates,
+ } from "@paperclipai/db";
+ import { eq, and, like, desc, inArray, sql, isNull, isNotNull, gt, lte } from "drizzle-orm";
+ import type {
+@@ -78,6 +85,7 @@ import { getTelemetryClient } from "../telemetry.js";
+ import { accessService } from "./access.js";
+ import { authorizationService, type AuthorizationActor } from "./authorization.js";
+ import { toolAccessService } from "./tool-access.js";
++import { secretService } from "./secrets.js";
+ import { redactEventPayload, sanitizeRecord } from "../redaction.js";
+ import type { WorkerHostCallContext } from "@paperclipai/plugin-sdk";
+ import {
+@@ -694,6 +702,165 @@ export function recordWorkerProviderSpan(
+   });
+ }
+ 
++
++const WANDORA_ORGANIZATION_ADAPTER_PLUGIN_KEY = "wandora.organization-adapter-v1";
++const WANDORA_28PRO_DECLARATION_KEY = "wandora.28pro.vendaerp-readonly-v1";
++const WANDORA_28PRO_APPLICATION_KEY = "wandora.vendaerp-readonly-v1";
++const WANDORA_28PRO_TEMPLATE_KEY = "wandora.vendaerp-readonly-v1-r1";
++const WANDORA_28PRO_TEMPLATE_COMMAND = "node";
++const WANDORA_28PRO_TEMPLATE_ARGS = [
++  "/opt/wandora/integrations/vendaerp-readonly-mcp/server.mjs",
++  "--tenant",
++  "voepro",
++];
++const WANDORA_28PRO_ENV_KEYS = [
++  "VENDAERP_AUTHORIZATION_TOKEN",
++  "VENDAERP_USER",
++  "VENDAERP_APP",
++] as const;
++const WANDORA_28PRO_CREDENTIAL_PATHS = WANDORA_28PRO_ENV_KEYS.map(
++  (key) => "env." + key,
++);
++const WANDORA_28PRO_TOOL_NAMES = [
++  "vendaerp_probe",
++  "vendaerp_list_companies",
++  "vendaerp_search_products",
++  "vendaerp_get_product_stock",
++  "vendaerp_list_price_tables",
++  "vendaerp_search_price_table_products",
++  "vendaerp_search_parties",
++  "vendaerp_search_orders",
++] as const;
++
++function exactStringArray(actual: unknown, expected: readonly string[]): boolean {
++  return (
++    Array.isArray(actual) &&
++    actual.length === expected.length &&
++    actual.every((value, index) => value === expected[index])
++  );
++}
++
++function exact28ProTools(actual: unknown): boolean {
++  if (!Array.isArray(actual) || actual.length !== WANDORA_28PRO_TOOL_NAMES.length) {
++    return false;
++  }
++  const expected = new Set<string>(WANDORA_28PRO_TOOL_NAMES);
++  const seen = new Set<string>();
++  for (const raw of actual) {
++    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return false;
++    const tool = raw as Record<string, unknown>;
++    if (typeof tool.name !== "string" || !expected.has(tool.name) || seen.has(tool.name)) {
++      return false;
++    }
++    const annotations =
++      tool.annotations && typeof tool.annotations === "object" && !Array.isArray(tool.annotations)
++        ? (tool.annotations as Record<string, unknown>)
++        : {};
++    if (
++      annotations.readOnlyHint !== true ||
++      annotations.destructiveHint !== false
++    ) {
++      return false;
++    }
++    seen.add(tool.name);
++  }
++  return seen.size === WANDORA_28PRO_TOOL_NAMES.length;
++}
++
++function credentialRefMap(
++  refs: Array<{
++    secretId: string;
++    configPath: string;
++    versionSelector?: number | "latest";
++    required?: boolean;
++  }>,
++): Map<string, string> {
++  if (refs.length !== WANDORA_28PRO_CREDENTIAL_PATHS.length) {
++    throw new Error("Managed 28PRO credential reference shape is incompatible");
++  }
++  const mapped = new Map<string, string>();
++  for (const ref of refs) {
++    if (ref.versionSelector !== "latest" || ref.required !== true) {
++      throw new Error("Managed 28PRO credential reference mode is incompatible");
++    }
++    if (!WANDORA_28PRO_CREDENTIAL_PATHS.includes(ref.configPath)) {
++      throw new Error("Managed 28PRO credential reference path is incompatible");
++    }
++    if (mapped.has(ref.configPath)) {
++      throw new Error("Managed 28PRO credential reference path is duplicated");
++    }
++    mapped.set(ref.configPath, ref.secretId);
++  }
++  if (mapped.size !== WANDORA_28PRO_CREDENTIAL_PATHS.length) {
++    throw new Error("Managed 28PRO credential reference set is incomplete");
++  }
++  return mapped;
++}
++
++function sameCredentialRefs(
++  left: Map<string, string>,
++  right: Map<string, string>,
++): boolean {
++  return WANDORA_28PRO_CREDENTIAL_PATHS.every(
++    (path) => left.get(path) === right.get(path),
++  );
++}
++
++function assertManagedConnectionCommandShape(
++  params: {
++    companyId: string;
++    declarationKey: string;
++    operation: string;
++    credentialValues?: unknown;
++  } & Record<string, unknown>,
++) {
++  const topLevel = new Set([
++    "companyId",
++    "declarationKey",
++    "operation",
++    "credentialValues",
++  ]);
++  for (const key of Object.keys(params)) {
++    if (!topLevel.has(key)) {
++      throw new Error("Unsupported managed Connection command field: " + key);
++    }
++  }
++  if (params.declarationKey !== WANDORA_28PRO_DECLARATION_KEY) {
++    throw new Error("Managed Connection declaration is not available");
++  }
++  if (
++    !["inspect", "replace_credentials", "health", "disconnect"].includes(
++      params.operation,
++    )
++  ) {
++    throw new Error("Managed Connection operation is not available");
++  }
++  if (params.operation === "replace_credentials") {
++    const values = params.credentialValues;
++    if (!values || typeof values !== "object" || Array.isArray(values)) {
++      throw new Error("All managed 28PRO credential values are required");
++    }
++    const keys = Object.keys(values as Record<string, unknown>).sort();
++    const expected = ["app", "authorizationToken", "user"];
++    if (
++      keys.length !== expected.length ||
++      keys.some((key, index) => key !== expected[index]) ||
++      expected.some(
++        (key) =>
++          typeof (values as Record<string, unknown>)[key] !== "string" ||
++          ((values as Record<string, unknown>)[key] as string).trim().length === 0 ||
++          ((values as Record<string, unknown>)[key] as string).length > 16_384,
++      )
++    ) {
++      throw new Error("All managed 28PRO credential values are required");
++    }
++  } else if (params.credentialValues !== undefined) {
++    throw new Error(
++      "Credential values are accepted only for managed credential replacement",
++    );
++  }
++}
++
+ export function buildHostServices(
+   db: Db,
+   pluginId: string,
+@@ -769,6 +936,131 @@ export function buildHostServices(
+     return companyId;
+   };
+ 
++  const resolveDeclared28ProConnection = async (
++    companyId: string,
++    options: { allowArchived?: boolean } = {},
++  ) => {
++    const applications = await db
++      .select()
++      .from(toolApplications)
++      .where(
++        and(
++          eq(toolApplications.companyId, companyId),
++          eq(toolApplications.applicationKey, WANDORA_28PRO_APPLICATION_KEY),
++        ),
++      )
++      .limit(2);
++    if (applications.length !== 1) {
++      throw new Error("Managed 28PRO application identity is not unique");
++    }
++    const application = applications[0]!;
++
++    const connections = await db
++      .select()
++      .from(toolConnections)
++      .where(
++        and(
++          eq(toolConnections.companyId, companyId),
++          eq(toolConnections.applicationId, application.id),
++        ),
++      )
++      .limit(2);
++    if (connections.length !== 1) {
++      throw new Error("Managed 28PRO Connection identity is not unique");
++    }
++    const connection = connections[0]!;
++    const config =
++      connection.config && typeof connection.config === "object"
++        ? connection.config
++        : {};
++
++    if (
++      application.type !== "mcp_stdio" ||
++      connection.connectionKind !== "managed" ||
++      connection.connectionPurpose !== "tool" ||
++      connection.ownership !== "customer" ||
++      connection.transport !== "local_stdio" ||
++      connection.credentialSource !== "paperclip_vault" ||
++      connection.credentialPolicy !== "shared" ||
++      config.templateId !== WANDORA_28PRO_TEMPLATE_KEY
++    ) {
++      throw new Error("Managed 28PRO Connection shape is incompatible");
++    }
++
++    if (connection.status === "archived") {
++      if (options.allowArchived) {
++        return {
++          application,
++          connection,
++          organizationGrant: null,
++          credentialRefs: new Map<string, string>(),
++        };
++      }
++      throw new Error("Managed 28PRO Connection is disconnected");
++    }
++
++    const templates = await db
++      .select()
++      .from(toolStdioCommandTemplates)
++      .where(
++        and(
++          eq(toolStdioCommandTemplates.companyId, companyId),
++          eq(
++            toolStdioCommandTemplates.templateKey,
++            WANDORA_28PRO_TEMPLATE_KEY,
++          ),
++        ),
++      )
++      .limit(2);
++    if (templates.length !== 1) {
++      throw new Error("Managed 28PRO stdio template identity is not unique");
++    }
++    const template = templates[0]!;
++    if (
++      template.status !== "active" ||
++      template.command !== WANDORA_28PRO_TEMPLATE_COMMAND ||
++      !exactStringArray(template.args, WANDORA_28PRO_TEMPLATE_ARGS) ||
++      !exactStringArray(template.envKeys, WANDORA_28PRO_ENV_KEYS) ||
++      !exact28ProTools(template.tools)
++    ) {
++      throw new Error("Managed 28PRO stdio template shape is incompatible");
++    }
++
++    const grants = await db
++      .select()
++      .from(connectionGrants)
++      .where(
++        and(
++          eq(connectionGrants.companyId, companyId),
++          eq(connectionGrants.connectionId, connection.id),
++          eq(connectionGrants.status, "active"),
++        ),
++      )
++      .limit(2);
++    if (grants.length !== 1) {
++      throw new Error("Managed 28PRO organization grant is not unique");
++    }
++    const organizationGrant = grants[0]!;
++    if (
++      organizationGrant.kind !== "organization" ||
++      !organizationGrant.isDefault
++    ) {
++      throw new Error("Managed 28PRO organization grant shape is incompatible");
++    }
++    const connectionRefs = credentialRefMap(connection.credentialSecretRefs);
++    const grantRefs = credentialRefMap(organizationGrant.credentialSecretRefs);
++    if (!sameCredentialRefs(connectionRefs, grantRefs)) {
++      throw new Error("Managed 28PRO credential references do not match");
++    }
++
++    return {
++      application,
++      connection,
++      organizationGrant,
++      credentialRefs: connectionRefs,
++    };
++  };
++
+   const parseWindowValue = (value: unknown): number | null => {
+     if (typeof value === "number" && Number.isFinite(value)) {
+       return Math.max(0, Math.floor(value));
+@@ -1584,6 +1876,346 @@ export function buildHostServices(
+           connections: projectedConnections,
+         };
+       },
++
++      async manageDeclaredConnection(params) {
++        const companyId = ensureCompanyId(params.companyId);
++        await ensurePluginAvailableForCompany(companyId);
++        if (pluginKey !== WANDORA_ORGANIZATION_ADAPTER_PLUGIN_KEY) {
++          throw new Error("Managed Connection declaration is not available to this plugin");
++        }
++        assertManagedConnectionCommandShape(
++          params as typeof params & Record<string, unknown>,
++        );
++
++        const declarationKey = WANDORA_28PRO_DECLARATION_KEY;
++        const actor = { actorType: "plugin" as const, actorId: pluginKey };
++
++        if (params.operation === "inspect") {
++          const resolved = await resolveDeclared28ProConnection(companyId, {
++            allowArchived: true,
++          });
++          if (resolved.connection.status === "archived") {
++            return {
++              declarationKey,
++              state: "disconnected" as const,
++              healthStatus: null,
++              credentialsUpdated: false,
++            };
++          }
++          return {
++            declarationKey,
++            state:
++              resolved.connection.status === "active" &&
++              resolved.connection.enabled &&
++              resolved.connection.healthStatus === "ok"
++                ? ("connected" as const)
++                : ("needs_attention" as const),
++            healthStatus: resolved.connection.healthStatus,
++            credentialsUpdated: false,
++          };
++        }
++
++        if (params.operation === "replace_credentials") {
++          const resolved = await resolveDeclared28ProConnection(companyId);
++          const credentialValues = params.credentialValues!;
++          const inputByPath = new Map<string, string>([
++            [
++              "env.VENDAERP_AUTHORIZATION_TOKEN",
++              credentialValues.authorizationToken.trim(),
++            ],
++            ["env.VENDAERP_USER", credentialValues.user.trim()],
++            ["env.VENDAERP_APP", credentialValues.app.trim()],
++          ]);
++
++          await db.transaction(async (tx) => {
++            const [lockedApplication] = await tx
++              .select()
++              .from(toolApplications)
++              .where(
++                and(
++                  eq(toolApplications.id, resolved.application.id),
++                  eq(toolApplications.companyId, companyId),
++                  eq(
++                    toolApplications.applicationKey,
++                    WANDORA_28PRO_APPLICATION_KEY,
++                  ),
++                ),
++              )
++              .limit(1)
++              .for("update");
++            const [lockedConnection] = await tx
++              .select()
++              .from(toolConnections)
++              .where(
++                and(
++                  eq(toolConnections.id, resolved.connection.id),
++                  eq(toolConnections.companyId, companyId),
++                  eq(toolConnections.applicationId, resolved.application.id),
++                ),
++              )
++              .limit(1)
++              .for("update");
++            const [lockedGrant] = await tx
++              .select()
++              .from(connectionGrants)
++              .where(
++                and(
++                  eq(connectionGrants.id, resolved.organizationGrant!.id),
++                  eq(connectionGrants.companyId, companyId),
++                  eq(
++                    connectionGrants.connectionId,
++                    resolved.connection.id,
++                  ),
++                ),
++              )
++              .limit(1)
++              .for("update");
++            const [lockedTemplate] = await tx
++              .select()
++              .from(toolStdioCommandTemplates)
++              .where(
++                and(
++                  eq(toolStdioCommandTemplates.companyId, companyId),
++                  eq(
++                    toolStdioCommandTemplates.templateKey,
++                    WANDORA_28PRO_TEMPLATE_KEY,
++                  ),
++                ),
++              )
++              .limit(1)
++              .for("update");
++
++            const lockedConfig =
++              lockedConnection?.config &&
++              typeof lockedConnection.config === "object"
++                ? lockedConnection.config
++                : {};
++            if (
++              !lockedApplication ||
++              !lockedConnection ||
++              !lockedGrant ||
++              !lockedTemplate ||
++              lockedApplication.type !== "mcp_stdio" ||
++              lockedConnection.connectionKind !== "managed" ||
++              lockedConnection.connectionPurpose !== "tool" ||
++              lockedConnection.ownership !== "customer" ||
++              lockedConnection.transport !== "local_stdio" ||
++              lockedConnection.credentialSource !== "paperclip_vault" ||
++              lockedConnection.credentialPolicy !== "shared" ||
++              lockedConnection.status !== "active" ||
++              !lockedConnection.enabled ||
++              lockedConfig.templateId !== WANDORA_28PRO_TEMPLATE_KEY ||
++              lockedGrant.kind !== "organization" ||
++              lockedGrant.status !== "active" ||
++              !lockedGrant.isDefault ||
++              lockedTemplate.status !== "active" ||
++              lockedTemplate.command !== WANDORA_28PRO_TEMPLATE_COMMAND ||
++              !exactStringArray(
++                lockedTemplate.args,
++                WANDORA_28PRO_TEMPLATE_ARGS,
++              ) ||
++              !exactStringArray(
++                lockedTemplate.envKeys,
++                WANDORA_28PRO_ENV_KEYS,
++              ) ||
++              !exact28ProTools(lockedTemplate.tools)
++            ) {
++              throw new Error(
++                "Managed 28PRO Connection changed during credential replacement",
++              );
++            }
++
++            const connectionRefs = credentialRefMap(
++              lockedConnection.credentialSecretRefs,
++            );
++            const grantRefs = credentialRefMap(
++              lockedGrant.credentialSecretRefs,
++            );
++            if (!sameCredentialRefs(connectionRefs, grantRefs)) {
++              throw new Error(
++                "Managed 28PRO credential references changed during replacement",
++              );
++            }
++
++            const secretIds = WANDORA_28PRO_CREDENTIAL_PATHS.map(
++              (path) => connectionRefs.get(path)!,
++            );
++            const lockedSecrets = await tx
++              .select()
++              .from(companySecrets)
++              .where(
++                and(
++                  eq(companySecrets.companyId, companyId),
++                  inArray(companySecrets.id, secretIds),
++                ),
++              )
++              .for("update");
++            if (lockedSecrets.length !== secretIds.length) {
++              throw new Error("Managed 28PRO credential set is incomplete");
++            }
++            const secretsById = new Map(
++              lockedSecrets.map((secret) => [secret.id, secret]),
++            );
++            for (const secretId of secretIds) {
++              const secret = secretsById.get(secretId);
++              if (
++                !secret ||
++                secret.scope !== "company" ||
++                secret.provider !== "local_encrypted" ||
++                secret.status !== "active" ||
++                secret.deletedAt !== null
++              ) {
++                throw new Error(
++                  "Managed 28PRO credential custody is incompatible",
++                );
++              }
++            }
++
++            const secretIdSet = new Set(secretIds);
++            const [companyConnectionRefs, companyGrantRefs, secretBindings] =
++              await Promise.all([
++                tx
++                  .select({
++                    id: toolConnections.id,
++                    credentialSecretRefs:
++                      toolConnections.credentialSecretRefs,
++                  })
++                  .from(toolConnections)
++                  .where(eq(toolConnections.companyId, companyId))
++                  .for("share"),
++                tx
++                  .select({
++                    id: connectionGrants.id,
++                    credentialSecretRefs:
++                      connectionGrants.credentialSecretRefs,
++                  })
++                  .from(connectionGrants)
++                  .where(eq(connectionGrants.companyId, companyId))
++                  .for("share"),
++                tx
++                  .select()
++                  .from(companySecretBindings)
++                  .where(
++                    and(
++                      eq(companySecretBindings.companyId, companyId),
++                      inArray(companySecretBindings.secretId, secretIds),
++                    ),
++                  )
++                  .for("share"),
++              ]);
++
++            const referencesManagedSecret = (
++              refs: Array<{ secretId: string }>,
++            ) => refs.some((ref) => secretIdSet.has(ref.secretId));
++            if (
++              companyConnectionRefs.some(
++                (row) =>
++                  row.id !== lockedConnection.id &&
++                  referencesManagedSecret(row.credentialSecretRefs),
++              ) ||
++              companyGrantRefs.some(
++                (row) =>
++                  row.id !== lockedGrant.id &&
++                  referencesManagedSecret(row.credentialSecretRefs),
++              ) ||
++              secretBindings.some(
++                (binding) =>
++                  binding.targetType !== "tool_connection" ||
++                  binding.targetId !== lockedConnection.id ||
++                  binding.versionSelector !== "latest" ||
++                  !binding.required ||
++                  connectionRefs.get(binding.configPath) !== binding.secretId,
++              )
++            ) {
++              throw new Error(
++                "Managed 28PRO credentials are shared outside the declared Connection",
++              );
++            }
++
++            const txSecrets = secretService(tx);
++            for (const path of WANDORA_28PRO_CREDENTIAL_PATHS) {
++              const secretId = connectionRefs.get(path)!;
++              const secret = secretsById.get(secretId)!;
++              await txSecrets.rotate(secretId, {
++                value: inputByPath.get(path)!,
++                expectedLatestVersion: secret.latestVersion,
++              });
++            }
++
++            await tx
++              .update(toolConnections)
++              .set({
++                healthStatus: "unchecked",
++                healthMessage:
++                  "Credentials updated; connection validation is pending.",
++                healthCheckedAt: null,
++                lastHealthAt: null,
++                lastError: null,
++                updatedAt: new Date(),
++              })
++              .where(
++                and(
++                  eq(toolConnections.id, lockedConnection.id),
++                  eq(toolConnections.companyId, companyId),
++                ),
++              );
++
++            await tx.insert(toolAccessAuditEvents).values({
++              companyId,
++              connectionId: lockedConnection.id,
++              actorType: "plugin",
++              actorId: pluginKey,
++              action: "tool_connection.credentials_replaced",
++              outcome: "success",
++              details: {
++                declarationKey,
++                credentialCount: WANDORA_28PRO_CREDENTIAL_PATHS.length,
++              },
++            });
++          });
++
++          return {
++            declarationKey,
++            state: "needs_attention" as const,
++            healthStatus: "unchecked" as const,
++            credentialsUpdated: true,
++          };
++        }
++
++        if (params.operation === "health") {
++          const resolved = await resolveDeclared28ProConnection(companyId);
++          const health = await toolAccess.checkHealth(
++            resolved.connection.id,
++            actor,
++          );
++          return {
++            declarationKey,
++            state:
++              health.connection.status === "active" &&
++              health.connection.enabled &&
++              health.connection.healthStatus === "ok"
++                ? ("connected" as const)
++                : ("needs_attention" as const),
++            healthStatus: health.connection.healthStatus,
++            credentialsUpdated: false,
++          };
++        }
++
++        const resolved = await resolveDeclared28ProConnection(companyId, {
++          allowArchived: true,
++        });
++        await toolAccess.archiveConnection(
++          resolved.connection.id,
++          companyId,
++          actor,
++        );
++        return {
++          declarationKey,
++          state: "disconnected" as const,
++          healthStatus: null,
++          credentialsUpdated: false,
++        };
++      },
+     },
+ 
+     state: {
