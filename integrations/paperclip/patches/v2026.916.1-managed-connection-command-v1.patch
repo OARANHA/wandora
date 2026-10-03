@@ -826,7 +826,7 @@ index 263be7d06..ac0c293bb 100644
 +  refs: Array<{
 +    secretId: string;
 +    configPath: string;
-+    versionSelector?: string | null;
++    versionSelector?: number | "latest";
 +    required?: boolean;
 +  }>,
 +): Map<string, string> {
@@ -866,7 +866,7 @@ index 263be7d06..ac0c293bb 100644
 +    companyId: string;
 +    declarationKey: string;
 +    operation: string;
-+    credentialValues?: Record<string, unknown>;
++    credentialValues?: unknown;
 +  } & Record<string, unknown>,
 +) {
 +  const topLevel = new Set([
@@ -895,16 +895,17 @@ index 263be7d06..ac0c293bb 100644
 +    if (!values || typeof values !== "object" || Array.isArray(values)) {
 +      throw new Error("All managed 28PRO credential values are required");
 +    }
-+    const keys = Object.keys(values).sort();
++    const credentialRecord = values as Record<string, unknown>;
++    const keys = Object.keys(credentialRecord).sort();
 +    const expected = ["app", "authorizationToken", "user"];
 +    if (
 +      keys.length !== expected.length ||
 +      keys.some((key, index) => key !== expected[index]) ||
 +      expected.some(
 +        (key) =>
-+          typeof values[key] !== "string" ||
-+          (values[key] as string).trim().length === 0 ||
-+          (values[key] as string).length > 16_384,
++          typeof credentialRecord[key] !== "string" ||
++          (credentialRecord[key] as string).trim().length === 0 ||
++          (credentialRecord[key] as string).length > 16_384,
 +      )
 +    ) {
 +      throw new Error("All managed 28PRO credential values are required");
