@@ -190,7 +190,7 @@ Incremental patch:
 
 SHA-256:
 
-`9b28a5990d48b93a265048f4972c92d3320b1c61669ced8a10c2878ce5a5f8b7`
+`d06d369bf29d0177f054d8e16f483bd6e57544b96e817dd324e9eb86801e5fc1`
 
 It must be applied after the immutable ADR 0281 host-operational-read patch.
 
@@ -203,6 +203,14 @@ Full local dependency installation/typecheck/test was **not** accepted as qualif
 Therefore GitHub-hosted ADR 0158 CI under Ubuntu 24.04 / Node 24 is the execution authority for this code candidate.
 
 Current status remains **CI PENDING**.
+
+### CI iteration 1
+
+PR #404 run `37120145953` passed exact patch application, the static authority/leak verifier, dependency installation and plugin SDK typecheck, then failed only at server TypeScript typecheck.
+
+The failure was type-contract-only: the helper had narrowed native `ToolCredentialSecretRef.versionSelector` to `string | null` even though the exact pin defines `number | "latest"`, and it required an index signature from the typed credential-value object. The patch was corrected to accept the native union while still requiring runtime `"latest"`, and to treat credential input as `unknown` until its existing exact-key runtime validation. No capability, authority, transaction, redaction or runtime behavior changed.
+
+The retained patch digest below is the post-fix digest; qualification remains **CI PENDING** until GitHub-hosted CI is GREEN.
 
 ## Explicit non-decisions / deferred work
 
