@@ -190,7 +190,7 @@ Incremental patch:
 
 SHA-256:
 
-`d06d369bf29d0177f054d8e16f483bd6e57544b96e817dd324e9eb86801e5fc1`
+`d6b80340be751628fc75a4e4ff17810ac2b9a11c06a17b01a82c5a427bc8c48a`
 
 It must be applied after the immutable ADR 0281 host-operational-read patch.
 
@@ -211,6 +211,14 @@ PR #404 run `37120145953` passed exact patch application, the static authority/l
 The failure was type-contract-only: the helper had narrowed native `ToolCredentialSecretRef.versionSelector` to `string | null` even though the exact pin defines `number | "latest"`, and it required an index signature from the typed credential-value object. The patch was corrected to accept the native union while still requiring runtime `"latest"`, and to treat credential input as `unknown` until its existing exact-key runtime validation. No capability, authority, transaction, redaction or runtime behavior changed.
 
 The retained patch digest below is the post-fix digest; qualification remains **CI PENDING** until GitHub-hosted CI is GREEN.
+
+### CI iteration 2
+
+PR #404 run `37120764207` failed before Node setup because the retained unified diff was syntactically corrupt at the next hunk boundary. The prior type-only repair had inserted one extra line into an existing hunk without regenerating its line-count header.
+
+The repair removes that extra line and performs the same safe cast inline, preserving the original hunk line count. A repository-side unified-diff validator confirmed every hunk old/new count before commit. Runtime behavior, authority, transaction semantics and the `latest` credential-ref requirement remain unchanged.
+
+Qualification remains **CI PENDING** until GitHub-hosted CI is GREEN.
 
 ## Explicit non-decisions / deferred work
 

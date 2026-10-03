@@ -895,17 +895,16 @@ index 263be7d06..ac0c293bb 100644
 +    if (!values || typeof values !== "object" || Array.isArray(values)) {
 +      throw new Error("All managed 28PRO credential values are required");
 +    }
-+    const credentialRecord = values as Record<string, unknown>;
-+    const keys = Object.keys(credentialRecord).sort();
++    const keys = Object.keys(values as Record<string, unknown>).sort();
 +    const expected = ["app", "authorizationToken", "user"];
 +    if (
 +      keys.length !== expected.length ||
 +      keys.some((key, index) => key !== expected[index]) ||
 +      expected.some(
 +        (key) =>
-+          typeof credentialRecord[key] !== "string" ||
-+          (credentialRecord[key] as string).trim().length === 0 ||
-+          (credentialRecord[key] as string).length > 16_384,
++          typeof (values as Record<string, unknown>)[key] !== "string" ||
++          ((values as Record<string, unknown>)[key] as string).trim().length === 0 ||
++          ((values as Record<string, unknown>)[key] as string).length > 16_384,
 +      )
 +    ) {
 +      throw new Error("All managed 28PRO credential values are required");

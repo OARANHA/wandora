@@ -10,7 +10,7 @@ The revised candidate adds only a provider-side, capability-gated existing-Conne
 
 Credential replacement requalifies and locks the exact legacy 28PRO Application/Connection/default organization grant/template/three company-scoped `local_encrypted` secrets, proves the secret IDs are not shared with other Connections/grants, then rotates all three existing identities through `secretService(tx)` with `expectedLatestVersion` inside one outer transaction. Failure on any later rotation/CAS/write rolls the whole set back. Connection health becomes `unchecked` until an explicit native local-stdio health check succeeds.
 
-The retained incremental patch is `integrations/paperclip/patches/v2026.916.1-managed-connection-command-v1.patch`, SHA-256 `d06d369bf29d0177f054d8e16f483bd6e57544b96e817dd324e9eb86801e5fc1`, and is valid only after the immutable ADR 0281 patch on exact Paperclip `d554c4789ed3930f8a53ac9fdf6503b3187097da`.
+The retained incremental patch is `integrations/paperclip/patches/v2026.916.1-managed-connection-command-v1.patch`, SHA-256 `d6b80340be751628fc75a4e4ff17810ac2b9a11c06a17b01a82c5a427bc8c48a`, and is valid only after the immutable ADR 0281 patch on exact Paperclip `d554c4789ed3930f8a53ac9fdf6503b3187097da`.
 
 Local `git diff --check` is clean. Full local typecheck/tests are not claimed because the VPS broker repeatedly dropped long dependency-install sessions and its Node 22 host is below the pin's >=24.11 requirement. GitHub-hosted Ubuntu 24.04 / Node 24 CI is the qualification authority.
 

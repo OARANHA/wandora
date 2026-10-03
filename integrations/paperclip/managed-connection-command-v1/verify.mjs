@@ -21,7 +21,7 @@ const expectedUpstream = "d554c4789ed3930f8a53ac9fdf6503b3187097da";
 const expectedHostReadSha =
   "fc0ce000b2fa5051f10fb71cfece71df17e9b4953779486d951b3f2990cd8bfb";
 const expectedCommandSha =
-  "d06d369bf29d0177f054d8e16f483bd6e57544b96e817dd324e9eb86801e5fc1";
+  "d6b80340be751628fc75a4e4ff17810ac2b9a11c06a17b01a82c5a427bc8c48a";
 
 const sha256 = (path) =>
   createHash("sha256").update(readFileSync(path)).digest("hex");
