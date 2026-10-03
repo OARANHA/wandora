@@ -1,24 +1,35 @@
 ## Reconciled checkpoint — ADR 0405 Paperclip Managed Connection Command Host Capability V1
 
-ADR 0405 is **QUALIFIED / EXACT-HEAD CI GREEN / EXISTING-CONNECTION-ONLY / NO PRODUCTION EFFECT / UNMERGED**.
+ADR 0405 is **MERGED / QUALIFIED / EXACT-HEAD CI GREEN / EXISTING-CONNECTION-ONLY / NO PRODUCTION EFFECT**.
 
-Canonical entry remains `main@9eb58cdf29bb15ceec9d150daabeb0b4aa0fdac5`, after ADR 0404 / PR #403 completed 9/9 relevant workflows GREEN and was squash-merged. The Dynamic Managed Employee stack remains separate.
+PR #404 was marked ready only after its documentation head `3f4db1ef2a07760828d65044488d8ca6a7e6cb87` completed **11/11 workflows GREEN**, with no comments, reviews or review threads and with the branch 0 commits behind `main`. It was then squash-merged as `main@1b3e47f188d81d407f89cbe49b988770dec17130`.
 
-The first code decision was deliberately rejected by adversarial review (`deep_review=0.88`) because pinned Paperclip v2026.916.1 does not provide the assumed local-stdio save-draft/no-provider-call create path. New-customer provisioning, AppDefinition/backport and assignment were therefore removed from this slice rather than bypassing Paperclip lifecycle.
+The merged capability remains deliberately limited to the already-existing 28PRO/VendaERP Connection: `inspect`, atomic complete-set `replace_credentials`, structural `health` and native resumable `disconnect`. Paperclip remains authority for Applications, Connections, grants, company secrets, stdio templates, installs/profiles/catalog, health, removal and audit. No Wandora Connection registry, secret store, grant lifecycle, runtime lifecycle, table or migration was introduced.
 
-The revised candidate adds only a provider-side, capability-gated existing-Connection command: `tools.connections.managed` / `ctx.toolAccess.manageDeclaredConnection`, invocation-company scoped and hard-bound to `wandora.organization-adapter-v1` plus declaration `wandora.28pro.vendaerp-readonly-v1`. Allowed operations are `inspect`, atomic complete-set `replace_credentials`, structural `health`, and native resumable `disconnect`.
+The retained incremental patch remains `integrations/paperclip/patches/v2026.916.1-managed-connection-command-v1.patch`, SHA-256 `9154fd2f5fa8364acec3f107ca20c09a00134c1e5e99e79424c2624555b01430`, applied only after the immutable ADR 0281 host-operational-read patch on Paperclip `v2026.916.1@d554c4789ed3930f8a53ac9fdf6503b3187097da`.
 
-Credential replacement requalifies and locks the exact legacy 28PRO Application/Connection/default organization grant/template/three company-scoped `local_encrypted` secrets, proves the secret IDs are not shared with other Connections/grants, then rotates all three existing identities through `secretService(tx)` with `expectedLatestVersion` inside one outer transaction. Failure on any later rotation/CAS/write rolls the whole set back. Connection health becomes `unchecked` until an explicit native local-stdio health check succeeds.
+No deploy, Paperclip/Core restart, migration, real credential mutation, VendaERP/provider call, customer effect or outbound occurred as part of the merge. Merge is source-control closure only.
 
-The retained incremental patch is `integrations/paperclip/patches/v2026.916.1-managed-connection-command-v1.patch`, SHA-256 `9154fd2f5fa8364acec3f107ca20c09a00134c1e5e99e79424c2624555b01430`, and is valid only after the immutable ADR 0281 patch on exact Paperclip `d554c4789ed3930f8a53ac9fdf6503b3187097da`.
+### Next smallest self-service 28PRO boundary
 
-Local `git diff --check` is clean. Full local typecheck/tests are not claimed because the VPS broker repeatedly dropped long dependency-install sessions and its Node 22 host is below the pin's >=24.11 requirement. GitHub-hosted Ubuntu 24.04 / Node 24 CI is the qualification authority.
+Fresh Capability Authority / Reuse Gate against the accepted Paperclip pin proves that the next blocker is **new-customer Connection provisioning inside Paperclip**, not Core/Web self-service and not a Wandora-owned lifecycle.
 
-No production patch, deploy, restart, migration, real secret mutation, VendaERP/provider call, customer work or outbound effect occurred.
+At accepted `v2026.916.1`:
 
-Exact implementation head `f3ee72bc00147c55b01366014b911b50e5df1e13` completed **11/11 workflows GREEN**, including `Paperclip Managed Connection Command V1 CI` run `37122551098` (workflow run #7). PR #404 had no comments, review submissions or review threads at reconciliation.
+- `credentialConfigPath(field)` always maps credential fields to `credentials.<key>`;
+- `credentialFieldsFor(app, methodKey)` does not pass the selected method to that mapper, so `local_stdio + keyPlacement=env` cannot project the required three 28PRO credentials to `env.VENDAERP_AUTHORIZATION_TOKEN`, `env.VENDAERP_USER` and `env.VENDAERP_APP` through the normal gallery path;
+- `connectToolAppSchema` has no `saveDraft` / vault-only setup flag;
+- `connectGalleryApp` already owns creation of Paperclip Applications/Connections/secrets/grants, but normal setup proceeds into health/catalog refresh rather than exposing a bounded no-provider-call `local_stdio` provisioning primitive.
 
-Closure gate: this documentation-only checkpoint creates a new PR head that must itself complete exact-head CI GREEN before PR #404 can leave draft and merge. New-customer Connection provisioning remains a separate future slice.
+Current upstream Paperclip `master@569c7203aa24b95440682983ce7940ba1d4247bd` corroborates the provider-side ownership: it has the method-aware `local_stdio + keyPlacement=env -> env.<KEY>` mapping. Its newer `saveDraft` remains restricted to remote MCP connector methods, so it still does not provide a reusable local-stdio vault-only primitive that can simply replace this gap.
+
+Therefore the next executable slice is:
+
+**Paperclip 28PRO New-Customer Connection Provisioning Primitive Qualification V1 — CODE ONLY / DISPOSABLE TESTS / NO PRODUCTION EFFECT**
+
+That slice must reuse Paperclip's existing Application/Connection/company-secret/grant/template/removal authority and qualify only the missing provider-side boundary needed to create the exact declaration-bound 28PRO `local_stdio` shape safely. It must not accept arbitrary customer URLs/transports/commands/template IDs/Paperclip IDs, must not create Wandora lifecycle/state, and must not proceed to Organization Adapter command wiring or Core/Web self-service until this provider primitive is GREEN.
+
+The second adversarial review of this boundary returned `proceed_fast=0.70`, `deep_review=0.28`, `block=0.01`: no evidence justified moving lifecycle into Wandora or skipping the provider primitive qualification.
 
 ## Reconciled checkpoint — ADR 0404 Customer 28PRO Self-Service Connection provider command boundary
 
