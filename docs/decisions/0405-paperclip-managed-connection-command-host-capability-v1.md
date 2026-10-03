@@ -1,6 +1,6 @@
 # ADR 0405 — Paperclip Managed Connection Command Host Capability V1
 
-- Status: **CODE CANDIDATE / CI PENDING / NO PRODUCTION EFFECT**
+- Status: **QUALIFIED / EXACT-HEAD CI GREEN / EXISTING-CONNECTION-ONLY / NO PRODUCTION EFFECT / UNMERGED**
 - Date: 2026-10-02
 - Paperclip pin: `v2026.916.1@d554c4789ed3930f8a53ac9fdf6503b3187097da`
 - Prerequisite: ADR 0281 retained host-operational-read patch
@@ -202,7 +202,7 @@ Full local dependency installation/typecheck/test was **not** accepted as qualif
 
 Therefore GitHub-hosted ADR 0158 CI under Ubuntu 24.04 / Node 24 is the execution authority for this code candidate.
 
-Current status remains **CI PENDING**.
+The final implementation head `f3ee72bc00147c55b01366014b911b50e5df1e13` completed **11/11 workflows GREEN**. The dedicated `Paperclip Managed Connection Command V1 CI` run `37122551098` (workflow run #7) completed successfully. This closes code qualification for the existing-Connection-only slice; production activation remains explicitly NO-GO and PR #404 remains unmerged.
 
 ### CI iteration 1
 
@@ -247,3 +247,10 @@ There is no runtime rollback in this ADR because no production runtime is change
 PR #404 run `37121433434` passed patch application, static verification, dependency installation, SDK typecheck and server typecheck. Focused tests reached 25/26 GREEN; the only failure was a contradictory test assertion that required durable internal `credentialSecretRefs` to remain stable while also forbidding the same secret ID from a serialization that intentionally included that internal Connection row.
 
 The test-only correction keeps the stable-ref assertion, keeps plaintext-leak checks across internal evidence, and scopes secret-ID exclusion to the public command `result`, which is the actual redaction boundary. No runtime code, transaction, authority or provider behavior changed. Qualification remains **CI PENDING** until GitHub-hosted CI is GREEN.
+
+
+### Exact-head CI qualification completion
+
+After the iteration-3 test-only correction, PR #404 head `f3ee72bc00147c55b01366014b911b50e5df1e13` completed **11/11 workflows GREEN**, with no PR comments, review submissions or review threads observed at reconciliation. The retained patch SHA-256 remains `9154fd2f5fa8364acec3f107ca20c09a00134c1e5e99e79424c2624555b01430`.
+
+This checkpoint does not authorize deployment, runtime restart, production secret mutation, provider/VendaERP call, customer effect, outbound, or new-customer Connection provisioning. The documentation-only closing head must itself be exact-head CI GREEN before PR #404 may leave draft and merge.

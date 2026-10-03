@@ -1,6 +1,6 @@
 ## Reconciled checkpoint — ADR 0405 Paperclip Managed Connection Command Host Capability V1
 
-ADR 0405 is **CODE CANDIDATE / CI PENDING / EXISTING-CONNECTION-ONLY / NO PRODUCTION EFFECT**.
+ADR 0405 is **QUALIFIED / EXACT-HEAD CI GREEN / EXISTING-CONNECTION-ONLY / NO PRODUCTION EFFECT / UNMERGED**.
 
 Canonical entry remains `main@9eb58cdf29bb15ceec9d150daabeb0b4aa0fdac5`, after ADR 0404 / PR #403 completed 9/9 relevant workflows GREEN and was squash-merged. The Dynamic Managed Employee stack remains separate.
 
@@ -16,7 +16,9 @@ Local `git diff --check` is clean. Full local typecheck/tests are not claimed be
 
 No production patch, deploy, restart, migration, real secret mutation, VendaERP/provider call, customer work or outbound effect occurred.
 
-Next gate: dedicated ADR 0405 CI on the final PR head. New-customer Connection provisioning remains a separate future slice.
+Exact implementation head `f3ee72bc00147c55b01366014b911b50e5df1e13` completed **11/11 workflows GREEN**, including `Paperclip Managed Connection Command V1 CI` run `37122551098` (workflow run #7). PR #404 had no comments, review submissions or review threads at reconciliation.
+
+Closure gate: this documentation-only checkpoint creates a new PR head that must itself complete exact-head CI GREEN before PR #404 can leave draft and merge. New-customer Connection provisioning remains a separate future slice.
 
 ## Reconciled checkpoint — ADR 0404 Customer 28PRO Self-Service Connection provider command boundary
 
