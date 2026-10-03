@@ -1,6 +1,6 @@
 # ADR 0405 — Paperclip Managed Connection Command Host Capability V1
 
-- Status: **QUALIFIED / EXACT-HEAD CI GREEN / EXISTING-CONNECTION-ONLY / NO PRODUCTION EFFECT / UNMERGED**
+- Status: **MERGED / QUALIFIED / EXACT-HEAD CI GREEN / EXISTING-CONNECTION-ONLY / NO PRODUCTION EFFECT**
 - Date: 2026-10-02
 - Paperclip pin: `v2026.916.1@d554c4789ed3930f8a53ac9fdf6503b3187097da`
 - Prerequisite: ADR 0281 retained host-operational-read patch
@@ -254,3 +254,14 @@ The test-only correction keeps the stable-ref assertion, keeps plaintext-leak ch
 After the iteration-3 test-only correction, PR #404 head `f3ee72bc00147c55b01366014b911b50e5df1e13` completed **11/11 workflows GREEN**, with no PR comments, review submissions or review threads observed at reconciliation. The retained patch SHA-256 remains `9154fd2f5fa8364acec3f107ca20c09a00134c1e5e99e79424c2624555b01430`.
 
 This checkpoint does not authorize deployment, runtime restart, production secret mutation, provider/VendaERP call, customer effect, outbound, or new-customer Connection provisioning. The documentation-only closing head must itself be exact-head CI GREEN before PR #404 may leave draft and merge.
+
+
+## Post-merge closure and next boundary
+
+PR #404 documentation head `3f4db1ef2a07760828d65044488d8ca6a7e6cb87` completed **11/11 workflows GREEN** with no comments, review submissions or review threads. The branch was 0 commits behind `main`, then left draft and was squash-merged as `1b3e47f188d81d407f89cbe49b988770dec17130`.
+
+This merge did not authorize or perform production deployment, runtime restart, migration, real secret mutation, provider/VendaERP call, customer work or outbound.
+
+A fresh post-merge Reuse Gate confirms that new-customer 28PRO provisioning remains the next blocker, but its missing capability is provider-side. Accepted Paperclip `v2026.916.1` maps AppDefinition credential fields through `credentialConfigPath(field)` without method context, so `local_stdio` env placement is lost; its `connectToolAppSchema` also has no vault-only `saveDraft` flag, and normal `connectGalleryApp` continues into health/catalog setup. Current upstream `master@569c7203aa24b95440682983ce7940ba1d4247bd` has the method-aware env mapping, but its newer draft-saving path is restricted to remote MCP connector methods.
+
+Accordingly, the next executable slice is **Paperclip 28PRO New-Customer Connection Provisioning Primitive Qualification V1 — CODE ONLY / DISPOSABLE TESTS / NO PRODUCTION EFFECT**. It must reuse Paperclip-owned Application/Connection/secret/grant/template/removal lifecycle, add no Wandora Connection or secret lifecycle, expose no generic Board/admin proxy, and stop before Organization Adapter command wiring, Core/Web self-service, production deployment or any real provider/customer effect.
