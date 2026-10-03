@@ -190,7 +190,7 @@ Incremental patch:
 
 SHA-256:
 
-`d6b80340be751628fc75a4e4ff17810ac2b9a11c06a17b01a82c5a427bc8c48a`
+`9154fd2f5fa8364acec3f107ca20c09a00134c1e5e99e79424c2624555b01430`
 
 It must be applied after the immutable ADR 0281 host-operational-read patch.
 
@@ -241,3 +241,9 @@ A later new-customer provisioning slice must independently prove a provider-nati
 Repository rollback is removal/revert of the incremental retained patch, verifier/workflow and this documentation.
 
 There is no runtime rollback in this ADR because no production runtime is changed.
+
+### CI iteration 3
+
+PR #404 run `37121433434` passed patch application, static verification, dependency installation, SDK typecheck and server typecheck. Focused tests reached 25/26 GREEN; the only failure was a contradictory test assertion that required durable internal `credentialSecretRefs` to remain stable while also forbidding the same secret ID from a serialization that intentionally included that internal Connection row.
+
+The test-only correction keeps the stable-ref assertion, keeps plaintext-leak checks across internal evidence, and scopes secret-ID exclusion to the public command `result`, which is the actual redaction boundary. No runtime code, transaction, authority or provider behavior changed. Qualification remains **CI PENDING** until GitHub-hosted CI is GREEN.

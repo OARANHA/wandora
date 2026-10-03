@@ -582,7 +582,7 @@ index 000000000..c9cb6f088
 +      expect(serialized).not.toContain(values.authorizationToken);
 +      expect(serialized).not.toContain(values.user);
 +      expect(serialized).not.toContain(values.app);
-+      expect(serialized).not.toContain(seeded.secrets.authorization.id);
++      expect(ids.some((id) => JSON.stringify(result).includes(id))).toBe(false);
 +      expect(JSON.stringify(result)).not.toMatch(
 +        /secretId|connectionId|grantId|applicationId/i,
 +      );
