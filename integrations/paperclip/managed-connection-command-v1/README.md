@@ -12,7 +12,7 @@ This directory is **CODE ONLY / DISPOSABLE TESTS / NO PRODUCTION EFFECT**. It do
 - prerequisite retained patch: `integrations/paperclip/patches/v2026.916.1-host-operational-read-v1.patch`
 - prerequisite patch SHA-256: `fc0ce000b2fa5051f10fb71cfece71df17e9b4953779486d951b3f2990cd8bfb`
 - incremental patch: `integrations/paperclip/patches/v2026.916.1-managed-connection-command-v1.patch`
-- incremental patch SHA-256: `9b28a5990d48b93a265048f4972c92d3320b1c61669ced8a10c2878ce5a5f8b7`
+- incremental patch SHA-256: `d06d369bf29d0177f054d8e16f483bd6e57544b96e817dd324e9eb86801e5fc1`
 
 The incremental patch is qualified only when applied **after** the ADR 0281 host-operational-read patch on that exact upstream commit.
 
